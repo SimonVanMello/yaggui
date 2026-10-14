@@ -61,6 +61,7 @@ pnpm check          # file name casing + lint (ESLint) + format (Prettier) + typ
 pnpm test:ui        # Playwright on `pnpm dev` (mocked backend), captures in test-results/; primitives page at /#primitives
 pnpm screenshots    # README screenshots (docs/assets/*.png) on the mocked backend
 pnpm bindings       # Regenerates src/ipc/bindings.ts from Rust
+pnpm release:version <x.y.z>  # Sets the app version in package.json, tauri.conf.json, Cargo.toml and Cargo.lock (see docs/RELEASING.md)
 pnpm perf:tabs      # P-07 on a production build of the front (mock), CPU ×1 and ×4, + JS memory with 5 tabs
 pnpm perf:graph     # P-04: scrolling the linux 100k graph (mock, production build), CPU ×1 and ×4
 pnpm perf:diff      # P-06 on a production build of the front (mock); backend: cd src-tauri && cargo test --release --test diff p06 -- --ignored --nocapture
