@@ -30,7 +30,11 @@ fn inherited_git_location_variables_are_ignored() {
         )
         .unwrap();
     let mut lines = out.stdout.lines();
-    assert_eq!(lines.next(), Some(fx.repo_str().as_str()));
+    // Compared as paths: Git prints `C:/…` on Windows.
+    assert_eq!(
+        lines.next().map(std::path::Path::new),
+        Some(fx.repo().as_path())
+    );
     assert_eq!(lines.next(), Some("false"));
 
     // A git write lands in the fixture, not in the inherited location.

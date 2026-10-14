@@ -200,7 +200,7 @@ impl Layout {
         out.lane_count = out
             .lanes
             .iter()
-            .chain(out.edges.chunks_exact(4).flat_map(|e| &e[..2]))
+            .chain(out.edges.as_chunks::<4>().0.iter().flat_map(|e| &e[..2]))
             .max()
             .map_or(0, |&lane| lane + 1);
         out
@@ -231,7 +231,9 @@ fn emit(state: &State, source: &dyn RowSource, next: Option<u32>, out: &mut Layo
         let (a, b) = (cap(from), cap(to));
         if (a != from || b != to)
             && edges[row_start..]
-                .chunks_exact(4)
+                .as_chunks::<4>()
+                .0
+                .iter()
                 .any(|e| e[0] == a && e[1] == b && e[2] == color)
         {
             return;
@@ -420,7 +422,9 @@ mod tests {
         assert!(out.lanes.iter().all(|&l| l < GRAPH_MAX_LANES));
         assert!(
             out.edges
-                .chunks_exact(4)
+                .as_chunks::<4>()
+                .0
+                .iter()
                 .all(|e| e[0] < GRAPH_MAX_LANES && e[1] < GRAPH_MAX_LANES)
         );
     }

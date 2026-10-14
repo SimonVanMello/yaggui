@@ -269,18 +269,12 @@ fn an_index_rewritten_with_the_same_mtime_is_reloaded() {
 
     std::fs::write(fx.repo().join("new.txt"), "new\n").unwrap();
     fx.git(&["add", "new.txt"]);
-    let since_epoch = mtime.duration_since(std::time::UNIX_EPOCH).unwrap();
-    let stamp = format!(
-        "@{}.{:09}",
-        since_epoch.as_secs(),
-        since_epoch.subsec_nanos()
-    );
-    let touched = std::process::Command::new("touch")
-        .args(["-m", "-d", &stamp])
-        .arg(&index)
-        .status()
+    std::fs::File::options()
+        .write(true)
+        .open(&index)
+        .unwrap()
+        .set_modified(mtime)
         .unwrap();
-    assert!(touched.success());
     assert_eq!(
         std::fs::metadata(&index).unwrap().modified().unwrap(),
         mtime

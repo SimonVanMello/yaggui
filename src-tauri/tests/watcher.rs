@@ -222,6 +222,7 @@ fn ignored_folders_and_git_internals_are_not_watched() {
 }
 
 /// Every folder under `root` (itself included).
+#[cfg(target_os = "linux")]
 fn walk(root: &std::path::Path) -> Vec<std::path::PathBuf> {
     let mut out = vec![root.to_path_buf()];
     let mut i = 0;

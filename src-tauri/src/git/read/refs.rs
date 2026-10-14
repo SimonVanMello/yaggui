@@ -657,5 +657,5 @@ pub(crate) fn read_worktrees(repo: &gix::Repository) -> Vec<WorktreeRef> {
 }
 
 fn normalize(path: &std::path::Path) -> std::path::PathBuf {
-    std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf())
+    crate::system::paths::canonical(path)
 }

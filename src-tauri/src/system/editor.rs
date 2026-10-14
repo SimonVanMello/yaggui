@@ -46,6 +46,20 @@ fn open_with(os: Os, target: &Path, preference: Option<&str>) -> Result<String, 
                 YagguiError::editor_not_found(preference).with_detail(format!("{name}: {err}"))
             }
         })?;
+    // `open` hands the file to the application and returns at once: its exit status is the
+    // only sign that the application does not exist, since spawning `open` itself succeeds.
+    if os == Os::Mac {
+        let status = child.wait().map_err(|err| {
+            YagguiError::editor_not_found(preference).with_detail(format!("{name}: {err}"))
+        })?;
+        if !status.success() {
+            return Err(
+                YagguiError::editor_not_found(preference).with_detail(format!("{name}: {status}"))
+            );
+        }
+        tracing::info!(editor = %name, target = %target.display(), "editor opened");
+        return Ok(name);
+    }
     tracing::info!(editor = %name, target = %target.display(), "editor opened");
     // Reap the editor when it exits so it does not linger as a zombie.
     let reaper = std::thread::Builder::new()

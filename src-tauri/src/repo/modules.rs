@@ -107,10 +107,7 @@ impl RepoManager {
             if !run.success {
                 return Err(classify(ctx, &run));
             }
-            let created = std::fs::canonicalize(&path)
-                .unwrap_or(path)
-                .display()
-                .to_string();
+            let created = crate::system::paths::canonical(&path).display().to_string();
             let branch = match &request.branch {
                 WorktreeBranch::Existing { name } | WorktreeBranch::New { name, .. } => name,
             };
@@ -299,7 +296,7 @@ fn submodule_paths(repo: &gix::Repository) -> Vec<String> {
 
 /// A linked worktree of the repository, other than the one this session shows.
 fn linked_worktree(repo: &gix::Repository, path: &str) -> Result<WorktreeRef, YagguiError> {
-    let wanted = std::fs::canonicalize(path).unwrap_or_else(|_| PathBuf::from(path));
+    let wanted = crate::system::paths::canonical(Path::new(path));
     read_worktrees(repo)
         .into_iter()
         .find(|w| !w.is_main && !w.is_current && Path::new(&w.path) == wanted)

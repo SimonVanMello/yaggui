@@ -47,9 +47,10 @@ fn ssh_started_by_git_has_no_controlling_terminal() {
         libc::openpty(
             &mut master,
             &mut slave,
+            // `*mut` on macOS, `*const` on Linux: a null `*mut` fits both.
             std::ptr::null_mut(),
-            std::ptr::null(),
-            std::ptr::null(),
+            std::ptr::null_mut(),
+            std::ptr::null_mut(),
         )
     };
     assert_eq!(opened, 0, "openpty: {}", std::io::Error::last_os_error());
