@@ -183,6 +183,7 @@ const BUILTIN: readonly PaletteAction[] = [
     }),
   },
   shell('git.branch.create', 'createBranch', 'palette.action.git.branchCreate', 'git', hasRepo),
+  shell('git.tag.create', 'createTag', 'palette.action.git.tagCreate', 'git', hasRepo),
   {
     id: 'git.merge',
     title: 'palette.action.git.merge',

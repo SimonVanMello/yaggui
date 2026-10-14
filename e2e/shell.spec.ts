@@ -16,6 +16,21 @@ async function capture(page: Page, theme: string, state: string) {
   });
 }
 
+/** No toolbar overflow, and its buttons do not run into the branch selector on the right. */
+async function expectToolbarFits(page: Page) {
+  const toolbar = page.getByRole('toolbar', { name: 'Repository actions' });
+  const layout = await toolbar.evaluate((el) => {
+    const end = el.lastElementChild?.getBoundingClientRect().left ?? Infinity;
+    const lastButton = [...el.children]
+      .slice(0, -1)
+      .map((child) => child.getBoundingClientRect().right)
+      .reduce((max, right) => Math.max(max, right), 0);
+    return { overflow: el.scrollWidth > el.clientWidth, lastButton, end };
+  });
+  expect(layout.overflow).toBe(false);
+  expect(layout.lastButton).toBeLessThanOrEqual(layout.end);
+}
+
 async function start(page: Page) {
   await page.clock.setFixedTime(new Date(MOCK_NOW_MS));
   await page.goto('/');
@@ -373,7 +388,16 @@ for (const { name: theme, colorScheme } of THEMES) {
       const pull = page.getByRole('button', { name: /Pull 4 commits/ });
       await expect(pull).toBeEnabled();
       await expect(page.getByRole('button', { name: /New branch/ })).toBeVisible();
+      // The toolbar (Branch then Tag, icon-only here) fits without overlap.
+      const toolbar = page.getByRole('toolbar', { name: 'Repository actions' });
+      await expect(toolbar.getByRole('button', { name: 'Tag', exact: true })).toBeInViewport();
+      await expectToolbarFits(page);
       await capture(page, theme, 'min-size-clean');
+      // Just above the breakpoint where labels come back, the toolbar still fits.
+      await page.setViewportSize({ width: 1100, height: 560 });
+      await expect(toolbar.getByText('Tag', { exact: true })).toBeVisible();
+      await expectToolbarFits(page);
+      await page.setViewportSize({ width: 900, height: 560 });
       // Once up to date, pulling is no longer suggested; fetching is.
       await pull.click();
       await expect(pull).toBeHidden();

@@ -1,4 +1,4 @@
-import { openCreateBranchFromHead } from '../features/refs/refCommands';
+import { openCreateBranchFromHead, openCreateTagFromHead } from '../features/refs/refCommands';
 import { STASH_EVENT } from '../features/refs/refEvents';
 import { popLatestStash } from '../features/refs/refOps';
 import { useKeybindings } from '../features/keybindings/keybindingsStore';
@@ -49,6 +49,7 @@ export type ShellAction =
   | 'initRepo'
   | 'commandPalette'
   | 'createBranch'
+  | 'createTag'
   | 'stash'
   | 'stashPop'
   | 'fetch'
@@ -115,6 +116,10 @@ const ACTIONS: Record<ShellAction, () => void> = {
   createBranch: () => {
     const repoId = activeRepoId();
     if (repoId !== null) void openCreateBranchFromHead(repoId);
+  },
+  createTag: () => {
+    const repoId = activeRepoId();
+    if (repoId !== null) void openCreateTagFromHead(repoId);
   },
   stash: () => {
     if (activeRepoId() !== null) window.dispatchEvent(new Event(STASH_EVENT));
@@ -231,6 +236,7 @@ const BINDING_IDS: Record<ShellAction, string> = {
   initRepo: 'repo.init',
   commandPalette: 'app.palette',
   createBranch: 'git.branch.create',
+  createTag: 'git.tag.create',
   stash: 'git.stash',
   stashPop: 'git.stash.pop',
   fetch: 'git.fetch',

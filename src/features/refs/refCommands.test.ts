@@ -1,7 +1,18 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { queryClient } from '../../app/queryClient';
+import { ipc, type HeadState, type RepoState } from '../../ipc';
+import { useToastStore } from '../../ui/toastStore';
 import type { RefTarget } from '../sidebar/sidebarRows';
-import { branchStartOf, checkoutTargetOf } from './refCommands';
+import { branchStartOf, checkoutTargetOf, openCreateTagFromHead } from './refCommands';
+import { useRefDialogs } from './refDialogsStore';
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  queryClient.clear();
+  useToastStore.setState({ toasts: [] });
+  useRefDialogs.getState().close();
+});
 
 const local: RefTarget = {
   kind: 'local',
@@ -67,5 +78,44 @@ describe('branchStartOf', () => {
 
   it('has no start for a branchless HEAD', () => {
     expect(branchStartOf({ kind: 'head', head: { kind: 'unborn', name: 'main' } })).toBeNull();
+  });
+});
+
+describe('openCreateTagFromHead', () => {
+  const OID = '0123456789abcdef0123456789abcdef01234567';
+
+  function withHead(head: HeadState) {
+    const state: RepoState = {
+      head,
+      upstream: null,
+      dirty: { staged: 0, unstaged: 0, untracked: 0, conflicted: 0 },
+      operation: null,
+      indexLock: null,
+    };
+    vi.spyOn(ipc.commands, 'repoState').mockResolvedValue({ status: 'ok', data: state });
+  }
+
+  it('targets the commit HEAD points to, labelled with the branch', async () => {
+    withHead({ kind: 'branch', name: 'main', oid: OID });
+    await openCreateTagFromHead(1);
+    expect(useRefDialogs.getState().dialog).toEqual({
+      kind: 'createTag',
+      repoId: 1,
+      target: OID,
+      targetLabel: 'main',
+    });
+  });
+
+  it('labels a detached HEAD with its short SHA', async () => {
+    withHead({ kind: 'detached', oid: OID });
+    await openCreateTagFromHead(1);
+    expect(useRefDialogs.getState().dialog).toMatchObject({ target: OID, targetLabel: '0123456' });
+  });
+
+  it('opens nothing on an unborn HEAD and says why', async () => {
+    withHead({ kind: 'unborn', name: 'main' });
+    await openCreateTagFromHead(1);
+    expect(useRefDialogs.getState().dialog).toBeNull();
+    expect(useToastStore.getState().toasts).toHaveLength(1);
   });
 });

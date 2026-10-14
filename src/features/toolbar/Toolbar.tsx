@@ -3,7 +3,7 @@ import { useTabsStore, type ShellTab } from '../../app/tabs/tabsStore';
 import { useT } from '../../i18n/useT';
 import type { RepoInfo, RepoState } from '../../ipc';
 import { IconButton } from '../../ui/IconButton';
-import { openCreateBranchFromHead } from '../refs/refCommands';
+import { openCreateBranchFromHead, openCreateTagFromHead } from '../refs/refCommands';
 import { popLatestStash } from '../refs/refOps';
 import { useRepoRefs } from '../sidebar/useRepoRefs';
 import { UndoButtons } from '../undo/UndoButtons';
@@ -16,10 +16,11 @@ import styles from './Toolbar.module.css';
 import { StashButton } from './StashButton';
 import { ToolbarButton } from './ToolbarButton';
 
-/** Repository toolbar: network actions, branch, stash and pop, terminal. */
+/** Repository toolbar: network actions, branch, tag, stash and pop, terminal. */
 export function Toolbar({ tab, repo, state }: { tab: ShellTab; repo: RepoInfo; state: RepoState }) {
   const t = useT();
   const branchShortcut = useShortcut('git.branch.create');
+  const tagShortcut = useShortcut('git.tag.create');
   const popShortcut = useShortcut('git.stash.pop');
   const sidebarShortcut = useShortcut('view.sidebar');
   const detailsShortcut = useShortcut('view.details');
@@ -29,6 +30,7 @@ export function Toolbar({ tab, repo, state }: { tab: ShellTab; repo: RepoInfo; s
   const setPanel = useTabsStore((store) => store.setPanel);
   const refs = useRepoRefs(repo.id).data;
   const { sidebar, details } = tab.panels;
+  const unborn = state.head.kind === 'unborn';
 
   return (
     <div role="toolbar" aria-label={t('toolbar.label')} className={styles.toolbar}>
@@ -43,6 +45,17 @@ export function Toolbar({ tab, repo, state }: { tab: ShellTab; repo: RepoInfo; s
         shortcut={branchShortcut}
         onClick={() => {
           void openCreateBranchFromHead(repo.id);
+        }}
+      />
+      <ToolbarButton
+        icon="tag"
+        label={t('toolbar.tag')}
+        description={unborn ? t('refs.createTag.unborn') : undefined}
+        command="git tag"
+        shortcut={tagShortcut}
+        disabled={unborn}
+        onClick={() => {
+          void openCreateTagFromHead(repo.id);
         }}
       />
       <StashButton repoId={repo.id} state={state} />

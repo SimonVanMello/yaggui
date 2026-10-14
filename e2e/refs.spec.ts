@@ -154,5 +154,44 @@ for (const { name: theme, colorScheme } of THEMES) {
       await dialog(page).getByRole('button', { name: 'Delete the tag' }).click();
       await expect(page.getByText('Tag v9.9.9 deleted', { exact: true })).toBeVisible();
     });
+
+    test('toolbar Tag button tags HEAD, right after the Branch button', async ({ page }) => {
+      await openYaggui(page);
+      const toolbar = page.getByRole('toolbar', { name: 'Repository actions' });
+      const names = await toolbar
+        .getByRole('button')
+        .evaluateAll((buttons) => buttons.map((button) => button.getAttribute('aria-label')));
+      expect(names[names.indexOf('Branch') + 1]).toBe('Tag');
+      await expect(
+        page.getByRole('button', { name: /Current branch: feat\/graph-lanes/ }),
+      ).toBeVisible();
+      await toolbar.getByRole('button', { name: 'Tag', exact: true }).click();
+      await expect(dialog(page)).toContainText('Create a tag');
+      await expect(dialog(page)).toContainText('On commit feat/graph-lanes');
+      await dialog(page).getByLabel('Tag name').fill('v9.9.8');
+      await capture(page, theme, 'create-tag-head');
+      await dialog(page).getByRole('button', { name: 'Create tag' }).click();
+      await expect(page.getByText('Tag v9.9.8 created', { exact: true })).toBeVisible();
+      await expandSection(page, 'Tags');
+      await expect(tree(page).getByRole('treeitem', { name: /v9\.9\.8/ })).toBeVisible();
+    });
+
+    test('toolbar Tag button is disabled without a commit', async ({ page }) => {
+      await page.clock.setFixedTime(new Date(MOCK_NOW_MS));
+      await page.goto('/');
+      await page.getByRole('button', { name: 'Enter a path…' }).click();
+      const open = page.getByRole('dialog', { name: 'Open a repository' });
+      await open.getByRole('textbox').fill('/Users/alex/dev/unborn-project');
+      await open.getByRole('button', { name: /^Open/ }).last().click();
+      const tag = page
+        .getByRole('toolbar', { name: 'Repository actions' })
+        .getByRole('button', { name: 'Tag', exact: true });
+      await expect(tag).toHaveAttribute('aria-disabled', 'true');
+      // Still focusable and hoverable: the tooltip says why.
+      await tag.hover();
+      await expect(page.getByRole('tooltip')).toContainText('the repository has no commit');
+      await tag.click({ force: true });
+      await expect(dialog(page)).toHaveCount(0);
+    });
   });
 }
