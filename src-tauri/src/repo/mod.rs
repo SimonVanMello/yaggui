@@ -632,7 +632,7 @@ fn config_stamp(files: &[PathBuf]) -> ConfigStamp {
 /// Canonical form used as the persisted identity of a repo, so `/a/../a/repo` and
 /// symlinks resolve to the same entry.
 fn normalize(path: &Path) -> PathBuf {
-    std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf())
+    crate::system::paths::canonical(path)
 }
 
 /// Path shown to the user. On Windows `canonicalize` adds a `\\?\` prefix that most

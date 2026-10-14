@@ -38,16 +38,26 @@ fn wait_output(sink: &RecordingSink, pty_id: u32, needle: &str) {
     );
 }
 
+/// ConPTY asks for the cursor position (`ESC[6n`) when it starts and waits for the reply
+/// before running the shell; in the app, xterm.js answers it.
+fn answer_cursor_query(manager: &PtyManager, sink: &RecordingSink, pty_id: u32) {
+    if cfg!(windows) {
+        wait_output(sink, pty_id, "\x1b[6n");
+        manager.write(pty_id, "\x1b[1;1R").expect("write");
+    }
+}
+
 #[test]
 fn runs_a_shell_in_the_folder_resizes_and_closes() {
     let dir = tempfile::tempdir().expect("temp dir");
-    let cwd = std::fs::canonicalize(dir.path()).expect("canonical dir");
+    let cwd = yaggui_lib::system::paths::canonical(dir.path());
     let sink = Arc::new(RecordingSink::default());
     let manager = PtyManager::new(sink.clone());
 
     let info = manager.spawn(7, &cwd, 80, 24).expect("shell started");
     assert!(!info.shell.is_empty());
     assert_eq!(manager.count(7), 1);
+    answer_cursor_query(&manager, &sink, info.pty_id);
 
     // The echo of the typed line shows `he''llo`: only the command output reads `hello`.
     manager.write(info.pty_id, "echo he''llo\r").expect("write");
@@ -80,6 +90,7 @@ fn reports_the_exit_code_after_the_last_output() {
     let sink = Arc::new(RecordingSink::default());
     let manager = PtyManager::new(sink.clone());
     let info = manager.spawn(1, dir.path(), 80, 24).expect("shell started");
+    answer_cursor_query(&manager, &sink, info.pty_id);
 
     manager
         .write(info.pty_id, "echo by''e; exit 3\r")
