@@ -32,9 +32,31 @@
 
 ## Install
 
-Download the installer for your OS from the [latest release](https://github.com/SimonVanMello/yaggui/releases/latest): `.dmg` for macOS, `.exe` or `.msi` for Windows, `.deb`, `.rpm` or `.AppImage` for Linux. Git 2.30+ must be installed.
+Git 2.30+ must be installed.
 
-On Arch Linux, install [`yaggui-bin`](https://aur.archlinux.org/packages/yaggui-bin) from the AUR, for example with `yay -S yaggui-bin`. On macOS, install the cask from the [`homebrew-yaggui`](https://github.com/SimonVanMello/homebrew-yaggui) tap with `brew install --cask simonvanmello/yaggui/yaggui`.
+### macOS (Homebrew)
+
+```bash
+brew install --cask simonvanmello/yaggui/yaggui
+```
+
+The cask comes from the [`homebrew-yaggui`](https://github.com/SimonVanMello/homebrew-yaggui) tap, which the command adds on its own. It installs the build for your Mac (Apple Silicon or Intel) into `/Applications`.
+
+The app is not notarized yet, so Gatekeeper blocks it on first launch. Clear the quarantine attribute once:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/yaggui.app
+```
+
+Update with `brew upgrade --cask yaggui`. Uninstall with `brew uninstall --cask yaggui`, or `brew uninstall --zap --cask yaggui` to also remove settings and caches.
+
+### Arch Linux (AUR)
+
+Install [`yaggui-bin`](https://aur.archlinux.org/packages/yaggui-bin), for example with `yay -S yaggui-bin`.
+
+### Other platforms
+
+Download the installer for your OS from the [latest release](https://github.com/SimonVanMello/yaggui/releases/latest): `.dmg` for macOS, `.exe` or `.msi` for Windows, `.deb`, `.rpm` or `.AppImage` for Linux.
 
 The builds are not signed yet: on macOS, allow the app in System Settings → Privacy & Security on first launch; on Windows, SmartScreen asks for confirmation.
 
