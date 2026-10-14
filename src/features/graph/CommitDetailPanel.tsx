@@ -15,7 +15,7 @@ import {
 import { Spinner } from '../../ui/Spinner';
 import { ChangedFileList } from '../diff/ChangedFileList';
 import { useChangedFiles } from '../diff/diffQueries';
-import { openDiff, useDiffSelection } from '../diff/diffStore';
+import { closeDiff, openDiff, useDiffSelection } from '../diff/diffStore';
 import { FileInspectMenu } from '../inspect/FileInspectButtons';
 import { useNow } from '../../ui/useNow';
 import { Avatar } from './Avatar';
@@ -94,6 +94,9 @@ function CommitFiles({ repoId, tabId, sha }: { repoId: number; tabId: string; sh
       statsSkipped={files?.statsSkipped}
       lfsPaths={files?.lfs}
       selectedPath={selectedPath}
+      onDeselect={() => {
+        closeDiff(tabId);
+      }}
       onSelect={(file: ChangedFile) => {
         openDiff(tabId, { repoId, target, path: file.path, oldPath: file.oldPath });
       }}

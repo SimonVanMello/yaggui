@@ -87,3 +87,18 @@ export function nextAfter(order: readonly string[], acted: ReadonlySet<string>):
   }
   return null;
 }
+
+/**
+ * Whether a click on `path` closes its diff instead of opening it: a plain click (no `Shift`,
+ * no `⌘` / `Ctrl`) on the file already open, when it is the whole selection. With other files
+ * picked, the click narrows the selection to it as before.
+ */
+export function closesOpenDiff(
+  path: string,
+  modifiers: PickModifiers,
+  openPath: string | null,
+  selected: ReadonlySet<string>,
+): boolean {
+  if (modifiers.shift || modifiers.toggle || openPath !== path) return false;
+  return selected.size <= 1;
+}

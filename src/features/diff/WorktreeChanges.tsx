@@ -5,7 +5,7 @@ import { discardFiles, stageFiles, unstageFiles } from '../staging/stagingAction
 import { WorktreeFileMenu } from '../staging/WorktreeFileMenu';
 import { ChangedFileList, type FileListStaging } from './ChangedFileList';
 import { useChangedFiles, useWorktreeDiffRefresh } from './diffQueries';
-import { openDiff, useDiffSelection } from './diffStore';
+import { closeDiff, openDiff, useDiffSelection } from './diffStore';
 import styles from './WorktreeChanges.module.css';
 
 const STAGED: DiffTarget = { kind: 'staged' };
@@ -16,7 +16,7 @@ const paths = (files: readonly ChangedFile[]) => files.map((f) => f.path);
 /**
  * Unstaged and staged files of the working tree (F-060, F-061): hover buttons, `Space`,
  * multi-selection and drag between the lists. A click opens the file's diff in place of the
- * graph.
+ * graph; a click on the open file closes it.
  */
 export function WorktreeChanges({ repoId, tabId }: { repoId: number; tabId: string }) {
   const t = useT();
@@ -76,6 +76,9 @@ export function WorktreeChanges({ repoId, tabId }: { repoId: number; tabId: stri
         statsSkipped={unstaged?.statsSkipped}
         lfsPaths={unstaged?.lfs}
         selectedPath={selected('unstaged')}
+        onDeselect={() => {
+          closeDiff(tabId);
+        }}
         onSelect={open(UNSTAGED)}
         emptyText={unstaged ? t('diff.wip.emptyUnstaged') : undefined}
         staging={unstagedActions}
@@ -88,6 +91,9 @@ export function WorktreeChanges({ repoId, tabId }: { repoId: number; tabId: stri
         statsSkipped={staged?.statsSkipped}
         lfsPaths={staged?.lfs}
         selectedPath={selected('staged')}
+        onDeselect={() => {
+          closeDiff(tabId);
+        }}
         onSelect={open(STAGED)}
         emptyText={staged ? t('diff.wip.emptyStaged') : undefined}
         staging={stagedActions}
