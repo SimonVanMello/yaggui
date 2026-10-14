@@ -21,6 +21,7 @@
     "screenshots": "playwright test --config playwright.screenshots.config.ts",
     "perf:tabs": "playwright test --config playwright.perf.config.ts perf.spec",
     "perf:startup": "node scripts/measure-startup.mjs",
+    "release:version": "node scripts/version.mjs set",
     "bindings": "cargo run --manifest-path src-tauri/Cargo.toml --example export-bindings",
     "perf:diff": "playwright test --config playwright.perf.config.ts perf-diff",
     "perf:graph": "playwright test --config playwright.perf.config.ts perf-graph",
