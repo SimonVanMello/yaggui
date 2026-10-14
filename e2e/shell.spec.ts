@@ -457,3 +457,34 @@ test.describe('tab strip', () => {
     await expect(maximize).toBeFocused();
   });
 });
+
+for (const { name: theme, colorScheme } of THEMES) {
+  test.describe(`${theme} theme, scrollbars`, () => {
+    test.use({ colorScheme, locale: 'en-US' });
+
+    test('the branch selector covers the right edge of the scrolled graph', async ({ page }) => {
+      await start(page);
+      await openFromWelcome(page, 'yaggui');
+      const graph = page.getByRole('listbox', { name: 'Commit graph' });
+      // Headless Chromium hides scrollbars, so this only guards the stacking order; the WebKit
+      // overlay scrollbars this is about are turned off by the styled ones of global.css.
+      const edge = await graph.evaluate((el) => {
+        el.scrollTop = 200;
+        return el.getBoundingClientRect().right - 4;
+      });
+
+      await page.getByRole('button', { name: /^Current branch:/ }).click();
+      const search = page.getByRole('combobox', { name: 'Find a branch…' });
+      await expect(search).toBeVisible();
+      const covered = await search.evaluate((input, x) => {
+        const popover = input.closest('[data-radix-popper-content-wrapper]');
+        const box = popover?.getBoundingClientRect();
+        if (!popover || !box || x < box.left || x > box.right) return null;
+        const hit = document.elementFromPoint(x, box.top + box.height / 2);
+        return hit !== null && popover.contains(hit);
+      }, edge);
+      expect(covered).toBe(true);
+      await capture(page, theme, 'branch-selector-over-graph');
+    });
+  });
+}

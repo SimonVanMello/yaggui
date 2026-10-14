@@ -40,28 +40,6 @@
   line-height: var(--leading-normal);
 }
 
-/* Always-visible scrollbars: long lines must show they scroll horizontally. */
-.pane :global(.cm-scroller)::-webkit-scrollbar {
-  width: var(--scrollbar-size);
-  height: var(--scrollbar-size);
-}
-
-.pane :global(.cm-scroller)::-webkit-scrollbar-track,
-.pane :global(.cm-scroller)::-webkit-scrollbar-corner {
-  background: transparent;
-}
-
-.pane :global(.cm-scroller)::-webkit-scrollbar-thumb {
-  border: var(--space-0) solid transparent;
-  border-radius: var(--radius-full);
-  background: var(--border-strong);
-  background-clip: padding-box;
-}
-
-.pane :global(.cm-scroller)::-webkit-scrollbar-thumb:hover {
-  background-color: var(--fg-muted);
-}
-
 .pane :global(.cm-content) {
   padding: 0;
 }
