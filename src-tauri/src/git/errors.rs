@@ -52,6 +52,10 @@ pub enum ErrorCode {
     TerminalClosed,
     /// An avatar could not be downloaded (offline, unexpected answer); nothing is cached.
     AvatarUnavailable,
+    /// The update manifest could not be read (offline, unexpected answer).
+    UpdateCheckFailed,
+    /// The new version could not be downloaded, verified or installed.
+    UpdateInstallFailed,
     /// The configured Git path does not exist or is not Git.
     GitBinaryInvalid,
     /// A SHA, branch or other revision does not exist in the repository.
@@ -538,6 +542,25 @@ impl YagguiError {
             "Erreur inattendue.",
         )
         .with_detail(detail)
+    }
+
+    pub fn update_check_failed(detail: impl Into<String>) -> Self {
+        Self::new(
+            ErrorCode::UpdateCheckFailed,
+            "Could not check for updates.",
+            "Impossible de vérifier les mises à jour.",
+        )
+        .with_detail(detail)
+    }
+
+    pub fn update_install_failed(detail: impl Into<String>) -> Self {
+        Self::new(
+            ErrorCode::UpdateInstallFailed,
+            "The update could not be installed.",
+            "La mise à jour n'a pas pu être installée.",
+        )
+        .with_detail(detail)
+        .with_action(ErrorAction::Retry)
     }
 
     pub fn avatar_unavailable(detail: impl Into<String>) -> Self {

@@ -129,6 +129,10 @@ pub struct Preferences {
     /// author e-mail is sent to gravatar.com.
     #[serde(default)]
     pub gravatar: bool,
+    /// Look for a newer version at startup (SPEC §10). `None` until the user answered the
+    /// one-time question: the check is opt-in, nothing is asked of GitHub before.
+    #[serde(default)]
+    pub check_updates: Option<bool>,
 }
 
 pub const FONT_SIZE_RANGE: std::ops::RangeInclusive<u8> = 11..=18;
@@ -169,6 +173,7 @@ impl Default for Preferences {
             disabled_confirmations: Vec::new(),
             diff_options: DiffPreferences::default(),
             gravatar: false,
+            check_updates: None,
         }
     }
 }

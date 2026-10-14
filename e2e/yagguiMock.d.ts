@@ -4,5 +4,7 @@ declare global {
   interface Window {
     /** Mock backend controls exposed by `pnpm dev` (see src/ipc/index.ts). */
     __yagguiMock?: MockBackend;
+    /** Prepares the mock before the app reads anything (see src/ipc/index.ts). */
+    __yagguiMockSetup?: (mock: MockBackend) => void;
   }
 }

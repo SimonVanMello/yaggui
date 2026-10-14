@@ -6,3 +6,4 @@ pub mod git_binary;
 pub mod paths;
 pub mod pty;
 pub mod terminal;
+pub mod updates;

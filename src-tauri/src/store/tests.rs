@@ -147,6 +147,7 @@ fn stores_preferences() {
         protected_branches: vec!["main".into(), "hotfix/*".into()],
         disabled_confirmations: vec![ConfirmationKind::DropStash],
         gravatar: true,
+        check_updates: Some(true),
     };
     assert_eq!(store.set_preferences(&prefs).unwrap(), prefs);
     // The same values after reopening: they are in the database, not in memory.
@@ -154,6 +155,8 @@ fn stores_preferences() {
     let cleared = Preferences {
         locale: None,
         terminal: None,
+        // Back to "never asked" is stored too, not mistaken for a missing value.
+        check_updates: None,
         ..prefs
     };
     assert_eq!(store.set_preferences(&cleared).unwrap(), cleared);

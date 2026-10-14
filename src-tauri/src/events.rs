@@ -106,6 +106,14 @@ pub struct CloneProgress {
     pub total: Option<u32>,
 }
 
+/// Progress of the download of an update (SPEC §10), at most once per percent.
+#[derive(Debug, Clone, Serialize, Deserialize, Type, Event)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateProgress {
+    /// 0–100, `None` while the size is unknown.
+    pub percent: Option<u8>,
+}
+
 /// Progress of a folder scan (F-007), at most every 100 ms.
 #[derive(Debug, Clone, Serialize, Deserialize, Type, Event)]
 #[serde(rename_all = "camelCase")]

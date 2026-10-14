@@ -1,4 +1,5 @@
 import { useKeybindings } from '../features/keybindings/keybindingsStore';
+import { checkForUpdatesAtStartup } from '../features/updates/updates';
 import { openRepoPath, restoreRepoSession } from '../features/repo/repoSessions';
 import { ipc, unwrap } from '../ipc';
 import { installAppMenu } from './menu/appMenu';
@@ -72,6 +73,7 @@ export function startup(): Promise<void> {
     await menu;
     persistTabs();
     await openLaunchPath();
+    checkForUpdatesAtStartup();
   })();
   return started;
 }

@@ -50,10 +50,18 @@ declare global {
   interface Window {
     /** Mock backend controls, exposed in mock mode for Playwright and manual testing. */
     __yagguiMock?: MockBackend;
+    /**
+     * Set by a Playwright init script to prepare the mock before the app reads anything
+     * (preferences, startup checks).
+     */
+    __yagguiMockSetup?: (mock: MockBackend) => void;
   }
 }
 
-if (isMock) window.__yagguiMock = mockBackend;
+if (isMock) {
+  window.__yagguiMock = mockBackend;
+  window.__yagguiMockSetup?.(mockBackend);
+}
 
 /** The only entry point to the backend for the rest of the frontend. */
 export const ipc: YagguiClient = isMock ? mockClient : tauriClient;

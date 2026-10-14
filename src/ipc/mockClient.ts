@@ -48,6 +48,7 @@ import type {
   StashEntryInfo,
   StashId,
   TabsState,
+  UpdateInfo,
   Workspace,
 } from './bindings';
 import { GITIGNORE_PREVIEW_MAX, JOURNAL_PATHS_MAX } from './bindings';
@@ -234,6 +235,8 @@ const DEFAULT_MOCK_PREFERENCES: Preferences = {
   protectedBranches: ['main', 'master', 'develop', 'release/*'],
   disabledConfirmations: [],
   gravatar: false,
+  // Answered: under the mock, the one-time update question would cover every screen.
+  checkUpdates: false,
 };
 
 /** Watcher debounce of the real backend: file events reach the UI this long after the change. */
@@ -318,6 +321,14 @@ export class MockBackend {
   readonly avatarRequests: string[] = [];
   /** Hashes in the fake avatar disk cache. */
   private avatarCache = new Set<string>();
+  /** Newer version announced by `checkForUpdate`; `null` means up to date. */
+  availableUpdate: UpdateInfo | null = null;
+  /** Error of the next update check or install, for tests. */
+  updateFailure: YagguiError | null = null;
+  /** Calls of `checkForUpdate`, for tests: none while the check is off. */
+  updateChecks = 0;
+  updateInstalls = 0;
+  releasePageOpens = 0;
   /** Integrated terminals (F-267): a fake shell. */
   readonly ptys = new MockPtys({
     output: (payload) => {
@@ -398,6 +409,11 @@ export class MockBackend {
   }
 
   /** Restores the initial fixtures and forgets persisted data (used between tests). */
+  /** Changes the stored preferences at once, e.g. before the app reads them (Playwright). */
+  seedPreferences(patch: Partial<Preferences>): void {
+    this.preferences = { ...this.preferences, ...patch };
+  }
+
   reset(): void {
     try {
       localStorage.removeItem(MOCK_STORE_KEY);
@@ -422,6 +438,11 @@ export class MockBackend {
     this.openedTerminals.length = 0;
     this.avatarRequests.length = 0;
     this.avatarCache.clear();
+    this.availableUpdate = null;
+    this.updateFailure = null;
+    this.updateChecks = 0;
+    this.updateInstalls = 0;
+    this.releasePageOpens = 0;
     this.ptys.reset();
     this.log = createMockLog();
     this.runningOps.forEach((cancel) => {
@@ -4675,6 +4696,26 @@ export class MockBackend {
       const removed = this.avatarCache.size;
       this.avatarCache.clear();
       return ok(removed);
+    },
+    checkForUpdate: () => {
+      this.updateChecks += 1;
+      const failure = this.updateFailure;
+      this.updateFailure = null;
+      return failure ? fail(failure) : ok(this.availableUpdate);
+    },
+    installUpdate: () => {
+      const failure = this.updateFailure;
+      this.updateFailure = null;
+      if (failure) return fail(failure);
+      // The real backend restarts the app once installed; the mock stops halfway, so the
+      // progress stays on screen.
+      this.updateInstalls += 1;
+      this.emit('updateProgress', { percent: 42 });
+      return ok(null);
+    },
+    openReleasePage: () => {
+      this.releasePageOpens += 1;
+      return ok(null);
     },
     pickRepoFolder: (title) => {
       if (this.pickedFolders.length > 0) return ok(this.pickedFolders.shift() ?? null);

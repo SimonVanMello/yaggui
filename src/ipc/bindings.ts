@@ -110,6 +110,27 @@ export const commands = {
 	/**  Empties the avatar cache (preferences). Returns the number of files removed. */
 	clearAvatarCache: () => typedError<number, YagguiError>(__TAURI_INVOKE("clear_avatar_cache")),
 	/**
+	 *  Newer published version, `None` when this one is the newest. The `check_updates`
+	 *  preference is the frontend's to honor, like `gravatar`: a check asked from the palette
+	 *  runs whatever it says.
+	 */
+	checkForUpdate: () => typedError<{
+	currentVersion: string,
+	version: string,
+	/**  Release notes of the manifest (Markdown), if any. */
+	notes: string | null,
+	/**  Publication date (RFC 3339), if any. */
+	date: string | null,
+	channel: InstallChannel,
+} | null, YagguiError>(__TAURI_INVOKE("check_for_update")),
+	/**
+	 *  Downloads and installs the newest version, then restarts the app (only returns on
+	 *  failure). Progress comes as `update-progress` events.
+	 */
+	installUpdate: () => typedError<null, YagguiError>(__TAURI_INVOKE("install_update")),
+	/**  Opens the page of the newest release, for the installs that are upgraded by hand. */
+	openReleasePage: () => typedError<null, YagguiError>(__TAURI_INVOKE("open_release_page")),
+	/**
 	 *  Starts the user's shell in the repository folder, in an integrated terminal of
 	 *  `cols`×`rows` cells (F-267). Its output arrives as `pty-output` events, then `pty-exited`.
 	 */
@@ -594,6 +615,7 @@ export const events = {
 	refsChanged: makeEvent<RefsChanged>("refs-changed"),
 	scanProgress: makeEvent<ScanProgress>("scan-progress"),
 	statusChanged: makeEvent<StatusChanged>("status-changed"),
+	updateProgress: makeEvent<UpdateProgress>("update-progress"),
 };
 
 /* Constants */
@@ -1355,6 +1377,10 @@ export type ErrorCode =
 "terminalClosed" | 
 /**  An avatar could not be downloaded (offline, unexpected answer); nothing is cached. */
 "avatarUnavailable" | 
+/**  The update manifest could not be read (offline, unexpected answer). */
+"updateCheckFailed" | 
+/**  The new version could not be downloaded, verified or installed. */
+"updateInstallFailed" | 
 /**  The configured Git path does not exist or is not Git. */
 "gitBinaryInvalid" | 
 /**  A SHA, branch or other revision does not exist in the repository. */
@@ -1887,6 +1913,20 @@ export type InitResult = {
 	createdFiles: string[],
 };
 
+/**  How the running copy was installed, which decides how it is updated. */
+export type InstallChannel = 
+/**  A release installer the updater can replace: Windows installer, macOS app, AppImage. */
+"selfUpdate" | 
+/**  The Homebrew cask: `brew upgrade --cask yaggui`. */
+"homebrew" | 
+/**  The `yaggui-bin` AUR package, upgraded with the user's AUR helper. */
+"aur" | 
+/**
+ *  A `.deb` / `.rpm`, a development build or an unknown layout: the user downloads the
+ *  new version from the release page.
+ */
+"manual";
+
 /**  The commits of `base..HEAD` an interactive rebase would rewrite (F-142). */
 export type InteractiveRebasePlan = {
 	/**  The commit the rewritten ones are replayed on (excluded from the list). */
@@ -2297,6 +2337,11 @@ export type Preferences = {
 	 *  author e-mail is sent to gravatar.com.
 	 */
 	gravatar?: boolean,
+	/**
+	 *  Look for a newer version at startup (SPEC §10). `None` until the user answered the
+	 *  one-time question: the check is opt-in, nothing is asked of GitHub before.
+	 */
+	checkUpdates?: boolean | null,
 };
 
 /**  The shell of an integrated terminal exited (or was closed); sent after its last output. */
@@ -2979,6 +3024,23 @@ export type UndoStep = {
 	 *  (`undoWouldOverwrite`).
 	 */
 	blocked: UndoBlock | null,
+};
+
+/**  A newer published version. */
+export type UpdateInfo = {
+	currentVersion: string,
+	version: string,
+	/**  Release notes of the manifest (Markdown), if any. */
+	notes: string | null,
+	/**  Publication date (RFC 3339), if any. */
+	date: string | null,
+	channel: InstallChannel,
+};
+
+/**  Progress of the download of an update (SPEC §10), at most once per percent. */
+export type UpdateProgress = {
+	/**  0–100, `None` while the size is unknown. */
+	percent: number | null,
 };
 
 export type UpstreamState = {

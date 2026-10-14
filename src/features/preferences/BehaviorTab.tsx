@@ -9,9 +9,11 @@ import {
   type ConfirmationKind,
   type PullStrategy,
 } from '../../ipc';
+import { Button } from '../../ui/Button';
 import { SegmentedControl } from '../../ui/SegmentedControl';
 import { Switch } from '../../ui/Switch';
 import { TextInput } from '../../ui/TextInput';
+import { checkForUpdatesNow } from '../updates/updates';
 import { clampInt, setConfirmation } from './prefsLogic';
 import { ProtectedBranchesField } from './ProtectedBranchesField';
 import { Row } from './Row';
@@ -123,6 +125,17 @@ export function BehaviorTab() {
           );
         })}
       </fieldset>
+      <Switch
+        checked={prefs.checkUpdates === true}
+        label={t('prefs.checkUpdates')}
+        hint={t('prefs.checkUpdates.hint')}
+        onCheckedChange={(checkUpdates) => {
+          savePreferenceOrToast({ checkUpdates });
+        }}
+      />
+      <Row label={t('prefs.checkUpdates.now')}>
+        <Button onClick={() => void checkForUpdatesNow()}>{t('prefs.checkUpdates.now')}</Button>
+      </Row>
     </>
   );
 }

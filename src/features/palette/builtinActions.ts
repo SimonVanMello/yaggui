@@ -27,6 +27,7 @@ import { openTerminal } from '../terminal/openTerminal';
 import { openNewTerminal, toggleTerminalFromKeyboard } from '../terminal/terminalActions';
 import { openRepoFolder } from '../toolbar/openRepoFolder';
 import { canRun } from '../undo/undoState';
+import { checkForUpdatesNow } from '../updates/updates';
 import { registerActions, type PaletteAction } from './actionRegistry';
 
 const hasRepo = () => activeRepoId() !== null;
@@ -154,6 +155,12 @@ const BUILTIN: readonly PaletteAction[] = [
   shell('app.preferences', 'preferences', 'palette.action.app.preferences', 'app'),
   shell('app.terminalSettings', 'terminalSettings', 'palette.action.app.terminal', 'app'),
   shell('app.shortcuts', 'shortcuts', 'palette.action.app.shortcuts', 'app'),
+  {
+    id: 'app.checkUpdates',
+    title: 'palette.action.app.checkUpdates',
+    group: 'app',
+    run: () => void checkForUpdatesNow(),
+  },
   shell('git.fetch', 'fetch', 'palette.action.git.fetch', 'git', hasRepo),
   shell('git.pull', 'pull', 'palette.action.git.pull', 'git', hasRepo),
   shell('git.push', 'push', 'palette.action.git.push', 'git', hasRepo),

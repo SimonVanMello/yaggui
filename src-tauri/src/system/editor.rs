@@ -66,7 +66,7 @@ fn open_with(os: Os, target: &Path, preference: Option<&str>) -> Result<String, 
 }
 
 /// Waits for `child` on a thread so it does not linger as a zombie once it exits.
-fn reap(mut child: Child, program: &str, thread: &str) {
+pub(crate) fn reap(mut child: Child, program: &str, thread: &str) {
     let reaper = std::thread::Builder::new()
         .name(thread.into())
         .spawn(move || {
