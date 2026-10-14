@@ -10,7 +10,9 @@ use std::time::Duration;
 use common::{Fixture, RecordingSink};
 use yaggui_lib::events::{BackendEvent, OpKind};
 use yaggui_lib::git::cli::GitCli;
-use yaggui_lib::git::errors::{ErrorCode, ErrorPayload};
+use yaggui_lib::git::errors::ErrorCode;
+#[cfg(unix)]
+use yaggui_lib::git::errors::ErrorPayload;
 use yaggui_lib::git::log::CommandLog;
 use yaggui_lib::git::ops::types::{
     CommitRequest, ConfigScope, HunkChange, HunkSelection, PathSelection,
@@ -732,6 +734,7 @@ fn alive(pid: &str) -> bool {
         .is_ok_and(|s| s.success())
 }
 
+#[cfg(unix)]
 fn wait_until(timeout: Duration, mut done: impl FnMut() -> bool) -> bool {
     let start = std::time::Instant::now();
     while start.elapsed() < timeout {
