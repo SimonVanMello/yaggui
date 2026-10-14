@@ -26,6 +26,8 @@ const pkg = {
   depends: ['git', 'gtk3', 'hicolor-icon-theme', 'webkit2gtk-4.1'],
   provides: ['yaggui'],
   conflicts: ['yaggui'],
+  // The binary comes without debug info: a -debug package would only hold a dangling link.
+  options: ['!debug'],
   source: [
     `yaggui-${version}.deb::${url}/releases/download/v${version}/yaggui_${version}_amd64.deb`,
   ],
@@ -51,6 +53,7 @@ license=${array(pkg.license)}
 depends=${array(pkg.depends)}
 provides=${array(pkg.provides)}
 conflicts=${array(pkg.conflicts)}
+options=${array(pkg.options)}
 source=("yaggui-\${pkgver}.deb::${url}/releases/download/v\${pkgver}/yaggui_\${pkgver}_amd64.deb")
 sha256sums=${array(pkg.sha256sums)}
 
@@ -70,6 +73,7 @@ const fields = [
   'depends',
   'provides',
   'conflicts',
+  'options',
   'source',
   'sha256sums',
 ];
