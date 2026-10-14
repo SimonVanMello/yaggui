@@ -110,6 +110,29 @@ export function openCreateTag(repoId: number, target: string, targetLabel: strin
   openRefDialog({ kind: 'createTag', repoId, target, targetLabel });
 }
 
+/**
+ * Tag on the checked-out commit (toolbar, palette). The SHA is pinned when the dialog opens, so
+ * the tag lands on the commit it shows even if HEAD moves meanwhile; an unborn HEAD has nothing
+ * to tag.
+ */
+export async function openCreateTagFromHead(repoId: number): Promise<void> {
+  try {
+    const state = await queryClient.query({
+      queryKey: queryKeys.repoState(repoId),
+      queryFn: () => unwrap(ipc.commands.repoState(repoId)),
+      staleTime: 5_000,
+    });
+    const { head } = state;
+    if (head.kind === 'unborn') {
+      toast({ variant: 'info', title: t('refs.createTag.unborn') });
+      return;
+    }
+    openCreateTag(repoId, head.oid, head.kind === 'branch' ? head.name : shortOid(head.oid));
+  } catch {
+    openCreateTag(repoId, 'HEAD', 'HEAD');
+  }
+}
+
 /** Tag at the commit a ref points to. */
 export function openCreateTagAt(repoId: number, target: RefTarget): void {
   const sha = targetSha(target);
