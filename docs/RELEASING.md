@@ -30,6 +30,18 @@ If a build fails, the release is not created: fix, delete the tag (`git push ori
 
 Linux is built on the oldest supported Ubuntu so the binaries run on older glibc. The `.deb` and `.rpm` depend on `git`; on macOS and Windows, Git must be installed separately.
 
+## Package managers
+
+Each channel has its own workflow, triggered when a release is **published** (not while it is a draft), and runnable by hand from the Actions tab for an existing tag.
+
+### AUR
+
+[`AUR`](../.github/workflows/aur.yml) publishes [`yaggui-bin`](https://aur.archlinux.org/packages/yaggui-bin), which repackages the `.deb` of the release. [`scripts/aur.mjs`](../scripts/aur.mjs) generates the `PKGBUILD` and `.SRCINFO` with the sum from `SHA256SUMS.txt`; the workflow checks the `.SRCINFO` against `makepkg --printsrcinfo`, builds and installs the package in an `archlinux` container, then pushes both files to `ssh://aur@aur.archlinux.org/yaggui-bin.git`. Pull requests that touch the packaging run every step but the push, on the latest release.
+
+Requires the `AUR_SSH_PRIVATE_KEY` repository secret: the private half of a key registered on the AUR account that maintains the package (My Account → SSH Public Key).
+
+To fix the package without a new app version, change the generator, then run the workflow by hand with the same tag and `pkgrel` bumped to `2`.
+
 ## Signing
 
 The builds are not signed yet. The macOS app is only ad-hoc signed (`signingIdentity: "-"`), so Gatekeeper blocks it on first launch until the user allows it in System Settings → Privacy & Security; Windows SmartScreen warns about an unknown publisher. Apple notarization and Windows code signing come with their own task.
