@@ -70,13 +70,10 @@ fn a_killed_command_does_not_leave_its_index_lock() {
 fn a_lock_older_than_the_command_is_kept() {
     let fx = Fixture::new("clean");
     let lock = fx.repo().join(".git/index.lock");
-    std::fs::write(&lock, "").unwrap();
-    let old = std::process::Command::new("touch")
-        .args(["-m", "-d", "@1700000000"])
-        .arg(&lock)
-        .status()
+    std::fs::File::create(&lock)
+        .unwrap()
+        .set_modified(std::time::UNIX_EPOCH + Duration::from_secs(1_700_000_000))
         .unwrap();
-    assert!(old.success());
     let tools = tempfile::tempdir().unwrap();
     let sink = Arc::new(RecordingSink::default());
     let git = GitCli::with_binary(
