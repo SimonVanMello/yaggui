@@ -30,7 +30,7 @@ impl Fixture {
             .status()
             .expect("run fixture script");
         assert!(status.success(), "fixture script failed for {scenario}");
-        let root = std::fs::canonicalize(dir.path()).expect("canonical temp dir");
+        let root = yaggui_lib::system::paths::canonical(dir.path());
         Self { _dir: dir, root }
     }
 
