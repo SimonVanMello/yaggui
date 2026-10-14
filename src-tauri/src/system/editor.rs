@@ -5,7 +5,7 @@
 
 use std::ffi::OsString;
 use std::path::Path;
-use std::process::{Command, Stdio};
+use std::process::{Child, Command, Stdio};
 
 use super::terminal::Os;
 use crate::git::errors::YagguiError;
@@ -61,16 +61,66 @@ fn open_with(os: Os, target: &Path, preference: Option<&str>) -> Result<String, 
         return Ok(name);
     }
     tracing::info!(editor = %name, target = %target.display(), "editor opened");
-    // Reap the editor when it exits so it does not linger as a zombie.
+    reap(child, &name, "yaggui-editor");
+    Ok(name)
+}
+
+/// Waits for `child` on a thread so it does not linger as a zombie once it exits.
+fn reap(mut child: Child, program: &str, thread: &str) {
     let reaper = std::thread::Builder::new()
-        .name("yaggui-editor".into())
+        .name(thread.into())
         .spawn(move || {
             let _ = child.wait();
         });
     if let Err(err) = reaper {
-        tracing::warn!(editor = %name, error = %err, "cannot watch the editor process");
+        tracing::warn!(program = %program, error = %err, "cannot watch the started process");
     }
-    Ok(program.to_string_lossy().into_owned())
+}
+
+/// Opens the folder `dir` itself in the system file manager (Finder, Explorer, the default
+/// one on Linux), unlike `reveal`, which selects it in its parent: the system's default
+/// application for a folder, `command` without a preference.
+pub fn open_folder(dir: &Path) -> Result<(), YagguiError> {
+    open_folder_with(Os::current(), dir)
+}
+
+fn open_folder_with(os: Os, dir: &Path) -> Result<(), YagguiError> {
+    if !dir.is_dir() {
+        return Err(YagguiError::file_manager_failed()
+            .with_detail(format!("not a folder: {}", dir.display())));
+    }
+    let (program, args) = command(os, dir, None);
+    let name = program.to_string_lossy().into_owned();
+    let failed = |detail: String| {
+        YagguiError::file_manager_failed().with_detail(format!("{name}: {detail}"))
+    };
+    let mut command = Command::new(&program);
+    command
+        .args(&args)
+        .stdin(Stdio::null())
+        .stdout(Stdio::null());
+    if os == Os::Mac {
+        // `open` hands the folder to Finder and returns at once: its exit status is the only
+        // report of a failure.
+        let output = command
+            .stderr(Stdio::piped())
+            .output()
+            .map_err(|err| failed(err.to_string()))?;
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            return Err(failed(format!("{}\n{stderr}", output.status)));
+        }
+    } else {
+        // Not waited for: Explorer exits with 1 even when it opened the folder, and xdg-open
+        // may only return once the file manager is closed.
+        let child = command
+            .stderr(Stdio::null())
+            .spawn()
+            .map_err(|err| failed(err.to_string()))?;
+        reap(child, &name, "yaggui-file-manager");
+    }
+    tracing::info!(program = %name, dir = %dir.display(), "folder opened in the file manager");
+    Ok(())
 }
 
 /// The command that shows `target` in the system file manager (F-087): selected in Finder
@@ -112,20 +162,13 @@ pub fn reveal(target: &Path) -> Result<(), YagguiError> {
     }
     #[cfg(not(windows))]
     command.args(&args);
-    let mut child = command
+    let child = command
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .spawn()
         .map_err(|err| YagguiError::editor_not_found(None).with_detail(format!("{name}: {err}")))?;
-    let reaper = std::thread::Builder::new()
-        .name("yaggui-reveal".into())
-        .spawn(move || {
-            let _ = child.wait();
-        });
-    if let Err(err) = reaper {
-        tracing::warn!(program = %name, error = %err, "cannot watch the file manager process");
-    }
+    reap(child, &name, "yaggui-reveal");
     Ok(())
 }
 
@@ -175,6 +218,33 @@ mod tests {
         let (program, args) = reveal_command(Os::Linux, Path::new("/no-such-dir/a.png"));
         assert_eq!(program, "xdg-open");
         assert_eq!(strings(&args), ["/no-such-dir"]);
+    }
+
+    #[test]
+    fn opens_a_folder_itself_with_the_system_file_manager() {
+        let (program, args) = command(Os::Mac, Path::new("/r/my repo"), None);
+        assert_eq!(program, "open");
+        assert_eq!(strings(&args), ["/r/my repo"]);
+        let (program, args) = command(Os::Windows, Path::new("C:\\r\\my repo"), None);
+        assert_eq!(program, "explorer.exe");
+        assert_eq!(strings(&args), ["C:\\r\\my repo"]);
+        let (program, args) = command(Os::Linux, Path::new("/r/my repo; ls"), None);
+        assert_eq!(program, "xdg-open");
+        assert_eq!(strings(&args), ["/r/my repo; ls"]);
+    }
+
+    #[test]
+    fn a_missing_folder_is_a_typed_error_on_every_os() {
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join("a.txt");
+        std::fs::write(&file, "a").unwrap();
+        for os in [Os::Mac, Os::Windows, Os::Linux] {
+            for target in [dir.path().join("gone"), file.clone()] {
+                let err = open_folder_with(os, &target).unwrap_err();
+                assert_eq!(err.code, crate::git::errors::ErrorCode::FileManagerFailed);
+                assert!(err.detail.unwrap().contains("not a folder"));
+            }
+        }
     }
 
     #[test]

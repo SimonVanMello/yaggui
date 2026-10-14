@@ -25,6 +25,7 @@ import { COMMIT_EVENT } from '../staging/commitUi';
 import { openInEditor } from '../terminal/openInEditor';
 import { openTerminal } from '../terminal/openTerminal';
 import { openNewTerminal, toggleTerminalFromKeyboard } from '../terminal/terminalActions';
+import { openRepoFolder } from '../toolbar/openRepoFolder';
 import { canRun } from '../undo/undoState';
 import { registerActions, type PaletteAction } from './actionRegistry';
 
@@ -98,6 +99,13 @@ const BUILTIN: readonly PaletteAction[] = [
       const repoId = activeRepoId();
       if (repoId !== null) void openTerminal(repoId);
     },
+  },
+  {
+    id: 'repo.fileManager',
+    title: 'palette.action.repo.fileManager',
+    group: 'repo',
+    enabled: hasRepo,
+    run: onRepo(openRepoFolder),
   },
   {
     id: 'terminal.toggle',
