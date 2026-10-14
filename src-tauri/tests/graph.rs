@@ -80,10 +80,7 @@ fn row_edges(page: &GraphPage, k: usize) -> Vec<[u32; 4]> {
         page.edge_offsets[k] as usize,
         page.edge_offsets[k + 1] as usize,
     );
-    page.edges[4 * from..4 * to]
-        .chunks_exact(4)
-        .map(|e| [e[0], e[1], e[2], e[3]])
-        .collect()
+    page.edges[4 * from..4 * to].as_chunks::<4>().0.to_vec()
 }
 
 /// Structural checks every page must pass.

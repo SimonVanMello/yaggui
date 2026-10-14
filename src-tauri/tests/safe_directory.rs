@@ -13,7 +13,9 @@ fn adds_the_path_to_the_global_safe_directory_list() {
 
     let b = common::backend(false);
     let repo = dir.path().join("some repo");
-    let repo = repo.to_string_lossy();
+    // As Git reports it in its "dubious ownership" message, where the path comes from: with
+    // `/` on Windows too (a `\` would be escaped in the file).
+    let repo = repo.to_string_lossy().replace('\\', "/");
     b.repos.add_safe_directory(&repo).unwrap();
 
     let written = std::fs::read_to_string(&config).unwrap();

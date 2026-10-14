@@ -1205,6 +1205,10 @@ fn write_worktree_file(full: &Path, data: &[u8], mode: u32) -> Result<(), Yaggui
     }
     // A symlink is replaced, never written through.
     remove_file(full)?;
+    // No exec bit on Windows, and symlinks are written as plain files holding the target, as
+    // Git does with `core.symlinks=false`.
+    #[cfg(not(unix))]
+    let _ = mode;
     #[cfg(unix)]
     if mode == MODE_SYMLINK {
         let target = std::ffi::OsStr::new(data.to_str().map_err(|_| {

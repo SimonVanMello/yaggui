@@ -1,6 +1,8 @@
 //! Windows-oriented behaviour that can be simulated on any OS: line endings
 //! (`core.autocrlf`), no executable bit (`core.fileMode=false`), long paths, and the
 //! `index.lock` left by a command killed on cancellation.
+// The fake git below is a shell script.
+#![cfg(unix)]
 
 mod common;
 
@@ -15,7 +17,6 @@ use yaggui_lib::git::log::CommandLog;
 
 /// A `git` that takes the lock, ignores SIGTERM and hangs: what a Windows kill looks like
 /// (`TerminateJobObject` gives git no chance to clean up).
-#[cfg(unix)]
 fn stubborn_git(dir: &Path, takes_lock: bool) -> std::path::PathBuf {
     use std::os::unix::fs::PermissionsExt;
     let script = dir.join("fake-git");
@@ -33,7 +34,6 @@ fn stubborn_git(dir: &Path, takes_lock: bool) -> std::path::PathBuf {
     script
 }
 
-#[cfg(unix)]
 #[test]
 fn a_killed_command_does_not_leave_its_index_lock() {
     let fx = Fixture::new("clean");
@@ -66,18 +66,14 @@ fn a_killed_command_does_not_leave_its_index_lock() {
 }
 
 /// A lock that predates the command is another process's: never removed.
-#[cfg(unix)]
 #[test]
 fn a_lock_older_than_the_command_is_kept() {
     let fx = Fixture::new("clean");
     let lock = fx.repo().join(".git/index.lock");
-    std::fs::write(&lock, "").unwrap();
-    let old = std::process::Command::new("touch")
-        .args(["-m", "-d", "@1700000000"])
-        .arg(&lock)
-        .status()
+    std::fs::File::create(&lock)
+        .unwrap()
+        .set_modified(std::time::UNIX_EPOCH + Duration::from_secs(1_700_000_000))
         .unwrap();
-    assert!(old.success());
     let tools = tempfile::tempdir().unwrap();
     let sink = Arc::new(RecordingSink::default());
     let git = GitCli::with_binary(
