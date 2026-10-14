@@ -195,6 +195,8 @@ case "$scenario" in
     printf '#!/bin/sh\necho hi\n' > run.sh
     printf 'caf\xe9\n' > latin1.txt
     git add -A
+    # Modes go through the index: Windows has no exec bit (`core.fileMode=false`).
+    git update-index --chmod=-x run.sh
     git update-index --add --cacheinfo 160000,1111111111111111111111111111111111111111,libs/sub
     mkdir -p libs/sub  # unpopulated submodule, so `git add -A` keeps the gitlink
     git commit -q -m "base"
@@ -212,6 +214,7 @@ case "$scenario" in
     printf 'caf\xe9 cr\xe8me\n' > latin1.txt
     mkdir -p docs && printf 'new file\n' > docs/added.md
     git add -A
+    git update-index --chmod=+x run.sh
     git update-index --cacheinfo 160000,2222222222222222222222222222222222222222,libs/sub
     git commit -q -m "diff showcase"
     # Working tree.

@@ -632,6 +632,12 @@ fn load<'p>(
         (new, ResourceKind::NewOrDestination),
     ] {
         let (id, entry_kind, path) = match side {
+            // A working tree file (null id) is read from disk whatever the id; the id given is
+            // the blob Git's `core.autocrlf` checks: a file stored with CRLF stays as it is,
+            // like `git diff` and `git add` leave it.
+            Some((s, path)) if s.id.is_null() && kind == ResourceKind::NewOrDestination => {
+                (old.map_or(s.id, |(o, _)| o.id), s.kind, path)
+            }
             Some((s, path)) => (s.id, s.kind, path),
             None => (
                 null,

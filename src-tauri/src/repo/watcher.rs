@@ -408,7 +408,7 @@ fn nested_roots<'a>(candidates: impl IntoIterator<Item = &'a PathBuf>) -> Vec<Pa
 
 fn canonical(path: &Path) -> PathBuf {
     // macOS reports canonical paths (`/private/var/...`): compare against the same form.
-    std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf())
+    crate::system::paths::canonical(path)
 }
 
 fn route(path: &Path, dirs: &Dirs) -> Option<Change> {

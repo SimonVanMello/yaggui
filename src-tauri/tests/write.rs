@@ -10,7 +10,9 @@ use std::time::Duration;
 use common::{Fixture, RecordingSink};
 use yaggui_lib::events::{BackendEvent, OpKind};
 use yaggui_lib::git::cli::GitCli;
-use yaggui_lib::git::errors::{ErrorCode, ErrorPayload};
+use yaggui_lib::git::errors::ErrorCode;
+#[cfg(unix)]
+use yaggui_lib::git::errors::ErrorPayload;
 use yaggui_lib::git::log::CommandLog;
 use yaggui_lib::git::ops::types::{
     CommitRequest, ConfigScope, HunkChange, HunkSelection, PathSelection,
@@ -180,22 +182,23 @@ fn commit_request(summary: &str) -> CommitRequest {
 fn stages_and_unstages_whole_files() {
     let e = env();
     e.write("README.md", b"changed\n");
-    e.write("new file*.txt", b"new\n");
-    e.write("other.txt", b"other\n");
+    e.write("new file[1].txt", b"new\n");
+    e.write("new file1.txt", b"other\n");
     e.repos
-        .stage_paths(e.id, paths(&["README.md", "new file*.txt"]))
+        .stage_paths(e.id, paths(&["README.md", "new file[1].txt"]))
         .unwrap();
     assert_eq!(e.index("README.md").unwrap(), b"changed\n");
-    assert_eq!(e.index("new file*.txt").unwrap(), b"new\n");
-    // A literal pathspec: `*` matched nothing else.
-    assert_eq!(e.index("other.txt"), None);
+    assert_eq!(e.index("new file[1].txt").unwrap(), b"new\n");
+    // A literal pathspec: as a glob, `[1]` would match `new file1.txt` too (`*` is not a
+    // valid file name character on Windows).
+    assert_eq!(e.index("new file1.txt"), None);
 
     e.repos.unstage_paths(e.id, paths(&["README.md"])).unwrap();
     assert_eq!(e.index("README.md"), e.head("README.md"));
     e.repos.stage_paths(e.id, PathSelection::All).unwrap();
-    assert_eq!(e.index("other.txt").unwrap(), b"other\n");
+    assert_eq!(e.index("new file1.txt").unwrap(), b"other\n");
     e.repos.unstage_paths(e.id, PathSelection::All).unwrap();
-    assert_eq!(e.index("other.txt"), None);
+    assert_eq!(e.index("new file1.txt"), None);
     assert_eq!(e.index("README.md"), e.head("README.md"));
 }
 
@@ -319,8 +322,20 @@ fn handles_a_last_line_without_newline() {
 
 #[test]
 fn stages_lines_of_a_crlf_file() {
+    stage_lines_of_a_crlf_file(false);
+}
+
+/// Git leaves a file stored with CRLF as it is under `core.autocrlf` (the default of Git for
+/// Windows): staging one line must not bring an LF line into it.
+#[test]
+fn stages_lines_of_a_crlf_file_with_autocrlf() {
+    stage_lines_of_a_crlf_file(true);
+}
+
+fn stage_lines_of_a_crlf_file(autocrlf: bool) {
     let e = env();
     e.commit_files(&[("w.txt", b"l1\r\nl2\r\nl3\r\nl4\r\n")]);
+    e.fx.git(&["config", "core.autocrlf", &autocrlf.to_string()]);
     e.write("w.txt", b"l1\r\nL2\r\nl3\r\nL4\r\n");
     let (_, text) = e.diff(DiffTarget::Unstaged, "w.txt", None);
     let pick = lines_of(&text, 0, &[('-', "l2"), ('+', "L2")]);
@@ -732,6 +747,7 @@ fn alive(pid: &str) -> bool {
         .is_ok_and(|s| s.success())
 }
 
+#[cfg(unix)]
 fn wait_until(timeout: Duration, mut done: impl FnMut() -> bool) -> bool {
     let start = std::time::Instant::now();
     while start.elapsed() < timeout {
@@ -910,6 +926,12 @@ fn a_discard_patch_refuses_a_file_changed_after_its_check() {
             let mut child = std::process::Command::new("git")
                 .args(["apply", "--reverse", "-"])
                 .current_dir(dir.path())
+                // Not a repository: only the machine's config could turn on `core.autocrlf`.
+                .env("GIT_CONFIG_NOSYSTEM", "1")
+                .env(
+                    "GIT_CONFIG_GLOBAL",
+                    if cfg!(windows) { "NUL" } else { "/dev/null" },
+                )
                 .stdin(std::process::Stdio::piped())
                 .stdout(std::process::Stdio::null())
                 .stderr(std::process::Stdio::null())
@@ -1138,6 +1160,10 @@ fn long_paths_are_read_and_written() {
         .collect();
     let path = format!("{}/file-with-a-long-name.txt", dir.join("/"));
     assert!(e.fx.repo().join(&path).to_string_lossy().len() > 300);
+    // Off by default on Windows, where Git then refuses the path (`PathTooLong`).
+    if cfg!(windows) {
+        e.fx.git(&["config", "core.longpaths", "true"]);
+    }
     e.write(&path, b"long\n");
     assert_eq!(unstaged(&e), [(path.clone(), Some(1), Some(0))]);
     e.repos.stage_paths(e.id, paths(&[&path])).unwrap();
