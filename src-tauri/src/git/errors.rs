@@ -44,6 +44,8 @@ pub enum ErrorCode {
     TerminalNotFound,
     /// The external editor could not be started.
     EditorNotFound,
+    /// The system file manager could not open the repository folder.
+    FileManagerFailed,
     /// The integrated terminal could not start a shell (no PTY, shell missing).
     ShellFailed,
     /// The integrated terminal session does not exist any more (shell exited, closed).
@@ -574,6 +576,14 @@ impl YagguiError {
                 "Aucune application n'a pu ouvrir le fichier. Choisis un éditeur dans les préférences.",
             ),
         }
+    }
+
+    pub fn file_manager_failed() -> Self {
+        Self::new(
+            ErrorCode::FileManagerFailed,
+            "The file manager could not open the repository folder.",
+            "Le gestionnaire de fichiers n'a pas pu ouvrir le dossier du dépôt.",
+        )
     }
 
     pub fn terminal_not_found(configured: Option<&str>) -> Self {

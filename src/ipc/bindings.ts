@@ -562,7 +562,10 @@ export const commands = {
 	 *  when the tool is closed, with the tool's name. Errors: `diffToolMissing`, `diffToolFailed`.
 	 */
 	runDiffTool: (repoId: number, target: DiffTarget, path: string, oldPath: string | null) => typedError<string, YagguiError>(__TAURI_INVOKE("run_diff_tool", { repoId, target, path, oldPath })),
-	/**  Shows a file of the working tree (or the repository folder) in the file manager (F-087). */
+	/**
+	 *  Shows a file of the working tree in the file manager (F-087). Without `path`, opens the
+	 *  repository folder itself (toolbar button), not selected in its parent: `fileManagerFailed`.
+	 */
 	revealPath: (repoId: number, path: string | null) => typedError<null, YagguiError>(__TAURI_INVOKE("reveal_path", { repoId, path })),
 	/**
 	 *  Local branches merged into HEAD or whose upstream is gone (F-105), without the current,
@@ -1344,6 +1347,8 @@ export type ErrorCode =
 "terminalNotFound" | 
 /**  The external editor could not be started. */
 "editorNotFound" | 
+/**  The system file manager could not open the repository folder. */
+"fileManagerFailed" | 
 /**  The integrated terminal could not start a shell (no PTY, shell missing). */
 "shellFailed" | 
 /**  The integrated terminal session does not exist any more (shell exited, closed). */

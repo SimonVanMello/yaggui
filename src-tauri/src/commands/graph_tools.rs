@@ -96,7 +96,8 @@ pub async fn run_diff_tool(
     blocking(move || repos.run_diff_tool(repo_id, &target, &path, old_path.as_deref())).await
 }
 
-/// Shows a file of the working tree (or the repository folder) in the file manager (F-087).
+/// Shows a file of the working tree in the file manager (F-087). Without `path`, opens the
+/// repository folder itself (toolbar button), not selected in its parent: `fileManagerFailed`.
 #[tauri::command]
 #[specta::specta]
 pub async fn reveal_path(
@@ -105,7 +106,11 @@ pub async fn reveal_path(
     path: Option<String>,
 ) -> Result<(), YagguiError> {
     let repos = Arc::clone(&state.repos);
-    blocking(move || editor::reveal(&repos.editor_target(repo_id, path)?)).await
+    blocking(move || match path {
+        None => editor::open_folder(&repos.editor_target(repo_id, None)?),
+        Some(path) => editor::reveal(&repos.editor_target(repo_id, Some(path))?),
+    })
+    .await
 }
 
 /// Local branches merged into HEAD or whose upstream is gone (F-105), without the current,

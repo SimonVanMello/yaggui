@@ -12,11 +12,12 @@ import { toggleTerminalPanel } from '../terminal/terminalActions';
 import { useRepoTerminals } from '../terminal/terminalStore';
 import { BranchSelector } from './BranchSelector';
 import { NetworkButtons } from './NetworkButtons';
+import { openRepoFolder } from './openRepoFolder';
 import styles from './Toolbar.module.css';
 import { StashButton } from './StashButton';
 import { ToolbarButton } from './ToolbarButton';
 
-/** Repository toolbar: network actions, branch, tag, stash and pop, terminal. */
+/** Repository toolbar: network actions, branch, tag, stash and pop, terminal, file manager. */
 export function Toolbar({ tab, repo, state }: { tab: ShellTab; repo: RepoInfo; state: RepoState }) {
   const t = useT();
   const branchShortcut = useShortcut('git.branch.create');
@@ -81,6 +82,15 @@ export function Toolbar({ tab, repo, state }: { tab: ShellTab; repo: RepoInfo; s
         aria-pressed={integrated ? terminalOpen : undefined}
         onClick={() => {
           void toggleTerminalPanel(repo.id);
+        }}
+      />
+      <ToolbarButton
+        icon="folderOpen"
+        label={t('toolbar.fileManager')}
+        description={t('toolbar.fileManager.tooltip')}
+        command={repo.path}
+        onClick={() => {
+          void openRepoFolder(repo.id);
         }}
       />
 

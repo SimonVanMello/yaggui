@@ -388,14 +388,16 @@ for (const { name: theme, colorScheme } of THEMES) {
       const pull = page.getByRole('button', { name: /Pull 4 commits/ });
       await expect(pull).toBeEnabled();
       await expect(page.getByRole('button', { name: /New branch/ })).toBeVisible();
-      // The toolbar (Branch then Tag, icon-only here) fits without overlap.
+      // The toolbar (Branch then Tag, Terminal then Files, icon-only here) fits without overlap.
       const toolbar = page.getByRole('toolbar', { name: 'Repository actions' });
       await expect(toolbar.getByRole('button', { name: 'Tag', exact: true })).toBeInViewport();
+      await expect(toolbar.getByRole('button', { name: 'Files', exact: true })).toBeInViewport();
       await expectToolbarFits(page);
       await capture(page, theme, 'min-size-clean');
       // Just above the breakpoint where labels come back, the toolbar still fits.
       await page.setViewportSize({ width: 1100, height: 560 });
       await expect(toolbar.getByText('Tag', { exact: true })).toBeVisible();
+      await expect(toolbar.getByText('Files', { exact: true })).toBeVisible();
       await expectToolbarFits(page);
       await page.setViewportSize({ width: 900, height: 560 });
       // Once up to date, pulling is no longer suggested; fetching is.
