@@ -66,8 +66,11 @@ jobs:
 
       # The cask is audited from a throwaway local tap, as Homebrew only audits casks of a tap.
       # `--new` is left out: it rejects repositories younger than 30 days or with few stars,
-      # which only matters for the official homebrew/cask tap.
+      # which only matters for the official homebrew/cask tap. `--online` queries the GitHub API,
+      # whose anonymous limit is shared by every job on the runner's IP, hence the token.
       - name: Audit the cask
+        env:
+          HOMEBREW_GITHUB_API_TOKEN: ${{ github.token }}
         run: |
           brew tap-new --no-git yaggui/ci
           TAP_DIR="$(brew --repository yaggui/ci)"
