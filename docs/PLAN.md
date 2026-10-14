@@ -156,7 +156,7 @@ Exit: every tagged version is installable from GitHub Releases and from the main
 
 | ID | Task | Depends on | Requirements |
 |---|---|---|---|
-| M6-1 | Release builds: GitHub Actions workflow that builds the installers (macOS arm64 / x64 `.dmg`, Linux `.deb` / `.rpm` / `.AppImage`, Windows `.msi` / `.exe`) and, on a `vX.Y.Z` tag, attaches them with their checksums to a draft release; version check between the tag and the four version files, `pnpm release:version`; bundle metadata (`git` dependency of the Linux packages) | M5-7 | — |
+| M6-1 ✅ | Release builds: GitHub Actions workflow that builds the installers (macOS arm64 / x64 `.dmg`, Linux `.deb` / `.rpm` / `.AppImage`, Windows `.msi` / `.exe`) and, on a `vX.Y.Z` tag, attaches them with their checksums to a draft release; version check between the tag and the four version files, `pnpm release:version`; bundle metadata (`git` dependency of the Linux packages) | M5-7 | — |
 | M6-2 | Homebrew tap and AUR (`yaggui-bin`): manifests updated by CI when a release is published | M6-1 | — |
 | M6-3 | Signed apt and dnf repositories hosted on GitHub Pages, updated when a release is published | M6-1 | — |
 | M6-4 | Chocolatey and winget packages submitted when a release is published | M6-1 | — |
