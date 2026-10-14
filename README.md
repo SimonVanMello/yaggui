@@ -30,9 +30,15 @@
 - **Themes**: Graphite (dark), Paper (light), high contrast and Terminal; English and French.
 - **Local and transparent**: no account, no telemetry; writes go through your own `git`, and every command it runs is logged.
 
-## Status
+## Install
 
-Pre-release. No binaries are published yet: build from source.
+Download the installer for your OS from the [latest release](https://github.com/SimonVanMello/yaggui/releases/latest): `.dmg` for macOS, `.exe` or `.msi` for Windows, `.deb`, `.rpm` or `.AppImage` for Linux. Git 2.30+ must be installed.
+
+The builds are not signed yet: on macOS, allow the app in System Settings → Privacy & Security on first launch; on Windows, SmartScreen asks for confirmation.
+
+## Built with Claude
+
+yaggui is written entirely by [Claude](https://claude.com/claude-code), Anthropic's AI, through Claude Code: specification, architecture, code, tests and documentation. A human sets the direction, reviews the work and tests the app. The instructions the agents follow are in [`CLAUDE.md`](CLAUDE.md), the requirements in [`docs/SPEC.md`](docs/SPEC.md) and the task breakdown in [`docs/PLAN.md`](docs/PLAN.md).
 
 ## Build from source
 
