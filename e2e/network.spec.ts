@@ -63,7 +63,9 @@ for (const { name: theme, colorScheme } of THEMES) {
       await expect(dialog).toContainText('--force-with-lease');
       await capture(page, theme, 'force-confirm');
       await dialog.getByRole('button', { name: 'Force push' }).click();
-      await expect(page.getByText('origin/feat/graph-lanes was overwritten')).toBeVisible();
+      await expect(
+        page.getByText('origin/feat/graph-lanes was overwritten', { exact: true }),
+      ).toBeVisible();
     });
 
     test('a rejected push offers pull then push', async ({ page }) => {
