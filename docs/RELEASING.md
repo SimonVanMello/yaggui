@@ -1,6 +1,6 @@
 # Releasing
 
-The [`Release`](../.github/workflows/release.yml) workflow builds the installers of every platform. A `vX.Y.Z` tag attaches them to a draft GitHub Release; a pull request that touches the packaging (the workflow, `scripts/version.mjs`, `src-tauri/tauri.conf.json`) only builds them and keeps them as workflow artifacts for a few days.
+The [`Release`](../.github/workflows/release.yml) workflow builds the installers of every platform. A `vX.Y.Z` tag attaches them to a draft GitHub Release; a pull request that touches the packaging (the workflow, `scripts/version.mjs`, `src-tauri/tauri.conf.json`) only builds them and keeps them as workflow artifacts.
 
 ## Cutting a release
 
