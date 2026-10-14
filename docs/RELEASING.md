@@ -42,6 +42,30 @@ Requires the `AUR_SSH_PRIVATE_KEY` repository secret: the private half of a key 
 
 To fix the package without a new app version, change the generator, then run the workflow by hand with the same tag and `pkgrel` bumped to `2`.
 
+### Homebrew
+
+[`Homebrew`](../.github/workflows/homebrew.yml) publishes the `yaggui` cask to the third-party tap [`SimonVanMello/homebrew-yaggui`](https://github.com/SimonVanMello/homebrew-yaggui). [`scripts/homebrew.mjs`](../scripts/homebrew.mjs) generates `Casks/yaggui.rb` with the sums of `yaggui_<version>_aarch64.dmg` and `yaggui_<version>_x64.dmg` from `SHA256SUMS.txt`; the workflow audits the cask from a temporary local tap (`brew style`, `brew audit --strict --online`), installs and uninstalls it on a `macos-latest` runner, then pushes it to the `main` branch of the tap with the commit message `yaggui <version>`. Pull requests that touch the packaging run every step but the push, on the latest release.
+
+Users install it with:
+
+```bash
+brew install --cask simonvanmello/yaggui/yaggui
+```
+
+The cask has a `caveats` block that explains how to clear the quarantine attribute, because the app is not notarized (see [Signing](#signing)). Remove it from the generator (between the `BEGIN`/`END quarantine caveat` comments) once notarization lands.
+
+One-time setup:
+
+1. Create the public repository `SimonVanMello/homebrew-yaggui` (it can stay empty: the first run creates `main`).
+2. Generate a key pair without a passphrase:
+   ```bash
+   ssh-keygen -t ed25519 -N '' -C 'yaggui homebrew tap' -f homebrew-tap
+   ```
+3. On `homebrew-yaggui`, Settings → Deploy keys → Add deploy key: paste `homebrew-tap.pub` and check **Allow write access**.
+4. On `yaggui`, Settings → Secrets and variables → Actions → New repository secret: name it `HOMEBREW_TAP_SSH_PRIVATE_KEY` and paste the content of `homebrew-tap`. Then delete both local files.
+
+To publish an existing release by hand (first publication, or after a fix to the generator): Actions → Homebrew → Run workflow, keep "Use workflow from: master", enter the tag (`vX.Y.Z`). A run that produces the same cask as the tap pushes nothing.
+
 ## Signing
 
 The builds are not signed yet. The macOS app is only ad-hoc signed (`signingIdentity: "-"`), so Gatekeeper blocks it on first launch until the user allows it in System Settings → Privacy & Security; Windows SmartScreen warns about an unknown publisher. Apple notarization and Windows code signing come with their own task.
