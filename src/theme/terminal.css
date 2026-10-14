@@ -1,0 +1,110 @@
+/* D · Terminal: dense monospace dark style, accent green. Values from docs/ui/styles.html. */
+:root[data-theme='terminal'] {
+  color-scheme: dark;
+
+  /* Surfaces */
+  --bg-app: #0a0a0a;
+  --bg-panel: #0d0d0d;
+  --bg-elevated: #141414;
+  --bg-hover: #161616;
+  --bg-active: #1d1d1d;
+  --bg-selected: #15241a;
+  --bg-input: #000000;
+  --bg-titlebar: #000000;
+  --bg-scrim: rgb(0 0 0 / 0.5);
+
+  /* Text. The muted gray of the mockup (#6b6b6b) is 3.7:1 on the app background: lightened to AA. */
+  --fg-primary: #d4d4d4;
+  --fg-secondary: #a3a3a3;
+  --fg-muted: #8a8a8a;
+
+  /* Borders */
+  --border-subtle: #222222;
+  --border-strong: #333333;
+
+  /* Disabled controls: flat and clearly inert, never a dimmed accent. */
+  --bg-disabled: #141414;
+  --fg-disabled: #5a5a5a;
+
+  /* Accent and semantic colors */
+  --accent: #4ade80;
+  --accent-hover: #6ee7a0;
+  --accent-fg: #0a0a0a;
+  --accent-soft: rgb(74 222 128 / 0.12);
+  --success: #4ade80;
+  --warning: #facc15;
+  --danger: #f87171;
+  --danger-soft: rgb(248 113 113 / 0.14);
+  --info: #38bdf8;
+  --on-warning: #000000;
+
+  /* Diff */
+  --diff-add-bg: rgb(74 222 128 / 0.08);
+  --diff-add-strong: rgb(74 222 128 / 0.28);
+  --diff-del-bg: rgb(248 113 113 / 0.08);
+  --diff-del-strong: rgb(248 113 113 / 0.28);
+
+  /* Checked-out branch pill: text and darkening that keep AA over every lane color. */
+  --ref-head-darken: 0%;
+  --ref-head-fg: var(--bg-app);
+
+  /* Graph lanes: 0-3 from the mockup, 4-7 extend the palette. */
+  --lane-0: #4ade80;
+  --lane-1: #38bdf8;
+  --lane-2: #facc15;
+  --lane-3: #f472b6;
+  --lane-4: #c084fc;
+  --lane-5: #fb923c;
+  --lane-6: #f87171;
+  --lane-7: #a3e635;
+
+  /* Syntax */
+  --syn-keyword: #f472b6;
+  --syn-string: #4ade80;
+  --syn-tag: #38bdf8;
+  --syn-function: #facc15;
+
+  /* Integrated terminal (F-267): ANSI palette. */
+  --term-black: #262626;
+  --term-red: #f87171;
+  --term-green: #4ade80;
+  --term-yellow: #facc15;
+  --term-blue: #38bdf8;
+  --term-magenta: #f472b6;
+  --term-cyan: #22d3ee;
+  --term-white: #a3a3a3;
+  --term-bright-black: #5a5a5a;
+  --term-bright-red: #fca5a5;
+  --term-bright-green: #86efac;
+  --term-bright-yellow: #fde047;
+  --term-bright-blue: #7dd3fc;
+  --term-bright-magenta: #f9a8d4;
+  --term-bright-cyan: #67e8f9;
+  --term-bright-white: #ffffff;
+
+  /* Elevation */
+  --shadow-popover: 0 0 0 1px #333333, 0 12px 32px rgb(0 0 0 / 0.6);
+
+  /* Monospace everywhere, square corners, dense rows. A font chosen in the preferences still
+     wins: it is set inline on <html>. */
+  --font-ui: var(--font-code);
+  --radius-sm: 2px;
+  --radius-md: 2px;
+  --radius-lg: 2px;
+  --radius-xl: 2px;
+  --radius-full: 2px;
+  --row-height: 26px;
+}
+
+:root[data-theme='terminal'][data-density='compact'] {
+  --row-height: 22px;
+}
+
+/* High contrast (F-320): stronger text and borders on the same surfaces. */
+:root[data-theme='terminal'][data-contrast='high'] {
+  --fg-primary: #ffffff;
+  --fg-secondary: #e6e6e6;
+  --fg-muted: #bdbdbd;
+  --border-subtle: #6b6b6b;
+  --border-strong: #9a9a9a;
+}

@@ -1,0 +1,28 @@
+.result {
+  display: flex;
+  flex-basis: 100%;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 0;
+  color: var(--fg-secondary);
+  font-size: var(--text-sm);
+}
+
+.result:empty {
+  display: none;
+}
+
+.ok {
+  flex: none;
+  color: var(--success);
+}
+
+.warn {
+  flex: none;
+  color: var(--warning);
+}
+
+.error {
+  flex: none;
+  color: var(--danger);
+}

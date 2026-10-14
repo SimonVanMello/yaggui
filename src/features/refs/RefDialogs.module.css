@@ -1,0 +1,206 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  color: var(--fg-secondary);
+  font-size: var(--text-sm);
+}
+
+.input,
+.textarea,
+.select {
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-width) solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--bg-input);
+  color: var(--fg-primary);
+  font: inherit;
+  font-size: var(--text-md);
+}
+
+.input[aria-invalid='true'] {
+  border-color: var(--danger);
+}
+
+.textarea {
+  min-height: 72px;
+  resize: vertical;
+}
+
+.input:focus-visible,
+.textarea:focus-visible,
+.select:focus-visible {
+  outline: var(--focus-ring-width) solid var(--accent);
+  outline-offset: -1px;
+}
+
+.mono {
+  font-family: var(--font-code);
+}
+
+.status {
+  min-height: var(--text-md);
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+}
+
+.status[data-state='invalid'] {
+  color: var(--danger);
+}
+
+.status[data-state='valid'] {
+  color: var(--success);
+}
+
+.status[data-state='checking'] {
+  color: var(--fg-muted);
+}
+
+.check {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  color: var(--fg-primary);
+  font-size: var(--text-md);
+  cursor: pointer;
+}
+
+.check[data-disabled='true'] {
+  color: var(--fg-muted);
+  cursor: default;
+}
+
+.check input {
+  margin: var(--space-1) 0 0;
+  accent-color: var(--accent);
+}
+
+.hint {
+  margin: 0;
+  color: var(--fg-muted);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+}
+
+.from {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--fg-secondary);
+  font-size: var(--text-sm);
+}
+
+.from code,
+.command {
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--bg-panel);
+  color: var(--fg-primary);
+  font-family: var(--font-code);
+  font-size: var(--text-sm);
+}
+
+.command {
+  display: block;
+  overflow-wrap: anywhere;
+  /* Several commands are listed one per line. */
+  white-space: pre-wrap;
+}
+
+.warning {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-width) solid var(--warning);
+  border-radius: var(--radius-md);
+  background: var(--bg-panel);
+  color: var(--fg-primary);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+}
+
+.warning b {
+  color: var(--warning);
+}
+
+.files {
+  max-height: 160px;
+  margin: 0;
+  padding: var(--space-2) 0;
+  overflow-y: auto;
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-panel);
+  list-style: none;
+  font-family: var(--font-code);
+  font-size: var(--text-sm);
+}
+
+.files li {
+  padding: var(--space-1) var(--space-4);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.choices {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.choice {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-width) solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--fg-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.choice:hover:not([aria-disabled='true']) {
+  background: var(--bg-hover);
+}
+
+.choice:focus-visible {
+  outline: var(--focus-ring-width) solid var(--accent);
+  outline-offset: 1px;
+}
+
+.choice[aria-disabled='true'] {
+  color: var(--fg-muted);
+  cursor: not-allowed;
+}
+
+.choiceTitle {
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+}
+
+.choiceHelp {
+  color: var(--fg-secondary);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+}
+
+.steps {
+  margin: 0;
+  padding-left: var(--space-6);
+  color: var(--fg-secondary);
+  font-size: var(--text-md);
+  line-height: var(--leading-normal);
+}

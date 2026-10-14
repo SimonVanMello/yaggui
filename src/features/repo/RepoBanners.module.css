@@ -1,0 +1,102 @@
+.banner {
+  --tone: var(--warning);
+
+  display: flex;
+  flex-wrap: wrap;
+  row-gap: var(--space-1);
+  align-items: center;
+  gap: var(--space-3);
+  flex: none;
+  min-height: calc(var(--row-height) + var(--space-3));
+  padding: var(--space-1) var(--space-4);
+  border-bottom: var(--border-width) solid color-mix(in srgb, var(--tone) 35%, transparent);
+  background: color-mix(in srgb, var(--tone) 12%, var(--bg-panel));
+  font-size: var(--text-sm);
+}
+
+.banner[data-tone='danger'] {
+  --tone: var(--danger);
+}
+
+.banner[data-tone='info'] {
+  --tone: var(--info);
+}
+
+.icon {
+  flex: none;
+  align-self: flex-start;
+  margin-top: var(--space-1);
+  color: var(--tone);
+}
+
+.text {
+  display: flex;
+  flex: 1 1 var(--banner-text-min-width);
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-0) var(--space-3);
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.text b {
+  max-width: 100%;
+  overflow: hidden;
+  font-weight: var(--weight-semibold);
+  text-overflow: ellipsis;
+}
+
+.text > span {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.muted {
+  color: var(--fg-secondary);
+}
+
+.progress {
+  display: block;
+  flex: none;
+  width: var(--progress-width);
+  height: var(--progress-height);
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  background: var(--border-strong);
+}
+
+.progress i {
+  display: block;
+  height: 100%;
+  background: var(--tone);
+}
+
+.conflicts {
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  line-height: var(--badge-size);
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-2);
+  flex: none;
+  margin-left: auto;
+}
+
+/* Informational, not an incident: lighter than the other banners. */
+.banner[data-subtle] {
+  min-height: var(--row-height);
+  border-bottom-color: var(--border-subtle);
+  background: var(--bg-panel);
+  font-size: var(--text-xs);
+}
+
+.banner[data-subtle] .icon {
+  margin-top: var(--space-0);
+}

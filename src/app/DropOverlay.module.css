@@ -1,0 +1,26 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-drop-overlay);
+  display: grid;
+  place-items: center;
+  padding: var(--space-6);
+  background: var(--bg-scrim);
+  pointer-events: none;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  width: 100%;
+  height: 100%;
+  border: calc(var(--border-width) * 2) dashed var(--accent);
+  border-radius: var(--radius-xl);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+}

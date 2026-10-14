@@ -1,0 +1,57 @@
+@import './tokens.css';
+@import './graphite.css';
+@import './paper.css';
+@import './terminal.css';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg-app);
+  color: var(--fg-primary);
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+  line-height: var(--leading-tight);
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: var(--focus-ring-width) solid var(--accent);
+  outline-offset: 1px;
+}
+
+code,
+kbd,
+pre {
+  font-family: var(--font-code);
+}
+
+/* Drag and drop of branches and commits (features/history/dnd). */
+body[data-dragging] {
+  cursor: grabbing;
+  user-select: none;
+}
+
+[data-drop-over='true'] {
+  outline: var(--focus-ring-width) solid var(--accent);
+  outline-offset: -1px;
+  background: var(--accent-soft);
+}

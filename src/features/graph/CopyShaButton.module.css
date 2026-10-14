@@ -1,0 +1,58 @@
+.sha {
+  display: inline-grid;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-family: var(--font-code);
+  font-size: var(--text-xs);
+  text-align: start;
+  cursor: pointer;
+}
+
+.sha:hover {
+  background: var(--bg-hover);
+}
+
+.value,
+.done {
+  grid-area: 1 / 1;
+  overflow-wrap: anywhere;
+}
+
+.done {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  align-self: start;
+  /* The success color alone is under AA on Paper at this size. */
+  color: color-mix(in srgb, var(--success) 70%, var(--fg-primary));
+  font-family: var(--font-ui);
+  font-weight: var(--weight-semibold);
+  visibility: hidden;
+}
+
+.done svg {
+  color: var(--success);
+}
+
+.sha[data-copied] .value {
+  visibility: hidden;
+}
+
+.sha[data-copied] .done {
+  visibility: visible;
+}
+
+/* Read by screen readers only: the visible feedback is the swapped button label. */
+.status {
+  position: absolute;
+  width: var(--border-width);
+  height: var(--border-width);
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

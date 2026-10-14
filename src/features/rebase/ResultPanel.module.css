@@ -1,0 +1,108 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-left: var(--border-width) solid var(--border-subtle);
+  background: var(--bg-panel);
+}
+
+.title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  flex: none;
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: var(--border-width) solid var(--border-subtle);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+}
+
+.count {
+  color: var(--fg-muted);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-regular);
+}
+
+.dropped {
+  flex: none;
+  margin: 0;
+  padding: var(--space-2) var(--space-4);
+  border-bottom: var(--border-width) solid var(--border-subtle);
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-size: var(--text-xs);
+}
+
+.list {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-4);
+  border-bottom: var(--border-width) solid var(--border-subtle);
+  font-size: var(--text-sm);
+}
+
+.summary {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.chips:empty {
+  display: none;
+}
+
+.chip {
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-medium);
+}
+
+.chip[data-tone='info'] {
+  background: color-mix(in srgb, var(--info) 18%, transparent);
+  color: var(--info);
+}
+
+.chip[data-tone='warning'] {
+  background: color-mix(in srgb, var(--warning) 18%, transparent);
+  color: var(--warning);
+}
+
+.base {
+  flex: none;
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  overflow: hidden;
+  border-top: var(--border-width) solid var(--border-subtle);
+  color: var(--fg-muted);
+  font-size: var(--text-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@container rebase (max-width: 900px) {
+  .panel {
+    border-top: var(--border-width) solid var(--border-subtle);
+    border-left: 0;
+  }
+}

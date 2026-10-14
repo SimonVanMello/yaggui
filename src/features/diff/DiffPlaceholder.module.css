@@ -1,0 +1,52 @@
+.panel {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  min-height: 0;
+  padding: var(--space-6);
+  background: var(--bg-app);
+  text-align: center;
+}
+
+.icon {
+  color: var(--fg-muted);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-medium);
+}
+
+.text {
+  max-width: var(--card-min-width);
+  margin: 0;
+  color: var(--fg-secondary);
+  font-size: var(--text-sm);
+}
+
+.sizes {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  margin: 0;
+  font-family: var(--font-code);
+  font-size: var(--text-md);
+}
+
+.sizes dt {
+  color: var(--fg-muted);
+  font-family: var(--font-ui);
+  font-size: var(--text-xs);
+}
+
+.sizes dd {
+  margin: 0;
+}
+
+.arrow {
+  color: var(--fg-muted);
+}

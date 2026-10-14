@@ -1,0 +1,25 @@
+/* A plain inline block (no grid/flex centering): one per graph row, laid out while scrolling. */
+.avatar {
+  position: relative;
+  display: inline-block;
+  flex: none;
+  width: var(--icon-size-lg);
+  height: var(--icon-size-lg);
+  border-radius: var(--radius-full);
+  color: var(--bg-app);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-semibold);
+  line-height: var(--icon-size-lg);
+  text-align: center;
+  overflow: hidden;
+}
+
+/* Gravatar (opt-in): over the initials, which stay underneath while it loads or if it fails. */
+.picture {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+}

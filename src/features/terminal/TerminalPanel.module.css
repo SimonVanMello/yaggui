@@ -1,0 +1,165 @@
+.panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  min-height: 0;
+  max-height: var(--terminal-max-height);
+  border-top: var(--border-width) solid var(--border-subtle);
+  background: var(--bg-panel);
+}
+
+.resizer {
+  position: absolute;
+  top: calc(var(--resizer-size) / -2);
+  right: 0;
+  left: 0;
+  z-index: var(--z-resizer);
+  height: var(--resizer-size);
+  cursor: row-resize;
+  touch-action: none;
+}
+
+.resizer:hover,
+.resizer:focus-visible {
+  outline: none;
+  background: color-mix(in srgb, var(--accent) 50%, transparent);
+}
+
+:global(body[data-resizing='row']) {
+  cursor: row-resize;
+  user-select: none;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex: none;
+  height: calc(var(--row-height) + var(--space-2));
+  padding: 0 var(--space-2);
+  border-bottom: var(--border-width) solid var(--border-subtle);
+}
+
+.tabs {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-0);
+  min-width: 0;
+  height: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  max-width: var(--terminal-tab-max-width);
+  border-bottom: var(--focus-ring-width) solid transparent;
+  color: var(--fg-secondary);
+}
+
+.tab:hover {
+  color: var(--fg-primary);
+}
+
+.tab[data-selected] {
+  border-bottom-color: var(--accent);
+  color: var(--fg-primary);
+}
+
+.tab[data-status='exited'] .tabTitle,
+.tab[data-status='failed'] .tabTitle {
+  color: var(--fg-muted);
+  text-decoration: line-through;
+}
+
+.tabButton {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  height: 100%;
+  padding: 0 var(--space-1) 0 var(--space-3);
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.tabTitle {
+  overflow: hidden;
+  font-family: var(--font-code);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tabClose {
+  display: grid;
+  place-items: center;
+  margin-right: var(--space-1);
+  padding: var(--space-0);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--fg-muted);
+  cursor: pointer;
+}
+
+.tabClose:hover {
+  background: var(--bg-hover);
+  color: var(--fg-primary);
+}
+
+.tabButton:focus-visible,
+.tabClose:focus-visible {
+  outline: var(--focus-ring-width) solid var(--accent);
+  outline-offset: calc(var(--focus-ring-width) * -1);
+}
+
+.headerActions {
+  display: flex;
+  margin-left: auto;
+}
+
+.body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  background: var(--term-bg);
+}
+
+.screen {
+  position: absolute;
+  inset: var(--space-2) 0 var(--space-1) var(--space-3);
+}
+
+.screen > [data-terminal] {
+  height: 100%;
+}
+
+.screen :global(.xterm) {
+  height: 100%;
+}
+
+/* xterm's stylesheet paints these black: keep them on the theme. */
+.screen :global(.xterm .xterm-viewport) {
+  background-color: var(--term-bg);
+}
+
+/* IME composition (CJK input), drawn at the cursor. */
+.screen :global(.xterm .composition-view) {
+  background: var(--bg-elevated);
+  color: var(--fg-primary);
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: var(--space-5);
+  background: var(--bg-panel);
+}

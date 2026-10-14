@@ -1,0 +1,701 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>yaggui UI styles</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ───────────── Page (outside the mockup) ───────────── */
+:root {
+  --page-bg: #f4f4f2; --page-fg: #1d1f23; --page-muted: #62666e; --page-card: #ffffff; --page-border: #e2e1dc; --page-accent: #2563eb;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --page-bg: #0c0d10; --page-fg: #e7e8ec; --page-muted: #9095a0; --page-card: #15171c; --page-border: #262931; --page-accent: #8b7cf6;
+  }
+}
+:root[data-theme="dark"] {
+  --page-bg: #0c0d10; --page-fg: #e7e8ec; --page-muted: #9095a0; --page-card: #15171c; --page-border: #262931; --page-accent: #8b7cf6;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page-bg); color: var(--page-fg); font: 15px/1.55 Inter, system-ui, sans-serif; }
+.page { max-width: 1240px; margin: 0 auto; padding: 40px 16px 80px; }
+h1 { font-size: 28px; margin: 0 0 6px; letter-spacing: -0.02em; }
+h2 { font-size: 19px; margin: 48px 0 8px; letter-spacing: -0.01em; }
+.lead { color: var(--page-muted); margin: 0 0 28px; max-width: 760px; }
+.controls { display: flex; flex-wrap: wrap; gap: 10px 20px; align-items: center; margin-bottom: 14px; }
+.seg { display: inline-flex; background: var(--page-card); border: 1px solid var(--page-border); border-radius: 8px; padding: 3px; gap: 2px; flex-wrap: wrap; }
+.seg button { border: 0; background: transparent; color: var(--page-muted); font: 500 13px Inter, sans-serif; padding: 6px 12px; border-radius: 6px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--page-accent); color: #fff; }
+.seg-label { font-size: 12px; color: var(--page-muted); text-transform: uppercase; letter-spacing: .06em; margin-right: 6px; }
+.frame { overflow-x: auto; border-radius: 14px; padding-bottom: 4px; }
+.note { font-size: 13px; color: var(--page-muted); margin-top: 10px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+.card { border-radius: 12px; overflow: hidden; border: 1px solid var(--page-border); background: var(--page-card); cursor: pointer; transition: transform .12s ease, box-shadow .12s ease; }
+.card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.12); }
+.card.selected { outline: 2px solid var(--page-accent); outline-offset: 2px; }
+.card .preview { background: var(--bg-app); color: var(--fg); font-family: var(--font-ui); padding: 14px; height: 150px; position: relative; }
+.card .body { padding: 14px 16px 16px; }
+.card h3 { margin: 0 0 2px; font-size: 16px; }
+.card .tag { font-size: 12px; color: var(--page-muted); }
+.card p { font-size: 13.5px; color: var(--page-muted); margin: 8px 0 0; }
+.swatches { display: flex; gap: 4px; margin-top: 10px; }
+.swatches span { width: 22px; height: 22px; border-radius: 5px; border: 1px solid rgba(127,127,127,.25); }
+.reco { display: inline-block; font-size: 11px; font-weight: 600; background: var(--page-accent); color: #fff; padding: 2px 8px; border-radius: 99px; margin-left: 6px; vertical-align: 2px; }
+table.cmp { width: 100%; border-collapse: collapse; font-size: 14px; background: var(--page-card); border: 1px solid var(--page-border); border-radius: 10px; overflow: hidden; }
+table.cmp th, table.cmp td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--page-border); vertical-align: top; }
+table.cmp th { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--page-muted); font-weight: 600; }
+.tbl-wrap { overflow-x: auto; }
+
+/* ───────────── Mockup themes (design tokens) ───────────── */
+[data-style="graphite"] {
+  --bg-app: #0f1115; --bg-panel: #14161b; --bg-elevated: #1c1f26; --bg-hover: #1d2027; --bg-selected: #262a35; --bg-input: #0f1115;
+  --border: #23262e; --border-strong: #2f333d;
+  --fg: #e6e8ee; --fg-2: #a3a9b6; --fg-muted: #6b7280;
+  --accent: #8b7cf6; --accent-fg: #ffffff; --accent-soft: rgba(139,124,246,.16);
+  --success: #34d399; --warning: #fbbf24; --danger: #f87171; --info: #60a5fa;
+  --diff-add: rgba(52,211,153,.10); --diff-add-strong: rgba(52,211,153,.32); --diff-del: rgba(248,113,113,.10); --diff-del-strong: rgba(248,113,113,.32);
+  --lane-0: #8b7cf6; --lane-1: #22d3ee; --lane-2: #f59e0b; --lane-3: #f472b6;
+  --syn-kw: #c4b5fd; --syn-str: #86efac; --syn-tag: #67e8f9; --syn-fn: #fcd34d;
+  --font-ui: Inter, system-ui, sans-serif; --font-code: "JetBrains Mono", ui-monospace, monospace;
+  --fs: 13px; --radius: 6px; --pill-radius: 4px; --row-h: 28px; --shadow: 0 12px 40px rgba(0,0,0,.5);
+  --titlebar: #0b0c10;
+}
+[data-style="paper"] {
+  --bg-app: #f6f5f2; --bg-panel: #ffffff; --bg-elevated: #ffffff; --bg-hover: #f2f1ed; --bg-selected: #e7eefc; --bg-input: #ffffff;
+  --border: #e6e4de; --border-strong: #d6d3cb;
+  --fg: #1f2328; --fg-2: #57606a; --fg-muted: #8c959f;
+  --accent: #2563eb; --accent-fg: #ffffff; --accent-soft: rgba(37,99,235,.10);
+  --success: #16a34a; --warning: #d97706; --danger: #dc2626; --info: #2563eb;
+  --diff-add: #e9f7ee; --diff-add-strong: #b8e6c8; --diff-del: #fdeeee; --diff-del-strong: #f6c2c2;
+  --lane-0: #2563eb; --lane-1: #0891b2; --lane-2: #d97706; --lane-3: #db2777;
+  --syn-kw: #7c3aed; --syn-str: #15803d; --syn-tag: #0e7490; --syn-fn: #b45309;
+  --font-ui: Inter, system-ui, sans-serif; --font-code: "JetBrains Mono", ui-monospace, monospace;
+  --fs: 13px; --radius: 6px; --pill-radius: 4px; --row-h: 28px; --shadow: 0 12px 32px rgba(15,23,42,.14);
+  --titlebar: #ecebe6;
+}
+[data-style="aurora"] {
+  --bg-app: #1e1e2e; --bg-panel: #181825; --bg-elevated: #26263a; --bg-hover: #26273a; --bg-selected: #363a55; --bg-input: #11111b;
+  --border: #2b2c40; --border-strong: #3d3f58;
+  --fg: #cdd6f4; --fg-2: #a6adc8; --fg-muted: #7f849c;
+  --accent: #cba6f7; --accent-fg: #1e1e2e; --accent-soft: rgba(203,166,247,.16);
+  --success: #a6e3a1; --warning: #f9e2af; --danger: #f38ba8; --info: #89b4fa;
+  --diff-add: rgba(166,227,161,.10); --diff-add-strong: rgba(166,227,161,.30); --diff-del: rgba(243,139,168,.10); --diff-del-strong: rgba(243,139,168,.30);
+  --lane-0: #cba6f7; --lane-1: #89dceb; --lane-2: #fab387; --lane-3: #f38ba8;
+  --syn-kw: #cba6f7; --syn-str: #a6e3a1; --syn-tag: #89dceb; --syn-fn: #f9e2af;
+  --font-ui: Inter, system-ui, sans-serif; --font-code: "JetBrains Mono", ui-monospace, monospace;
+  --fs: 13px; --radius: 10px; --pill-radius: 99px; --row-h: 30px; --shadow: 0 16px 48px rgba(0,0,0,.55);
+  --titlebar: #11111b;
+}
+[data-style="terminal"] {
+  --bg-app: #0a0a0a; --bg-panel: #0d0d0d; --bg-elevated: #141414; --bg-hover: #161616; --bg-selected: #15241a; --bg-input: #000000;
+  --border: #222222; --border-strong: #333333;
+  --fg: #d4d4d4; --fg-2: #a3a3a3; --fg-muted: #6b6b6b;
+  --accent: #4ade80; --accent-fg: #0a0a0a; --accent-soft: rgba(74,222,128,.12);
+  --success: #4ade80; --warning: #facc15; --danger: #f87171; --info: #38bdf8;
+  --diff-add: rgba(74,222,128,.08); --diff-add-strong: rgba(74,222,128,.28); --diff-del: rgba(248,113,113,.08); --diff-del-strong: rgba(248,113,113,.28);
+  --lane-0: #4ade80; --lane-1: #38bdf8; --lane-2: #facc15; --lane-3: #f472b6;
+  --syn-kw: #f472b6; --syn-str: #4ade80; --syn-tag: #38bdf8; --syn-fn: #facc15;
+  --font-ui: "JetBrains Mono", ui-monospace, monospace; --font-code: "JetBrains Mono", ui-monospace, monospace;
+  --fs: 12px; --radius: 2px; --pill-radius: 2px; --row-h: 22px; --shadow: 0 0 0 1px #333, 0 12px 32px rgba(0,0,0,.6);
+  --titlebar: #000000;
+}
+.app[data-density="compact"] { --row-h: 22px; }
+.app[data-density="comfy"][data-style="terminal"] { --row-h: 26px; }
+
+/* ───────────── Mockup ───────────── */
+.app { position: relative; min-width: 1100px; height: 680px; display: grid; grid-template-rows: 38px 42px 1fr 26px; background: var(--bg-app); color: var(--fg); font-family: var(--font-ui); font-size: var(--fs); border: 1px solid var(--border-strong); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); line-height: 1.3; }
+.app button { font: inherit; color: inherit; }
+.ico { width: 14px; height: 14px; flex: none; }
+
+.titlebar { display: flex; align-items: flex-end; gap: 2px; background: var(--titlebar); padding: 0 12px; border-bottom: 1px solid var(--border); }
+.lights { display: flex; gap: 8px; align-self: center; margin-right: 16px; }
+.lights i { width: 12px; height: 12px; border-radius: 50%; display: block; }
+.lights i:nth-child(1) { background: #ff5f57; } .lights i:nth-child(2) { background: #febc2e; } .lights i:nth-child(3) { background: #28c840; }
+.tab { display: flex; align-items: center; gap: 8px; height: 31px; padding: 0 12px; border-radius: var(--radius) var(--radius) 0 0; color: var(--fg-2); font-size: 12.5px; position: relative; cursor: default; }
+.tab:hover { background: var(--bg-hover); }
+.tab.active { background: var(--bg-panel); color: var(--fg); border: 1px solid var(--border); border-bottom-color: var(--bg-panel); margin-bottom: -1px; }
+.tab .dot { width: 8px; height: 8px; border-radius: 50%; }
+.tab .x { opacity: .5; } .tab .badge { font-size: 10px; padding: 1px 5px; border-radius: 99px; background: var(--warning); color: #000; font-weight: 600; }
+.tab-add { align-self: center; padding: 4px; border: 0; background: transparent; border-radius: var(--radius); color: var(--fg-muted); display: flex; }
+.title-search { margin-left: auto; align-self: center; display: flex; align-items: center; gap: 8px; color: var(--fg-muted); background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius); padding: 4px 10px; width: 290px; font-size: 12px; white-space: nowrap; overflow: hidden; }
+.kbd { font-family: var(--font-ui); font-size: 11px; border: 1px solid var(--border-strong); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; color: var(--fg-2); margin-left: auto; }
+
+.toolbar { display: flex; align-items: center; gap: 4px; padding: 0 10px; background: var(--bg-panel); border-bottom: 1px solid var(--border); }
+.tb { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-width: 50px; height: 36px; border: 0; background: transparent; border-radius: var(--radius); color: var(--fg-2); font-size: 10.5px !important; cursor: pointer; position: relative; }
+.tb:hover { background: var(--bg-hover); color: var(--fg); }
+.tb .ico { width: 16px; height: 16px; }
+.tb .count { position: absolute; top: 2px; right: 6px; font-size: 9px; background: var(--accent); color: var(--accent-fg); border-radius: 99px; padding: 0 4px; font-weight: 600; }
+.sep { width: 1px; height: 22px; background: var(--border); margin: 0 6px; }
+.branch-select { margin-left: auto; display: flex; align-items: center; gap: 8px; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius); padding: 5px 10px; font-size: 12.5px; }
+.branch-select .ab { color: var(--fg-muted); font-size: 11.5px; }
+
+.main { display: grid; grid-template-columns: 224px 1fr 310px; min-height: 0; }
+.sidebar { background: var(--bg-panel); border-right: 1px solid var(--border); overflow: hidden; padding: 8px 6px; }
+.filter { display: flex; align-items: center; gap: 6px; background: var(--bg-input); border: 1px solid var(--border); border-radius: var(--radius); padding: 5px 8px; color: var(--fg-muted); font-size: 12px; margin: 0 2px 8px; }
+.sec { margin-bottom: 4px; }
+.sec-h { display: flex; align-items: center; gap: 6px; padding: 5px 6px; font-size: 10.5px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--fg-muted); }
+.sec-h .n { margin-left: auto; font-weight: 500; }
+.item { display: flex; align-items: center; gap: 7px; padding: 4px 8px 4px 20px; border-radius: var(--radius); color: var(--fg-2); font-size: 12.5px; white-space: nowrap; }
+.item:hover { background: var(--bg-hover); }
+.item.cur { color: var(--fg); background: var(--accent-soft); font-weight: 500; }
+.item.folder { padding-left: 14px; }
+.item .ab { margin-left: auto; font-size: 11px; color: var(--fg-muted); font-family: var(--font-code); }
+.item .ab b { color: var(--success); font-weight: 500; }
+.item .ab em { color: var(--info); font-style: normal; }
+.sw { width: 8px; height: 8px; border-radius: 2px; flex: none; }
+
+.center { position: relative; background: var(--bg-app); min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+.cols { display: grid; grid-template-columns: var(--gw) 1fr 34px 96px 70px; height: 26px; align-items: center; font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--fg-muted); border-bottom: 1px solid var(--border); padding-right: 8px; flex: none; }
+.cols span:first-child { padding-left: 10px; }
+.gbody { position: relative; flex: 1; overflow: hidden; }
+.gbody #gsvg { position: absolute; left: 0; top: 0; pointer-events: none; }
+.row { display: grid; grid-template-columns: var(--gw) 1fr 34px 96px 70px; height: var(--row-h); align-items: center; padding-right: 8px; position: relative; }
+.row:hover { background: var(--bg-hover); }
+.row.sel { background: var(--bg-selected); }
+.row.drop { outline: 1.5px dashed var(--accent); outline-offset: -2px; background: var(--accent-soft); }
+.msg { display: flex; align-items: center; gap: 6px; min-width: 0; white-space: nowrap; overflow: hidden; }
+.msg .t { overflow: hidden; text-overflow: ellipsis; }
+.msg .t.wip { color: var(--fg-2); font-style: italic; }
+.msg .t.dim { color: var(--fg-2); }
+.pill { display: inline-flex; align-items: center; gap: 4px; height: 18px; padding: 0 7px; border-radius: var(--pill-radius); font-size: 11px; font-weight: 500; flex: none; border: 1px solid transparent; }
+.pill .ico { width: 11px; height: 11px; }
+.pill.local { color: var(--bg-app); }
+.pill.head { box-shadow: 0 0 0 2px var(--bg-app), 0 0 0 3px currentColor; }
+.pill.remote { background: transparent; }
+.pill.tagp { background: transparent; border-color: var(--border-strong); color: var(--fg-2); }
+.pill.stashp { background: var(--bg-elevated); border-color: var(--border-strong); color: var(--fg-2); }
+.av { width: 20px; height: 20px; border-radius: 50%; font-size: 9px; font-weight: 600; display: grid; place-items: center; color: #fff; justify-self: center; }
+[data-style="terminal"] .av { border-radius: 2px; }
+.date { color: var(--fg-muted); font-size: 12px; }
+.sha { color: var(--fg-muted); font-family: var(--font-code); font-size: 11.5px; }
+
+.right { background: var(--bg-panel); border-left: 1px solid var(--border); display: flex; flex-direction: column; min-height: 0; }
+.rp-h { padding: 10px 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; font-size: 12.5px; }
+.rp-h b { font-weight: 600; }
+.rp-h .muted { color: var(--fg-muted); margin-left: auto; font-size: 11.5px; }
+.fl-h { display: flex; align-items: center; gap: 6px; padding: 8px 12px 4px; font-size: 11px; font-weight: 600; color: var(--fg-2); }
+.fl-h .act { margin-left: auto; font-weight: 500; font-size: 11px; color: var(--accent); background: none; border: 0; padding: 2px 6px; border-radius: var(--radius); cursor: pointer; }
+.file { display: flex; align-items: center; gap: 8px; padding: 4px 12px; font-size: 12.5px; }
+.file:hover { background: var(--bg-hover); }
+.file.sel { background: var(--bg-selected); }
+.file .path { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file .path span { color: var(--fg-muted); }
+.st { width: 16px; height: 16px; border-radius: 3px; display: grid; place-items: center; font-size: 10px; font-weight: 700; font-family: var(--font-code); flex: none; }
+.st.M { color: var(--warning); background: color-mix(in srgb, var(--warning) 16%, transparent); }
+.st.A { color: var(--success); background: color-mix(in srgb, var(--success) 16%, transparent); }
+.st.D { color: var(--danger); background: color-mix(in srgb, var(--danger) 16%, transparent); }
+.st.U { color: var(--info); background: color-mix(in srgb, var(--info) 16%, transparent); }
+.st.C { color: var(--danger); background: color-mix(in srgb, var(--danger) 16%, transparent); }
+.file .hover-act { margin-left: auto; display: flex; gap: 2px; opacity: 0; }
+.file:hover .hover-act, .file.sel .hover-act { opacity: 1; }
+.mini { border: 1px solid var(--border-strong); background: var(--bg-elevated); border-radius: var(--radius); padding: 1px 6px; font-size: 11px !important; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
+.commit-box { margin-top: auto; border-top: 1px solid var(--border); padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 8px; }
+.inp { background: var(--bg-input); border: 1px solid var(--border-strong); border-radius: var(--radius); padding: 7px 9px; font-size: 12.5px; color: var(--fg); display: flex; align-items: center; }
+.inp.focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.inp .cnt { margin-left: auto; color: var(--fg-muted); font-size: 11px; font-family: var(--font-code); }
+.inp.area { height: 64px; align-items: flex-start; color: var(--fg-2); }
+.chk { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--fg-2); }
+.chk i { width: 13px; height: 13px; border: 1.5px solid var(--border-strong); border-radius: 3px; display: block; }
+.btn { border: 0; border-radius: var(--radius); padding: 8px 12px; font-weight: 600 !important; font-size: 12.5px !important; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; white-space: nowrap; }
+.btn.primary { background: var(--accent); color: var(--accent-fg) !important; }
+.btn.ghost { background: var(--bg-elevated); border: 1px solid var(--border-strong); }
+.btn.danger { background: transparent; color: var(--danger) !important; border: 1px solid color-mix(in srgb, var(--danger) 40%, transparent); }
+.btn .kbd { color: inherit; border-color: currentColor; opacity: .7; margin-left: 0; }
+
+.statusbar { display: flex; align-items: center; gap: 14px; padding: 0 12px; background: var(--bg-panel); border-top: 1px solid var(--border); font-size: 11.5px; color: var(--fg-muted); }
+.statusbar .ok { color: var(--success); display: flex; align-items: center; gap: 5px; }
+.statusbar .r { margin-left: auto; display: flex; gap: 14px; }
+
+/* Diff */
+.diffbar { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 1px solid var(--border); background: var(--bg-panel); flex: none; }
+.back { display: flex; align-items: center; gap: 6px; color: var(--fg-2); font-size: 12px; border: 1px solid var(--border-strong); border-radius: var(--radius); padding: 3px 8px; background: transparent; cursor: pointer; }
+.diffbar .fp { font-family: var(--font-code); font-size: 12px; }
+.diffbar .fp span { color: var(--fg-muted); }
+.stat-add { color: var(--success); font-family: var(--font-code); font-size: 12px; }
+.stat-del { color: var(--danger); font-family: var(--font-code); font-size: 12px; }
+.toggle { display: inline-flex; border: 1px solid var(--border-strong); border-radius: var(--radius); overflow: hidden; margin-left: auto; }
+.toggle button { white-space: nowrap; border: 0; background: transparent; padding: 4px 8px; display: flex; align-items: center; gap: 5px; font-size: 11.5px !important; color: var(--fg-2) !important; cursor: pointer; }
+.toggle button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent) !important; }
+.hunk-h { display: flex; align-items: center; gap: 8px; padding: 5px 12px; background: var(--bg-elevated); border-bottom: 1px solid var(--border); font-family: var(--font-code); font-size: 11.5px; color: var(--fg-muted); }
+.hunk-h .acts { margin-left: auto; display: flex; gap: 6px; font-family: var(--font-ui); }
+.code { font-family: var(--font-code); font-variant-ligatures: none; font-size: 12px; line-height: 20px; overflow: hidden; flex: 1; }
+.code .ln { display: grid; grid-template-columns: 44px 18px 1fr; white-space: pre; }
+.code.split .pair { display: grid; grid-template-columns: 1fr 1fr; }
+.code.split .pair > .ln:first-child { border-right: 1px solid var(--border); }
+.code.unified .ln { grid-template-columns: 40px 40px 18px 1fr; }
+.code .no { color: var(--fg-muted); text-align: right; padding-right: 8px; user-select: none; opacity: .8; }
+.code .sg { color: var(--fg-muted); text-align: center; user-select: none; }
+.code .add { background: var(--diff-add); } .code .add .sg { color: var(--success); }
+.code .del { background: var(--diff-del); } .code .del .sg { color: var(--danger); }
+.code .empty { background: repeating-linear-gradient(135deg, transparent 0 6px, color-mix(in srgb, var(--fg-muted) 8%, transparent) 6px 7px); }
+.code .add mark { background: var(--diff-add-strong); color: inherit; border-radius: 2px; }
+.code .del mark { background: var(--diff-del-strong); color: inherit; border-radius: 2px; }
+.code .add .no.sel-line { box-shadow: inset 3px 0 0 var(--accent); }
+.k { color: var(--syn-kw); } .s { color: var(--syn-str); } .g { color: var(--syn-tag); } .f { color: var(--syn-fn); }
+
+/* Overlays */
+.scrim { position: absolute; inset: 0; background: rgba(0,0,0,.35); display: flex; justify-content: center; align-items: flex-start; padding-top: 70px; z-index: 5; }
+[data-style="paper"] .scrim { background: rgba(30,35,45,.18); }
+.palette { width: 560px; background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: calc(var(--radius) + 4px); box-shadow: var(--shadow); overflow: hidden; }
+.palette .q { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--border); font-size: 15px; }
+.palette .q .caret { width: 1.5px; height: 18px; background: var(--accent); animation: blink 1s steps(1) infinite; margin-left: -8px; }
+@keyframes blink { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .palette .q .caret { animation: none; } }
+.palette .grp { padding: 8px 14px 4px; font-size: 10.5px; text-transform: uppercase; letter-spacing: .07em; color: var(--fg-muted); font-weight: 600; }
+.palette .res { display: flex; align-items: center; gap: 10px; padding: 7px 14px; font-size: 13px; color: var(--fg-2); }
+.palette .res.on { background: var(--accent-soft); color: var(--fg); box-shadow: inset 2px 0 0 var(--accent); }
+.palette .res u { text-decoration: none; color: var(--accent); font-weight: 600; }
+.palette .res .meta { margin-left: auto; font-size: 11.5px; color: var(--fg-muted); display: flex; align-items: center; gap: 8px; }
+.palette .foot { display: flex; gap: 16px; padding: 8px 14px; border-top: 1px solid var(--border); font-size: 11px; color: var(--fg-muted); }
+.palette .foot .kbd { margin-left: 0; margin-right: 4px; }
+
+.ghost-pill { position: absolute; z-index: 6; transform: rotate(-3deg); box-shadow: var(--shadow); opacity: .95; }
+.cursor { position: absolute; z-index: 7; width: 18px; height: 18px; }
+.menu { position: absolute; z-index: 6; width: 300px; background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: calc(var(--radius) + 2px); box-shadow: var(--shadow); padding: 5px; }
+.menu .mh { padding: 6px 8px 8px; font-size: 11.5px; color: var(--fg-muted); border-bottom: 1px solid var(--border); margin-bottom: 4px; }
+.menu .mh b { color: var(--fg); }
+.menu .mi { display: flex; align-items: center; gap: 9px; padding: 7px 8px; border-radius: var(--radius); font-size: 12.5px; }
+.menu .mi.on { background: var(--accent); color: var(--accent-fg); }
+.menu .mi.off { color: var(--fg-muted); }
+.menu .mi small { display: block; font-size: 11px; opacity: .75; }
+.menu .mi .kbd { margin-left: auto; }
+.menu hr { border: 0; border-top: 1px solid var(--border); margin: 4px 0; }
+
+.banner { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: color-mix(in srgb, var(--warning) 14%, var(--bg-panel)); border-bottom: 1px solid color-mix(in srgb, var(--warning) 35%, transparent); font-size: 12.5px; flex: none; white-space: nowrap; }
+.banner .ico { color: var(--warning); width: 16px; height: 16px; }
+.banner .prog { width: 90px; height: 5px; border-radius: 99px; background: var(--border-strong); overflow: hidden; }
+.banner .prog i { display: block; height: 100%; width: 43%; background: var(--warning); }
+.banner .acts { margin-left: auto; display: flex; gap: 6px; }
+.banner .btn { padding: 4px 10px; }
+.conf-help { margin: 8px 12px; padding: 9px 10px; border-radius: var(--radius); background: var(--bg-elevated); border: 1px solid var(--border); font-size: 12px; color: var(--fg-2); line-height: 1.45; }
+.conf-help b { color: var(--fg); }
+.side-choice { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 0 12px 6px 36px; }
+.side-choice .mini { justify-content: center; padding: 3px 6px; }
+.toast { position: absolute; right: 14px; bottom: 38px; z-index: 4; display: flex; align-items: center; gap: 10px; background: var(--bg-elevated); border: 1px solid var(--border-strong); border-radius: calc(var(--radius) + 2px); padding: 10px 12px; box-shadow: var(--shadow); font-size: 12.5px; }
+.toast .ico { color: var(--success); width: 16px; height: 16px; }
+.toast a { color: var(--accent); font-weight: 600; text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>UI style proposals</h1>
+  <p class="lead">One mockup, four themes applied through design tokens: the same theming architecture the app uses. Switch style and screen to compare the same situations: graph + staging, diff, command palette, branch drag &amp; drop, rebase with a conflict.</p>
+
+  <div class="controls">
+    <div><span class="seg-label">Style</span>
+      <div class="seg" id="styleSeg">
+        <button data-v="graphite" aria-pressed="true">A · Graphite</button>
+        <button data-v="paper">B · Paper</button>
+        <button data-v="aurora">C · Aurora</button>
+        <button data-v="terminal">D · Terminal</button>
+      </div>
+    </div>
+    <div><span class="seg-label">Screen</span>
+      <div class="seg" id="viewSeg">
+        <button data-v="graph" aria-pressed="true">Graph</button>
+        <button data-v="diff">Diff</button>
+        <button data-v="palette">Palette ⌘K</button>
+        <button data-v="drag">Drag &amp; drop</button>
+        <button data-v="conflict">Conflict</button>
+      </div>
+    </div>
+    <div><span class="seg-label">Density</span>
+      <div class="seg" id="densSeg">
+        <button data-v="comfy" aria-pressed="true">Comfortable</button>
+        <button data-v="compact">Compact</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="frame"><div class="app" id="app" data-style="graphite" data-density="comfy"></div></div>
+  <p class="note" id="viewNote"></p>
+
+  <h2>The four styles</h2>
+  <div class="cards" id="cards"></div>
+
+  <h2>Comparison</h2>
+  <div class="tbl-wrap">
+  <table class="cmp">
+    <thead><tr><th>Style</th><th>Proposed role</th><th>Strengths</th><th>Risks</th></tr></thead>
+    <tbody>
+      <tr><td><b>A · Graphite</b></td><td>Dark default</td><td>Understated, comfortable for long sessions, the graph stands out; the single accent makes primary actions obvious.</td><td>A bit austere if the lanes are desaturated.</td></tr>
+      <tr><td><b>B · Paper</b></td><td>Light default</td><td>Reassuring for beginners, native macOS feel, great in daylight.</td><td>Lane colors must be darkened to stay AA.</td></tr>
+      <tr><td><b>C · Aurora</b></td><td>Optional theme</td><td>Closest to the GitKraken energy, very recognizable, friendly rounded pills.</td><td>Tires the eyes faster, looks less "pro" in front of a client.</td></tr>
+      <tr><td><b>D · Terminal</b></td><td>Optional theme</td><td>Maximum density, consistent with keyboard-first use.</td><td>Off-putting for beginners: against the goal if used as the default.</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="note">Recommendation: A + B as the default pair (same tokens, switched by the system theme), C and D as options. Density is a setting independent of the style.</p>
+</div>
+
+<script>
+const ICONS = {
+  undo: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>',
+  redo: '<path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/>',
+  pull: '<path d="M12 17V3"/><path d="m6 11 6 6 6-6"/><path d="M19 21H5"/>',
+  push: '<path d="m18 9-6-6-6 6"/><path d="M12 3v14"/><path d="M5 21h14"/>',
+  fetch: '<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>',
+  branch: '<line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/>',
+  stash: '<rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/>',
+  pop: '<rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="m9 15 3-3 3 3"/><path d="M12 12v6"/>',
+  terminal: '<path d="m4 17 6-6-6-6"/><path d="M12 19h8"/>',
+  search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+  tag: '<path d="M12.6 2.6A2 2 0 0 0 11.2 2H4a2 2 0 0 0-2 2v7.2a2 2 0 0 0 .6 1.4l8.7 8.7a2.4 2.4 0 0 0 3.4 0l6.6-6.6a2.4 2.4 0 0 0 0-3.4z"/><circle cx="7.5" cy="7.5" r="1"/>',
+  cloud: '<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>',
+  laptop: '<path d="M20 16V7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v9m16 0H4m16 0 1.28 2.55a1 1 0 0 1-.9 1.45H3.62a1 1 0 0 1-.9-1.45L4 16"/>',
+  check: '<path d="M20 6 9 17l-5-5"/>',
+  plus: '<path d="M5 12h14"/><path d="M12 5v14"/>',
+  minus: '<path d="M5 12h14"/>',
+  x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+  down: '<path d="m6 9 6 6 6-6"/>',
+  right: '<path d="m9 18 6-6-6-6"/>',
+  box: '<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.3 7 12 12l8.7-5"/><path d="M12 22V12"/>',
+  folder: '<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>',
+  merge: '<circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/>',
+  rebase: '<circle cx="12" cy="12" r="3"/><path d="M12 3v6"/><path d="M12 15v6"/>',
+  ff: '<path d="m6 17 5-5-5-5"/><path d="m13 17 5-5-5-5"/>',
+  discard: '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>',
+  split: '<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M12 3v18"/>',
+  unified: '<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 12h18"/>',
+  back: '<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',
+  alert: '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+  file: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/>',
+  commit: '<circle cx="12" cy="12" r="3"/><path d="M3 12h6"/><path d="M15 12h6"/>',
+};
+const ic = (n, cls = 'ico') => `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n]}</svg>`;
+const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+/* ── Graph data ── lane 0 = main, 1 = feat/tabs then feat/graph, 2 = stash */
+const AUTH = { AM: '#7c6cf0', LM: '#0ea5a4', DB: '#64748b' };
+const COMMITS = [
+  { lane: 1, kind: 'wip', msg: '// WIP — 3 files changed, 1 staged', parents: [1] },
+  { lane: 1, msg: 'feat(tabs): drag & drop to reorder tabs', refs: [{ t: 'local', n: 'feat/tabs', head: true, lane: 1, remote: true }], a: 'AM', d: '12 min ago', sha: 'a3f9c21', parents: [2] },
+  { lane: 1, msg: 'feat(tabs): persist tab order in yaggui.db', a: 'AM', d: '2 h ago', sha: '7be04d8', parents: [4] },
+  { lane: 0, msg: 'fix(stash): refresh the list after a drop', refs: [{ t: 'local', n: 'main', lane: 0, remote: true }], a: 'LM', d: 'yesterday', sha: 'c81e2aa', parents: [5] },
+  { lane: 1, msg: 'feat(tabs): tab bar skeleton', a: 'AM', d: 'yesterday', sha: '0d4471f', parents: [5] },
+  { lane: 0, kind: 'merge', msg: 'Merge branch \'feat/graph\'', a: 'LM', d: 'Oct 3', sha: '9e2b6c0', parents: [6, 7] },
+  { lane: 0, msg: 'chore: bump tauri 2.4.1', refs: [{ t: 'tag', n: 'v0.3.0' }], a: 'DB', d: 'Oct 2', sha: '51ac9f3', parents: [9] },
+  { lane: 1, col: 3, msg: 'perf(graph): incremental paged lane layout', refs: [{ t: 'remote', n: 'origin/feat/graph', lane: 3 }], a: 'LM', d: 'Oct 2', sha: 'e07d3b9', parents: [8] },
+  { lane: 1, col: 3, msg: 'feat(graph): virtualized canvas rendering', a: 'LM', d: 'Oct 1', sha: '3f6a0e2', parents: [9] },
+  { lane: 0, msg: 'feat(status): file watcher with 150 ms debounce', a: 'AM', d: 'Sep 30', sha: 'b29d7a4', parents: [11] },
+  { lane: 2, kind: 'stash', msg: 'On main: OpQueue experiments', refs: [{ t: 'stash', n: 'stash@{0}' }], a: 'AM', d: 'Sep 29', sha: 'f1c08e6', parents: [11] },
+  { lane: 0, msg: 'refactor(core): per-repo serialized OpQueue', a: 'AM', d: 'Sep 28', sha: '62e5b17', parents: [12] },
+  { lane: 0, msg: 'chore: init Tauri 2 + React 19 project', a: 'AM', d: 'Sep 27', sha: '1a0f3d5', parents: [13] },
+  { lane: 0, msg: 'chore: add the spec', a: 'AM', d: 'Sep 26', sha: '00b7e41', parents: [] },
+];
+const LANE_X = l => 16 + l * 18;
+const colOf = c => c.col ?? c.lane;
+const GW = 80;
+
+function pill(r) {
+  const c = r.lane != null ? `var(--lane-${r.lane})` : '';
+  if (r.t === 'local') return `<span class="pill local${r.head ? ' head' : ''}" style="background:${c};color:var(--bg-app);${r.head ? 'outline-color:' + c : ''}">${r.head ? ic('check') : ic('laptop')}${esc(r.n)}${r.remote ? ' ' + ic('cloud') : ''}</span>`;
+  if (r.t === 'remote') return `<span class="pill remote" style="border-color:${c};color:${c}">${ic('cloud')}${esc(r.n)}</span>`;
+  if (r.t === 'tag') return `<span class="pill tagp">${ic('tag')}${esc(r.n)}</span>`;
+  return `<span class="pill stashp">${ic('stash')}${esc(r.n)}</span>`;
+}
+
+function graphHTML({ sel = 0, drop = -1 } = {}) {
+  const rows = COMMITS.map((c, i) => `
+    <div class="row${i === sel ? ' sel' : ''}${i === drop ? ' drop' : ''}" data-i="${i}">
+      <span></span>
+      <div class="msg">${(c.refs || []).map(pill).join('')}<span class="t${c.kind === 'wip' ? ' wip' : ''}${c.kind === 'stash' || c.kind === 'merge' ? ' dim' : ''}">${esc(c.msg)}</span></div>
+      ${c.a ? `<span class="av" style="background:${AUTH[c.a]}">${c.a}</span>` : '<span></span>'}
+      <span class="date">${c.d || ''}</span>
+      <span class="sha">${c.sha || ''}</span>
+    </div>`).join('');
+  return `<div class="cols" style="--gw:${GW}px"><span>Graph</span><span>Message</span><span></span><span>Date</span><span>SHA</span></div>
+    <div class="gbody" style="--gw:${GW}px"><svg id="gsvg"></svg>${rows}</div>`;
+}
+
+function drawGraph(app) {
+  const svg = app.querySelector('#gsvg'); if (!svg) return;
+  const rh = parseFloat(getComputedStyle(app).getPropertyValue('--row-h'));
+  const H = COMMITS.length * rh;
+  svg.setAttribute('width', GW); svg.setAttribute('height', H);
+  const y = i => i * rh + rh / 2;
+  let paths = '', nodes = '';
+  COMMITS.forEach((c, i) => {
+    c.parents.forEach(p => {
+      const P = COMMITS[p]; if (!P) return;
+      const cx = LANE_X(c.lane), cy = y(i), px = LANE_X(P.lane), py = y(p);
+      const col = `var(--lane-${c.lane >= P.lane ? colOf(c) : colOf(P)})`;
+      let d;
+      if (c.lane === P.lane) d = `M${cx} ${cy}V${py}`;
+      else if (c.lane > P.lane) d = `M${cx} ${cy}V${py - rh}C${cx} ${py - rh * .35} ${px} ${py - rh * .55} ${px} ${py}`;
+      else d = `M${cx} ${cy}C${cx} ${cy + rh * .55} ${px} ${cy + rh * .35} ${px} ${cy + rh}V${py}`;
+      paths += `<path d="${d}" stroke="${col}" stroke-width="2" fill="none"${c.kind === 'wip' || c.kind === 'stash' ? ' stroke-dasharray="3 3"' : ''}/>`;
+    });
+    if (!c.parents.length) paths += `<path d="M${LANE_X(c.lane)} ${y(i)}V${y(i) + rh / 2}" stroke="var(--lane-${colOf(c)})" stroke-width="2" stroke-dasharray="2 3"/>`;
+  });
+  COMMITS.forEach((c, i) => {
+    const x = LANE_X(c.lane), cy = y(i), col = `var(--lane-${colOf(c)})`;
+    const r = Math.min(6, rh / 4.2);
+    if (c.kind === 'wip') nodes += `<circle cx="${x}" cy="${cy}" r="${r}" fill="var(--bg-app)" stroke="${col}" stroke-width="2" stroke-dasharray="2.5 2"/>`;
+    else if (c.kind === 'stash') nodes += `<rect x="${x - r}" y="${cy - r}" width="${2 * r}" height="${2 * r}" rx="2" fill="var(--bg-app)" stroke="${col}" stroke-width="2"/>`;
+    else if (c.kind === 'merge') nodes += `<circle cx="${x}" cy="${cy}" r="${r - 2}" fill="${col}" stroke="var(--bg-app)" stroke-width="2"/>`;
+    else {
+      const head = (c.refs || []).some(r => r.head);
+      if (head) nodes += `<circle cx="${x}" cy="${cy}" r="${r + 3}" fill="none" stroke="${col}" stroke-width="1.5" opacity=".55"/>`;
+      nodes += `<circle cx="${x}" cy="${cy}" r="${r}" fill="${col}" stroke="var(--bg-app)" stroke-width="2"/>`;
+    }
+  });
+  svg.innerHTML = paths + nodes;
+}
+
+/* ── Diff ── */
+const DIFF = [
+  ['18', 'export function TabBar({ tabs, activeId }: Props) {', 'c', '18', 'export function TabBar({ tabs, activeId }: Props) {', 'c'],
+  ['19', '  const select = useTabs((s) => s.select);', 'c', '19', '  const select = useTabs((s) => s.select);', 'c'],
+  ['', '', 'e', '20', '  const reorder = useTabs((s) => s.reorder);', 'a'],
+  ['', '', 'e', '21', '  const drag = useDragTab({ onDrop: reorder });', 'a'],
+  ['20', '', 'c', '22', '', 'c'],
+  ['21', '  return (', 'c', '23', '  return (', 'c'],
+  ['22', '    <div className={styles.bar}>', 'd', '24', '    <div className={styles.bar}⟦ {...drag.containerProps}⟧>', 'a'],
+  ['23', '      {tabs.map((t) => (', 'd', '25', '      {tabs.map((t⟦, i⟧) => (', 'a'],
+  ['24', '        <Tab key={t.id} tab={t} active={t.id === activeId} />', 'd', '26', '        <Tab', 'a'],
+  ['', '', 'e', '27', '          key={t.id}', 'a'],
+  ['', '', 'e', '28', '          tab={t}', 'a'],
+  ['', '', 'e', '29', '          active={t.id === activeId}', 'a'],
+  ['', '', 'e', '30', '          ⟦{...drag.itemProps(t.id, i)}⟧', 'a'],
+  ['', '', 'e', '31', '        />', 'a'],
+  ['25', '      ))}', 'c', '32', '      ))}', 'c'],
+  ['26', '    </div>', 'c', '33', '    </div>', 'c'],
+  ['27', '  );', 'c', '34', '  );', 'c'],
+  ['28', '}', 'c', '35', '}', 'c'],
+];
+function hl(src) {
+  let s = esc(src);
+  s = s.replace(/(&lt;\/?)([A-Za-z]+)/g, '$1<span class="g">$2</span>');
+  s = s.replace(/\b(export|function|const|return)\b/g, '<span class="k">$1</span>');
+  s = s.replace(/\b(useTabs|useDragTab|TabBar|map|itemProps)\b(?=\()/g, '<span class="f">$1</span>');
+  return s.replace(/⟦/g, '<mark>').replace(/⟧/g, '</mark>');
+}
+const CLS = { c: '', a: 'add', d: 'del', e: 'empty' };
+const SIGN = { c: ' ', a: '+', d: '−', e: '' };
+function diffHTML(mode) {
+  let body;
+  if (mode === 'split') {
+    body = DIFF.map(([ln, lt, lk, rn, rt, rk]) => `<div class="pair">
+      <div class="ln ${CLS[lk]}"><span class="no">${ln}</span><span class="sg">${SIGN[lk]}</span><span>${hl(lt)}</span></div>
+      <div class="ln ${CLS[rk]}"><span class="no">${rn}</span><span class="sg">${SIGN[rk]}</span><span>${hl(rt)}</span></div></div>`).join('');
+  } else {
+    const dels = [], out = [];
+    const flush = () => { out.push(...dels); dels.length = 0; };
+    DIFF.forEach(([ln, lt, lk, rn, rt, rk]) => {
+      if (lk === 'd') dels.push(`<div class="ln del"><span class="no">${ln}</span><span class="no"></span><span class="sg">−</span><span>${hl(lt)}</span></div>`);
+      if (rk === 'a') { flush(); out.push(`<div class="ln add"><span class="no"></span><span class="no">${rn}</span><span class="sg">+</span><span>${hl(rt)}</span></div>`); }
+      if (lk === 'c') { flush(); out.push(`<div class="ln"><span class="no">${ln}</span><span class="no">${rn}</span><span class="sg"></span><span>${hl(lt)}</span></div>`); }
+    });
+    flush(); body = out.join('');
+  }
+  return `<div class="diffbar">
+      <button class="back" data-go="graph">${ic('back')} Graph <span class="kbd">Esc</span></button>
+      <span class="fp"><span>src/components/</span>TabBar.tsx</span>
+      <span class="stat-add">+12</span><span class="stat-del">−3</span>
+      <div class="toggle" id="diffToggle">
+        <button data-m="unified" aria-pressed="${mode === 'unified'}">${ic('unified')} Unified</button>
+        <button data-m="split" aria-pressed="${mode === 'split'}">${ic('split')} Side by side</button>
+      </div>
+      <button class="btn primary" style="padding:5px 10px">${ic('plus')} Stage file</button>
+    </div>
+    <div class="hunk-h">@@ -18,11 +18,18 @@ export function TabBar
+      <div class="acts"><button class="mini">${ic('discard')} Discard hunk</button><button class="mini" style="color:var(--accent)">${ic('plus')} Stage hunk</button></div></div>
+    <div class="code ${mode}">${body}</div>`;
+}
+
+/* ── Panels ── */
+function sidebarHTML() {
+  return `<div class="filter">${ic('search')} Filter refs <span class="kbd">⌘⇧R</span></div>
+  <div class="sec"><div class="sec-h">${ic('down')} ${ic('laptop')} Local <span class="n">3</span></div>
+    <div class="item">${ic('branch')} main <span class="ab"><em>↓1</em></span></div>
+    <div class="item folder">${ic('down')} ${ic('folder')} feat</div>
+    <div class="item cur" style="padding-left:34px"><span class="sw" style="background:var(--lane-1)"></span> tabs <span class="ab"><b>↑2</b></span></div>
+    <div class="item" style="padding-left:34px">${ic('branch')} palette</div></div>
+  <div class="sec"><div class="sec-h">${ic('down')} ${ic('cloud')} Remote <span class="n">1</span></div>
+    <div class="item folder">${ic('down')} ${ic('folder')} origin</div>
+    <div class="item" style="padding-left:34px">${ic('branch')} main</div>
+    <div class="item" style="padding-left:34px">${ic('branch')} feat/graph</div>
+    <div class="item" style="padding-left:34px">${ic('branch')} feat/tabs</div></div>
+  <div class="sec"><div class="sec-h">${ic('right')} ${ic('tag')} Tags <span class="n">4</span></div></div>
+  <div class="sec"><div class="sec-h">${ic('down')} ${ic('stash')} Stashes <span class="n">1</span></div>
+    <div class="item">${ic('stash')} OpQueue experiments</div></div>
+  <div class="sec"><div class="sec-h">${ic('right')} ${ic('box')} Submodules <span class="n">0</span></div></div>
+  <div class="sec"><div class="sec-h">${ic('right')} ${ic('folder')} Worktrees <span class="n">1</span></div></div>`;
+}
+const fileRow = (st, dir, name, sel, act) => `<div class="file${sel ? ' sel' : ''}"><span class="st ${st}">${st === 'U' ? '?' : st}</span><span class="path"><span>${dir}</span>${name}</span>
+  <span class="hover-act">${act === 'stage' ? `<button class="mini" title="Discard">${ic('discard')}</button><button class="mini" title="Stage">${ic('plus')}</button>` : `<button class="mini" title="Unstage">${ic('minus')}</button>`}</span></div>`;
+function stagingHTML() {
+  return `<div class="rp-h">${ic('commit')} <b>Local changes</b><span class="muted">feat/tabs</span></div>
+  <div class="fl-h">Unstaged (3)<button class="act">Stage all</button></div>
+  ${fileRow('M', 'src/components/', 'TabBar.tsx', true, 'stage')}
+  ${fileRow('M', 'src/store/', 'tabs.ts', false, 'stage')}
+  ${fileRow('U', 'src/hooks/', 'useDragTab.ts', false, 'stage')}
+  <div class="fl-h">Staged (1)<button class="act">Unstage all</button></div>
+  ${fileRow('A', 'docs/', 'SPEC.md', false, 'unstage')}
+  <div class="commit-box">
+    <div class="inp focus">feat(tabs): drag &amp; drop tabs<span class="cnt">31/72</span></div>
+    <div class="inp area">Description (optional)</div>
+    <div style="display:flex;gap:14px"><span class="chk"><i></i> Amend</span><span class="chk"><i></i> Push after commit</span></div>
+    <button class="btn primary">Commit to feat/tabs <span class="kbd">⌘↵</span></button>
+  </div>`;
+}
+function conflictPanelHTML() {
+  return `<div class="rp-h">${ic('alert')} <b>Conflicts</b><span class="muted">1 / 2 resolved</span></div>
+  <div class="conf-help">Rebasing <b>feat/tabs</b> onto <b>main</b>. Pick the version to keep, or open the merge editor to combine both.</div>
+  <div class="fl-h">Conflicted (1)</div>
+  <div class="file sel"><span class="st C">!</span><span class="path"><span>src/store/</span>tabs.ts</span></div>
+  <div class="side-choice"><button class="mini">Keep main</button><button class="mini">Keep feat/tabs</button></div>
+  <div style="padding:0 12px 6px 36px"><button class="mini" style="width:100%;justify-content:center;color:var(--accent)">Open the 3-way merge editor</button></div>
+  <div class="fl-h">Resolved (1)</div>
+  ${fileRow('M', 'src/components/', 'TabBar.tsx', false, 'unstage')}
+  <div class="commit-box">
+    <div class="inp">feat(tabs): persist tab order in yaggui.db</div>
+    <button class="btn primary" disabled style="opacity:.55">Continue (1 conflict left)</button>
+  </div>`;
+}
+
+function chrome(center, right, extra = '') {
+  return `<div class="titlebar">
+      <div class="lights"><i></i><i></i><i></i></div>
+      <div class="tab active"><span class="dot" style="background:var(--lane-1)"></span>yaggui<span class="x">${ic('x')}</span></div>
+      <div class="tab"><span class="dot" style="background:var(--lane-2)"></span>api-backoffice<span class="badge">4</span></div>
+      <div class="tab"><span class="dot" style="background:var(--lane-3)"></span>website</div>
+      <button class="tab-add">${ic('plus')}</button>
+      <div class="title-search">${ic('search')} Search actions, branches, commits… <span class="kbd">⌘K</span></div>
+    </div>
+    <div class="toolbar">
+      <button class="tb">${ic('undo')}Undo</button><button class="tb">${ic('redo')}Redo</button><span class="sep"></span>
+      <button class="tb">${ic('pull')}Pull<span class="count">1</span></button><button class="tb">${ic('push')}Push<span class="count">2</span></button><button class="tb">${ic('fetch')}Fetch</button><span class="sep"></span>
+      <button class="tb">${ic('branch')}Branch</button><button class="tb">${ic('stash')}Stash</button><button class="tb">${ic('pop')}Pop</button><span class="sep"></span>
+      <button class="tb">${ic('terminal')}Terminal</button>
+      <div class="branch-select">${ic('branch')} feat/tabs <span class="ab">↑2 · origin/feat/tabs</span> ${ic('down')}</div>
+    </div>
+    <div class="main"><aside class="sidebar">${sidebarHTML()}</aside><section class="center">${center}</section><aside class="right">${right}</aside></div>
+    <div class="statusbar"><span class="ok">${ic('check')} Fetch done · origin · 2 min ago</span><span>Auto-fetch 10 min</span>
+      <span class="r"><span>git 2.47.0</span><span>Log (14) ⌃</span></span></div>${extra}`;
+}
+
+const NOTES = {
+  graph: 'Graph + staging: dashed WIP node on top (like GitKraken), merged local/remote labels (cloud icon), tag, square stash node. Hovering a file: stage/discard in one click.',
+  diff: 'Diff: unified / side-by-side toggle, intra-line highlighting, per-hunk actions. The diff replaces the graph to stay wide; Esc goes back.',
+  palette: '⌘K palette: typed fuzzy search (actions, branches, commits, files) with shortcuts shown; everything is reachable from the keyboard.',
+  drag: 'Drag & drop: dropping feat/tabs on main opens an action menu. The impossible fast-forward stays visible but disabled, with the reason.',
+  conflict: 'Rebase in progress: persistent banner with progress and actions; conflict choices show branch names, never "ours/theirs".',
+};
+
+const state = { style: 'graphite', view: 'graph', density: 'comfy', diff: 'split' };
+const app = document.getElementById('app');
+
+function render() {
+  app.dataset.style = state.style; app.dataset.density = state.density;
+  let html;
+  if (state.view === 'diff') html = chrome(diffHTML(state.diff), stagingHTML());
+  else if (state.view === 'conflict') {
+    html = chrome(`<div class="banner">${ic('alert')} <b>Rebasing feat/tabs onto main</b> — commit 3 / 7 <span class="prog"><i></i></span>
+      <span class="acts"><button class="btn ghost">Skip</button><button class="btn danger">Abort rebase</button></span></div>` + graphHTML({ sel: 2 }), conflictPanelHTML());
+  } else if (state.view === 'palette') {
+    html = chrome(graphHTML({ sel: 0 }), stagingHTML(), `<div class="scrim"><div class="palette">
+      <div class="q">${ic('search')} chk ma<span class="caret"></span></div>
+      <div class="grp">Actions</div>
+      <div class="res on">${ic('branch')} <span><u>Ch</u>ec<u>k</u>out <u>ma</u>in</span><span class="meta">main ↓1 <span class="kbd">↵</span></span></div>
+      <div class="res">${ic('branch')} <span><u>Ch</u>ec<u>k</u>out — pick a branch…</span><span class="meta"><span class="kbd">⌘⇧O</span></span></div>
+      <div class="grp">Branches</div>
+      <div class="res">${ic('cloud')} <span>origin/<u>ma</u>in</span><span class="meta">remote</span></div>
+      <div class="grp">Commits</div>
+      <div class="res">${ic('commit')} <span>fix(stash): refresh the list after a drop</span><span class="meta">c81e2aa · LM</span></div>
+      <div class="foot"><span><span class="kbd">↑↓</span>navigate</span><span><span class="kbd">↵</span>run</span><span><span class="kbd">⇥</span>more actions</span><span><span class="kbd">Esc</span>close</span></div>
+    </div></div>`);
+  } else if (state.view === 'drag') {
+    html = chrome(graphHTML({ sel: 1, drop: 3 }), stagingHTML());
+  } else html = chrome(graphHTML({ sel: 0 }), stagingHTML(),
+    `<div class="toast">${ic('check')} Commit <b>a3f9c21</b> created on feat/tabs <a href="#">Undo</a></div>`);
+  app.innerHTML = html;
+  drawGraph(app);
+  if (state.view === 'drag') placeDrag();
+  document.getElementById('viewNote').textContent = NOTES[state.view];
+  document.querySelectorAll('.card').forEach(c => c.classList.toggle('selected', c.dataset.style === state.style));
+}
+
+function placeDrag() {
+  const target = app.querySelector('.row[data-i="3"]');
+  const center = app.querySelector('.center');
+  const cr = center.getBoundingClientRect(), tr = target.getBoundingClientRect(), ar = app.getBoundingClientRect();
+  const top = tr.top - ar.top, left = cr.left - ar.left;
+  app.insertAdjacentHTML('beforeend', `
+    <span class="pill local ghost-pill" style="background:var(--lane-1);top:${top - 10}px;left:${left + 210}px">${ic('laptop')}feat/tabs</span>
+    <div class="menu" style="top:${top + 26}px;left:${left + 230}px">
+      <div class="mh">Drop <b>feat/tabs</b> on <b>main</b></div>
+      <div class="mi on">${ic('merge')}<span>Merge feat/tabs into main<small>Creates a merge commit on main</small></span></div>
+      <div class="mi">${ic('rebase')}<span>Rebase feat/tabs onto main<small>Rewrites 3 unpushed local commits</small></span></div>
+      <div class="mi off">${ic('ff')}<span>Fast-forward main<small>Not possible: main has diverged (1 commit)</small></span></div>
+      <hr><div class="mi">${ic('x')} Cancel <span class="kbd">Esc</span></div>
+    </div>`);
+}
+
+function seg(id, key) {
+  document.getElementById(id).addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    state[key] = b.dataset.v;
+    [...e.currentTarget.children].forEach(x => x.setAttribute('aria-pressed', x === b));
+    render();
+  });
+}
+seg('styleSeg', 'style'); seg('viewSeg', 'view'); seg('densSeg', 'density');
+app.addEventListener('click', e => {
+  const t = e.target.closest('[data-m]'); if (t) { state.diff = t.dataset.m; render(); return; }
+  const g = e.target.closest('[data-go]'); if (g) { setView(g.dataset.go); return; }
+  const f = e.target.closest('.file'); if (f && state.view === 'graph') setView('diff');
+});
+function setView(v) {
+  state.view = v;
+  document.querySelectorAll('#viewSeg button').forEach(x => x.setAttribute('aria-pressed', x.dataset.v === v));
+  render();
+}
+window.addEventListener('resize', () => { if (state.view === 'drag') render(); });
+
+/* ── Style cards ── */
+const STYLES = [
+  ['graphite', 'A · Graphite', 'Dark · default', 'Understated and pro, inspired by Linear/Zed. Bluish neutral grays, a single violet accent, saturated lanes that stand out.', true],
+  ['paper', 'B · Paper', 'Light · default', 'Airy, native macOS feel (Tower, Fork). Off-white, thin separators, blue accent.', true],
+  ['aurora', 'C · Aurora', 'Colorful dark · option', 'Expressive, Catppuccin-like: midnight blue, pastels, rounded pills. The GitKraken energy.', false],
+  ['terminal', 'D · Terminal', 'Dense dark · option', 'Monospace everywhere, maximum density, green accent. For keyboard-first use.', false],
+];
+document.getElementById('cards').innerHTML = STYLES.map(([k, n, t, d, reco]) => `
+  <div class="card" data-style="${k}" tabindex="0" role="button" aria-label="Apply style ${n}">
+    <div class="preview">
+      <div style="display:flex;gap:6px;align-items:center;margin-bottom:10px">
+        <span class="pill local head" style="background:var(--lane-0);color:var(--bg-app)">${ic('check')}main</span>
+        <span class="pill remote" style="border-color:var(--lane-1);color:var(--lane-1)">${ic('cloud')}origin</span>
+        <span class="pill tagp">${ic('tag')}v0.3.0</span>
+      </div>
+      <div style="font-size:var(--fs);margin-bottom:4px">feat(tabs): drag &amp; drop</div>
+      <div style="font-family:var(--font-code);font-size:11.5px;line-height:18px;border-radius:var(--radius);overflow:hidden">
+        <div style="background:var(--diff-del);padding:0 6px"><span style="color:var(--danger)">−</span> <span class="k">const</span> a = 1;</div>
+        <div style="background:var(--diff-add);padding:0 6px"><span style="color:var(--success)">+</span> <span class="k">const</span> a = <span class="s">'b'</span>;</div>
+      </div>
+      <button class="btn primary" style="position:absolute;right:14px;bottom:14px;padding:5px 10px;font-family:var(--font-ui)">Commit</button>
+    </div>
+    <div class="body">
+      <h3>${n}${reco ? '<span class="reco">Recommended</span>' : ''}</h3>
+      <div class="tag">${t}</div>
+      <p>${d}</p>
+      <div class="swatches"><span style="background:var(--bg-app)"></span><span style="background:var(--bg-panel)"></span><span style="background:var(--accent)"></span><span style="background:var(--lane-1)"></span><span style="background:var(--lane-2)"></span><span style="background:var(--lane-3)"></span><span style="background:var(--success)"></span><span style="background:var(--danger)"></span></div>
+    </div>
+  </div>`).join('');
+document.getElementById('cards').addEventListener('click', e => {
+  const c = e.target.closest('.card'); if (!c) return;
+  state.style = c.dataset.style;
+  document.querySelectorAll('#styleSeg button').forEach(x => x.setAttribute('aria-pressed', x.dataset.v === state.style));
+  render(); window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+document.getElementById('cards').addEventListener('keydown', e => { if (e.key === 'Enter') e.target.click(); });
+
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(render);
+render();
+</script>
+</body>
+</html>

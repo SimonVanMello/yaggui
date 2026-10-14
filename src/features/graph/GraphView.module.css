@@ -1,0 +1,116 @@
+/* Set inline by GraphView on the wrapper: --graph-grid: <column template>; --scrollbar-width: <px>; */
+.view {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--bg-app);
+}
+
+.scroller {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  outline: none;
+  /* ⇧-click selects commits, not text. */
+  user-select: none;
+}
+
+.scroller:focus-visible {
+  box-shadow: inset 0 0 0 var(--focus-ring-width) var(--accent-soft);
+}
+
+.content {
+  position: relative;
+  width: 100%;
+}
+
+.wip {
+  display: grid;
+  position: absolute;
+  top: 0;
+  left: 0;
+  align-items: center;
+  grid-template-columns: var(--graph-grid);
+  width: 100%;
+  height: var(--row-height);
+  padding-right: var(--space-3);
+  font-size: var(--text-md);
+}
+
+.wip:hover,
+.wipSelected {
+  background: var(--bg-hover);
+}
+
+.wipSelected {
+  background: var(--bg-selected);
+}
+
+.wipText {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.wipLabel {
+  color: var(--fg-secondary);
+  font-style: italic;
+}
+
+.wipCount {
+  color: var(--fg-muted);
+  font-size: var(--text-xs);
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  height: 100%;
+  padding: var(--space-6);
+  color: var(--fg-muted);
+  text-align: center;
+}
+
+.emptyTitle {
+  margin: var(--space-2) 0 0;
+  color: var(--fg-secondary);
+  font-weight: var(--weight-medium);
+}
+
+.emptyText {
+  max-width: 44ch;
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+}
+
+.toastError {
+  position: absolute;
+  right: var(--space-4);
+  bottom: var(--space-4);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  border: var(--border-width) solid var(--danger);
+  border-radius: var(--radius-md);
+  background: var(--danger-soft);
+  font-size: var(--text-sm);
+}
+
+.retry {
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  cursor: pointer;
+}

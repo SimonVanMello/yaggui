@@ -1,0 +1,13 @@
+.slider {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--accent);
+}
+
+.value {
+  min-width: 4ch;
+  color: var(--fg-secondary);
+  font-family: var(--font-code);
+  font-size: var(--text-sm);
+  text-align: right;
+}

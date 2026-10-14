@@ -1,0 +1,89 @@
+/* Set inline per pill, --pill-color: a lane color token. */
+.pills {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.pill {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-1);
+  height: calc(var(--icon-size-md) + var(--space-0));
+  padding: 0 var(--space-2);
+  border: var(--border-width) solid transparent;
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  line-height: 1;
+}
+
+.pill svg {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+}
+
+.name {
+  max-width: 16ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Other local branches: tinted, readable text, the lane color carried by the icon. */
+.local {
+  background: color-mix(in srgb, var(--pill-color) 18%, transparent);
+  color: var(--fg-primary);
+}
+
+.local svg {
+  color: var(--pill-color);
+}
+
+/* Checked-out branch: solid lane color, bold name, a dot instead of an outline. */
+.current {
+  background: color-mix(in srgb, var(--pill-color), black var(--ref-head-darken));
+  color: var(--ref-head-fg);
+  font-weight: var(--weight-bold);
+}
+
+.current svg {
+  color: inherit;
+}
+
+.dot {
+  flex: none;
+  width: var(--space-2);
+  height: var(--space-2);
+  border-radius: var(--radius-full);
+  background: currentColor;
+}
+
+.cloud {
+  opacity: 0.85;
+}
+
+/* Remote-only label: outlined in the lane color, neutral text. */
+.remote {
+  border-color: var(--pill-color);
+  color: var(--fg-secondary);
+}
+
+.tag {
+  border-color: var(--border-strong);
+  color: var(--fg-secondary);
+}
+
+.stash {
+  border-color: var(--border-strong);
+  background: var(--bg-elevated);
+  color: var(--fg-secondary);
+}
+
+.more {
+  padding: 0 var(--space-2);
+  background: var(--bg-active);
+  color: var(--fg-secondary);
+}

@@ -1,0 +1,10 @@
+node_modules/
+dist/
+dist-mock/
+src-tauri/target/
+src-tauri/gen/
+test-results/
+playwright-report/
+*.log
+.DS_Store
+docs/progress/

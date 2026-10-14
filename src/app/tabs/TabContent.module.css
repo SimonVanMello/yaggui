@@ -1,0 +1,8 @@
+.panel {
+  height: 100%;
+}
+
+/* No `display` here: the `hidden` attribute of an inactive view must win. */
+.view {
+  height: 100%;
+}

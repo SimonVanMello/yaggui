@@ -1,0 +1,62 @@
+.repo {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.panels {
+  display: grid;
+  flex: 1;
+  min-height: 0;
+}
+
+.side {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Stays in the grid (its column is 0 px) but leaves the tab order and the a11y tree. */
+.side[hidden] {
+  display: block;
+  visibility: hidden;
+}
+
+.center {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.stateError {
+  padding: var(--space-3) var(--space-4) 0;
+}
+
+.centered {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  height: 100%;
+  padding: var(--space-6);
+}
+
+.loading {
+  color: var(--fg-secondary);
+}
+
+/* Conflicts (while an operation is stopped) above the changes of the working copy. */
+.stack {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.stackMain {
+  flex: 1;
+  min-height: 0;
+}

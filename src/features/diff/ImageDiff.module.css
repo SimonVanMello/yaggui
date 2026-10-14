@@ -1,0 +1,152 @@
+.view {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--bg-app);
+}
+
+.centered {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+}
+
+.toolbar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--control-height-md);
+  padding: var(--space-2) var(--space-4);
+  border-bottom: var(--border-width) solid var(--border-subtle);
+  color: var(--fg-secondary);
+  font-size: var(--text-sm);
+}
+
+.toolbarTitle {
+  flex: 1;
+  min-width: 0;
+}
+
+.stage {
+  display: flex;
+  flex: 1;
+  align-items: flex-start;
+  justify-content: center;
+  min-height: 0;
+  padding: var(--space-5);
+  overflow: auto;
+}
+
+.sideBySide {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-5);
+  width: 100%;
+}
+
+.sideBySide[data-single] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.figure {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  margin: 0;
+}
+
+/* Checkerboard behind transparent pixels, from the theme colors. */
+.frame {
+  position: relative;
+  display: inline-flex;
+  max-width: 100%;
+  padding: var(--space-1);
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-panel);
+  background-image:
+    linear-gradient(45deg, var(--bg-hover) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--bg-hover) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--bg-hover) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--bg-hover) 75%);
+  background-position:
+    0 0,
+    0 var(--space-3),
+    var(--space-3) calc(var(--space-3) * -1),
+    calc(var(--space-3) * -1) 0;
+  background-size: var(--space-5) var(--space-5);
+}
+
+.figure[data-side='old'] .frame {
+  border-color: var(--diff-del-strong);
+}
+
+.figure[data-side='new'] .frame {
+  border-color: var(--diff-add-strong);
+}
+
+.image {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  image-rendering: auto;
+}
+
+.stack {
+  display: grid;
+}
+
+.stack > .image {
+  grid-area: 1 / 1;
+}
+
+.overlay {
+  transition: opacity var(--duration-fast) var(--easing-standard);
+}
+
+.swipeLine {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: var(--border-width);
+  background: var(--accent);
+  pointer-events: none;
+}
+
+.caption {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-0);
+  font-size: var(--text-sm);
+}
+
+.captionLabel {
+  color: var(--fg-primary);
+  font-weight: var(--weight-medium);
+}
+
+.captionMeta {
+  color: var(--fg-muted);
+  font-family: var(--font-code);
+  font-size: var(--text-xs);
+}
+
+.slider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--fg-secondary);
+  font-size: var(--text-sm);
+}
+
+.slider input {
+  width: var(--card-min-width);
+  max-width: 60vw;
+  accent-color: var(--accent);
+}

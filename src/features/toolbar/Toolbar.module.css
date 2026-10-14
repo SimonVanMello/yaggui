@@ -1,0 +1,146 @@
+.toolbar {
+  container-type: inline-size;
+  display: flex;
+  align-items: center;
+  gap: var(--space-0);
+  flex: none;
+  height: var(--toolbar-height);
+  padding: 0 var(--space-3);
+  border-bottom: var(--border-width) solid var(--border-subtle);
+  background: var(--bg-panel);
+}
+
+.button {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-0);
+  min-width: var(--toolbar-button-min-width);
+  height: var(--toolbar-button-height);
+  padding: 0 var(--space-2);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--fg-secondary);
+  cursor: pointer;
+}
+
+.button:hover:not([aria-disabled]) {
+  background: var(--bg-hover);
+  color: var(--fg-primary);
+}
+
+.button[aria-pressed='true'] {
+  background: var(--bg-active);
+  color: var(--fg-primary);
+}
+
+.button[aria-disabled] {
+  color: var(--fg-disabled);
+  cursor: default;
+}
+
+.button[aria-disabled] .count {
+  background: var(--bg-active);
+  color: var(--fg-secondary);
+}
+
+.buttonLabel {
+  font-size: var(--text-2xs);
+  line-height: 1;
+}
+
+.count {
+  position: absolute;
+  top: var(--space-0);
+  right: var(--space-2);
+  min-width: var(--badge-size);
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-full);
+  background: var(--accent);
+  color: var(--accent-fg);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-semibold);
+  line-height: var(--badge-size);
+  text-align: center;
+}
+
+.separator {
+  flex: none;
+  width: var(--border-width);
+  height: calc(var(--toolbar-height) / 2);
+  margin: 0 var(--space-2);
+  background: var(--border-subtle);
+}
+
+.end {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+  margin-left: auto;
+  padding-left: var(--space-4);
+}
+
+.tooltip {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0);
+}
+
+.command {
+  color: var(--fg-secondary);
+  font-size: var(--text-xs);
+}
+
+.soonNote {
+  color: var(--fg-muted);
+  font-size: var(--text-xs);
+}
+
+/* Small windows: icon-only buttons (the tooltip keeps the label). */
+@container (max-width: 1080px) {
+  .button {
+    min-width: var(--control-height-md);
+    height: var(--control-height-md);
+  }
+
+  .buttonLabel {
+    display: none;
+  }
+
+  .count {
+    top: calc(var(--space-1) * -1);
+    right: calc(var(--space-1) * -1);
+  }
+
+  .separator {
+    margin: 0 var(--space-1);
+  }
+}
+
+/* Toolbar button followed by the chevron of its menu. */
+.split {
+  display: flex;
+  align-items: center;
+}
+
+.chevron {
+  align-self: stretch;
+  height: var(--toolbar-button-height);
+  margin-left: calc(var(--space-1) * -1);
+}
+
+.historyPopover {
+  z-index: var(--z-dropdown);
+  width: 360px;
+  max-width: calc(100vw - var(--space-5));
+  border: var(--border-width) solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--bg-elevated);
+  color: var(--fg-primary);
+  font-size: var(--text-sm);
+  box-shadow: var(--shadow-popover);
+}

@@ -1,0 +1,170 @@
+.trigger {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  max-width: var(--branch-selector-max-width);
+  height: var(--control-height-md);
+  padding: 0 var(--space-3);
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-input);
+  color: var(--fg-primary);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.trigger:hover,
+.trigger[data-state='open'] {
+  border-color: var(--border-strong);
+  background: var(--bg-hover);
+}
+
+.name {
+  min-width: 0;
+  overflow: hidden;
+  font-weight: var(--weight-medium);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tracking {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  color: var(--fg-muted);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+}
+
+.ahead {
+  color: var(--success);
+  font-family: var(--font-code);
+}
+
+.behind {
+  color: var(--info);
+  font-family: var(--font-code);
+}
+
+.gone {
+  color: var(--warning);
+}
+
+.upstream {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chevron {
+  flex: none;
+  color: var(--fg-muted);
+}
+
+.pill {
+  flex: none;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--warning) 18%, transparent);
+  color: var(--warning);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-semibold);
+  line-height: var(--badge-size);
+}
+
+.popover {
+  z-index: var(--z-dropdown);
+  display: flex;
+  flex-direction: column;
+  width: 340px;
+  max-height: 420px;
+  border: var(--border-width) solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--bg-elevated);
+  color: var(--fg-primary);
+  font-size: var(--text-sm);
+  box-shadow: var(--shadow-popover);
+  animation: fade-in var(--duration-normal) var(--easing-standard);
+}
+
+.search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: var(--border-width) solid var(--border-subtle);
+  color: var(--fg-muted);
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: none;
+  color: var(--fg-primary);
+  font: inherit;
+}
+
+.list {
+  flex: 1;
+  min-height: 0;
+  padding: var(--space-1);
+  overflow-y: auto;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  color: var(--fg-secondary);
+  cursor: default;
+}
+
+.option[data-active] {
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+
+.optionName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.option[data-active] mark {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.badge {
+  flex: none;
+  font-size: var(--text-2xs);
+  opacity: 0.75;
+}
+
+.none {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  color: var(--fg-muted);
+  font-size: var(--text-xs);
+}
+
+.footer {
+  margin: 0;
+  padding: var(--space-2) var(--space-4);
+  border-top: var(--border-width) solid var(--border-subtle);
+  color: var(--fg-muted);
+  font-size: var(--text-xs);
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}

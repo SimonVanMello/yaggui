@@ -1,0 +1,53 @@
+.tabs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.list {
+  display: flex;
+  gap: var(--space-1);
+  border-bottom: var(--border-width) solid var(--border-subtle);
+}
+
+.trigger {
+  height: var(--control-height-md);
+  padding: 0 var(--space-4);
+  border: 0;
+  border-bottom: var(--focus-ring-width) solid transparent;
+  background: transparent;
+  color: var(--fg-secondary);
+  font-size: var(--text-md);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+}
+
+.trigger:hover {
+  color: var(--fg-primary);
+}
+
+.trigger[data-state='active'] {
+  border-bottom-color: var(--accent);
+  color: var(--fg-primary);
+}
+
+.trigger:focus-visible {
+  outline: var(--focus-ring-width) solid var(--accent);
+  outline-offset: calc(-1 * var(--focus-ring-width));
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  min-height: 22rem;
+}
+
+.panel:focus {
+  outline: none;
+}
+
+/* `display: flex` above would otherwise win over the `hidden` attribute of inactive panels. */
+.panel[hidden] {
+  display: none;
+}

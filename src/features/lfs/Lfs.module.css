@@ -1,0 +1,26 @@
+.patterns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.patterns li {
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--bg-panel);
+  color: var(--fg-primary);
+  font-family: var(--font-code);
+  font-size: var(--text-sm);
+}
+
+.notice {
+  max-width: 420px;
+  margin: 0;
+  color: var(--warning);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+  text-align: center;
+}

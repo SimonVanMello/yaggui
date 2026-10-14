@@ -1,0 +1,96 @@
+/* B · Paper: default light theme. Values from docs/ui/styles.html. */
+:root[data-theme='paper'] {
+  color-scheme: light;
+
+  /* Surfaces */
+  --bg-app: #f6f5f2;
+  --bg-panel: #ffffff;
+  --bg-elevated: #ffffff;
+  --bg-hover: #f2f1ed;
+  --bg-active: #e9e7e1;
+  --bg-selected: #e7eefc;
+  --bg-input: #ffffff;
+  --bg-titlebar: #ecebe6;
+  --bg-scrim: rgb(30 35 45 / 0.18);
+
+  /* Text */
+  --fg-primary: #1f2328;
+  --fg-secondary: #57606a;
+  --fg-muted: #666d74;
+
+  /* Borders */
+  --border-subtle: #e6e4de;
+  --border-strong: #d6d3cb;
+
+  /* Disabled controls: flat and clearly inert, never a dimmed accent. */
+  --bg-disabled: #eceae5;
+  --fg-disabled: #9aa1a9;
+
+  /* Accent and semantic colors */
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-fg: #ffffff;
+  --accent-soft: rgb(37 99 235 / 0.1);
+  --success: #11813a;
+  --warning: #a95d05;
+  --danger: #d52424;
+  --danger-soft: rgb(220 38 38 / 0.08);
+  --info: #2563eb;
+  --on-warning: #ffffff;
+
+  /* Diff */
+  --diff-add-bg: #e9f7ee;
+  --diff-add-strong: #b8e6c8;
+  --diff-del-bg: #fdeeee;
+  --diff-del-strong: #f6c2c2;
+
+  /* Checked-out branch pill: text and darkening that keep AA over every lane color. */
+  --ref-head-darken: 25%;
+  --ref-head-fg: #ffffff;
+
+  /* Graph lanes: darkened to stay readable on a light background. */
+  --lane-0: #2563eb;
+  --lane-1: #0891b2;
+  --lane-2: #d97706;
+  --lane-3: #db2777;
+  --lane-4: #16a34a;
+  --lane-5: #7c3aed;
+  --lane-6: #dc2626;
+  --lane-7: #65a30d;
+
+  /* Syntax */
+  --syn-keyword: #7c3aed;
+  --syn-string: #15803d;
+  --syn-tag: #0e7490;
+  --syn-function: #b45309;
+
+  /* Integrated terminal (F-267): ANSI palette, darkened to stay readable on paper. */
+  --term-black: #24292f;
+  --term-red: #cf222e;
+  --term-green: #116329;
+  --term-yellow: #7d4e00;
+  --term-blue: #0969da;
+  --term-magenta: #8250df;
+  --term-cyan: #1b7c83;
+  --term-white: #6e7781;
+  --term-bright-black: #57606a;
+  --term-bright-red: #a40e26;
+  --term-bright-green: #1a7f37;
+  --term-bright-yellow: #633c01;
+  --term-bright-blue: #218bff;
+  --term-bright-magenta: #a475f9;
+  --term-bright-cyan: #3192aa;
+  --term-bright-white: #8c959f;
+
+  /* Elevation */
+  --shadow-popover: 0 12px 32px rgb(15 23 42 / 0.14);
+}
+
+/* High contrast (F-320): stronger text and borders on the same surfaces. */
+:root[data-theme='paper'][data-contrast='high'] {
+  --fg-primary: #12161b;
+  --fg-secondary: #3b434c;
+  --fg-muted: #495058;
+  --border-subtle: #8a8579;
+  --border-strong: #6b675c;
+}

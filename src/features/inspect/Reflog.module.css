@@ -1,0 +1,130 @@
+.row {
+  display: flex;
+  position: absolute;
+  top: 0;
+  left: 0;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  height: var(--row-height);
+  padding: 0 var(--space-4);
+  font-size: var(--text-md);
+  cursor: default;
+  contain: strict;
+}
+
+.row:hover {
+  background: var(--bg-hover);
+}
+
+.row[aria-selected='true'] {
+  background: var(--bg-selected);
+}
+
+.row[data-gone='true'] {
+  color: var(--fg-muted);
+}
+
+.selector {
+  flex: none;
+  width: calc(var(--graph-column-sha) * 1.5);
+  overflow: hidden;
+  color: var(--fg-muted);
+  font-family: var(--font-code);
+  font-size: var(--text-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sha {
+  flex: none;
+  width: var(--graph-column-sha);
+  color: var(--fg-secondary);
+  font-family: var(--font-code);
+  font-size: var(--text-xs);
+}
+
+.row[data-gone='true'] .sha {
+  text-decoration: line-through;
+}
+
+.action {
+  flex: none;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  line-height: var(--badge-size);
+  white-space: nowrap;
+}
+
+.action[data-action='reset'] {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.action[data-action='checkout'] {
+  background: var(--bg-hover);
+  color: var(--fg-secondary);
+}
+
+.detail {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--fg-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.row[data-gone='true'] .detail {
+  color: var(--fg-muted);
+}
+
+.gone {
+  flex: none;
+  color: var(--warning);
+  font-size: var(--text-xs);
+}
+
+.who {
+  flex: none;
+  width: var(--graph-column-author);
+  overflow: hidden;
+  color: var(--fg-muted);
+  font-size: var(--text-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.date {
+  flex: none;
+  width: var(--graph-column-date);
+  color: var(--fg-muted);
+  font-size: var(--text-sm);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: none;
+  min-width: 0;
+  height: calc(var(--row-height) + var(--space-3));
+  padding: 0 var(--space-4);
+  border-top: var(--border-width) solid var(--border-subtle);
+  background: var(--bg-panel);
+  font-size: var(--text-sm);
+}
+
+.barText {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--fg-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

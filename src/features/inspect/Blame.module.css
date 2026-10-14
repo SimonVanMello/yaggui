@@ -1,0 +1,179 @@
+.lines {
+  /* Set inline: digits of the last line number, characters of the longest line. */
+  --digits: 3;
+  --columns: 80;
+
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  outline: none;
+  font-family: var(--font-code);
+  font-size: var(--text-sm);
+}
+
+.inner {
+  position: relative;
+  /* Gutter (age bar, commit, line number) then the longest line. */
+  width: calc(
+    var(--blame-age-bar-width) + var(--blame-info-width) + (var(--digits) + var(--columns)) * 1ch +
+      var(--space-3) * 2 + var(--space-5)
+  );
+  min-width: 100%;
+}
+
+.row {
+  /* Age shade, from `data-age`: 0 (oldest) to 1 (newest). */
+  --age: 0;
+
+  display: flex;
+  position: absolute;
+  top: 0;
+  left: 0;
+  align-items: stretch;
+  width: 100%;
+  height: var(--blame-row-height);
+  cursor: default;
+  /* Fixed-size box: a row never makes the others lay out again. */
+  contain: strict;
+}
+
+/* AGE_STEPS (blameModel.ts) shades. */
+.row[data-age='1'] {
+  --age: 0.143;
+}
+
+.row[data-age='2'] {
+  --age: 0.286;
+}
+
+.row[data-age='3'] {
+  --age: 0.429;
+}
+
+.row[data-age='4'] {
+  --age: 0.571;
+}
+
+.row[data-age='5'] {
+  --age: 0.714;
+}
+
+.row[data-age='6'] {
+  --age: 0.857;
+}
+
+.row[data-age='7'] {
+  --age: 1;
+}
+
+.row:hover {
+  background: var(--bg-hover);
+}
+
+.row[data-selected='true'] {
+  background: var(--accent-soft);
+}
+
+.age {
+  flex: none;
+  width: var(--blame-age-bar-width);
+  background: color-mix(in srgb, var(--accent) calc(15% + var(--age) * 85%), var(--bg-panel));
+}
+
+.row[data-uncommitted='true'] .age {
+  background: var(--warning);
+}
+
+.info {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-2);
+  width: var(--blame-info-width);
+  padding: 0 var(--space-3);
+  overflow: hidden;
+  border-right: var(--border-width) solid var(--border-subtle);
+  background: color-mix(in srgb, var(--accent) calc(var(--age) * 10%), var(--bg-panel));
+  font-family: var(--font-ui);
+  white-space: nowrap;
+}
+
+.row[data-chunk='true'] .info {
+  border-top: var(--border-width) solid var(--border-subtle);
+}
+
+.row[data-selected='true'] .info {
+  background: color-mix(in srgb, var(--accent) 22%, var(--bg-panel));
+}
+
+.row[data-uncommitted='true'] .info {
+  background: color-mix(in srgb, var(--warning) 12%, var(--bg-panel));
+}
+
+.summary {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--fg-primary);
+  text-overflow: ellipsis;
+}
+
+.author {
+  flex: none;
+  max-width: 35%;
+  overflow: hidden;
+  color: var(--fg-muted);
+  text-overflow: ellipsis;
+}
+
+.date {
+  flex: none;
+  color: var(--fg-muted);
+}
+
+.number {
+  flex: none;
+  box-sizing: content-box;
+  width: calc(var(--digits) * 1ch);
+  padding: 0 var(--space-3);
+  color: var(--fg-muted);
+  line-height: var(--blame-row-height);
+  text-align: right;
+  user-select: none;
+}
+
+.code {
+  flex: none;
+  padding-right: var(--space-5);
+  color: var(--fg-primary);
+  line-height: var(--blame-row-height);
+  white-space: pre;
+  tab-size: 4;
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: none;
+  min-width: 0;
+  height: calc(var(--row-height) + var(--space-3));
+  padding: 0 var(--space-4);
+  border-top: var(--border-width) solid var(--border-subtle);
+  background: var(--bg-panel);
+  font-size: var(--text-sm);
+}
+
+.barSummary {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--fg-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.barSha {
+  flex: none;
+  color: var(--fg-muted);
+  font-family: var(--font-code);
+}

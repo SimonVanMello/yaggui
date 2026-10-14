@@ -1,0 +1,32 @@
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 20rem);
+  align-items: center;
+  gap: var(--space-5);
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0);
+  min-width: 0;
+}
+
+.label {
+  font-size: var(--text-md);
+}
+
+.hint {
+  color: var(--fg-secondary);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+}
+
+.control {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  min-width: 0;
+}

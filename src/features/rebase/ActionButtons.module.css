@@ -1,0 +1,48 @@
+.group {
+  display: inline-flex;
+  flex: none;
+  gap: var(--space-0);
+  padding: var(--space-0);
+  border: var(--border-width) solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--bg-input);
+}
+
+.button {
+  height: calc(var(--control-height-sm) - var(--space-2));
+  padding: 0 var(--space-2);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--fg-secondary);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+}
+
+.button:hover {
+  background: var(--bg-hover);
+  color: var(--fg-primary);
+}
+
+.button[aria-pressed='true'] {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: var(--weight-semibold);
+}
+
+.button[aria-pressed='true'][data-action='drop'] {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.button[aria-pressed='true'][data-action='squash'],
+.button[aria-pressed='true'][data-action='fixup'] {
+  background: color-mix(in srgb, var(--info) 18%, transparent);
+  color: var(--info);
+}
+
+.button[aria-pressed='true'][data-action='edit'] {
+  background: color-mix(in srgb, var(--warning) 18%, transparent);
+  color: var(--warning);
+}

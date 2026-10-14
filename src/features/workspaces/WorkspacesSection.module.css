@@ -1,0 +1,111 @@
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 0 var(--space-1);
+}
+
+.title {
+  margin: 0;
+  color: var(--fg-muted);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+}
+
+.links {
+  display: flex;
+  gap: var(--space-2);
+  color: var(--fg-muted);
+  font-size: var(--text-sm);
+}
+
+.link {
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  cursor: pointer;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+.empty {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-width) dashed var(--border-subtle);
+  border-radius: var(--radius-lg);
+  color: var(--fg-muted);
+  font-size: var(--text-sm);
+}
+
+.list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding-right: var(--space-1);
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--bg-panel);
+  transition: border-color var(--duration-fast) var(--easing-standard);
+}
+
+.card:hover {
+  border-color: var(--accent);
+}
+
+.open {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
+  border: none;
+  border-radius: var(--radius-lg);
+  background: none;
+  color: var(--fg-primary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.open > svg {
+  color: var(--accent);
+}
+
+.open:disabled {
+  color: var(--fg-disabled);
+  cursor: not-allowed;
+}
+
+.open:focus-visible {
+  outline: var(--focus-ring-width) solid var(--accent);
+}
+
+.name {
+  font-weight: var(--weight-medium);
+}
+
+.count {
+  color: var(--fg-muted);
+  font-size: var(--text-xs);
+}

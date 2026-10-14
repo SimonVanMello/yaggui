@@ -1,0 +1,173 @@
+.row {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto auto auto minmax(0, 1fr) auto auto auto;
+  align-items: center;
+  column-gap: var(--space-3);
+  min-height: calc(var(--row-height) + var(--space-3));
+  padding: var(--space-1) var(--space-4);
+  border-bottom: var(--border-width) solid var(--border-subtle);
+  font-size: var(--text-sm);
+  cursor: default;
+}
+
+.row:hover {
+  background: var(--bg-hover);
+}
+
+.row[data-focused='true'] {
+  background: var(--bg-selected);
+}
+
+/* Squash and fixup hang under the commit they meld into: indented, joined by a rail. */
+.row[data-melded='true'] {
+  padding-left: calc(var(--space-4) + var(--space-6));
+  border-left: calc(var(--border-width) * 3) solid var(--info);
+}
+
+.row[data-has-melded='true'] {
+  border-left: calc(var(--border-width) * 3) solid var(--info);
+}
+
+.row[data-action='drop'] .summary,
+.row[data-action='drop'] .sha {
+  color: var(--fg-muted);
+  text-decoration: line-through;
+}
+
+.row[data-action='drop'] .author,
+.row[data-action='drop'] .date {
+  opacity: 0.6;
+}
+
+.row[data-action='drop'] {
+  background: var(--danger-soft);
+}
+
+.row[data-action='drop'][data-focused='true'] {
+  background: var(--bg-selected);
+}
+
+.row[data-issue] {
+  background: color-mix(in srgb, var(--warning) 12%, transparent);
+  box-shadow: inset calc(var(--border-width) * 3) 0 0 var(--warning);
+}
+
+.row[data-dragging='true'] {
+  opacity: 0.5;
+}
+
+.row[data-drop='before'] {
+  box-shadow: inset 0 calc(var(--focus-ring-width) + var(--border-width)) 0 var(--accent);
+}
+
+.row[data-drop='after'] {
+  box-shadow: inset 0 calc((var(--focus-ring-width) + var(--border-width)) * -1) 0 var(--accent);
+}
+
+.grip {
+  width: var(--space-4);
+  height: var(--space-5);
+  color: var(--fg-muted);
+  background-image: radial-gradient(circle, currentcolor var(--border-width), transparent 0);
+  background-size: var(--space-2) var(--space-2);
+  cursor: grab;
+  touch-action: none;
+}
+
+.grip:active {
+  cursor: grabbing;
+}
+
+.sha {
+  color: var(--fg-muted);
+  font-family: var(--font-code);
+  font-size: var(--text-xs);
+}
+
+.summary {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.author {
+  max-width: var(--graph-column-author);
+  overflow: hidden;
+  color: var(--fg-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.date {
+  min-width: var(--graph-column-sha);
+  color: var(--fg-muted);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+}
+
+.pushed {
+  min-width: var(--space-4);
+}
+
+.pushedMark {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-medium);
+  white-space: nowrap;
+}
+
+.note {
+  grid-column: 3 / -1;
+  margin: 0;
+  color: var(--fg-muted);
+  font-size: var(--text-xs);
+}
+
+.note[data-tone='warning'] {
+  color: var(--warning);
+  font-weight: var(--weight-medium);
+}
+
+.message {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  grid-column: 3 / -1;
+  min-width: 0;
+}
+
+.messageLabel {
+  flex: none;
+  color: var(--accent);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+}
+
+.messageText {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--fg-secondary);
+  font-size: var(--text-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@container rebase (max-width: 780px) {
+  .date {
+    display: none;
+  }
+}
+
+@container rebase (max-width: 640px) {
+  .author {
+    display: none;
+  }
+}

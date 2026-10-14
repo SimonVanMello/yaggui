@@ -1,0 +1,148 @@
+.tree {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  outline: none;
+}
+
+.inner {
+  position: relative;
+  width: 100%;
+}
+
+.row {
+  --level: 1;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-right: var(--space-3);
+  padding-left: calc(var(--space-2) + (var(--level) - 1) * var(--space-4));
+  color: var(--fg-secondary);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+  cursor: default;
+  user-select: none;
+}
+
+.row:hover {
+  background: var(--bg-hover);
+}
+
+.row[data-selected] {
+  background: var(--bg-selected);
+  color: var(--fg-primary);
+}
+
+.row[data-current] {
+  color: var(--fg-primary);
+  font-weight: var(--weight-medium);
+}
+
+.row[data-current]:not([data-selected]) {
+  background: var(--accent-soft);
+}
+
+.tree:focus-visible .row[data-active] {
+  outline: var(--focus-ring-width) solid var(--accent);
+  outline-offset: calc(var(--focus-ring-width) * -1);
+}
+
+.sticky {
+  position: sticky;
+  z-index: 1;
+  background: var(--bg-panel);
+}
+
+.section {
+  color: var(--fg-muted);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+}
+
+.section:hover {
+  background: var(--bg-hover);
+}
+
+.folder {
+  color: var(--fg-secondary);
+}
+
+.twisty {
+  flex: none;
+  width: var(--icon-size-sm);
+  opacity: 0.7;
+}
+
+.label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.count {
+  flex: none;
+  color: var(--fg-muted);
+  font-family: var(--font-code);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-regular);
+  letter-spacing: 0;
+}
+
+.meta {
+  flex: none;
+  color: var(--fg-muted);
+  font-family: var(--font-code);
+  font-size: var(--text-xs);
+}
+
+.gone {
+  flex: none;
+  color: var(--warning);
+  font-size: var(--text-xs);
+}
+
+.aheadBehind {
+  display: flex;
+  flex: none;
+  gap: var(--space-1);
+  font-family: var(--font-code);
+  font-size: var(--text-xs);
+}
+
+.aheadBehind b {
+  color: var(--success);
+  font-weight: var(--weight-medium);
+}
+
+.aheadBehind em {
+  color: var(--info);
+  font-style: normal;
+}
+
+.empty {
+  --level: 1;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  padding-left: calc(var(--space-2) + var(--level) * var(--space-4));
+  color: var(--fg-muted);
+  font-size: var(--text-xs);
+  font-style: italic;
+}
+
+/* A branch hidden from the graph, or the soloed one (F-028). */
+.filterMark {
+  display: inline-flex;
+  flex: none;
+  color: var(--fg-muted);
+}

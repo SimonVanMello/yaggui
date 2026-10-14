@@ -1,0 +1,332 @@
+.code {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  background: var(--bg-app);
+}
+
+.pane {
+  /* Width of the line-number gutters, measured by CodeDiff (sticky hunk titles). */
+  --gutter-width: 0px;
+
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.code[data-view='split'] .pane:first-child {
+  border-right: var(--border-width) solid var(--border-subtle);
+}
+
+/* CodeMirror: classes from editor.ts, styled with the theme tokens only. */
+.pane :global(.cm-editor) {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  color: var(--fg-primary);
+  font-size: var(--text-sm);
+}
+
+.pane :global(.cm-editor.cm-focused) {
+  outline: none;
+}
+
+.pane :global(.cm-scroller) {
+  font-family: var(--font-code);
+  font-variant-ligatures: none;
+  line-height: var(--leading-normal);
+}
+
+/* Always-visible scrollbars: long lines must show they scroll horizontally. */
+.pane :global(.cm-scroller)::-webkit-scrollbar {
+  width: var(--scrollbar-size);
+  height: var(--scrollbar-size);
+}
+
+.pane :global(.cm-scroller)::-webkit-scrollbar-track,
+.pane :global(.cm-scroller)::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+.pane :global(.cm-scroller)::-webkit-scrollbar-thumb {
+  border: var(--space-0) solid transparent;
+  border-radius: var(--radius-full);
+  background: var(--border-strong);
+  background-clip: padding-box;
+}
+
+.pane :global(.cm-scroller)::-webkit-scrollbar-thumb:hover {
+  background-color: var(--fg-muted);
+}
+
+.pane :global(.cm-content) {
+  padding: 0;
+}
+
+.pane :global(.cm-content:focus-visible) {
+  outline: var(--focus-ring-width) solid var(--accent);
+  outline-offset: calc(-1 * var(--focus-ring-width));
+}
+
+.pane :global(.cm-line) {
+  padding: 0 var(--space-3);
+}
+
+.pane :global(.cm-selectionBackground),
+.pane :global(.cm-content ::selection) {
+  background: var(--accent-soft);
+}
+
+.pane :global(.cm-gutters) {
+  border-right: var(--border-width) solid var(--border-subtle);
+  background: var(--bg-panel);
+  color: var(--fg-muted);
+  user-select: none;
+}
+
+.pane :global(.yaggui-numbers .cm-gutterElement) {
+  padding: 0 var(--space-2) 0 var(--space-3);
+  text-align: right;
+}
+
+.pane :global(.yaggui-signs .cm-gutterElement) {
+  padding: 0 var(--space-1);
+  text-align: center;
+}
+
+.pane :global(.cm-gutterElement.yaggui-gutter-add) {
+  background: var(--diff-add-bg);
+  color: var(--success);
+}
+
+.pane :global(.cm-gutterElement.yaggui-gutter-del) {
+  background: var(--diff-del-bg);
+  color: var(--danger);
+}
+
+.pane :global(.yaggui-add) {
+  background: var(--diff-add-bg);
+}
+
+.pane :global(.yaggui-del) {
+  background: var(--diff-del-bg);
+}
+
+.pane :global(.yaggui-add .yaggui-word) {
+  border-radius: var(--radius-sm);
+  background: var(--diff-add-strong);
+}
+
+.pane :global(.yaggui-del .yaggui-word) {
+  border-radius: var(--radius-sm);
+  background: var(--diff-del-strong);
+}
+
+/* Filler lines facing the other side's changes, hatched as in the mockup. */
+.pane :global(.yaggui-empty) {
+  background: repeating-linear-gradient(
+    135deg,
+    transparent 0 var(--space-2),
+    color-mix(in srgb, var(--fg-muted) 8%, transparent) var(--space-2)
+      calc(var(--space-2) + var(--border-width))
+  );
+}
+
+.pane :global(.yaggui-current) {
+  box-shadow: inset var(--space-0) 0 0 var(--accent);
+}
+
+.pane :global(.yaggui-no-newline) {
+  margin-left: var(--space-2);
+  color: var(--danger);
+  font-family: var(--font-ui);
+  cursor: help;
+}
+
+.pane :global(.yaggui-hunk) {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  /* Fixed: both columns of a split view must have headers of the same height. */
+  box-sizing: border-box;
+  height: var(--row-height);
+  /* Takes the width of the lines, never widens them (the two columns must wrap alike). */
+  width: 0;
+  min-width: 100%;
+  padding: 0 var(--space-4);
+  border-block: var(--border-width) solid var(--border-subtle);
+  background: var(--bg-elevated);
+  color: var(--fg-muted);
+  font-size: var(--text-xs);
+}
+
+.pane :global(.yaggui-hunk-title) {
+  position: sticky;
+  left: calc(var(--gutter-width) + var(--space-4));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pane :global(.yaggui-hunk-actions) {
+  position: sticky;
+  right: var(--space-4);
+  display: flex;
+  gap: var(--space-2);
+  margin-left: auto;
+  /* Both stick to the visible pane of a wider header: the actions cover the end of a long
+     title instead of being drawn over it. */
+  padding-left: var(--space-3);
+  background: var(--bg-elevated);
+  font-family: var(--font-ui);
+}
+
+.pane :global(.yaggui-hunk-actions button) {
+  padding: var(--space-0) var(--space-3);
+  border: var(--border-width) solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--fg-secondary);
+  font: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.pane :global(.yaggui-hunk-actions button:hover) {
+  background: var(--bg-hover);
+  color: var(--fg-primary);
+}
+
+.pane :global(.yaggui-hunk-actions button[data-action='discard']:hover) {
+  color: var(--danger);
+}
+
+.pane :global(.yaggui-hunk-actions button[aria-disabled='true']) {
+  color: var(--fg-disabled);
+  cursor: not-allowed;
+}
+
+.pane :global(.yaggui-hunk-actions button[aria-disabled='true']:hover) {
+  background: transparent;
+  color: var(--fg-disabled);
+}
+
+.pane :global(.yaggui-hunk-actions button:focus-visible) {
+  outline: var(--focus-ring-width) solid var(--accent);
+  outline-offset: var(--space-0);
+}
+
+/* Keyboard cursor: outlined, apart from the filled selection. */
+.pane :global(.yaggui-cursor) {
+  outline: var(--border-width) solid var(--accent);
+  outline-offset: calc(-1 * var(--border-width));
+}
+
+.pane :global(.cm-gutterElement.yaggui-gutter-cursor) {
+  outline: var(--border-width) solid var(--accent);
+  outline-offset: calc(-1 * var(--border-width));
+}
+
+/* Height filler of a split row whose other side wraps onto more lines. */
+.pane :global(.yaggui-spacer) {
+  pointer-events: none;
+}
+
+/* Line selection: changed lines can be picked in the gutter. */
+.pane :global(.cm-gutterElement.yaggui-selectable) {
+  cursor: pointer;
+}
+
+.pane :global(.cm-gutterElement.yaggui-gutter-selected),
+.pane :global(.yaggui-selected) {
+  background: var(--accent-soft);
+  box-shadow: inset var(--space-0) 0 0 var(--accent);
+}
+
+.pane :global(.cm-gutterElement.yaggui-gutter-selected) {
+  color: var(--accent);
+}
+
+.selection {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: none;
+  min-height: var(--row-height);
+  padding: var(--space-1) var(--space-4);
+  border-bottom: var(--border-width) solid var(--border-subtle);
+  background: var(--bg-elevated);
+  font-size: var(--text-sm);
+}
+
+.selectionText {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  min-width: 0;
+  margin-right: auto;
+}
+
+.selectionNotice {
+  overflow: hidden;
+  color: var(--fg-muted);
+  font-size: var(--text-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.selectionCount {
+  flex: none;
+  color: var(--fg-secondary);
+  white-space: nowrap;
+}
+
+.view {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* Syntax: token classes of the highlighter in editor.ts. */
+.pane :global(.tok-keyword) {
+  color: var(--syn-keyword);
+}
+
+.pane :global(.tok-string) {
+  color: var(--syn-string);
+}
+
+.pane :global(.tok-type) {
+  color: var(--syn-tag);
+}
+
+.pane :global(.tok-function) {
+  color: var(--syn-function);
+}
+
+.pane :global(.tok-comment) {
+  color: var(--fg-muted);
+  font-style: italic;
+}
+
+.pane :global(.tok-strong) {
+  font-weight: var(--weight-semibold);
+}
+
+.pane :global(.tok-invalid) {
+  color: var(--danger);
+}

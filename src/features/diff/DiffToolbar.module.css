@@ -1,0 +1,106 @@
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: none;
+  min-width: 0;
+  height: calc(var(--row-height) + var(--space-4));
+  padding: 0 var(--space-4);
+  border-bottom: var(--border-width) solid var(--border-subtle);
+  background: var(--bg-panel);
+}
+
+.back {
+  flex: none;
+}
+
+.status {
+  --tone: var(--warning);
+
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: var(--badge-size);
+  height: var(--badge-size);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--tone) 18%, transparent);
+  color: var(--tone);
+  font-family: var(--font-code);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-semibold);
+}
+
+.status[data-status='added'],
+.status[data-status='untracked'] {
+  --tone: var(--success);
+}
+
+.status[data-status='deleted'],
+.status[data-status='conflicted'] {
+  --tone: var(--danger);
+}
+
+.status[data-status='renamed'],
+.status[data-status='copied'] {
+  --tone: var(--info);
+}
+
+.file {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--font-code);
+  font-size: var(--text-sm);
+}
+
+.path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  direction: rtl;
+  text-align: left;
+}
+
+.dir {
+  color: var(--fg-muted);
+}
+
+.arrow {
+  flex: none;
+  color: var(--fg-muted);
+}
+
+.stats {
+  display: flex;
+  gap: var(--space-2);
+  flex: none;
+  font-family: var(--font-code);
+  font-size: var(--text-sm);
+}
+
+.add {
+  color: var(--success);
+}
+
+.del {
+  color: var(--danger);
+}
+
+.spacer {
+  flex: 1;
+}
+
+.position {
+  flex: none;
+  color: var(--fg-muted);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+}
+
+@container diff (max-width: 760px) {
+  .position {
+    display: none;
+  }
+}

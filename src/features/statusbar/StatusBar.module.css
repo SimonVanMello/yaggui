@@ -1,0 +1,107 @@
+.statusbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex: none;
+  height: var(--statusbar-height);
+  padding: 0 var(--space-2) 0 var(--space-4);
+  border-top: var(--border-width) solid var(--border-subtle);
+  background: var(--bg-panel);
+  color: var(--fg-muted);
+  font-size: var(--text-xs);
+}
+
+.start,
+.end {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.end {
+  margin-left: auto;
+  flex: none;
+}
+
+.operation {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  color: var(--fg-secondary);
+  white-space: nowrap;
+}
+
+.operation[data-outcome='success'] .outcomeIcon {
+  color: var(--success);
+}
+
+.operation[data-outcome='failed'] .outcomeIcon {
+  color: var(--danger);
+}
+
+.muted {
+  color: var(--fg-muted);
+}
+
+.progress {
+  display: block;
+  width: var(--progress-width);
+  height: var(--progress-height);
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  background: var(--border-strong);
+}
+
+.progress i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width var(--duration-normal) var(--easing-standard);
+}
+
+.link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-size: inherit;
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+}
+
+.item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  border-radius: var(--radius-sm);
+}
+
+.item[data-tone='warning'] {
+  color: var(--warning);
+}
+
+.item[data-tone='danger'] {
+  color: var(--danger);
+}
+
+.logToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: calc(var(--statusbar-height) - var(--space-1));
+  padding: 0 var(--space-2);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--fg-secondary);
+  font-size: inherit;
+  cursor: pointer;
+}
+
+.logToggle:hover,
+.logToggle[aria-expanded='true'] {
+  background: var(--bg-hover);
+  color: var(--fg-primary);
+}

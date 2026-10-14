@@ -1,0 +1,25 @@
+.bar {
+  position: absolute;
+  bottom: var(--space-5);
+  left: 50%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3) var(--space-4);
+  width: max-content;
+  max-width: calc(100% - var(--space-6));
+  padding: var(--space-3) var(--space-4);
+  transform: translateX(-50%);
+  border: var(--border-width) solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-popover);
+  color: var(--fg-primary);
+  font-size: var(--text-sm);
+}
+
+.count {
+  font-weight: var(--weight-semibold);
+  white-space: nowrap;
+}

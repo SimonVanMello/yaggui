@@ -1,0 +1,68 @@
+.popover {
+  z-index: var(--z-dropdown);
+  width: 300px;
+  border: var(--border-width) solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--bg-elevated);
+  color: var(--fg-primary);
+  font-size: var(--text-sm);
+  box-shadow: var(--shadow-popover);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-4);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  color: var(--fg-secondary);
+}
+
+.input {
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width) solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--bg-input);
+  color: var(--fg-primary);
+  font: inherit;
+  font-size: var(--text-md);
+}
+
+.input:focus-visible {
+  outline: var(--focus-ring-width) solid var(--accent);
+  outline-offset: -1px;
+}
+
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  cursor: pointer;
+}
+
+.check input {
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.hint {
+  margin: 0;
+  color: var(--fg-muted);
+}
+
+.error {
+  margin: 0;
+  color: var(--danger);
+  line-height: var(--leading-normal);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}

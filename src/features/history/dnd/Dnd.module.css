@@ -1,0 +1,24 @@
+.ghost {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: var(--z-drop-overlay);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  max-width: 280px;
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width) solid var(--accent);
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-popover);
+  color: var(--fg-primary);
+  font-size: var(--text-sm);
+  pointer-events: none;
+}
+
+.ghostLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

@@ -1,0 +1,210 @@
+.list {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.list[data-fit='false'] {
+  flex: 1;
+}
+
+.list[data-fit='true'] {
+  flex: none;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: none;
+  min-height: var(--row-height);
+  padding: 0 var(--space-2) 0 var(--space-4);
+  color: var(--fg-secondary);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+}
+
+.title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.count {
+  color: var(--fg-muted);
+  font-weight: var(--weight-regular);
+}
+
+.spacer {
+  flex: 1;
+}
+
+.scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  outline: none;
+}
+
+.scroll:focus-visible {
+  box-shadow: inset 0 0 0 var(--focus-ring-width) var(--accent);
+}
+
+.inner {
+  position: relative;
+  width: 100%;
+}
+
+.item {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+}
+
+.row {
+  --tone: var(--warning);
+
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--row-height);
+  padding-right: var(--space-3);
+  font-size: var(--text-sm);
+  cursor: default;
+  user-select: none;
+}
+
+.row:hover {
+  background: var(--bg-hover);
+}
+
+.row[aria-selected='true'] {
+  background: var(--bg-selected);
+}
+
+.row[data-status='added'],
+.row[data-status='untracked'] {
+  --tone: var(--success);
+}
+
+.row[data-status='deleted'],
+.row[data-status='conflicted'] {
+  --tone: var(--danger);
+}
+
+.row[data-status='renamed'],
+.row[data-status='copied'] {
+  --tone: var(--info);
+}
+
+.status {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: var(--badge-size);
+  height: var(--badge-size);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--tone) 18%, transparent);
+  color: var(--tone);
+  font-family: var(--font-code);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-semibold);
+}
+
+.name {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.base {
+  flex: none;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dir {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--fg-muted);
+  font-size: var(--text-xs);
+  text-overflow: ellipsis;
+}
+
+.chip {
+  flex: none;
+  padding: 0 var(--space-1);
+  border: var(--border-width) solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--fg-secondary);
+  font-size: var(--text-2xs);
+}
+
+.stats {
+  display: flex;
+  gap: var(--space-1);
+  flex: none;
+  font-family: var(--font-code);
+  font-size: var(--text-xs);
+}
+
+.add {
+  color: var(--success);
+}
+
+.del {
+  color: var(--danger);
+}
+
+.folder {
+  color: var(--fg-secondary);
+}
+
+.chevron {
+  color: var(--fg-muted);
+}
+
+.empty {
+  margin: 0;
+  padding: var(--space-2) var(--space-4) var(--space-3);
+  color: var(--fg-muted);
+  font-size: var(--text-sm);
+}
+
+/* Stage / unstage / discard buttons: on hover, and on the selected row (keyboard users
+   act with Space). */
+.actions {
+  display: none;
+  gap: var(--space-1);
+  flex: none;
+}
+
+.row:hover .actions,
+.row[aria-selected='true'] .actions {
+  display: flex;
+}
+
+.row[draggable='true'] {
+  cursor: grab;
+}
+
+.list[data-drop='true'] {
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 var(--focus-ring-width) var(--accent);
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  letter-spacing: normal;
+  text-transform: none;
+}
