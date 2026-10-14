@@ -118,7 +118,7 @@ pnpm tauri build --debug --no-bundle   # Built front + CSP with nonces (absent u
 ### Definition of done
 
 1. The task's acceptance criteria are met.
-2. `pnpm check`, `cargo clippy -- -D warnings` and `cargo test` pass.
+2. `pnpm check`, `cargo clippy -- -D warnings` and `cargo test` pass. The `CI` workflow (`.github/workflows/ci.yml`) runs them, plus `pnpm test:ui` and `cargo fmt --check`, on every PR, with the Rust part on Linux, macOS and Windows.
 3. The app starts (`xvfb-run pnpm tauri dev`, or at least `cargo build` + `pnpm build`) and new screens are checked with Playwright captures in both themes.
 4. PR opened with: summary, covered requirements (`F-xxx`), how to test, captures, points to check manually on macOS/Windows, out of scope.
 5. `docs/PLAN.md` updated (task status).
