@@ -19,7 +19,7 @@ const { productName, identifier } = tauri;
 const homepage = tauri.bundle.homepage;
 const desc = tauri.bundle.shortDescription;
 // Tauri's default when bundle.macOS.minimumSystemVersion is unset (10.13) is older than any macOS
-// Homebrew supports, so the cask only declares a requirement when the config sets one.
+// Homebrew supports, so the cask only declares a version when the config sets one.
 const minimumSystemVersion = tauri.bundle.macOS?.minimumSystemVersion;
 
 for (const value of [productName, identifier, homepage, desc, minimumSystemVersion]) {
@@ -41,7 +41,8 @@ const macosNames = {
   15: 'sequoia',
   26: 'tahoe',
 };
-let dependsOn = '';
+// `brew style` requires every macOS-only cask to declare `depends_on :macos`.
+let dependsOn = '\n  depends_on :macos\n';
 if (minimumSystemVersion) {
   const name = macosNames[minimumSystemVersion.split('.')[0]];
   if (!name) fail(`no Homebrew name for macOS ${minimumSystemVersion}`);
