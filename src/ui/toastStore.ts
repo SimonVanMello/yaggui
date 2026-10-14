@@ -28,6 +28,8 @@ interface ToastState {
   toasts: ToastItem[];
   show: (toast: ToastInput) => number;
   dismiss: (id: number) => void;
+  /** Changes a toast still on screen (progress); does nothing once it is dismissed. */
+  update: (id: number, patch: Partial<Omit<ToastItem, 'id'>>) => void;
 }
 
 let nextId = 1;
@@ -43,6 +45,11 @@ export const useToastStore = create<ToastState>()((set) => ({
   },
   dismiss: (id) => {
     set((state) => ({ toasts: state.toasts.filter((toast) => toast.id !== id) }));
+  },
+  update: (id, patch) => {
+    set((state) => ({
+      toasts: state.toasts.map((toast) => (toast.id === id ? { ...toast, ...patch } : toast)),
+    }));
   },
 }));
 

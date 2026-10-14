@@ -43,6 +43,7 @@ const PREF_PULL_STRATEGY: &str = "pull_strategy";
 const PREF_PROTECTED_BRANCHES: &str = "protected_branches";
 const PREF_DISABLED_CONFIRMATIONS: &str = "disabled_confirmations";
 const PREF_GRAVATAR: &str = "gravatar";
+const PREF_CHECK_UPDATES: &str = "check_updates";
 /// Folders remembered for the clone / init dialogs.
 const RECENT_DIRS_KEPT: i64 = 10;
 const META_LEGACY_MIGRATED: &str = "legacy_preferences_migrated";
@@ -234,6 +235,7 @@ impl Store {
         load!(disabled_confirmations, PREF_DISABLED_CONFIRMATIONS);
         load!(diff_options, PREF_DIFF_OPTIONS);
         load!(gravatar, PREF_GRAVATAR);
+        prefs.check_updates = get_pref::<Option<bool>>(&conn, PREF_CHECK_UPDATES)?.flatten();
         prefs.ui_font = get_pref(&conn, PREF_UI_FONT)?;
         prefs.code_font = get_pref(&conn, PREF_CODE_FONT)?;
         prefs.git_path = get_pref(&conn, PREF_GIT_PATH)?;
@@ -281,6 +283,7 @@ impl Store {
                 &prefs.disabled_confirmations,
             )?;
             set_pref(&tx, PREF_GRAVATAR, &prefs.gravatar)?;
+            set_pref(&tx, PREF_CHECK_UPDATES, &prefs.check_updates)?;
             tx.commit()?;
         }
         self.preferences()

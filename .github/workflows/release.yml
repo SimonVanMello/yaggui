@@ -1,6 +1,6 @@
 # Builds the installers of every platform and, on a `vX.Y.Z` tag, attaches them to a draft
-# GitHub Release. Pull requests that touch the packaging only build, and keep the bundles as
-# workflow artifacts. See docs/RELEASING.md.
+# GitHub Release with the update manifest (`latest.json`). Pull requests that touch the
+# packaging only build, and keep the bundles as workflow artifacts. See docs/RELEASING.md.
 name: Release
 
 on:
@@ -9,6 +9,7 @@ on:
   pull_request:
     paths:
       - .github/workflows/release.yml
+      - scripts/updater-manifest.mjs
       - scripts/version.mjs
       - src-tauri/tauri.conf.json
   workflow_dispatch:
@@ -36,6 +37,13 @@ jobs:
         env:
           TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
         run: node scripts/version.mjs check "$TAG" >> "$GITHUB_OUTPUT"
+      # Installed copies verify every update with this key: a release without it could never
+      # update itself again.
+      - name: Check the updater public key
+        if: github.ref_type == 'tag'
+        run: >
+          node -e 'const c = require("./src-tauri/tauri.conf.json");
+          if (!c.plugins?.updater?.pubkey) { console.error("plugins.updater.pubkey is empty"); process.exit(1); }'
 
   build:
     needs: version
@@ -47,9 +55,11 @@ jobs:
           - name: macos-arm64
             runner: macos-latest
             target: aarch64-apple-darwin
+            arch: aarch64
           - name: macos-x64
             runner: macos-latest
             target: x86_64-apple-darwin
+            arch: x64
           # The oldest supported Ubuntu, so that the .deb and the AppImage run on older glibc.
           - name: linux-x64
             runner: ubuntu-22.04
@@ -83,16 +93,41 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       # No build cache on purpose: release binaries are built from a clean state.
+      # With the signing key, the updater bundles (`.app.tar.gz` on macOS, the AppImage and the
+      # Windows installers themselves) get a `.sig`. Without it (pull requests from forks),
+      # the installers are still built, unsigned; a tag cannot be released that way.
       - name: Build
-        run: pnpm tauri build --target ${{ matrix.target }}
+        shell: bash
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          IS_TAG: ${{ github.ref_type == 'tag' }}
+          TARGET: ${{ matrix.target }}
+        run: |
+          args=(--target "$TARGET")
+          if [ -n "$TAURI_SIGNING_PRIVATE_KEY" ]; then
+            args+=(--config '{"bundle":{"createUpdaterArtifacts":true}}')
+          elif [ "$IS_TAG" = true ]; then
+            echo "::error::The TAURI_SIGNING_PRIVATE_KEY secret is required to release"
+            exit 1
+          fi
+          pnpm tauri build "${args[@]}"
 
       - name: Collect bundles
         shell: bash
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+          ARCH: ${{ matrix.arch }}
         run: |
           mkdir out
           find "src-tauri/target/${{ matrix.target }}/release/bundle" -maxdepth 2 -type f \
-            \( -name '*.dmg' -o -name '*.deb' -o -name '*.rpm' -o -name '*.AppImage' -o -name '*.msi' -o -name '*.exe' \) \
+            \( -name '*.dmg' -o -name '*.deb' -o -name '*.rpm' -o -name '*.AppImage' -o -name '*.msi' -o -name '*.exe' \
+            -o -name '*.app.tar.gz' -o -name '*.sig' \) \
             -exec cp {} out/ \;
+          # Both macOS builds name their updater bundle `yaggui.app.tar.gz`.
+          for file in out/yaggui.app.tar.gz*; do
+            [ -e "$file" ] && mv "$file" "out/yaggui_${VERSION}_${ARCH}.app.tar.gz${file#out/yaggui.app.tar.gz}"
+          done
           ls -l out
           test -n "$(ls out)"
 
@@ -110,11 +145,22 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: bundles-*
           path: dist
           merge-multiple: true
+
+      # The signatures go into the manifest; they are not release assets.
+      - name: Update manifest
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          node scripts/updater-manifest.mjs "$VERSION" dist "$GITHUB_REPOSITORY"
+          rm dist/*.sig
 
       - name: Checksums
         working-directory: dist

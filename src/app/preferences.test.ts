@@ -57,6 +57,8 @@ describe('loadPreferences', () => {
       terminal: null,
       diffView: 'split',
       diffOptions: DEFAULT_PREFERENCES.diffOptions,
+      // The mock answered the update question, see DEFAULT_MOCK_PREFERENCES.
+      checkUpdates: false,
     });
     expect(localStorage.getItem(LEGACY_THEME_KEY)).toBeNull();
     expect(localStorage.getItem(LEGACY_LOCALE_KEY)).toBeNull();

@@ -92,10 +92,10 @@ describe('mockClient', () => {
   it('migrates legacy preferences only once', async () => {
     await expect(
       unwrap(mock.migrateLegacyPreferences({ theme: 'light', locale: null })),
-    ).resolves.toEqual({ ...DEFAULT_PREFERENCES, theme: 'light' });
+    ).resolves.toEqual({ ...DEFAULT_PREFERENCES, theme: 'light', checkUpdates: false });
     await expect(
       unwrap(mock.migrateLegacyPreferences({ theme: 'dark', locale: 'fr' })),
-    ).resolves.toEqual({ ...DEFAULT_PREFERENCES, theme: 'light' });
+    ).resolves.toEqual({ ...DEFAULT_PREFERENCES, theme: 'light', checkUpdates: false });
   });
 });
 
@@ -114,6 +114,7 @@ describe('mock events', () => {
       'scanProgress',
       'ptyOutput',
       'ptyExited',
+      'updateProgress',
     ];
     expect(names.sort()).toEqual(Object.keys(events).sort());
   });

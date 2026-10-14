@@ -42,6 +42,11 @@ tauri-plugin-dialog = "2"
 portable-pty = "0.9.0"
 # Avatar downloads (F-033): blocking, no async runtime, TLS through rustls (no OpenSSL to ship).
 ureq = { version = "3", default-features = false, features = ["rustls"] }
+# Self-update of the release installers (SPEC §10), used from Rust only: no updater permission
+# is granted to the webview. rustls, like ureq.
+tauri-plugin-updater = { version = "2", default-features = false, features = ["rustls-tls"] }
+# Already in the lockfile through Tauri: version comparison of the update check.
+semver = "1"
 
 # Already in the lockfile through Tauri: `kill` on the process group of a cancelled command.
 [target.'cfg(unix)'.dependencies]

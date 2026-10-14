@@ -57,6 +57,9 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             commands::system::pick_repo_folder,
             commands::avatars::avatar,
             commands::avatars::clear_avatar_cache,
+            commands::updates::check_for_update,
+            commands::updates::install_update,
+            commands::updates::open_release_page,
             commands::pty::pty_spawn,
             commands::pty::pty_write,
             commands::pty::pty_resize,
@@ -183,6 +186,7 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             events::OpStarted,
             events::OpProgress,
             events::CloneProgress,
+            events::UpdateProgress,
             events::ScanProgress,
             events::OpFinished,
             events::StatusChanged,
@@ -306,6 +310,8 @@ pub fn run() {
         .enable_macos_default_menu(false)
         // Only used from Rust (`pick_repo_folder`): no dialog permission is granted to the webview.
         .plugin(tauri_plugin_dialog::init())
+        // Only used from Rust (`install_update`), like the dialog plugin.
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(builder.invoke_handler())
         .setup(move |app| {
             builder.mount_events(app);
