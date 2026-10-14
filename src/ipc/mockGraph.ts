@@ -25,7 +25,7 @@ import {
   SIGNATURE_X509,
 } from './bindings';
 import { computeLayout, type GraphLayout } from './mockLayout';
-import { addStressRefs } from './mockRefsStress';
+import { addLongRefs, addStressRefs } from './mockRefsStress';
 
 const SIGNATURE_CODES: Record<SignatureKind, number> = {
   gpg: SIGNATURE_GPG,
@@ -528,6 +528,7 @@ export function createMockHistory(
   } else if (repoId === 2) {
     history.stashes.push(stash(history, headCommit, 'On sched/eevdf-fixes: debug prints'));
   }
+  if (/long-refs/.test(path)) addLongRefs(history, headCommit);
   history.worktrees.unshift({
     path,
     head,

@@ -64,3 +64,28 @@ export function addStressRefs(history: MockHistory): void {
     });
   }
 }
+
+/**
+ * Long branch names on the newest commits (any path containing `long-refs`), to exercise the
+ * width allocation and middle truncation of the graph ref pills.
+ */
+export function addLongRefs(history: MockHistory, head: number): void {
+  const parent = (commit: number) => history.commits[commit]?.parents[0] ?? commit;
+  const second = parent(head);
+  const third = parent(second);
+  const tracked = 'feature/PROJ-1234-login-timeout-on-slow-networks';
+  history.local.push({ name: tracked, commit: head, upstream: `origin/${tracked}` });
+  history.remote.push({ name: `origin/${tracked}`, commit: head });
+  history.remote.push({ name: 'origin/release/2.4', commit: head });
+  history.local.push({ name: 'bugfix/JIRA-98765-crash-when-opening-huge-repos', commit: second });
+  history.local.push({ name: 'experiment/canvas-renderer-with-offscreen-workers', commit: second });
+  history.remote.push({
+    name: 'upstream/dependabot/npm_and_yarn/typescript-5.9.3',
+    commit: second,
+  });
+  history.tags.push({ name: 'v2.4.0-rc.1', commit: second, message: null });
+  history.local.push({ name: 'users/aïcha/refactor-lane-layout-perf', commit: third });
+  if (!history.remotes.some((r) => r.name === 'upstream')) {
+    history.remotes.push({ name: 'upstream', url: 'https://github.com/example/long-refs.git' });
+  }
+}

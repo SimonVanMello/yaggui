@@ -26,9 +26,23 @@
 }
 
 .name {
+  white-space: nowrap;
+}
+
+/* Graph rows truncate names in the middle from a measured budget (pillFit.ts); elsewhere a
+   fixed cap with an end ellipsis. */
+.capped {
   max-width: 16ch;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
   white-space: nowrap;
 }
 

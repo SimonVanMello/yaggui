@@ -169,3 +169,65 @@ test.describe('history taller than the browser can lay out', () => {
     await expect.poll(async () => (await rowsShown())[0]).toBe(0);
   });
 });
+
+const LONG_REF = 'feature/PROJ-1234-login-timeout-on-slow-networks';
+
+async function openLongRefs(page: Page) {
+  await page.clock.setFixedTime(new Date(MOCK_NOW_MS));
+  await page.goto('/');
+  await page.evaluate(() => window.__yagguiMock?.setPickedFolder('/Users/alex/dev/long-refs'));
+  await page.getByRole('button', { name: /^Open/ }).first().click();
+  const graph = page.getByRole('listbox', { name: 'Commit graph' });
+  await expect(graph.getByRole('option').first()).toBeVisible();
+  await page.evaluate(() => document.fonts.ready);
+  return graph;
+}
+
+for (const { name: theme, colorScheme } of THEMES) {
+  test.describe(`${theme} theme, long ref names`, () => {
+    test.use({ colorScheme, locale: 'en-US' });
+
+    test('pills share a wide message column: names in full', async ({ page }) => {
+      await page.setViewportSize({ width: 1920, height: 900 });
+      const graph = await openLongRefs(page);
+      const pill = graph.locator(`[data-drop-branch="${LONG_REF}"]`);
+      await expect(pill).toHaveAttribute('title', new RegExp(`^${LONG_REF} — `));
+      await expect(pill.getByText(LONG_REF, { exact: true })).toBeVisible();
+      await expect(pill.locator('span[aria-hidden="true"]')).toHaveCount(0);
+      await expect(graph.getByText('origin/release/2.4', { exact: true })).toBeVisible();
+      await page.waitForTimeout(300);
+      await capture(page, theme, 'long-refs-wide');
+    });
+
+    test('pills at 900×560: cut in the middle, full name kept', async ({ page }) => {
+      await page.setViewportSize({ width: 900, height: 560 });
+      const graph = await openLongRefs(page);
+      // A ~190 px message column: one long name per row at most, cut in the middle.
+      const name = 'users/aïcha/refactor-lane-layout-perf';
+      const pill = graph.locator(`[data-drop-branch="${name}"]`);
+      await expect(pill).toHaveAttribute('title', new RegExp(`^${name} — `));
+      // Leading segment and end kept, the middle cut.
+      await expect(pill.locator('span[aria-hidden="true"]')).toHaveText(/^users\/…[^…]+$/);
+      // Assistive tech still gets the full name.
+      await expect(pill).toContainText(name);
+      // What does not fit even at the minimum name width folds into `+N`, listed in its title.
+      const more = graph
+        .getByRole('option')
+        .first()
+        .getByLabel(/^\d+ more refs$/);
+      await expect(more).toHaveAttribute('title', new RegExp(LONG_REF));
+      // The summary keeps its share of the column on every row with pills.
+      for (let i = 0; i < 3; i++) {
+        const summaryWidth = await graph
+          .getByRole('option')
+          .nth(i)
+          .evaluate(
+            (row) => row.firstElementChild?.lastElementChild?.getBoundingClientRect().width,
+          );
+        expect(summaryWidth ?? 0).toBeGreaterThan(80);
+      }
+      await page.waitForTimeout(300);
+      await capture(page, theme, 'long-refs-min');
+    });
+  });
+}

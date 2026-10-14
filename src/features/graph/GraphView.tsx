@@ -20,6 +20,7 @@ import { GraphCanvas } from './GraphCanvas';
 import { GraphFilterBar } from './GraphFilterBar';
 import { GraphHeader } from './GraphHeader';
 import { GraphRowView, type RowColumns } from './GraphRowView';
+import { usePillMetrics } from './usePillMetrics';
 import { GraphSearchBar } from './GraphSearchBar';
 import { HistoryWalkStatus } from './HistoryWalkStatus';
 import { useGraphSource } from './graphSource';
@@ -165,6 +166,11 @@ export function GraphView({
   const columns = tab.columns;
   const graphWidth = columns.graph ?? autoGraphWidth(cache.laneCount);
   const widths = fitColumns(columns, graphWidth, size.width);
+  const pillMetrics = usePillMetrics();
+  const messageWidth = Math.max(
+    0,
+    size.width - widths.graph - widths.author - widths.date - widths.sha - pillMetrics.rowPadding,
+  );
   const rowColumns = useMemo<RowColumns>(
     () => ({
       author: widths.author > 0,
@@ -406,6 +412,8 @@ export function GraphView({
                   match={false}
                   activeMatch={false}
                   columns={rowColumns}
+                  messageWidth={messageWidth}
+                  pillMetrics={pillMetrics}
                   now={now}
                   locale={locale}
                 />
@@ -461,6 +469,8 @@ export function GraphView({
                   match={search.matches.length > 0 && source.isMatch(item.index)}
                   activeMatch={search.active >= 0 && search.matches[search.active] === item.index}
                   columns={rowColumns}
+                  messageWidth={messageWidth}
+                  pillMetrics={pillMetrics}
                   now={now}
                   locale={locale}
                 />

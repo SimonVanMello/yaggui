@@ -6,6 +6,7 @@ import { Avatar } from './Avatar';
 import type { GraphRow } from './pageCache';
 import { RefPills } from './RefPills';
 import { SignedMark } from './SignedMark';
+import type { PillMetrics } from './usePillMetrics';
 import styles from './GraphRowView.module.css';
 
 export interface RowColumns {
@@ -25,6 +26,9 @@ interface Props {
   match: boolean;
   activeMatch: boolean;
   columns: RowColumns;
+  /** Width of the message column, px: the ref pills share it with the summary. */
+  messageWidth: number;
+  pillMetrics: PillMetrics;
   now: number;
   locale: Locale;
 }
@@ -50,6 +54,8 @@ export const GraphRowView = memo(function GraphRowView({
   match,
   activeMatch,
   columns,
+  messageWidth,
+  pillMetrics,
   now,
   locale,
 }: Props) {
@@ -85,7 +91,17 @@ export const GraphRowView = memo(function GraphRowView({
       id={`graph-row-${String(index)}`}
     >
       <span className={styles.message}>
-        <RefPills repoId={repoId} labels={data.refs} color={data.color} />
+        <RefPills
+          repoId={repoId}
+          labels={data.refs}
+          color={data.color}
+          space={{
+            width: messageWidth,
+            signed: data.signature !== null,
+            summary: data.summary,
+            metrics: pillMetrics,
+          }}
+        />
         {data.signature && <SignedMark kind={data.signature} locale={locale} />}
         <span className={styles.summary}>{data.summary}</span>
       </span>
