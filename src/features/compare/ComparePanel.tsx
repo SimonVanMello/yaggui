@@ -22,7 +22,7 @@ import { SegmentedControl } from '../../ui/SegmentedControl';
 import { Spinner } from '../../ui/Spinner';
 import { ChangedFileList } from '../diff/ChangedFileList';
 import { useChangedFiles } from '../diff/diffQueries';
-import { openDiff, useDiffSelection } from '../diff/diffStore';
+import { closeDiff, openDiff, useDiffSelection } from '../diff/diffStore';
 import { Avatar } from '../graph/Avatar';
 import { revealCommit } from '../repo/graphNavigation';
 import { shortOid } from '../repo/repoStatus';
@@ -168,6 +168,9 @@ function Files({ repoId, tabId, cmp }: { repoId: number; tabId: string; cmp: Com
       statsSkipped={files?.statsSkipped}
       lfsPaths={files?.lfs}
       selectedPath={selectedPath}
+      onDeselect={() => {
+        closeDiff(tabId);
+      }}
       onSelect={(file: ChangedFile) => {
         openDiff(tabId, { repoId, target, path: file.path, oldPath: file.oldPath });
       }}

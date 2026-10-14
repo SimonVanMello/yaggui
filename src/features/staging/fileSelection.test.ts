@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { actionTargets, effectivePaths, nextAfter, NO_PICKS, pick } from './fileSelection';
+import {
+  actionTargets,
+  closesOpenDiff,
+  effectivePaths,
+  nextAfter,
+  NO_PICKS,
+  pick,
+} from './fileSelection';
 
 const order = ['a', 'b', 'c', 'd', 'e'];
 const none = { shift: false, toggle: false };
@@ -53,5 +60,25 @@ describe('next file after an action', () => {
     expect(nextAfter(order, new Set(['d', 'e']))).toBe('c');
     expect(nextAfter(['a'], new Set(['a']))).toBeNull();
     expect(nextAfter(order, new Set())).toBeNull();
+  });
+});
+
+describe('click on the open file', () => {
+  it('closes the diff on a plain click on the open file', () => {
+    expect(closesOpenDiff('a', none, 'a', new Set(['a']))).toBe(true);
+  });
+
+  it('opens another file', () => {
+    expect(closesOpenDiff('b', none, 'a', new Set(['a']))).toBe(false);
+    expect(closesOpenDiff('a', none, null, new Set())).toBe(false);
+  });
+
+  it('keeps Shift and ⌘/Ctrl clicks for the multi-selection', () => {
+    expect(closesOpenDiff('a', { shift: true, toggle: false }, 'a', new Set(['a']))).toBe(false);
+    expect(closesOpenDiff('a', { shift: false, toggle: true }, 'a', new Set(['a']))).toBe(false);
+  });
+
+  it('narrows a multi-selection to the open file instead of closing it', () => {
+    expect(closesOpenDiff('a', none, 'a', new Set(['a', 'b']))).toBe(false);
   });
 });

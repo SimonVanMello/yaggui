@@ -17,6 +17,7 @@ import { ContextMenuSeparator } from '../../ui/ContextMenuSeparator';
 import { IconButton } from '../../ui/IconButton';
 import {
   actionTargets,
+  closesOpenDiff,
   effectivePaths,
   nextAfter,
   NO_PICKS,
@@ -65,6 +66,8 @@ interface ChangedFileListProps {
   files: readonly ChangedFile[];
   selectedPath: string | null;
   onSelect: (file: ChangedFile) => void;
+  /** A plain click on the file already open closes its diff (the diff view's own close). */
+  onDeselect?: () => void;
   /** Line stats were skipped by the backend (huge change set). */
   statsSkipped?: boolean;
   /** Shown when `files` is empty. */
@@ -88,6 +91,7 @@ export function ChangedFileList({
   files,
   selectedPath,
   onSelect,
+  onDeselect,
   statsSkipped = false,
   emptyText,
   fit = false,
@@ -149,7 +153,16 @@ export function ChangedFileList({
     });
   };
 
-  const press = (file: ChangedFile, modifiers: { shift: boolean; toggle: boolean }) => {
+  const press = (
+    file: ChangedFile,
+    modifiers: { shift: boolean; toggle: boolean },
+    click = false,
+  ) => {
+    if (click && onDeselect && closesOpenDiff(file.path, modifiers, selectedPath, selected)) {
+      setPicked(NO_PICKS);
+      onDeselect();
+      return;
+    }
     if (staging && (modifiers.shift || modifiers.toggle)) {
       setPicked(
         pick(order, selected, picked.anchor ?? selectedPath, file.path, modifiers, selectedPath),
@@ -339,7 +352,7 @@ export function ChangedFileList({
                         staging ? selected.has(row.file.path) : row.file.path === selectedPath
                       }
                       onSelect={(modifiers) => {
-                        press(row.file, modifiers);
+                        press(row.file, modifiers, true);
                       }}
                       actions={rowActions(row.file)}
                       lfs={lfs.has(row.file.path)}

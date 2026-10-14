@@ -4,7 +4,7 @@ import { YagguiIpcError, type ChangedFile, type DiffTarget, type StashRef } from
 import { Button } from '../../ui/Button';
 import { ChangedFileList } from '../diff/ChangedFileList';
 import { useChangedFiles } from '../diff/diffQueries';
-import { openDiff, useDiffSelection } from '../diff/diffStore';
+import { closeDiff, openDiff, useDiffSelection } from '../diff/diffStore';
 import { shortOid } from '../repo/repoStatus';
 import { stashId } from './refCommands';
 import { stashApply, stashDrop, stashPop } from './refOps';
@@ -98,6 +98,9 @@ export function StashPreviewPanel({
             statsSkipped={query.data?.statsSkipped}
             lfsPaths={query.data?.lfs}
             selectedPath={selectedIn(stash.sha)}
+            onDeselect={() => {
+              closeDiff(tabId);
+            }}
             onSelect={(file: ChangedFile) => {
               openDiff(tabId, { repoId, target, path: file.path, oldPath: file.oldPath });
             }}
@@ -112,6 +115,9 @@ export function StashPreviewPanel({
             statsSkipped={untracked.data?.statsSkipped}
             lfsPaths={untracked.data?.lfs}
             selectedPath={selectedIn(stash.untrackedSha)}
+            onDeselect={() => {
+              closeDiff(tabId);
+            }}
             onSelect={(file: ChangedFile) => {
               openDiff(tabId, {
                 repoId,
