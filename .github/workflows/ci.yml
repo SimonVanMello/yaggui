@@ -77,4 +77,5 @@ jobs:
       - if: runner.os == 'Linux'
         run: cargo fmt --check
       - run: cargo clippy --all-targets --locked -- -D warnings
-      - run: cargo test --locked
+      # Every failing test binary at once, not only the first one.
+      - run: cargo test --locked --no-fail-fast

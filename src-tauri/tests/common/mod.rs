@@ -23,7 +23,7 @@ impl Fixture {
     pub fn new(scenario: &str) -> Self {
         let dir = tempfile::tempdir().expect("temp dir");
         let script = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/make-fixture.sh");
-        let status = Command::new("bash")
+        let status = bash()
             .arg(&script)
             .arg(scenario)
             .arg(dir.path())
@@ -65,6 +65,27 @@ impl Fixture {
             .expect("run git");
         assert!(status.success(), "git {args:?} failed");
     }
+}
+
+/// `bash` alone on Windows resolves to WSL's `System32\bash.exe` before `PATH` is searched:
+/// the scripts run in the Git Bash shipped next to `git` instead.
+fn bash() -> Command {
+    #[cfg(windows)]
+    {
+        let exec_path = Command::new("git")
+            .arg("--exec-path")
+            .output()
+            .expect("run git --exec-path");
+        // `<root>/mingw64/libexec/git-core` → `<root>/bin/bash.exe`.
+        let exec_path = PathBuf::from(String::from_utf8_lossy(&exec_path.stdout).trim());
+        if let Some(root) = exec_path.ancestors().nth(3) {
+            let bash = root.join("bin").join("bash.exe");
+            if bash.is_file() {
+                return Command::new(bash);
+            }
+        }
+    }
+    Command::new("bash")
 }
 
 /// Event sink that records everything, for assertions.
