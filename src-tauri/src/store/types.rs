@@ -350,6 +350,10 @@ pub struct DiffPreferences {
     pub context_lines: u32,
     /// One hunk spanning the whole file.
     pub full_file: bool,
+    /// Markdown files shown rendered, with their changes (F-089). Absent from options saved
+    /// before it existed.
+    #[serde(default)]
+    pub markdown_preview: bool,
 }
 
 impl Default for DiffPreferences {
@@ -359,6 +363,7 @@ impl Default for DiffPreferences {
             ignore_whitespace: false,
             context_lines: 3,
             full_file: false,
+            markdown_preview: false,
         }
     }
 }

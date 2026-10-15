@@ -90,6 +90,9 @@
   --blame-info-width: 300px;
   --blame-age-bar-width: 3px;
   --blame-row-height: 20px;
+  /* Rendered Markdown diff (F-089) */
+  --markdown-width: 780px;
+  --markdown-bar-width: 3px;
   /* Integrated terminal (F-267); the 16 ANSI colors are per theme (--term-red…). */
   --terminal-max-height: 70vh;
   --terminal-tab-max-width: 180px;

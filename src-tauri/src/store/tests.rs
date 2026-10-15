@@ -133,6 +133,7 @@ fn stores_preferences() {
             ignore_whitespace: true,
             context_lines: 10,
             full_file: true,
+            markdown_preview: true,
         },
         high_contrast: true,
         density: Density::Compact,
@@ -239,6 +240,23 @@ fn ignores_unreadable_preference_values() {
         )
         .unwrap();
     assert_eq!(store.preferences().unwrap().theme, ThemePreference::System);
+}
+
+#[test]
+fn diff_options_saved_before_a_new_field_keep_their_values() {
+    let store = store();
+    store
+        .conn()
+        .execute(
+            "INSERT INTO preferences (key, value) VALUES ('diff_options', \
+             '{\"wrap\":true,\"ignoreWhitespace\":false,\"contextLines\":10,\"fullFile\":false}')",
+            [],
+        )
+        .unwrap();
+    let options = store.preferences().unwrap().diff_options;
+    assert!(options.wrap);
+    assert_eq!(options.context_lines, 10);
+    assert!(!options.markdown_preview);
 }
 
 #[test]

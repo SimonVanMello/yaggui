@@ -214,6 +214,7 @@ Priorities: **MVP** (required for daily use), **V1** (public release), **V2** (a
 | F-086 | Mode changes (chmod), line ending changes (CRLF/LF) and submodule changes shown explicitly. | V1 |
 | F-087 | Open the file in the external editor / in the file manager; launch the configured external diff tool (`diff.tool`). | V1 |
 | F-088 | Commit diff: list of changed files + diff, stats (+/−). | MVP |
+| F-089 | Markdown files: **rendered preview** of the new version with its changes (changed blocks marked in the margin, inserted words highlighted, removed ones struck through in place, `n`/`p` between changes, removed text can be hidden), persisted toggle next to the diff layout. | V1 |
 
 ### 5.6 Branches and checkout
 

@@ -30,16 +30,20 @@ import { applyHunks } from '../staging/stagingActions';
 import { DiffPlaceholder } from './DiffPlaceholder';
 import { ModuleDiffActions } from '../submodules/ModuleDiffActions';
 import { DiffToolbar } from './DiffToolbar';
+import { isMarkdown } from './markdown/isMarkdown';
+import { MarkdownPreview } from './markdown/MarkdownPreview';
 import styles from './DiffView.module.css';
 
 const IMAGE = /\.(png|jpe?g|gif|webp|bmp|ico|svg|avif)$/i;
 
-/** Keys typed in a field or with a menu open are not diff commands. */
+/** Keys typed in a text field or with a menu open are not diff commands. */
 function ignoredTarget(event: KeyboardEvent): boolean {
   const target = event.target;
   if (
     target instanceof HTMLElement &&
-    target.closest('input, textarea, [contenteditable="true"]')
+    target.closest(
+      'input:not([type="checkbox"]):not([type="radio"]), textarea, [contenteditable="true"]',
+    )
   ) {
     return true;
   }
@@ -73,6 +77,8 @@ export function DiffView({ selection, onClose, onSelect, stepper, actions }: Dif
   const { repoId, target, path, oldPath } = selection;
   const view = useDiffView();
   const options = useDiffOptions();
+  const markdown = isMarkdown(path);
+  const preview = markdown && options.markdownPreview === true;
   const diffOptions = { ...hunkOptions(options), force: false };
   const force = useDiffStore((state) => state.forced[fileKey(selection)] === true);
   const code = useRef<CodeDiffHandle>(null);
@@ -98,9 +104,9 @@ export function DiffView({ selection, onClose, onSelect, stepper, actions }: Dif
   };
 
   // Kept in a ref so the window listener always sees the current file list.
-  const keys = useRef({ openFile, onClose });
+  const keys = useRef({ openFile, onClose, preview: false });
   useEffect(() => {
-    keys.current = { openFile, onClose };
+    keys.current = { openFile, onClose, preview };
   });
 
   useEffect(() => {
@@ -109,8 +115,10 @@ export function DiffView({ selection, onClose, onSelect, stepper, actions }: Dif
       const plain = !event.metaKey && !event.ctrlKey && !event.altKey;
       if (matchShortcut(event, 'Escape')) {
         if (!code.current?.clearSelection()) keys.current.onClose();
-      } else if (matchShortcut(event, 'Mod+D')) toggleDiffView();
-      else if (plain && (event.key === 'n' || event.key === 'p')) {
+      } else if (matchShortcut(event, 'Mod+D')) {
+        if (keys.current.preview) setDiffOptions({ markdownPreview: false });
+        else toggleDiffView();
+      } else if (plain && (event.key === 'n' || event.key === 'p')) {
         code.current?.navigate(event.key === 'n' ? 1 : -1);
       } else if (plain && (event.key === 'j' || event.key === 'k')) {
         keys.current.openFile(event.key === 'j' ? 1 : -1);
@@ -214,6 +222,20 @@ export function DiffView({ selection, onClose, onSelect, stepper, actions }: Dif
         }
       />
     );
+  } else if (preview && current.content.kind === 'text' && current.content.hunks.length > 0) {
+    body = (
+      <MarkdownPreview
+        ref={code}
+        repoId={repoId}
+        target={target}
+        path={path}
+        oldPath={oldPath}
+        force={force}
+        onForce={() => {
+          forceRender(selection);
+        }}
+      />
+    );
   } else if (current.content.kind === 'text' && current.content.hunks.length > 0) {
     body = (
       <CodeDiffLoader
@@ -258,6 +280,8 @@ export function DiffView({ selection, onClose, onSelect, stepper, actions }: Dif
         oldPath={oldPath}
         file={file}
         view={view}
+        markdown={markdown}
+        preview={preview}
         position={
           stepper ? stepper.position : files && index >= 0 ? { index, total: files.length } : null
         }
