@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_COLUMNS } from '../../features/graph/columns';
 import { setNodeOpen } from '../../features/sidebar/sidebarUiState';
 import { mockBackend } from '../../ipc/mockClient';
-import { DEFAULT_PANELS, serializeTabUiState } from '../layout/panels';
+import { serializeTabUiState } from '../layout/panels';
 import {
   DEFAULT_REPO_LAYOUT,
   loadRepoLayout,
@@ -18,6 +18,7 @@ import { useTabsStore } from './tabsStore';
 const DELAY = 300;
 
 const LAYOUT: RepoLayout = {
+  panels: { sidebar: { size: 300, collapsed: false }, details: { size: 400, collapsed: true } },
   sidebar: { open: { 'section:tags': false }, flat: true, recent: ['main'] },
   columns: { ...DEFAULT_COLUMNS, author: 200, hidden: { author: false, date: true, sha: false } },
 };
@@ -46,7 +47,7 @@ afterEach(() => {
 describe('repo layout JSON', () => {
   it('round-trips and reads the same slices as a tab state', () => {
     expect(parseRepoLayout(serializeRepoLayout(LAYOUT))).toEqual(LAYOUT);
-    const tabState = serializeTabUiState(DEFAULT_PANELS, {
+    const tabState = serializeTabUiState(LAYOUT.panels, {
       graph: { columns: LAYOUT.columns },
       sidebar: LAYOUT.sidebar,
     });
@@ -95,6 +96,9 @@ describe('persistRepoLayouts', () => {
       'section:stashes': false,
       'section:remote': false,
     });
+    tabs.setPanel(tabB, 'details', { size: 420 });
+    await vi.advanceTimersByTimeAsync(DELAY);
+    expect(parseRepoLayout(await saved(b)).panels.details.size).toBe(420);
     // The other repository is untouched.
     expect(parseRepoLayout(await saved(a))).toEqual(LAYOUT);
     stop();

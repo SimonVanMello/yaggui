@@ -9,29 +9,44 @@ import {
   type SidebarUiState,
 } from '../../features/sidebar/sidebarUiState';
 import { ipc, unwrap } from '../../ipc';
+import {
+  DEFAULT_PANELS,
+  parseTabUiState,
+  serializeTabUiState,
+  type TabPanels,
+} from '../layout/panels';
 import { useTabsStore, type ShellTab } from './tabsStore';
 
 /**
- * Layout of a repository's view: sidebar sections, graph columns. Saved per repository so that
+ * Layout of a repository's view: side panel sizes, sidebar sections, graph columns. Saved per repository so that
  * reopening a closed repository finds it as it was; the tab keeps a copy for the restoration.
  */
 export interface RepoLayout {
+  panels: TabPanels;
   sidebar: SidebarUiState;
   columns: GraphColumns;
 }
 
 export const DEFAULT_REPO_LAYOUT: RepoLayout = {
+  panels: DEFAULT_PANELS,
   sidebar: DEFAULT_SIDEBAR_UI,
   columns: DEFAULT_COLUMNS,
 };
 
 /** Same shape as the matching slices of a tab's UI state, so the same parsers read both. */
 export function serializeRepoLayout(layout: RepoLayout): string {
-  return JSON.stringify({ graph: { columns: layout.columns }, sidebar: layout.sidebar });
+  return serializeTabUiState(layout.panels, {
+    graph: { columns: layout.columns },
+    sidebar: layout.sidebar,
+  });
 }
 
 export function parseRepoLayout(json: string | null): RepoLayout {
-  return { sidebar: parseSidebarUiState(json), columns: parseGraphColumns(json) };
+  return {
+    panels: parseTabUiState(json),
+    sidebar: parseSidebarUiState(json),
+    columns: parseGraphColumns(json),
+  };
 }
 
 /** Last layout read or written per repository, to skip saving what is already stored. */
@@ -83,7 +98,7 @@ export async function loadRepoLayout(repoId: number): Promise<RepoLayout> {
 }
 
 function layoutOf(tab: ShellTab): RepoLayout {
-  return { sidebar: tab.sidebar, columns: tab.columns };
+  return { panels: tab.panels, sidebar: tab.sidebar, columns: tab.columns };
 }
 
 /**
@@ -114,7 +129,10 @@ export function persistRepoLayouts(delayMs: number): () => void {
       if (tab.repoId === null) continue;
       const old = before.get(tab.id);
       const same =
-        old?.repoId === tab.repoId && old.sidebar === tab.sidebar && old.columns === tab.columns;
+        old?.repoId === tab.repoId &&
+        old.panels === tab.panels &&
+        old.sidebar === tab.sidebar &&
+        old.columns === tab.columns;
       if (same) continue;
       schedule(tab.repoId, layoutOf(tab));
     }

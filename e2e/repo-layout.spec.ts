@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-/** Sidebar sections and graph columns are kept per repository, beyond the life of its tab. */
+/** Panel sizes, sidebar sections and graph columns are kept per repository, beyond the life of its tab. */
 
 const MOCK_NOW_MS = 1_791_795_600_000;
 
@@ -29,6 +29,9 @@ const section = (page: Page, name: string) =>
 const columnTitles = (page: Page) =>
   page.getByText('Commit message', { exact: true }).locator('..').filter({ visible: true });
 
+const rightResizer = (page: Page) =>
+  page.getByRole('separator', { name: 'Resize the right panel' }).filter({ visible: true });
+
 async function closeActiveTab(page: Page, name: string) {
   await page.getByRole('button', { name: `Close ${name}` }).click();
 }
@@ -42,7 +45,12 @@ for (const { name: theme, colorScheme } of THEMES) {
       await page.goto('/');
       await openFromWelcome(page, 'yaggui');
 
-      // Collapse Local, expand Tags, hide the date column.
+      // Narrow the right panel, collapse Local, expand Tags, hide the date column.
+      const defaultWidth = Number(await rightResizer(page).getAttribute('aria-valuenow'));
+      await rightResizer(page).focus();
+      await page.keyboard.press('ArrowRight');
+      const width = String(defaultWidth - 16);
+      await expect(rightResizer(page)).toHaveAttribute('aria-valuenow', width);
       await expect(section(page, 'Local')).toHaveAttribute('aria-expanded', 'true');
       await section(page, 'Local').click();
       await expect(section(page, 'Local')).toHaveAttribute('aria-expanded', 'false');
@@ -57,6 +65,7 @@ for (const { name: theme, colorScheme } of THEMES) {
 
       await closeActiveTab(page, 'yaggui');
       await openFromWelcome(page, 'yaggui');
+      await expect(rightResizer(page)).toHaveAttribute('aria-valuenow', width);
       await expect(section(page, 'Local')).toHaveAttribute('aria-expanded', 'false');
       await expect(section(page, 'Tags')).toHaveAttribute('aria-expanded', 'true');
       await expect(columnTitles(page)).not.toContainText('Date');
@@ -68,6 +77,7 @@ for (const { name: theme, colorScheme } of THEMES) {
       await openFromWelcome(page, 'blog');
       await expect(section(page, 'Local')).toHaveAttribute('aria-expanded', 'true');
       await expect(columnTitles(page)).toContainText('Date');
+      await expect(rightResizer(page)).toHaveAttribute('aria-valuenow', String(defaultWidth));
 
       // And the layout survives a restart (the mock keeps its store across reloads).
       await closeActiveTab(page, 'blog');
@@ -83,6 +93,7 @@ for (const { name: theme, colorScheme } of THEMES) {
         .toEqual([null]);
       await page.reload();
       await openFromWelcome(page, 'yaggui');
+      await expect(rightResizer(page)).toHaveAttribute('aria-valuenow', width);
       await expect(section(page, 'Local')).toHaveAttribute('aria-expanded', 'false');
       await expect(columnTitles(page)).not.toContainText('Date');
     });

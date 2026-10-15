@@ -45,11 +45,11 @@ interface TabsStore {
   /** Cycles through tabs (`⌃Tab` / `⌃⇧Tab`). */
   activateRelative: (delta: number) => void;
   moveTab: (id: string, toIndex: number) => void;
-  /** `layout` replaces the tab's sidebar and columns (the saved ones of the repository). */
+  /** `layout` replaces the tab's panels, sidebar and columns (the saved ones of the repository). */
   setRepo: (
     id: string,
     repoId: number | null,
-    layout?: Pick<ShellTab, 'sidebar' | 'columns'>,
+    layout?: Pick<ShellTab, 'panels' | 'sidebar' | 'columns'>,
   ) => void;
   setPanel: (id: string, panel: PanelId, patch: Partial<PanelState>) => void;
   /** Updates the refs sidebar state of a tab (expanded nodes, flat list, recent branches). */
