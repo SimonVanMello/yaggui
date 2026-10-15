@@ -7,7 +7,8 @@ import { savePreferenceOrToast } from '../preferences/savePreference';
 
 /** What the user types to upgrade a copy owned by a package manager. */
 export const UPGRADE_COMMANDS: Partial<Record<InstallChannel, string>> = {
-  homebrew: 'brew upgrade --cask yaggui',
+  // `brew upgrade` alone refreshes the tap at most once a day, so it can miss a fresh release.
+  homebrew: 'brew update && brew upgrade --cask yaggui',
   aur: 'yay -Syu yaggui-bin',
 };
 
