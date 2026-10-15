@@ -4,6 +4,7 @@ mod commit_prefs;
 mod graph_filters;
 pub mod keybindings;
 mod migrations;
+mod repo_ui_state;
 mod types;
 mod workspaces;
 
@@ -17,6 +18,7 @@ use crate::git::errors::{BackendError, YagguiError};
 pub use commit_prefs::{
     CommitTemplate, IdentityProfile, MAX_COMMIT_TEMPLATE, RECENT_MESSAGES_KEPT, RecentCommitMessage,
 };
+pub use repo_ui_state::MAX_REPO_UI_STATE;
 pub use types::*;
 pub use workspaces::{MAX_WORKSPACE_NAME, Workspace};
 

@@ -3,6 +3,7 @@ import { checkForUpdatesAtStartup } from '../features/updates/updates';
 import { openRepoPath, restoreRepoSession } from '../features/repo/repoSessions';
 import { ipc, unwrap } from '../ipc';
 import { installAppMenu } from './menu/appMenu';
+import { persistRepoLayouts } from './tabs/repoLayout';
 import { selectActiveTab, toSavedTabs, useTabsStore } from './tabs/tabsStore';
 
 const SAVE_DELAY_MS = 300;
@@ -72,6 +73,7 @@ export function startup(): Promise<void> {
     await restoreTabs();
     await menu;
     persistTabs();
+    persistRepoLayouts(SAVE_DELAY_MS);
     await openLaunchPath();
     checkForUpdatesAtStartup();
   })();

@@ -400,3 +400,31 @@ fn stores_graph_filters_per_repo() {
         .unwrap();
     assert_eq!(store.graph_filter(other).unwrap(), GraphFilter::default());
 }
+
+#[test]
+fn stores_the_ui_state_per_repo() {
+    let store = store();
+    let id = store.touch_repo("/r", "r").unwrap();
+    let other = store.touch_repo("/o", "o").unwrap();
+    assert_eq!(store.repo_ui_state(id).unwrap(), None);
+    store.set_repo_ui_state(id, r#"{"sidebar":{}}"#).unwrap();
+    store
+        .set_repo_ui_state(id, r#"{"sidebar":{"flat":true}}"#)
+        .unwrap();
+    assert_eq!(
+        store.repo_ui_state(id).unwrap().as_deref(),
+        Some(r#"{"sidebar":{"flat":true}}"#)
+    );
+    assert_eq!(store.repo_ui_state(other).unwrap(), None);
+    // An unknown repository stores nothing; forgetting one drops its layout.
+    store.set_repo_ui_state(999, "{}").unwrap();
+    assert_eq!(store.repo_ui_state(999).unwrap(), None);
+    store.forget_repo(id).unwrap();
+    let again = store.touch_repo("/r", "r").unwrap();
+    assert_eq!(store.repo_ui_state(again).unwrap(), None);
+    // Oversized states are refused, and the stored one is kept.
+    store.set_repo_ui_state(other, "{}").unwrap();
+    let huge = "x".repeat(MAX_REPO_UI_STATE + 1);
+    assert!(store.set_repo_ui_state(other, &huge).is_err());
+    assert_eq!(store.repo_ui_state(other).unwrap().as_deref(), Some("{}"));
+}

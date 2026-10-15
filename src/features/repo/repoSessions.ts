@@ -5,6 +5,7 @@ import { closeInteractiveRebase } from '../rebase/rebaseStore';
 import { disposeRepoTerminals } from '../terminal/terminalActions';
 import { useGraphNavigation } from './graphNavigation';
 import { queryClient, queryKeys } from '../../app/queryClient';
+import { loadRepoLayout } from '../../app/tabs/repoLayout';
 import { selectActiveTab, useTabsStore } from '../../app/tabs/tabsStore';
 import { translate, useI18nStore } from '../../i18n/i18n';
 import {
@@ -100,6 +101,8 @@ export async function tryOpenRepo(path: string, targetTabId?: string): Promise<Y
   }
   registerOpenRepo(info);
 
+  const layout = await loadRepoLayout(info.id);
+  // Read after the load: another open of the same repository may have finished meanwhile.
   const tabs = useTabsStore.getState();
   const existing = tabs.tabs.find((tab) => tab.repoId === info.id);
   if (existing) {
@@ -108,7 +111,7 @@ export async function tryOpenRepo(path: string, targetTabId?: string): Promise<Y
   }
   const target = tabs.tabs.find((tab) => tab.id === targetTabId && tab.repoId === null);
   const tabId = target?.id ?? tabs.newTab();
-  tabs.setRepo(tabId, info.id);
+  tabs.setRepo(tabId, info.id, layout);
   tabs.activate(tabId);
   return null;
 }

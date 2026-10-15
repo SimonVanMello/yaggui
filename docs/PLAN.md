@@ -147,8 +147,9 @@ This milestone does not wait for the M4 validation: its tasks do not change the 
 | M5-5 | Graph at CPU ×4 (P-04): text columns (date, SHA, author) and avatars drawn in the canvas with the lanes, selection, hover, context menu and accessibility kept. **Conditional**: started only if the PO's measurement on macOS / Windows shows scrolling outside the target | M5-1, PO measurement | P-04 |
 | M5-6 | Integration: mock / real gaps, P-01 to P-08 measurements up to date in `docs/validation/V1-audit.md`, checklist `docs/validation/M5.md` | all of M5 | — |
 | M5-7 ✅ | Public release preparation: docs in English (`CLAUDE.md`, `docs/SPEC.md`, plan, validation, mockups), neutral persona in the mocks, GPL-3.0-or-later license, README with banner and screenshots (`pnpm screenshots`), internal notes removed | M4 | — |
+| M5-8 ✅ | Per-repository layout: expanded / collapsed sidebar sections and nodes, flat list, recent branches, graph columns (shown, widths) saved per repository (`repo_ui_state` table) and found again when a closed repository is reopened; the tab keeps a copy for the restoration at startup | M4 | F-021, F-040 |
 
-Order: M5-1 ∥ M5-2 ∥ M5-3 ∥ M5-4; M5-5 if the PO's measurement calls for it; then M5-6. M5-7 is independent.
+Order: M5-1 ∥ M5-2 ∥ M5-3 ∥ M5-4; M5-5 if the PO's measurement calls for it; then M5-6. M5-7 and M5-8 are independent.
 
 ## M6 — Distribution
 

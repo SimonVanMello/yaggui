@@ -52,6 +52,27 @@ pub async fn save_tabs(state: State<'_, AppState>, tabs: TabsState) -> Result<()
     state.store.save_tabs(&tabs)
 }
 
+/// Saved layout of a repository's view (sidebar sections, graph columns), as opaque JSON.
+#[tauri::command]
+#[specta::specta]
+pub async fn get_repo_ui_state(
+    state: State<'_, AppState>,
+    repo_id: u32,
+) -> Result<Option<String>, YagguiError> {
+    state.store.repo_ui_state(repo_id)
+}
+
+/// Replaces the saved layout of a repository's view.
+#[tauri::command]
+#[specta::specta]
+pub async fn save_repo_ui_state(
+    state: State<'_, AppState>,
+    repo_id: u32,
+    ui_state: String,
+) -> Result<(), YagguiError> {
+    state.store.set_repo_ui_state(repo_id, &ui_state)
+}
+
 #[tauri::command]
 #[specta::specta]
 pub async fn get_preferences(state: State<'_, AppState>) -> Result<Preferences, YagguiError> {

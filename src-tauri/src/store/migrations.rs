@@ -71,6 +71,12 @@ const MIGRATIONS: &[&str] = &[
         repo_id INTEGER PRIMARY KEY REFERENCES repos(id) ON DELETE CASCADE,
         filter TEXT NOT NULL
     );",
+    // v6: layout of a repository's view (sidebar sections, graph columns), as opaque JSON
+    // written by the front, so it outlives the tab.
+    "CREATE TABLE repo_ui_state (
+        repo_id INTEGER PRIMARY KEY REFERENCES repos(id) ON DELETE CASCADE,
+        ui_state TEXT NOT NULL
+    );",
 ];
 
 pub fn apply(conn: &mut Connection) -> rusqlite::Result<()> {
