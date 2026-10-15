@@ -209,7 +209,12 @@ interface PersistedMockStore {
   workspaces?: Workspace[];
   /** Graph filters by repo id, like the `graph_filters` table (F-028). */
   graphFilters?: [number, GraphFilter][];
+  /** Layout of each repository's view, like the `repo_ui_state` table. */
+  repoUiStates?: [number, string][];
 }
+
+/** Same bound as `MAX_REPO_UI_STATE` (bytes of UTF-8). */
+const MAX_REPO_UI_STATE = 64 * 1024;
 
 const DEFAULT_MOCK_PREFERENCES: Preferences = {
   theme: 'system',
@@ -351,6 +356,7 @@ export class MockBackend {
   private graphVersions = new Map<number, number>();
   /** Graph filter of each repository (F-028), kept for the session like the SQLite store. */
   private graphFilters = new Map<number, GraphFilter>();
+  private repoUiStates = new Map<number, string>();
   /** Files opened by `runDiffTool` and shown by `revealPath`, for tests. */
   readonly externalDiffs: { repoId: number; path: string; tool: string }[] = [];
   readonly revealed: { repoId: number; path: string | null }[] = [];
@@ -402,6 +408,7 @@ export class MockBackend {
       if (persisted.repos) this.repos = persisted.repos;
       if (persisted.workspaces) this.workspaces = persisted.workspaces;
       this.graphFilters = new Map(persisted.graphFilters ?? []);
+      this.repoUiStates = new Map(persisted.repoUiStates ?? []);
       this.legacyMigrated = persisted.legacyMigrated;
       this.settings.restore(persisted.keybindings ?? []);
       this.persist();
@@ -452,6 +459,7 @@ export class MockBackend {
     this.graphs.clear();
     this.graphVersions.clear();
     this.graphFilters.clear();
+    this.repoUiStates.clear();
     this.wips.clear();
     this.identities.clear();
     this.globalIdentity = null;
@@ -473,6 +481,7 @@ export class MockBackend {
       repos: this.repos,
       workspaces: this.workspaces,
       graphFilters: [...this.graphFilters],
+      repoUiStates: [...this.repoUiStates],
     };
     try {
       localStorage.setItem(MOCK_STORE_KEY, JSON.stringify(store));
@@ -2843,6 +2852,7 @@ export class MockBackend {
         repoIds: w.repoIds.filter((id) => id !== repoId),
       }));
       this.open.delete(repoId);
+      this.repoUiStates.delete(repoId);
       // `ON DELETE SET NULL`: saved tabs of the repo become "new tab" tabs.
       this.tabs = {
         ...this.tabs,
@@ -2866,6 +2876,24 @@ export class MockBackend {
         })),
       };
       this.persist();
+      return ok(null);
+    },
+    getRepoUiState: (repoId) => ok(this.repoUiStates.get(repoId) ?? null),
+    saveRepoUiState: (repoId, uiState) => {
+      if (new TextEncoder().encode(uiState).length > MAX_REPO_UI_STATE) {
+        return fail(
+          mockError(
+            'invalidArgument',
+            'The layout of the repository is too large to be saved.',
+            'La disposition du dépôt est trop volumineuse pour être enregistrée.',
+          ),
+        );
+      }
+      // Like the `SELECT … FROM repos` insert: an unknown repository stores nothing.
+      if (this.find(repoId)) {
+        this.repoUiStates.set(repoId, uiState);
+        this.persist();
+      }
       return ok(null);
     },
     getPreferences: () => ok({ ...this.preferences }),

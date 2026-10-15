@@ -54,6 +54,10 @@ export const commands = {
 	getTabs: () => typedError<TabsState, YagguiError>(__TAURI_INVOKE("get_tabs")),
 	/**  Replaces the saved tabs (order, active tab, per-tab UI state). */
 	saveTabs: (tabs: TabsState) => typedError<null, YagguiError>(__TAURI_INVOKE("save_tabs", { tabs })),
+	/**  Saved layout of a repository's view (sidebar sections, graph columns), as opaque JSON. */
+	getRepoUiState: (repoId: number) => typedError<string | null, YagguiError>(__TAURI_INVOKE("get_repo_ui_state", { repoId })),
+	/**  Replaces the saved layout of a repository's view. */
+	saveRepoUiState: (repoId: number, uiState: string) => typedError<null, YagguiError>(__TAURI_INVOKE("save_repo_ui_state", { repoId, uiState })),
 	getPreferences: () => typedError<Preferences, YagguiError>(__TAURI_INVOKE("get_preferences")),
 	/**
 	 *  Replaces the preferences and returns the stored value. A Git path that does not exist or

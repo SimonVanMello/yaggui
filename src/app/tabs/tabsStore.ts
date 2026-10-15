@@ -45,7 +45,12 @@ interface TabsStore {
   /** Cycles through tabs (`⌃Tab` / `⌃⇧Tab`). */
   activateRelative: (delta: number) => void;
   moveTab: (id: string, toIndex: number) => void;
-  setRepo: (id: string, repoId: number | null) => void;
+  /** `layout` replaces the tab's panels, sidebar and columns (the saved ones of the repository). */
+  setRepo: (
+    id: string,
+    repoId: number | null,
+    layout?: Pick<ShellTab, 'panels' | 'sidebar' | 'columns'>,
+  ) => void;
   setPanel: (id: string, panel: PanelId, patch: Partial<PanelState>) => void;
   /** Updates the refs sidebar state of a tab (expanded nodes, flat list, recent branches). */
   updateSidebar: (id: string, update: (state: SidebarUiState) => SidebarUiState) => void;
@@ -163,9 +168,9 @@ export function createTabsStore() {
       set({ tabs: next });
     },
 
-    setRepo: (id, repoId) => {
+    setRepo: (id, repoId, layout) => {
       set((state) => ({
-        tabs: state.tabs.map((tab) => (tab.id === id ? { ...tab, repoId } : tab)),
+        tabs: state.tabs.map((tab) => (tab.id === id ? { ...tab, ...layout, repoId } : tab)),
       }));
     },
 

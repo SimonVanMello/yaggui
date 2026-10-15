@@ -41,6 +41,8 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             commands::store::forget_repo,
             commands::store::get_tabs,
             commands::store::save_tabs,
+            commands::store::get_repo_ui_state,
+            commands::store::save_repo_ui_state,
             commands::store::get_preferences,
             commands::store::set_preferences,
             commands::store::git_binary_info,
