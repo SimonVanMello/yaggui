@@ -22,6 +22,10 @@ interface DiffToolbarProps {
   oldPath: string | null;
   file: ChangedFile | undefined;
   view: DiffViewMode;
+  /** A Markdown file: the layout control offers the rendered preview (F-089). */
+  markdown?: boolean;
+  /** The rendered preview is shown in place of the layout. */
+  preview?: boolean;
   /** Position in the file list, for "3 / 12". */
   position: { index: number; total: number } | null;
   onBack: () => void;
@@ -50,6 +54,8 @@ export function DiffToolbar({
   oldPath,
   file,
   view,
+  markdown = false,
+  preview = false,
   position,
   onBack,
   onFile,
@@ -121,14 +127,22 @@ export function DiffToolbar({
         }}
       />
       {actions}
-      <SegmentedControl
+      <SegmentedControl<DiffViewMode | 'preview'>
         label={t('diff.layout')}
-        value={view}
+        value={preview ? 'preview' : view}
         options={[
           { value: 'unified', label: t('diff.unified') },
           { value: 'split', label: t('diff.split') },
+          ...(markdown ? [{ value: 'preview' as const, label: t('diff.preview') }] : []),
         ]}
-        onChange={setDiffView}
+        onChange={(value) => {
+          if (value === 'preview') {
+            setDiffOptions({ markdownPreview: true });
+            return;
+          }
+          if (preview) setDiffOptions({ markdownPreview: false });
+          setDiffView(value);
+        }}
       />
       <Menu
         align="end"

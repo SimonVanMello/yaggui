@@ -48,10 +48,12 @@ export function useFileDiff(
   path: string,
   oldPath: string | null,
   options: DiffOptions,
+  enabled = true,
 ) {
   return useQuery({
     queryKey: diffKeys.file(repoId, target, path, oldPath, options),
     queryFn: () => unwrap(ipc.commands.fileDiff(repoId, target, path, oldPath, options)),
+    enabled,
     staleTime: Infinity,
     // Keeps the previous file on screen while the next one loads: no flash between files.
     placeholderData: (previous) => previous,

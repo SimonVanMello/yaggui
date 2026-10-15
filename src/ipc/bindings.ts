@@ -1275,6 +1275,11 @@ export type DiffPreferences = {
 	contextLines: number,
 	/**  One hunk spanning the whole file. */
 	fullFile: boolean,
+	/**
+	 *  Markdown files shown rendered, with their changes (F-089). Absent from options saved
+	 *  before it existed.
+	 */
+	markdownPreview?: boolean,
 };
 
 /**  Side of a file diff. */

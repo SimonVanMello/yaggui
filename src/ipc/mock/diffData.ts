@@ -165,6 +165,56 @@ export function mockLfsOid(seed: string): string {
   return `sha256:${hex.slice(0, 64)}`;
 }
 
+/** A Markdown document changed in every way the rendered diff shows (F-089). */
+function markdownGuide(version: 'old' | 'new'): string {
+  const v = version === 'new';
+  return [
+    '---',
+    'title: Getting started',
+    '---',
+    '',
+    '# Getting started',
+    '',
+    v
+      ? 'yaggui is a **fast** Git client for Windows, macOS and Linux. It keeps the graph, the diff and the staging area one keystroke away.'
+      : 'yaggui is a **fast** Git client for macOS and Linux. It keeps the graph and the staging area one keystroke away.',
+    '',
+    '## Install',
+    '',
+    '1. Download the installer from the releases page.',
+    v ? '2. Run it and follow the steps.' : '2. Run it.',
+    v ? '3. Open a repository with `⌘O`.' : '3. Open a repository from the welcome screen.',
+    '',
+    '## Shortcuts',
+    '',
+    '| Action | Shortcut |',
+    '|:--|:-:|',
+    '| Command palette | `⌘K` |',
+    v ? '| Toggle the diff layout | `⌘D` |' : '| Switch the diff view | `⌘D` |',
+    ...(v ? ['| Fetch all remotes | `⌘⇧F` |'] : []),
+    '',
+    ...(v
+      ? []
+      : ['> The terminal panel is still experimental and may change between versions.', '']),
+    '## Configuration',
+    '',
+    'Settings live in the [config folder](https://example.com/docs/config "Where settings are stored"):',
+    '',
+    '```toml',
+    '[diff]',
+    v ? 'view = "split"' : 'view = "unified"',
+    'wrap = false',
+    '```',
+    '',
+    '- [x] Graph and diff',
+    v ? '- [x] Staging by line' : '- [ ] Staging by line',
+    '- [ ] Interactive rebase',
+    ...(v ? ['- [ ] Merge conflict editor'] : []),
+    '',
+    ...(v ? ['See the [changelog](CHANGELOG.md) for what changed in each version.', ''] : []),
+  ].join('\n');
+}
+
 export function showcaseChanges(): MockFileChange[] {
   return [
     {
@@ -195,6 +245,14 @@ export function showcaseChanges(): MockFileChange[] {
       newMode: 'regular',
       old: null,
       new: '# Diff\n\nThe diff replaces the graph in the center; `Esc` goes back.\n\n- `n` / `p`: next / previous change\n- `j` / `k`: next / previous file\n',
+    },
+    {
+      path: 'docs/guide.md',
+      status: 'modified',
+      oldMode: 'regular',
+      newMode: 'regular',
+      old: markdownGuide('old'),
+      new: markdownGuide('new'),
     },
     {
       path: 'docs/old-notes.md',

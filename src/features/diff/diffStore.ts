@@ -20,6 +20,7 @@ export const DEFAULT_DIFF_OPTIONS: DiffViewOptions = {
   ignoreWhitespace: false,
   contextLines: 3,
   fullFile: false,
+  markdownPreview: false,
 };
 
 export const CONTEXT_CHOICES = [0, 3, 10, 25] as const;
