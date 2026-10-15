@@ -1917,7 +1917,7 @@ export type InitResult = {
 export type InstallChannel = 
 /**  A release installer the updater can replace: Windows installer, macOS app, AppImage. */
 "selfUpdate" | 
-/**  The Homebrew cask: `brew upgrade --cask yaggui`. */
+/**  The Homebrew cask: `brew update && brew upgrade --cask yaggui`. */
 "homebrew" | 
 /**  The `yaggui-bin` AUR package, upgraded with the user's AUR helper. */
 "aur" | 

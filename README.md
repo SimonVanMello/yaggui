@@ -48,7 +48,7 @@ The app is not notarized yet, so Gatekeeper blocks it on first launch. Clear the
 xattr -dr com.apple.quarantine /Applications/yaggui.app
 ```
 
-Update with `brew upgrade --cask yaggui`. Uninstall with `brew uninstall --cask yaggui`, or `brew uninstall --zap --cask yaggui` to also remove settings and caches.
+Update with `brew update && brew upgrade --cask yaggui`. Uninstall with `brew uninstall --cask yaggui`, or `brew uninstall --zap --cask yaggui` to also remove settings and caches.
 
 ### Arch Linux (AUR)
 

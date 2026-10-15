@@ -87,13 +87,13 @@ for (const { name: theme, colorScheme } of THEMES) {
       await context.grantPermissions(['clipboard-read', 'clipboard-write']);
       await start(page, { checkUpdates: true, update: release('homebrew') });
       const notice = page.getByRole('listitem').filter({ hasText: 'yaggui 0.2.0 is available' });
-      await expect(notice).toContainText('brew upgrade --cask yaggui');
+      await expect(notice).toContainText('brew update && brew upgrade --cask yaggui');
       await capture(page, `updates-homebrew-${theme}.png`);
 
       await notice.getByRole('button', { name: 'Copy the command' }).click();
       await expect(page.getByRole('listitem').filter({ hasText: 'Command copied' })).toBeVisible();
       expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
-        'brew upgrade --cask yaggui',
+        'brew update && brew upgrade --cask yaggui',
       );
       expect(await mockCounter(page, 'updateInstalls')).toBe(0);
     });

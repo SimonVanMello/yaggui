@@ -35,10 +35,10 @@ describe('updateNotice', () => {
     const writeText = vi.fn(() => Promise.resolve());
     vi.stubGlobal('navigator', { clipboard: { writeText } });
     const brew = updateNotice(release('homebrew'));
-    expect(brew.description).toContain('brew upgrade --cask yaggui');
+    expect(brew.description).toContain('brew update && brew upgrade --cask yaggui');
     expect(brew.action?.label).toBe('Copy the command');
     brew.action?.onClick();
-    expect(writeText).toHaveBeenCalledWith('brew upgrade --cask yaggui');
+    expect(writeText).toHaveBeenCalledWith('brew update && brew upgrade --cask yaggui');
     await vi.waitFor(() => {
       expect(toasts().map((t) => t.title)).toContain('Command copied');
     });

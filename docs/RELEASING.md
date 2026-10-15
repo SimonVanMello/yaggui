@@ -75,7 +75,7 @@ The app can check for a newer version (opt-in: asked once at first launch, then 
 | Installed from | Offer |
 |---|---|
 | Windows installer (`.exe`, `.msi`), macOS `.dmg`, AppImage | "Update and restart": the [Tauri updater](https://v2.tauri.app/plugin/updater/) downloads the bundle, checks its signature, installs it and restarts |
-| Homebrew cask | copy `brew upgrade --cask yaggui` (the updater would replace the app behind Homebrew's back) |
+| Homebrew cask | copy `brew update && brew upgrade --cask yaggui` (the updater would replace the app behind Homebrew's back) |
 | AUR (`yaggui-bin`) | copy `yay -Syu yaggui-bin` |
 | `.deb`, `.rpm` | open the release page |
 

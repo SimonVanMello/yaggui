@@ -46,7 +46,7 @@ const AUR_PACKAGE_PREFIX: &str = "yaggui-bin-";
 pub enum InstallChannel {
     /// A release installer the updater can replace: Windows installer, macOS app, AppImage.
     SelfUpdate,
-    /// The Homebrew cask: `brew upgrade --cask yaggui`.
+    /// The Homebrew cask: `brew update && brew upgrade --cask yaggui`.
     Homebrew,
     /// The `yaggui-bin` AUR package, upgraded with the user's AUR helper.
     Aur,
