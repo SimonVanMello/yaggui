@@ -5,6 +5,7 @@ import type { InstallChannel, UpdateInfo } from '../../ipc';
 import { mockBackend } from '../../ipc/mockClient';
 import { useToastStore } from '../../ui/toastStore';
 import { checkForUpdatesAtStartup, checkForUpdatesNow, updateNotice } from './updates';
+import { closeUpgrade, useUpgradeStore } from './upgradeStore';
 
 function release(channel: InstallChannel): UpdateInfo {
   return { currentVersion: '0.1.0', version: '0.2.0', notes: null, date: null, channel };
@@ -31,19 +32,17 @@ describe('updateNotice', () => {
     expect(notice.duration).toBe(Infinity);
   });
 
-  it('hands the copies of a package manager to that package manager', async () => {
-    const writeText = vi.fn(() => Promise.resolve());
-    vi.stubGlobal('navigator', { clipboard: { writeText } });
-    const brew = updateNotice(release('homebrew'));
-    expect(brew.description).toContain('brew update && brew upgrade --cask yaggui');
-    expect(brew.action?.label).toBe('Copy the command');
-    brew.action?.onClick();
-    expect(writeText).toHaveBeenCalledWith('brew update && brew upgrade --cask yaggui');
-    await vi.waitFor(() => {
-      expect(toasts().map((t) => t.title)).toContain('Command copied');
-    });
-    expect(updateNotice(release('aur')).description).toContain('yay -Syu yaggui-bin');
-    vi.unstubAllGlobals();
+  it('upgrades the copies of a package manager in the update terminal', () => {
+    for (const channel of ['aur', 'deb', 'rpm'] as const) {
+      const notice = updateNotice(release(channel));
+      expect(notice.description).toContain('You have 0.1.0');
+      expect(notice.action?.label).toBe('Update');
+      notice.action?.onClick();
+      expect(useUpgradeStore.getState().update?.channel).toBe(channel);
+      closeUpgrade();
+    }
+    expect(updateNotice(release('deb')).description).toContain('apt');
+    expect(updateNotice(release('rpm')).description).toContain('dnf or zypper');
   });
 
   it('sends the other installs to the release page', async () => {

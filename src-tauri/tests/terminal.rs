@@ -150,3 +150,36 @@ fn rejects_a_bad_size() {
         yaggui_lib::git::errors::ErrorCode::InvalidArgument
     );
 }
+
+/// The update terminal: a program started directly with its arguments, outside the
+/// repositories (closing a repository leaves it running), reporting its exit code.
+#[cfg(unix)]
+#[test]
+fn runs_a_program_outside_the_repositories() {
+    let dir = tempfile::tempdir().expect("temp dir");
+    let sink = Arc::new(RecordingSink::default());
+    let manager = PtyManager::new(sink.clone());
+    let args = [
+        "-c".to_string(),
+        "printf 'password: '; read answer; echo \"got-$1\"; exit 3".to_string(),
+        "sh".to_string(),
+        "two words".to_string(),
+    ];
+
+    let info = manager
+        .spawn_program(std::path::Path::new("/bin/sh"), &args, dir.path(), 80, 24)
+        .expect("program started");
+    assert_eq!(info.shell, "/bin/sh");
+    wait_output(&sink, info.pty_id, "password: ");
+    manager.close_repo(0);
+    assert_eq!(manager.count(0), 0);
+
+    manager.write(info.pty_id, "secret\r").expect("write");
+    // One argument, not split by a shell.
+    wait_output(&sink, info.pty_id, "got-two words");
+    assert!(
+        sink.wait_for(TIMEOUT, |_| exited(&sink, info.pty_id).is_some()),
+        "no pty-exited"
+    );
+    assert_eq!(exited(&sink, info.pty_id), Some(Some(3)));
+}

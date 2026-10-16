@@ -32,6 +32,8 @@ pub struct AppState {
     pub creator: Arc<RepoCreator>,
     /// App config folder: `keybindings.json`, the database, the backups.
     pub config_dir: PathBuf,
+    /// OS cache folder of the app: the avatars, the downloaded updates.
+    pub cache_dir: PathBuf,
     /// Folder scans looking for repositories (F-007).
     pub scanner: Arc<RepoScanner>,
     /// Integrated terminals (F-267).
@@ -68,6 +70,7 @@ impl AppState {
             repos,
             creator,
             config_dir: config_dir.to_path_buf(),
+            cache_dir: cache_dir.to_path_buf(),
             scanner,
             ptys,
             avatars: Arc::new(AvatarCache::new(

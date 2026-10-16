@@ -34,7 +34,10 @@ async function start(
   await expect(page.getByRole('heading', { name: 'Welcome to yaggui' })).toBeVisible();
 }
 
-function mockCounter(page: Page, name: 'updateChecks' | 'updateInstalls' | 'releasePageOpens') {
+function mockCounter(
+  page: Page,
+  name: 'updateChecks' | 'updateInstalls' | 'releasePageOpens' | 'restarts',
+) {
   return page.evaluate((key) => window.__yagguiMock?.[key] ?? -1, name);
 }
 
@@ -83,22 +86,62 @@ for (const { name: theme, colorScheme } of THEMES) {
       await capture(page, `updates-downloading-${theme}.png`);
     });
 
-    test('hands a Homebrew install to Homebrew', async ({ page, context }) => {
-      await context.grantPermissions(['clipboard-read', 'clipboard-write']);
-      await start(page, { checkUpdates: true, update: release('homebrew') });
+    test('upgrades a .deb install in a terminal, then restarts', async ({ page }) => {
+      await start(page, { checkUpdates: true, update: release('deb') });
       const notice = page.getByRole('listitem').filter({ hasText: 'yaggui 0.2.0 is available' });
-      await expect(notice).toContainText('brew update && brew upgrade --cask yaggui');
-      await capture(page, `updates-homebrew-${theme}.png`);
+      await expect(notice).toContainText('installs it with apt');
+      await capture(page, `updates-package-${theme}.png`);
 
-      await notice.getByRole('button', { name: 'Copy the command' }).click();
-      await expect(page.getByRole('listitem').filter({ hasText: 'Command copied' })).toBeVisible();
-      expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
-        'brew update && brew upgrade --cask yaggui',
-      );
-      expect(await mockCounter(page, 'updateInstalls')).toBe(0);
+      await notice.getByRole('button', { name: 'Update', exact: true }).click();
+      const dialog = page.getByRole('dialog', { name: 'Updating yaggui to 0.2.0' });
+      const screen = dialog.locator('.xterm-rows');
+      await expect(screen).toContainText('[sudo] password for me:');
+      await expect(screen).toContainText('/usr/bin/apt install');
+      await expect(dialog).toContainText('it may ask for your password');
+      // The package manager may be writing to the system: no way out but its own.
+      await expect(dialog.getByRole('button', { name: 'Close' })).toBeDisabled();
+      await page.keyboard.press('Escape');
+      await expect(dialog).toBeVisible();
+      await capture(page, `updates-terminal-${theme}.png`);
+
+      await page.keyboard.type('secret');
+      await page.keyboard.press('Enter');
+      await expect(dialog).toContainText('yaggui 0.2.0 is installed. Restart to use it.');
+      await expect(screen).toContainText('Setting up yaggui (0.2.0)');
+      await expect(screen).not.toContainText('secret');
+      await capture(page, `updates-terminal-done-${theme}.png`);
+
+      await dialog.getByRole('button', { name: 'Restart yaggui' }).click();
+      await expect.poll(() => mockCounter(page, 'restarts')).toBe(1);
     });
 
-    test('sends a .deb or .rpm install to the release page', async ({ page }) => {
+    test('a failed upgrade says so and can be retried', async ({ page }) => {
+      await start(page, { checkUpdates: true, update: release('aur') });
+      await page.evaluate(() => {
+        if (window.__yagguiMock) window.__yagguiMock.upgradeExitCode = 1;
+      });
+      const notice = page.getByRole('listitem').filter({ hasText: 'yaggui 0.2.0 is available' });
+      await notice.getByRole('button', { name: 'Update', exact: true }).click();
+      const dialog = page.getByRole('dialog', { name: 'Updating yaggui to 0.2.0' });
+      const screen = dialog.locator('.xterm-rows');
+      await expect(screen).toContainText('/usr/bin/yay -S yaggui-bin');
+      await page.keyboard.press('Enter');
+      await expect(dialog).toContainText('The upgrade did not finish (exit code 1).');
+      await capture(page, `updates-terminal-failed-${theme}.png`);
+
+      await page.evaluate(() => {
+        if (window.__yagguiMock) window.__yagguiMock.upgradeExitCode = 0;
+      });
+      await dialog.getByRole('button', { name: 'Retry' }).click();
+      await expect(screen).toContainText('[sudo] password for me:');
+      await page.keyboard.press('Enter');
+      await expect(dialog).toContainText('yaggui 0.2.0 is installed');
+      await dialog.getByRole('button', { name: 'Close' }).click();
+      await expect(dialog).toBeHidden();
+      expect(await mockCounter(page, 'restarts')).toBe(0);
+    });
+
+    test('sends a development build to the release page', async ({ page }) => {
       await start(page, { checkUpdates: true, update: release('manual') });
       const notice = page.getByRole('listitem').filter({ hasText: 'yaggui 0.2.0 is available' });
       await notice.getByRole('button', { name: 'Open the release page' }).click();

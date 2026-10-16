@@ -6,6 +6,7 @@ import { CommandPalette } from '../features/palette/CommandPalette';
 import { CommandLogPanel } from '../features/command-log/CommandLogPanel';
 import { StatusBar } from '../features/statusbar/StatusBar';
 import { TerminalDialog } from '../features/terminal/TerminalDialog';
+import { UpgradeDialog } from '../features/updates/UpgradeDialog';
 import { CloneDialog } from '../features/clone/CloneDialog';
 import { InitDialog } from '../features/clone/InitDialog';
 import { ShortcutsDialog } from '../features/keybindings/ShortcutsDialog';
@@ -74,6 +75,7 @@ export function Shell() {
       <PreferencesDialog />
       <ShortcutsDialog />
       <TerminalDialog />
+      <UpgradeDialog />
       <WorkspaceDialogs />
       <ModuleDialogs />
       <CommandPalette />
