@@ -385,10 +385,6 @@ impl GitCli {
         let stderr_reader = spawn_stderr_reader(child.stderr.take(), line_tx, limit);
 
         let wait = wait_child(&mut child, &tree, cancel, &line_rx, &mut on_progress);
-        // Drain progress lines emitted right before exit.
-        while let Ok(line) = line_rx.try_recv() {
-            forward_progress(&line, &mut on_progress);
-        }
         let cancelled = matches!(wait, Ok(WaitOutcome::Cancelled));
         // Processes left by the command (a hook's background job) may keep the pipes open.
         // Git has exited: its status stands (a commit that went through is never reported
@@ -398,6 +394,11 @@ impl GitCli {
             !cancelled && !await_readers(&[&stdout_reader, &stderr_reader], &tree, cancel);
         let stdout_capture = collect(stdout_reader, cancelled || detached);
         let stderr_capture = collect(stderr_reader, cancelled || detached);
+        // Drain the lines emitted right before exit only now: until the reader has reached
+        // the end of the pipe, the last ones may not be sent yet.
+        while let Ok(line) = line_rx.try_recv() {
+            forward_progress(&line, &mut on_progress);
+        }
         let output_truncated = stdout_capture.dropped > 0 || stderr_capture.dropped > 0;
         let stdout_bytes = stdout_capture.into_bytes();
         let stderr_bytes = stderr_capture.into_bytes();
