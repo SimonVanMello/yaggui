@@ -627,6 +627,11 @@ mod tests {
         }
     }
 
+    /// A downloaded package: absolute on every OS (`/home/…` is not, on Windows).
+    fn package(name: &str) -> PathBuf {
+        std::env::temp_dir().join(name)
+    }
+
     fn command(program: &str, args: &[&str]) -> UpgradeCommand {
         UpgradeCommand {
             program: PathBuf::from(program),
@@ -646,7 +651,7 @@ mod tests {
 
     #[test]
     fn a_downloaded_package_is_installed_with_sudo() {
-        let deb = Path::new("/home/me/.cache/yaggui/update/yaggui_0.4.0_amd64.deb");
+        let deb = &package("yaggui_0.4.0_amd64.deb");
         let apt = upgrade_command(InstallChannel::Deb, Some(deb), tools(&["sudo", "apt"])).unwrap();
         assert_eq!(
             apt,
@@ -656,7 +661,7 @@ mod tests {
             )
         );
 
-        let rpm = Path::new("/home/me/.cache/yaggui/update/yaggui-0.4.0-1.x86_64.rpm");
+        let rpm = &package("yaggui-0.4.0-1.x86_64.rpm");
         let rpm_arg = rpm.to_string_lossy();
         let dnf = upgrade_command(
             InstallChannel::Rpm,
@@ -686,7 +691,8 @@ mod tests {
 
     #[test]
     fn an_upgrade_without_its_tools_or_package_is_a_typed_error() {
-        let deb = Path::new("/tmp/yaggui.deb");
+        let deb = package("yaggui.deb");
+        let deb = deb.as_path();
         for (channel, package, names) in [
             (InstallChannel::Deb, Some(deb), &["apt"][..]),
             (InstallChannel::Deb, Some(deb), &["sudo"][..]),
