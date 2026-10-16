@@ -1,6 +1,7 @@
 # Builds the installers of every platform and, on a `vX.Y.Z` tag, attaches them to a draft
 # GitHub Release with the update manifest (`latest.json`). Pull requests that touch the
-# packaging only build, and keep the bundles as workflow artifacts. See docs/RELEASING.md.
+# packaging only build, and keep the bundles as workflow artifacts; a pull request that only
+# changes the version (`pnpm release:version`) checks it without building. See docs/RELEASING.md.
 name: Release
 
 on:
@@ -26,9 +27,12 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.check.outputs.version }}
+      build: ${{ steps.scope.outputs.build || 'true' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          # The pull request merge commit and its first parent, the base branch.
+          fetch-depth: 2
           persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -37,6 +41,20 @@ jobs:
         env:
           TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
         run: node scripts/version.mjs check "$TAG" >> "$GITHUB_OUTPUT"
+      # The tag builds the same bundles: a version bump alone has nothing to build here.
+      - id: scope
+        if: github.event_name == 'pull_request'
+        run: |
+          files=$(git diff --name-only 'HEAD^1' HEAD -- .github/workflows/release.yml \
+            scripts/updater-manifest.mjs scripts/version.mjs src-tauri/tauri.conf.json)
+          git show 'HEAD^1:src-tauri/tauri.conf.json' > "$RUNNER_TEMP/base.json"
+          if [ "$files" = src-tauri/tauri.conf.json ] && node -e '
+            const read = (f) => { const c = JSON.parse(require("fs").readFileSync(f, "utf8")); delete c.version; return JSON.stringify(c); };
+            process.exit(read(process.argv[1]) === read(process.argv[2]) ? 0 : 1);
+          ' "$RUNNER_TEMP/base.json" src-tauri/tauri.conf.json; then
+            echo 'Only the version changed: skipping the builds.'
+            echo 'build=false' >> "$GITHUB_OUTPUT"
+          fi
       # Installed copies verify every update with this key: a release without it could never
       # update itself again.
       - name: Check the updater public key
@@ -47,6 +65,7 @@ jobs:
 
   build:
     needs: version
+    if: needs.version.outputs.build == 'true'
     name: build (${{ matrix.name }})
     strategy:
       fail-fast: false

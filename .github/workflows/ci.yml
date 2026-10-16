@@ -4,7 +4,8 @@ name: CI
 
 on:
   pull_request:
-  # Runs on master too, so that the Rust cache that pull requests restore stays fresh.
+  # Runs on master too: in full when the merged tree was not tested by a pull request, otherwise
+  # only to refresh the Rust cache that pull requests restore.
   push:
     branches: [master]
   workflow_dispatch:
@@ -17,7 +18,29 @@ permissions:
   contents: read
 
 jobs:
+  # On master, a merge whose tree is the one of its pull request head was already checked by the
+  # pull request run: `tested` is then true.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      tested: ${{ steps.tree.outputs.tested }}
+    steps:
+      - if: github.event_name == 'push'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - id: tree
+        if: github.event_name == 'push'
+        run: |
+          if git rev-parse -q --verify 'HEAD^2' > /dev/null &&
+            [ "$(git rev-parse 'HEAD^{tree}')" = "$(git rev-parse 'HEAD^2^{tree}')" ]; then
+            echo 'tested=true' >> "$GITHUB_OUTPUT"
+          fi
+
   frontend:
+    needs: changes
+    if: needs.changes.outputs.tested != 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -41,6 +64,7 @@ jobs:
 
   rust:
     name: rust (${{ matrix.os }})
+    needs: changes
     strategy:
       fail-fast: false
       matrix:
@@ -49,6 +73,7 @@ jobs:
     env:
       # With debug info, the test binaries take ~19 GB: more than a hosted runner has free.
       CARGO_PROFILE_DEV_DEBUG: 0
+      TESTED: ${{ needs.changes.outputs.tested == 'true' }}
     defaults:
       run:
         shell: bash
@@ -58,24 +83,30 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Install Linux dependencies
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev
-
       - name: Install Rust
         run: |
           rustup toolchain install stable --profile minimal --component clippy,rustfmt --no-self-update
           rustup default stable
 
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - id: cache
+        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           workspaces: src-tauri
           save-if: ${{ github.ref == 'refs/heads/master' }}
 
-      - if: runner.os == 'Linux'
+      # An already tested tree only rebuilds what pull requests restore, and only on a cache miss.
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux' && (env.TESTED != 'true' || steps.cache.outputs.cache-hit != 'true')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev
+
+      - if: runner.os == 'Linux' && env.TESTED != 'true'
         run: cargo fmt --check
-      - run: cargo clippy --all-targets --locked -- -D warnings
+      - if: env.TESTED != 'true' || steps.cache.outputs.cache-hit != 'true'
+        run: cargo clippy --all-targets --locked -- -D warnings
       # Every failing test binary at once, not only the first one.
-      - run: cargo test --locked --no-fail-fast
+      - if: env.TESTED != 'true'
+        run: cargo test --locked --no-fail-fast
+      - if: env.TESTED == 'true' && steps.cache.outputs.cache-hit != 'true'
+        run: cargo test --locked --no-run
