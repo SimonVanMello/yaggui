@@ -74,10 +74,13 @@ The app can check for a newer version (opt-in: asked once at first launch, then 
 
 | Installed from | Offer |
 |---|---|
-| Windows installer (`.exe`, `.msi`), macOS `.dmg`, AppImage | "Update and restart": the [Tauri updater](https://v2.tauri.app/plugin/updater/) downloads the bundle, checks its signature, installs it and restarts |
-| Homebrew cask | copy `brew update && brew upgrade --cask yaggui` (the updater would replace the app behind Homebrew's back) |
-| AUR (`yaggui-bin`) | copy `yay -Syu yaggui-bin` |
-| `.deb`, `.rpm` | open the release page |
+| Windows installer (`.exe`, `.msi`), macOS `.dmg` or Homebrew cask, AppImage | "Update and restart": the [Tauri updater](https://v2.tauri.app/plugin/updater/) downloads the bundle, checks its signature, installs it and restarts. The cask declares `auto_updates true`, so `brew upgrade` leaves the app to its updater |
+| AUR (`yaggui-bin`) | "Update": a dialog runs `yay -S yaggui-bin` (or `paru`) in an integrated terminal |
+| `.deb` | "Update": the app downloads `yaggui_<version>_amd64.deb` into its cache folder, checks it against `SHA256SUMS.txt`, then runs `sudo apt install <file>` in an integrated terminal |
+| `.rpm` | "Update": same with `yaggui-<version>-1.x86_64.rpm` and `sudo dnf install <file>` (`sudo zypper install --allow-unsigned-rpm <file>` without dnf) |
+| Development build | open the release page |
+
+In the terminal the user answers the package manager and types their password; the backend chooses the command, the frontend never sends one. Once it exits with 0, the dialog offers to restart on the new version. Copies of 0.3.0 and older keep their old offer (a command to copy, or the release page).
 
 [`scripts/updater-manifest.mjs`](../scripts/updater-manifest.mjs) writes `latest.json` from the updater bundles and their `.sig` files; the release job fails rather than publish a manifest that leaves a platform out. A release published before this manifest existed (0.1.0) has none: the check reports nothing.
 

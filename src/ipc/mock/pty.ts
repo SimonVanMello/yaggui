@@ -12,12 +12,22 @@ function prompt(cwd: string): string {
 }
 
 interface MockPty {
-  repoId: number;
+  /** `null` for the update terminal, which belongs to no repository. */
+  repoId: number | null;
+  /** The fake upgrade, when this terminal runs one instead of the shell. */
+  upgrade: MockUpgrade | null;
   cwd: string;
   cols: number;
   rows: number;
   /** Line being typed (the fake shell has no line editing beyond backspace). */
   line: string;
+}
+
+/** A package manager run by the update terminal: asks for a password, then installs. */
+interface MockUpgrade {
+  /** Lines printed once the password is typed. */
+  lines: string[];
+  exitCode: number;
 }
 
 export interface MockPtyEvents {
@@ -74,15 +84,36 @@ export class MockPtys {
       };
     }
     const ptyId = this.nextId++;
-    this.ptys.set(ptyId, { repoId, cwd, cols, rows, line: '' });
+    this.ptys.set(ptyId, { repoId, upgrade: null, cwd, cols, rows, line: '' });
     this.send(ptyId, `yaggui mock shell — ${this.shell}\r\n${prompt(cwd)}`);
     return { ptyId, shell: this.shell };
+  }
+
+  /**
+   * Runs a fake package manager, like `PtyManager::spawn_program`: it asks for the sudo
+   * password (not echoed), prints `lines` once it is typed, then exits with `exitCode`.
+   */
+  spawnUpgrade(
+    program: string,
+    args: string[],
+    cols: number,
+    rows: number,
+    upgrade: MockUpgrade,
+  ): PtyInfo {
+    const ptyId = this.nextId++;
+    this.ptys.set(ptyId, { repoId: null, upgrade, cwd: '/', cols, rows, line: '' });
+    this.send(ptyId, `\x1b[2m$ ${[program, ...args].join(' ')}\x1b[0m\r\n[sudo] password for me: `);
+    return { ptyId, shell: program };
   }
 
   write(ptyId: number, data: string): YagguiError | null {
     const pty = this.ptys.get(ptyId);
     if (!pty) return terminalClosed(ptyId);
     this.written.set(ptyId, (this.written.get(ptyId) ?? '') + data);
+    if (pty.upgrade) {
+      this.answerUpgrade(ptyId, pty.upgrade, data);
+      return null;
+    }
     let echo = '';
     for (const char of data) {
       if (char === '\r' || char === '\n') {
@@ -127,6 +158,17 @@ export class MockPtys {
   /** Ends every terminal of a repository, like `PtyManager::close_repo`. */
   closeRepo(repoId: number): void {
     for (const [ptyId, pty] of this.ptys) if (pty.repoId === repoId) this.exit(ptyId, null);
+  }
+
+  /** Password typed: the upgrade runs to its end. `Ctrl+C` stops it, like sudo. */
+  private answerUpgrade(ptyId: number, upgrade: MockUpgrade, data: string): void {
+    if (data.includes('\x03')) {
+      this.send(ptyId, '^C\r\n');
+      this.exit(ptyId, 1);
+    } else if (/[\r\n]/.test(data)) {
+      this.send(ptyId, `\r\n${upgrade.lines.map((line) => `${line}\r\n`).join('')}`);
+      this.exit(ptyId, upgrade.exitCode);
+    }
   }
 
   count(repoId: number): number {

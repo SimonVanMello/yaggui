@@ -176,6 +176,44 @@ import type { IpcResult } from './result';
 
 export { mockAppInfo } from './mockData';
 
+/** The package manager command `update_in_terminal` would run, and what it prints. */
+function mockUpgrade(
+  update: UpdateInfo,
+): { program: string; args: string[]; lines: string[] } | null {
+  const { version, currentVersion } = update;
+  const cache = '/home/me/.cache/dev.yaggui.app/update';
+  const installed = [
+    `Unpacking yaggui (${version}) over (${currentVersion}) ...`,
+    `Setting up yaggui (${version}) ...`,
+  ];
+  switch (update.channel) {
+    case 'aur':
+      return {
+        program: '/usr/bin/yay',
+        args: ['-S', 'yaggui-bin'],
+        lines: [
+          ':: Checking for conflicts...',
+          `(1/1) upgrading yaggui-bin                [######################] 100%`,
+        ],
+      };
+    case 'deb':
+      return {
+        program: '/usr/bin/sudo',
+        args: ['/usr/bin/apt', 'install', `${cache}/yaggui_${version}_amd64.deb`],
+        lines: ['Reading package lists... Done', ...installed],
+      };
+    case 'rpm':
+      return {
+        program: '/usr/bin/sudo',
+        args: ['/usr/bin/dnf', 'install', `${cache}/yaggui-${version}-1.x86_64.rpm`],
+        lines: ['Upgrading:', `  yaggui  x86_64  ${version}-1`, 'Complete!'],
+      };
+    case 'selfUpdate':
+    case 'manual':
+      return null;
+  }
+}
+
 function ok<T>(data: T): Promise<IpcResult<T>> {
   return Promise.resolve({ status: 'ok', data });
 }
@@ -340,6 +378,9 @@ export class MockBackend {
   updateChecks = 0;
   updateInstalls = 0;
   releasePageOpens = 0;
+  /** Exit code of the fake package manager of `updateInTerminal`, for tests. */
+  upgradeExitCode = 0;
+  restarts = 0;
   /** Integrated terminals (F-267): a fake shell. */
   readonly ptys = new MockPtys({
     output: (payload) => {
@@ -456,6 +497,8 @@ export class MockBackend {
     this.updateChecks = 0;
     this.updateInstalls = 0;
     this.releasePageOpens = 0;
+    this.upgradeExitCode = 0;
+    this.restarts = 0;
     this.ptys.reset();
     this.log = createMockLog();
     this.runningOps.forEach((cancel) => {
@@ -4750,6 +4793,37 @@ export class MockBackend {
     openReleasePage: () => {
       this.releasePageOpens += 1;
       return ok(null);
+    },
+    updateInTerminal: (cols, rows) => {
+      const failure = this.updateFailure;
+      this.updateFailure = null;
+      if (failure) return fail(failure);
+      if (!isPtySize(cols) || !isPtySize(rows)) return fail(invalidPtySize(cols, rows));
+      const update = this.availableUpdate;
+      const upgrade = update && mockUpgrade(update);
+      if (!upgrade) {
+        return fail({
+          code: 'updateInstallFailed',
+          message: {
+            en: 'The update could not be installed.',
+            fr: "La mise à jour n'a pas pu être installée.",
+          },
+          action: { kind: 'retry' },
+          detail: 'this copy is not upgraded by a package manager',
+          payload: null,
+        });
+      }
+      // The real backend downloads the `.deb` / `.rpm` first; the AUR helper builds its own.
+      if (update.channel !== 'aur') this.emit('updateProgress', { percent: 100 });
+      const info = this.ptys.spawnUpgrade(upgrade.program, upgrade.args, cols, rows, {
+        lines: upgrade.lines,
+        exitCode: this.upgradeExitCode,
+      });
+      return ok(info);
+    },
+    restartApp: () => {
+      this.restarts += 1;
+      return Promise.resolve();
     },
     pickRepoFolder: (title) => {
       if (this.pickedFolders.length > 0) return ok(this.pickedFolders.shift() ?? null);

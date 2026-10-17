@@ -62,6 +62,8 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             commands::updates::check_for_update,
             commands::updates::install_update,
             commands::updates::open_release_page,
+            commands::updates::update_in_terminal,
+            commands::updates::restart_app,
             commands::pty::pty_spawn,
             commands::pty::pty_write,
             commands::pty::pty_resize,

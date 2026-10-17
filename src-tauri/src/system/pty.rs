@@ -180,7 +180,8 @@ struct Io {
 /// A running terminal. The killer is apart from the input: a write blocked on a shell that
 /// does not read must not keep the terminal from being closed.
 struct Session {
-    repo_id: u32,
+    /// `None` for a terminal that belongs to no repository (an update).
+    repo_id: Option<u32>,
     io: Mutex<Io>,
     killer: Mutex<Box<dyn ChildKiller + Send + Sync>>,
 }
@@ -244,8 +245,36 @@ impl PtyManager {
         cols: u16,
         rows: u16,
     ) -> Result<PtyInfo, YagguiError> {
+        let (command, shell) = shell_command();
+        self.spawn_command(Some(repo_id), command, shell, cwd, cols, rows)
+    }
+
+    /// Starts `program` with `args` in `cwd`, outside any repository. `program` is started
+    /// directly, never through a shell.
+    pub fn spawn_program(
+        &self,
+        program: &Path,
+        args: &[String],
+        cwd: &Path,
+        cols: u16,
+        rows: u16,
+    ) -> Result<PtyInfo, YagguiError> {
+        let mut command = CommandBuilder::new(program);
+        command.args(args);
+        let name = program.to_string_lossy().into_owned();
+        self.spawn_command(None, command, name, cwd, cols, rows)
+    }
+
+    fn spawn_command(
+        &self,
+        repo_id: Option<u32>,
+        mut command: CommandBuilder,
+        shell: String,
+        cwd: &Path,
+        cols: u16,
+        rows: u16,
+    ) -> Result<PtyInfo, YagguiError> {
         let size = pty_size(cols, rows)?;
-        let (mut command, shell) = shell_command();
         command.cwd(cwd);
         command.env("TERM", "xterm-256color");
         command.env("COLORTERM", "truecolor");
@@ -318,7 +347,7 @@ impl PtyManager {
             self.close(pty_id);
             return Err(err);
         }
-        tracing::info!(pty_id, repo_id, shell = %shell, cwd = %cwd.display(), "terminal started");
+        tracing::info!(pty_id, ?repo_id, shell = %shell, cwd = %cwd.display(), "terminal started");
         Ok(PtyInfo { pty_id, shell })
     }
 
@@ -365,7 +394,7 @@ impl PtyManager {
             let mut sessions = lock_sessions(&self.sessions);
             let ids: Vec<u32> = sessions
                 .iter()
-                .filter(|(_, s)| s.repo_id == repo_id)
+                .filter(|(_, s)| s.repo_id == Some(repo_id))
                 .map(|(id, _)| *id)
                 .collect();
             ids.iter().filter_map(|id| sessions.remove(id)).collect()
@@ -393,7 +422,7 @@ impl PtyManager {
     pub fn count(&self, repo_id: u32) -> usize {
         lock_sessions(&self.sessions)
             .values()
-            .filter(|s| s.repo_id == repo_id)
+            .filter(|s| s.repo_id == Some(repo_id))
             .count()
     }
 }

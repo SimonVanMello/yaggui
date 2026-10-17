@@ -1,36 +1,18 @@
 import { currentPreferences } from '../../app/preferences';
 import { showYagguiError } from '../../app/errors/presentError';
 import { translate, useI18nStore, type MessageKey, type MessageParams } from '../../i18n/i18n';
-import { ipc, type InstallChannel, type UpdateInfo } from '../../ipc';
+import { ipc, type UpdateInfo } from '../../ipc';
 import { toast, useToastStore, type ToastInput } from '../../ui/toastStore';
 import { savePreferenceOrToast } from '../preferences/savePreference';
-
-/** What the user types to upgrade a copy owned by a package manager. */
-export const UPGRADE_COMMANDS: Partial<Record<InstallChannel, string>> = {
-  // `brew upgrade` alone refreshes the tap at most once a day, so it can miss a fresh release.
-  homebrew: 'brew update && brew upgrade --cask yaggui',
-  aur: 'yay -Syu yaggui-bin',
-};
+import { startUpgrade } from './upgradeStore';
 
 function t(key: MessageKey, params?: MessageParams): string {
   return translate(useI18nStore.getState().locale, key, params);
 }
 
-function copyCommand(command: string): void {
-  navigator.clipboard.writeText(command).then(
-    () => {
-      toast({ variant: 'success', title: t('updates.copied') });
-    },
-    (error: unknown) => {
-      console.warn('Could not copy the upgrade command', error);
-    },
-  );
-}
-
 /** The notice of a newer version: its action depends on how this copy was installed. */
 export function updateNotice(info: UpdateInfo): ToastInput {
   const title = t('updates.available', { version: info.version });
-  const command = UPGRADE_COMMANDS[info.channel];
   if (info.channel === 'selfUpdate') {
     return {
       title,
@@ -42,14 +24,14 @@ export function updateNotice(info: UpdateInfo): ToastInput {
       duration: Infinity,
     };
   }
-  if (command) {
+  if (info.channel === 'aur' || info.channel === 'deb' || info.channel === 'rpm') {
     return {
       title,
-      description: t(`updates.${info.channel}` as MessageKey, { command }),
+      description: t(`updates.${info.channel}`, { current: info.currentVersion }),
       action: {
-        label: t('updates.copyCommand'),
+        label: t('updates.update'),
         onClick: () => {
-          copyCommand(command);
+          startUpgrade(info);
         },
       },
       duration: Infinity,

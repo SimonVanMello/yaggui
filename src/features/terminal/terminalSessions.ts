@@ -4,7 +4,7 @@ import '@xterm/xterm/css/xterm.css';
 
 import { currentPreferences, subscribePreferences } from '../../app/preferences';
 import { translate, useI18nStore } from '../../i18n/i18n';
-import { YagguiIpcError, ipc, unwrap, type YagguiError } from '../../ipc';
+import { YagguiIpcError, ipc, unwrap, type PtyInfo, type YagguiError } from '../../ipc';
 import { platform } from '../../ui/platform';
 import { matchBinding } from '../keybindings/registry';
 import { TERMINAL_ATTRIBUTE, TERMINAL_PASSTHROUGH, TERMINAL_REPO_ATTRIBUTE } from './terminalFocus';
@@ -13,6 +13,16 @@ import { repoTerminals, useTerminalStore } from './terminalStore';
 const SCROLLBACK = 5000;
 const DEFAULT_SIZE = { cols: 80, rows: 24 };
 
+/** Starts the PTY of a terminal at `cols`×`rows` cells. */
+type StartPty = (cols: number, rows: number) => Promise<PtyInfo>;
+
+/** What a terminal outside the repositories reports, in place of the terminal store. */
+export interface ProgramTerminalHooks {
+  started: () => void;
+  failed: (error: YagguiError) => void;
+  exited: (exitCode: number | null) => void;
+}
+
 /**
  * An integrated terminal: the emulator and its PTY. It lives outside React so that it
  * survives the repository view being unmounted (tab switch, panel hidden): its element is
@@ -20,7 +30,10 @@ const DEFAULT_SIZE = { cols: 80, rows: 24 };
  */
 interface Session {
   id: string;
-  repoId: number;
+  /** `null` for a terminal outside the repositories (the update terminal). */
+  repoId: number | null;
+  start: StartPty;
+  hooks: ProgramTerminalHooks | null;
   term: Terminal;
   fit: FitAddon;
   host: HTMLDivElement;
@@ -140,10 +153,13 @@ function listen(): void {
         ? translate(locale(), 'terminal.exited')
         : translate(locale(), 'terminal.exitedWithCode', { code: exitCode });
     session.term.write(`\r\n\x1b[2m[${message}]\x1b[0m\r\n`);
-    useTerminalStore.getState().updateTab(session.repoId, session.id, {
-      status: 'exited',
-      exitCode,
-    });
+    session.hooks?.exited(exitCode);
+    if (session.repoId !== null) {
+      useTerminalStore.getState().updateTab(session.repoId, session.id, {
+        status: 'exited',
+        exitCode,
+      });
+    }
   });
   unsubscribeEvents = () => {
     offOutput();
@@ -158,7 +174,10 @@ function isMac(): boolean {
 /** Copy (⌘C, or Ctrl+Shift+C elsewhere: Ctrl+C is the interrupt) and the app's own keys. */
 function handleKey(session: Session, event: KeyboardEvent): boolean {
   if (event.type !== 'keydown') return true;
-  if (TERMINAL_PASSTHROUGH.some((id) => matchBinding(event, id))) return false;
+  // The terminal shortcuts act on the repository terminals, not on a program's.
+  if (session.repoId !== null && TERMINAL_PASSTHROUGH.some((id) => matchBinding(event, id))) {
+    return false;
+  }
   const copy = isMac()
     ? event.metaKey && !event.ctrlKey && !event.altKey && event.code === 'KeyC'
     : event.ctrlKey && event.shiftKey && !event.altKey && event.code === 'KeyC';
@@ -205,7 +224,7 @@ async function spawn(session: Session): Promise<void> {
     ? { cols: session.term.cols, rows: session.term.rows }
     : DEFAULT_SIZE;
   try {
-    const info = await unwrap(ipc.commands.ptySpawn(session.repoId, cols, rows));
+    const info = await session.start(cols, rows);
     if (session.disposed) {
       void ipc.commands.ptyClose(info.ptyId);
       return;
@@ -217,10 +236,11 @@ async function spawn(session: Session): Promise<void> {
         .split(/[\\/]/)
         .at(-1)
         ?.replace(/\.exe$/i, '') ?? info.shell;
-    useTerminalStore.getState().updateTab(session.repoId, session.id, {
-      status: 'running',
-      title,
-    });
+    if (session.repoId === null) session.hooks?.started();
+    else
+      useTerminalStore
+        .getState()
+        .updateTab(session.repoId, session.id, { status: 'running', title });
     // The panel may have been resized while the shell started.
     if (session.term.cols !== cols || session.term.rows !== rows) {
       void ipc.commands.ptyResize(info.ptyId, session.term.cols, session.term.rows);
@@ -228,10 +248,12 @@ async function spawn(session: Session): Promise<void> {
     flushInput(session);
   } catch (failure) {
     if (session.disposed) return;
-    useTerminalStore.getState().updateTab(session.repoId, session.id, {
-      status: 'failed',
-      error: asYagguiError(failure),
-    });
+    const error = asYagguiError(failure);
+    if (session.repoId === null) session.hooks?.failed(error);
+    else
+      useTerminalStore
+        .getState()
+        .updateTab(session.repoId, session.id, { status: 'failed', error });
   }
 }
 
@@ -247,7 +269,11 @@ function asYagguiError(failure: unknown): YagguiError {
   };
 }
 
-function createSession(repoId: number): Session {
+function createSession(
+  repoId: number | null,
+  start: StartPty,
+  hooks: ProgramTerminalHooks | null = null,
+): Session {
   listen();
   watchAppearance();
   const id = `term-${String(nextId++)}`;
@@ -263,11 +289,13 @@ function createSession(repoId: number): Session {
   const host = document.createElement('div');
   host.className = 'yaggui-terminal-host';
   host.setAttribute(TERMINAL_ATTRIBUTE, id);
-  host.setAttribute(TERMINAL_REPO_ATTRIBUTE, String(repoId));
+  if (repoId !== null) host.setAttribute(TERMINAL_REPO_ATTRIBUTE, String(repoId));
   parkingElement().append(host);
   const session: Session = {
     id,
     repoId,
+    start,
+    hooks,
     term,
     fit,
     host,
@@ -294,12 +322,22 @@ function createSession(repoId: number): Session {
 
 /** Opens a new terminal in the repository and shows it (the panel opens). */
 export function newTerminal(repoId: number): string {
-  const session = createSession(repoId);
+  const session = createSession(repoId, (cols, rows) =>
+    unwrap(ipc.commands.ptySpawn(repoId, cols, rows)),
+  );
   useTerminalStore.getState().addTab(repoId, {
     id: session.id,
     title: translate(locale(), 'terminal.panel'),
   });
   return session.id;
+}
+
+/**
+ * Creates a terminal that runs what `start` starts, outside the repositories and their
+ * panel: its owner shows it with `attachTerminal` and ends it with `disposeTerminal`.
+ */
+export function newProgramTerminal(start: StartPty, hooks: ProgramTerminalHooks): string {
+  return createSession(null, start, hooks).id;
 }
 
 /**
@@ -351,6 +389,12 @@ function dispose(session: Session): void {
   }
   session.term.dispose();
   session.host.remove();
+}
+
+/** Ends a terminal made by `newProgramTerminal`: its program is closed if still running. */
+export function disposeTerminal(id: string): void {
+  const session = sessions.get(id);
+  if (session) dispose(session);
 }
 
 /** Ends a terminal: its shell is closed and its tab removed. */

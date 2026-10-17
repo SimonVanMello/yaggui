@@ -135,6 +135,15 @@ export const commands = {
 	/**  Opens the page of the newest release, for the installs that are upgraded by hand. */
 	openReleasePage: () => typedError<null, YagguiError>(__TAURI_INVOKE("open_release_page")),
 	/**
+	 *  Upgrades a copy owned by a Linux package manager (AUR, `.deb`, `.rpm`): downloads the new
+	 *  package if there is one (progress as `update-progress` events), then starts the package
+	 *  manager in a terminal of `cols`×`rows` cells, where the user answers its prompts and types
+	 *  their password. The command is chosen here, never by the frontend.
+	 */
+	updateInTerminal: (cols: number, rows: number) => typedError<PtyInfo, YagguiError>(__TAURI_INVOKE("update_in_terminal", { cols, rows })),
+	/**  Restarts the app, on the version a package manager just installed. */
+	restartApp: () => __TAURI_INVOKE<void>("restart_app"),
+	/**
 	 *  Starts the user's shell in the repository folder, in an integrated terminal of
 	 *  `cols`×`rows` cells (F-267). Its output arrives as `pty-output` events, then `pty-exited`.
 	 */
@@ -1924,15 +1933,20 @@ export type InitResult = {
 
 /**  How the running copy was installed, which decides how it is updated. */
 export type InstallChannel = 
-/**  A release installer the updater can replace: Windows installer, macOS app, AppImage. */
+/**
+ *  Replaced by the Tauri updater: Windows installer, macOS app (from the `.dmg` or the
+ *  Homebrew cask), AppImage.
+ */
 "selfUpdate" | 
-/**  The Homebrew cask: `brew update && brew upgrade --cask yaggui`. */
-"homebrew" | 
 /**  The `yaggui-bin` AUR package, upgraded with the user's AUR helper. */
 "aur" | 
+/**  The `.deb`: the new one is downloaded, then installed with apt. */
+"deb" | 
+/**  The `.rpm`: the new one is downloaded, then installed with dnf or zypper. */
+"rpm" | 
 /**
- *  A `.deb` / `.rpm`, a development build or an unknown layout: the user downloads the
- *  new version from the release page.
+ *  A development build or an unknown layout: the user downloads the new version from the
+ *  release page.
  */
 "manual";
 

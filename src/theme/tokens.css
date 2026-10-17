@@ -96,6 +96,7 @@
   /* Integrated terminal (F-267); the 16 ANSI colors are per theme (--term-red…). */
   --terminal-max-height: 70vh;
   --terminal-tab-max-width: 180px;
+  --update-terminal-height: 320px;
   --term-bg: var(--bg-app);
   --term-fg: var(--fg-primary);
   --term-cursor: var(--accent);

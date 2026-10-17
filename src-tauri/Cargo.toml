@@ -47,6 +47,9 @@ ureq = { version = "3", default-features = false, features = ["rustls"] }
 tauri-plugin-updater = { version = "2", default-features = false, features = ["rustls-tls"] }
 # Already in the lockfile through Tauri: version comparison of the update check.
 semver = "1"
+# Already in the lockfile through Tauri: checks a downloaded `.deb` / `.rpm` against the
+# release's SHA256SUMS.txt before it is handed to the package manager.
+sha2 = "0.10"
 
 # Already in the lockfile through Tauri: `kill` on the process group of a cancelled command.
 [target.'cfg(unix)'.dependencies]

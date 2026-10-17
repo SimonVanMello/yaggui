@@ -41,6 +41,9 @@ const macosNames = {
   15: 'sequoia',
   26: 'tahoe',
 };
+// The app replaces itself with the Tauri updater: `auto_updates` tells `brew upgrade` to leave
+// it alone (unless `--greedy`), so Homebrew does not fight the updater over the version.
+const autoUpdates = '\n  auto_updates true';
 // `brew style` requires every macOS-only cask to declare `depends_on :macos`.
 let dependsOn = '\n  depends_on :macos\n';
 if (minimumSystemVersion) {
@@ -72,7 +75,7 @@ cask "${productName}" do
     url :url
     strategy :github_latest
   end
-${dependsOn}
+${autoUpdates}${dependsOn}
   app "${productName}.app"
 
   zap trash: [
