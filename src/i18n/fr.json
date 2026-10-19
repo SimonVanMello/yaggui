@@ -795,7 +795,7 @@
   "changes.stageAll": "Tout indexer",
   "changes.unstageAll": "Tout désindexer",
   "confirm.effect": "Ce qui va se passer",
-  "confirm.more": "… et {count} autres fichiers",
+  "confirm.more": "… et {count} autres",
   "discard.title": "Annuler les changements de {count} fichiers ?",
   "discard.title.one": "Annuler les changements de ce fichier ?",
   "discard.title.all": "Annuler tous les changements non indexés ?",

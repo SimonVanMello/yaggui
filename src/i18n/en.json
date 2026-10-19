@@ -795,7 +795,7 @@
   "changes.stageAll": "Stage all",
   "changes.unstageAll": "Unstage all",
   "confirm.effect": "What will happen",
-  "confirm.more": "… and {count} more files",
+  "confirm.more": "… and {count} more",
   "discard.title": "Discard changes of {count} files?",
   "discard.title.one": "Discard changes of this file?",
   "discard.title.all": "Discard all unstaged changes?",
