@@ -45,6 +45,7 @@ export type ShellAction =
   | 'terminalSettings'
   | 'preferences'
   | 'shortcuts'
+  | 'changelog'
   | 'cloneRepo'
   | 'initRepo'
   | 'commandPalette'
@@ -91,6 +92,9 @@ const ACTIONS: Record<ShellAction, () => void> = {
   },
   shortcuts: () => {
     useShellStore.getState().setShortcutsOpen(true);
+  },
+  changelog: () => {
+    useShellStore.getState().setChangelogOpen(true);
   },
   cloneRepo: () => {
     useShellStore.getState().showCloneDialog(welcomeTabId());
@@ -229,6 +233,7 @@ const BINDING_IDS: Record<ShellAction, string> = {
   terminalSettings: 'app.terminalSettings',
   preferences: 'app.preferences',
   shortcuts: 'app.shortcuts',
+  changelog: 'app.changelog',
   undo: 'edit.undo',
   redo: 'edit.redo',
   opHistory: 'edit.history',

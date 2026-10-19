@@ -7,6 +7,7 @@ use tauri::{AppHandle, Manager};
 
 use crate::git::cli;
 use crate::state::AppState;
+use crate::system::changelog::{self, ChangelogRelease};
 
 #[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
@@ -42,6 +43,13 @@ pub async fn app_info(app: AppHandle) -> AppInfo {
         git_version,
         min_git_version: cli::MIN_GIT_VERSION.to_owned(),
     }
+}
+
+/// Release notes embedded from `CHANGELOG.md`, newest first.
+#[tauri::command]
+#[specta::specta]
+pub async fn changelog() -> Vec<ChangelogRelease> {
+    changelog::releases()
 }
 
 /// Path given on the command line (`yaggui <path>`), if any, to open at startup (F-001).

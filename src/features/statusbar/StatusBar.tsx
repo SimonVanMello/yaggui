@@ -103,7 +103,7 @@ function OperationStatus({ repoId }: { repoId: number }) {
   );
 }
 
-/** Bottom bar: current operation, git version and the command log toggle (F-300). */
+/** Bottom bar: current operation, app and git versions, the command log toggle (F-300). */
 export function StatusBar() {
   const t = useT();
   const repoId = useTabsStore((state) => selectActiveTab(state).repoId);
@@ -136,6 +136,19 @@ export function StatusBar() {
     <footer className={styles.statusbar}>
       <div className={styles.start}>{repoId !== null && <OperationStatus repoId={repoId} />}</div>
       <div className={styles.end}>
+        {appInfo.data && (
+          <Tooltip content={t('changelog.open')} side="top">
+            <button
+              type="button"
+              className={styles.version}
+              onClick={() => {
+                useShellStore.getState().setChangelogOpen(true);
+              }}
+            >
+              {t('status.version', { version: appInfo.data.appVersion })}
+            </button>
+          </Tooltip>
+        )}
         {git}
         <Tooltip content={logOpen ? t('log.hide') : t('log.show')} shortcut="Mod+J" side="top">
           <button

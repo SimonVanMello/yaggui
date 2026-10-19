@@ -1962,5 +1962,21 @@
   "diff.edit.discardTitle": "Abandonner tes modifications ?",
   "diff.edit.discardDescription": "Tes modifications de {path} n'ont pas été enregistrées.",
   "diff.edit.discard": "Abandonner",
-  "op.editFile": "Enregistrement du fichier"
+  "op.editFile": "Enregistrement du fichier",
+  "changelog.title": "Nouveautés",
+  "changelog.description": "yaggui {version} est installé. Les changements de chaque version, de la plus récente à la plus ancienne.",
+  "changelog.loading": "Les changements de chaque version, de la plus récente à la plus ancienne.",
+  "changelog.unreleased": "Non publié",
+  "changelog.installed": "Installée",
+  "changelog.kind.feature": "Nouvelles fonctionnalités",
+  "changelog.kind.fix": "Corrections",
+  "changelog.kind.other": "Autres changements",
+  "changelog.empty": "Aucune note de version dans cette copie de yaggui.",
+  "changelog.open": "Nouveautés",
+  "changelog.checkUpdates": "Rechercher les mises à jour",
+  "status.version": "yaggui {version}",
+  "prefs.version": "Version",
+  "prefs.version.hint": "yaggui {version}",
+  "palette.action.app.changelog": "Nouveautés (journal des modifications)",
+  "menu.changelog": "Nouveautés de yaggui"
 }

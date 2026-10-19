@@ -20,7 +20,7 @@ for (const { name, colorScheme } of THEMES) {
       await page.goto('/#primitives');
       // The default `system` preference follows the emulated OS color scheme.
       await expect(page.locator('html')).toHaveAttribute('data-theme', name);
-      await expect(page.getByTestId('app-info')).toHaveText('yaggui 0.1.0-mock · git 2.47.1');
+      await expect(page.getByTestId('app-info')).toHaveText('yaggui 0.3.0 · git 2.47.1');
       await page.evaluate(() => document.fonts.ready);
     });
 

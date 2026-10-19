@@ -1,5 +1,7 @@
 import { useId, useState } from 'react';
 
+import { useShellStore } from '../../app/shellStore';
+import { useAppInfo } from '../../app/useAppInfo';
 import { usePreferences } from '../../app/usePreferences';
 import { useT } from '../../i18n/useT';
 import type { MessageKey } from '../../i18n/i18n';
@@ -33,6 +35,7 @@ const CONFIRMATIONS: readonly ConfirmationKind[] = [
 export function BehaviorTab() {
   const t = useT();
   const prefs = usePreferences();
+  const appVersion = useAppInfo().data?.appVersion;
   const minutesId = useId();
   const [minutes, setMinutes] = useState(String(prefs.autoFetchMinutes));
 
@@ -135,6 +138,20 @@ export function BehaviorTab() {
       />
       <Row label={t('prefs.checkUpdates.now')}>
         <Button onClick={() => void checkForUpdatesNow()}>{t('prefs.checkUpdates.now')}</Button>
+      </Row>
+      <Row
+        label={t('prefs.version')}
+        hint={appVersion ? t('prefs.version.hint', { version: appVersion }) : undefined}
+      >
+        <Button
+          onClick={() => {
+            const shell = useShellStore.getState();
+            shell.setPreferencesOpen(false);
+            shell.setChangelogOpen(true);
+          }}
+        >
+          {t('changelog.open')}
+        </Button>
       </Row>
     </>
   );

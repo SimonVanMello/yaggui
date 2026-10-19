@@ -9,6 +9,7 @@ import { TerminalDialog } from '../features/terminal/TerminalDialog';
 import { UpgradeDialog } from '../features/updates/UpgradeDialog';
 import { CloneDialog } from '../features/clone/CloneDialog';
 import { InitDialog } from '../features/clone/InitDialog';
+import { ChangelogDialog } from '../features/changelog/ChangelogDialog';
 import { ShortcutsDialog } from '../features/keybindings/ShortcutsDialog';
 import { PreferencesDialog } from '../features/preferences/PreferencesDialog';
 import { OpenRepoDialog } from '../features/welcome/OpenRepoDialog';
@@ -74,6 +75,7 @@ export function Shell() {
       <InitDialog />
       <PreferencesDialog />
       <ShortcutsDialog />
+      <ChangelogDialog />
       <TerminalDialog />
       <UpgradeDialog />
       <WorkspaceDialogs />

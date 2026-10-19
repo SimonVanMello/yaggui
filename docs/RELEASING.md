@@ -6,16 +6,21 @@ The [`Release`](../.github/workflows/release.yml) workflow builds the installers
 
 1. On a branch, set the version and open a PR:
    ```bash
-   pnpm release:version 0.2.0   # package.json, tauri.conf.json, Cargo.toml, Cargo.lock
+   pnpm release:version 0.2.0   # package.json, tauri.conf.json, Cargo.toml, Cargo.lock, CHANGELOG.md
    ```
+   The command also turns the `## [Unreleased]` section of [`CHANGELOG.md`](../CHANGELOG.md) into `## [0.2.0] - <today>`, leaving an empty `Unreleased` above it, and refuses to run while `Unreleased` lists nothing. Review the moved entries in the release PR: they are what the app shows in its "What's new" view.
 2. Once the PR is merged, tag the merge commit on `master` and push the tag:
    ```bash
    git checkout master && git pull
    git tag v0.2.0
    git push origin v0.2.0
    ```
-3. The workflow checks that the tag matches the version of the four files, builds every platform, then creates a **draft** release with the installers, the update manifest `latest.json`, a `SHA256SUMS.txt` and notes generated from the merged PRs.
+3. The workflow checks that the tag matches the version of the four files and that `CHANGELOG.md` has a section for it, builds every platform, then creates a **draft** release with the installers, the update manifest `latest.json`, a `SHA256SUMS.txt` and notes generated from the merged PRs.
 4. Check the draft (notes, assets), then publish it. The package manager channels and the in-app update check follow published releases only.
+
+## Changelog
+
+[`CHANGELOG.md`](../CHANGELOG.md) ([Keep a Changelog](https://keepachangelog.com/en/1.1.0/)) is the source of the "What's new" view: it is embedded in the binary at build time ([`system/changelog.rs`](../src-tauri/src/system/changelog.rs)), so the view needs no network. A pull request with a user-facing change adds its line under `## [Unreleased]`, in the `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed` or `Security` section, written for users and ending with the PR number. The app groups `Added` as new features, `Fixed` and `Security` as fixes, the rest as other changes. `cargo test` fails when the file does not parse, lists versions out of order, or has no section for the version of `Cargo.toml`.
 
 If a build fails, the release is not created: fix, delete the tag (`git push origin :v0.2.0`, `git tag -d v0.2.0`) and tag again. To rebuild a tag whose draft already exists, delete the draft first.
 

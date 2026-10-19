@@ -1,6 +1,7 @@
 // The app version lives in package.json, src-tauri/tauri.conf.json, src-tauri/Cargo.toml and
-// src-tauri/Cargo.lock. `check` fails when they disagree (or differ from a `vX.Y.Z` tag);
-// `set` rewrites all four.
+// src-tauri/Cargo.lock. `check` fails when they disagree (or differ from a `vX.Y.Z` tag), or when
+// CHANGELOG.md has no section for it; `set` rewrites all four and turns the `Unreleased` section
+// of CHANGELOG.md into the new version.
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
@@ -11,6 +12,7 @@ const files = {
   cargo: `${root}src-tauri/Cargo.toml`,
   lock: `${root}src-tauri/Cargo.lock`,
 };
+const changelog = `${root}CHANGELOG.md`;
 // No pre-release suffix: the Windows MSI bundler only accepts numeric versions.
 const SEMVER = /^\d+\.\d+\.\d+$/;
 // First `version` of the [package] table, and the `yaggui` entry of the lockfile.
@@ -49,6 +51,9 @@ function check(tag) {
   if (tag && tag !== `v${version}`) {
     fail(`Tag ${tag} does not match version ${version}: expected v${version}.`);
   }
+  if (!read(changelog).includes(`\n## [${version}] - `)) {
+    fail(`CHANGELOG.md has no section for ${version}: run \`pnpm release:version ${version}\`.`);
+  }
   console.log(`version=${version}`);
 }
 
@@ -64,8 +69,31 @@ function replaceVersion(path, pattern, version) {
   writeFileSync(path, text.replace(pattern, `$1${version}$3`));
 }
 
+const UNRELEASED = '## [Unreleased]\n';
+
+/** Moves the `Unreleased` entries under `## [version] - <today>`, leaving `Unreleased` empty. */
+function releaseChangelog(version) {
+  const text = read(changelog);
+  if (text.includes(`\n## [${version}] - `)) return;
+  const start = text.indexOf(UNRELEASED);
+  if (start === -1) fail('CHANGELOG.md has no `## [Unreleased]` section.');
+  const bodyStart = start + UNRELEASED.length;
+  const next = text.indexOf('\n## ', bodyStart);
+  const body = text.slice(bodyStart, next === -1 ? text.length : next + 1);
+  if (!/^- /m.test(body)) {
+    fail('The `Unreleased` section of CHANGELOG.md is empty: list the changes of this release.');
+  }
+  const date = new Date().toISOString().slice(0, 10);
+  writeFileSync(
+    changelog,
+    `${text.slice(0, bodyStart)}\n## [${version}] - ${date}\n${body}${next === -1 ? '' : text.slice(next + 1)}`,
+  );
+}
+
 function set(version) {
   if (!version || !SEMVER.test(version)) fail('Usage: pnpm release:version <x.y.z>');
+  // First: an empty Unreleased section stops the release before any file changes.
+  releaseChangelog(version);
   replaceJsonVersion(files.package, version);
   replaceJsonVersion(files.tauri, version);
   replaceVersion(files.cargo, CARGO_VERSION, version);

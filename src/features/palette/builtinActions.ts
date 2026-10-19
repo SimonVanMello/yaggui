@@ -155,6 +155,7 @@ const BUILTIN: readonly PaletteAction[] = [
   shell('app.preferences', 'preferences', 'palette.action.app.preferences', 'app'),
   shell('app.terminalSettings', 'terminalSettings', 'palette.action.app.terminal', 'app'),
   shell('app.shortcuts', 'shortcuts', 'palette.action.app.shortcuts', 'app'),
+  shell('app.changelog', 'changelog', 'palette.action.app.changelog', 'app'),
   {
     id: 'app.checkUpdates',
     title: 'palette.action.app.checkUpdates',

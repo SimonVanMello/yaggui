@@ -105,7 +105,7 @@ export function buildAppMenu(locale: Locale): MenuSection[] {
     {
       label: t('menu.help'),
       role: 'help',
-      entries: [action('toggleLog', 'menu.commandLog')],
+      entries: [action('changelog', 'menu.changelog'), action('toggleLog', 'menu.commandLog')],
     },
   ];
 }

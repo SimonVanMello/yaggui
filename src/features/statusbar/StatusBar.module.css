@@ -86,6 +86,21 @@
   color: var(--danger);
 }
 
+.version {
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: inherit;
+  font-size: inherit;
+  cursor: pointer;
+}
+
+.version:hover {
+  color: var(--fg-primary);
+  text-decoration: underline;
+}
+
 .logToggle {
   display: inline-flex;
   align-items: center;
