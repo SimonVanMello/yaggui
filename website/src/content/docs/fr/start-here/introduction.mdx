@@ -1,0 +1,95 @@
+---
+title: Introduction
+description: Ce qu’est yaggui, ce qu’il fait et ne fait pas, et comment lire cette documentation.
+sidebar:
+  order: 1
+sources:
+  - README.md
+  - docs/SPEC.md
+  - src-tauri/src/git/cli.rs
+  - src-tauri/src/system/updates.rs
+  - src-tauri/src/system/avatars.rs
+requirements: []
+---
+
+import Screenshot from '~/components/Screenshot.astro';
+import introMainWindowDark from '../../../../assets/screens/intro-main-window-dark.png';
+import introMainWindowLight from '../../../../assets/screens/intro-main-window-light.png';
+
+yaggui est un client Git graphique pour macOS, Windows et Linux. Il s’exécute sur votre ordinateur, s’appuie sur votre propre installation de `git` et affiche chaque commande Git qu’il lance. Cette page résume ce que yaggui fait, ce qu’il laisse de côté, et comment lire le reste de la documentation.
+
+<Screenshot
+  dark={introMainWindowDark}
+  light={introMainWindowLight}
+  alt="La fenêtre de yaggui avec un dépôt ouvert : les références à gauche, le graphe des commits au centre, le panneau des changements à droite"
+/>
+
+## Comment fonctionne yaggui
+
+- **Votre propre Git.** yaggui lit directement les dépôts pour aller vite, et lance la commande `git` installée sur votre système pour chaque modification qu’il effectue. Vos hooks, votre configuration, votre credential helper et votre `ssh-agent` s’appliquent, comme dans un terminal. Il faut Git 2.30 ou plus récent ; voir [Installer yaggui](../install/).
+- **Pas de compte, pas de télémétrie.** yaggui ne vous demande jamais de vous connecter et n’envoie aucune donnée d’usage.
+- **Le réseau seulement quand vous le demandez.** yaggui contacte un serveur pour les opérations Git (clone, fetch, pull, push, fetch automatique) et pour deux fonctions désactivées tant que vous ne les activez pas :
+  - **Avatars Gravatar** : un hash de l’e-mail de chaque auteur est envoyé à gravatar.com. Voir [Préférences](../../reference/preferences/).
+  - **Vérification des mises à jour** : yaggui consulte la dernière release sur github.com au lancement. Voir [Mises à jour](../updates/).
+- **Aucun secret stocké.** yaggui ne demande ni ne stocke jamais de mot de passe ou de jeton. Les identifiants viennent de votre credential helper Git ou de `ssh-agent` ; voir [Authentification](../../remotes/authentication/).
+
+Ce que yaggui conserve sur le disque (dépôts récents, onglets, préférences) est détaillé dans [Données et confidentialité](../../reference/data-and-privacy/).
+
+## Ce que fait yaggui
+
+| Domaine                | Ce que vous pouvez faire                                                                                                                                                         | Pour commencer                                                                                                                                                                                                                                              |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Premiers pas           | Installer, ouvrir, cloner ou initialiser un dépôt, se repérer dans la fenêtre                                                                                                    | [Ouvrir un dépôt](../open-a-repository/), [Visite de la fenêtre](../tour/)                                                                                                                                                                                  |
+| Travail quotidien      | Indexer des fichiers, des blocs ou des lignes isolées, commiter et amender, mettre en stash, lire des diffs                                                                      | [Indexation](../../everyday/staging/), [Commits](../../everyday/committing/), [Stash](../../everyday/stash/), [Diff](../../everyday/diff/)                                                                                                                  |
+| Historique             | Parcourir le graphe des commits, gérer les branches et les tags, merge, rebase, cherry-pick, revert, reset, rebase interactif, résolution de conflits, annulation                 | [Graphe des commits](../../history/commit-graph/), [Branches](../../history/branches/), [Annuler et rétablir](../../history/undo-and-redo/)                                                                                                                 |
+| Remotes                | Fetch, pull et push, gérer les remotes, configurer les identifiants                                                                                                              | [Fetch, pull et push](../../remotes/fetch-pull-push/), [Remotes](../../remotes/remotes/), [Authentification](../../remotes/authentication/)                                                                                                                 |
+| Inspection             | Comparer des branches, lire l’historique et le blame d’un fichier, parcourir le reflog                                                                                           | [Comparer](../../inspect/compare/), [Historique et blame d’un fichier](../../inspect/file-history-and-blame/), [Reflog](../../inspect/reflog/)                                                                                                              |
+| Dépôt                  | Sous-modules, worktrees, Git LFS, terminal intégré                                                                                                                               | [Sous-modules](../../repository/submodules/), [Worktrees](../../repository/worktrees/), [Git LFS](../../repository/git-lfs/), [Terminal](../../repository/terminal/)                                                                                        |
+| Workspaces             | Travailler sur plusieurs dépôts dans des onglets, les regrouper en workspaces                                                                                                    | [Onglets](../../workspaces/tabs/), [Workspaces](../../workspaces/workspaces/)                                                                                                                                                                               |
+| Personnalisation       | Thèmes, langue, raccourcis, outils externes, configuration de Git                                                                                                                | [Apparence](../../customize/appearance/), [Palette et raccourcis](../../customize/palette-and-shortcuts/), [Outils externes](../../customize/external-tools/), [Configuration de Git](../../customize/git-configuration/)                                  |
+| Référence et entraide  | Chaque raccourci, réglage et message d’erreur ; dépannage                                                                                                                        | [Référence](../../reference/keyboard-shortcuts/), [Dépannage](../../help/troubleshooting/), [FAQ](../../help/faq/)                                                                                                                                          |
+
+## Ce que yaggui ne fait pas
+
+Ces fonctions sont hors du périmètre de yaggui :
+
+- L’intégration aux services d’hébergement : ni pull requests, ni tickets, ni revues depuis GitHub, GitLab ou Azure DevOps.
+- La synchronisation des préférences par un service cloud.
+- Les messages de commit générés par IA.
+- La création ou la gestion de clés GPG et SSH. yaggui utilise les clés que vous avez déjà.
+- Les systèmes de gestion de versions autres que Git.
+
+Celles-ci ne sont pas disponibles dans la version actuelle :
+
+- Les dépôts nus. En ouvrir un affiche « Les dépôts nus ne sont pas encore pris en charge. »
+- Plusieurs fenêtres. Chaque dépôt s’ouvre dans un onglet de la même fenêtre.
+- Le lancement d’un bisect. Un bisect lancé dans un terminal est détecté, et vous pouvez passer un commit ou l’arrêter depuis la bannière d’opération ; voir [Conflits](../../history/conflicts/).
+- La création ou l’application de patchs. Un `git am` lancé dans un terminal est détecté et peut être continué, passé ou annulé depuis yaggui.
+- Une vue du graphe en first-parent, et l’historique d’une plage de lignes (`git log -L`).
+- Les commits fixup depuis le graphe (l’entrée de menu **Créer un commit fixup…** est affichée comme prévue), les trailers de co-auteur, et l’application d’un seul fichier d’un stash.
+- L’ajout, la suppression ou la synchronisation de sous-modules ; voir [Sous-modules](../../repository/submodules/) pour ce qui est disponible.
+- Les notifications système à la fin d’une longue opération en arrière-plan.
+- L’import ou l’export des préférences.
+- Une boîte de dialogue pour saisir un mot de passe ou un jeton quand l’authentification échoue. Configurez plutôt un credential helper ou `ssh-agent`.
+
+## Comment lire cette documentation
+
+### Raccourcis clavier
+
+Les raccourcis sont écrits d’abord pour macOS, puis pour Windows et Linux quand ils diffèrent : <kbd>⌘K</kbd> (<kbd>Ctrl+K</kbd> sous Windows et Linux). Quand un raccourci utilise la touche Contrôle sur tous les systèmes, il n’est écrit qu’une fois, par exemple <kbd>Ctrl+Tab</kbd>.
+
+Chaque raccourci de cette documentation est un raccourci par défaut. Vous pouvez tous les modifier ; voir [Palette et raccourcis](../../customize/palette-and-shortcuts/). La liste complète est dans [Raccourcis clavier](../../reference/keyboard-shortcuts/), et <kbd>⌘/</kbd> (<kbd>Ctrl+/</kbd> sous Windows et Linux) l’affiche dans l’application.
+
+La plupart des actions figurent aussi dans la palette de commandes : appuyez sur <kbd>⌘K</kbd> (<kbd>Ctrl+K</kbd> sous Windows et Linux) et tapez quelques lettres de l’action.
+
+### Annulation
+
+De nombreuses opérations locales peuvent être annulées avec **Annuler** dans la barre d’outils ou <kbd>⌘Z</kbd> (<kbd>Ctrl+Z</kbd> sous Windows et Linux) : commits, checkouts, resets, abandons de modifications, changements de branche, etc. Chaque page indique si ses actions sont annulables. Ce qui peut ou non être annulé, et pendant combien de temps, est expliqué dans [Annuler et rétablir](../../history/undo-and-redo/).
+
+### Le journal des commandes
+
+yaggui enregistre chaque commande Git qu’il lance, avec sa sortie, son code de sortie et sa durée. Ouvrez le journal avec <kbd>⌘J</kbd> (<kbd>Ctrl+J</kbd> sous Windows et Linux) ou avec le bouton **Journal** (il affiche le nombre de commandes, comme dans **Journal (12)**) à droite de la barre d’état. Quand cette documentation montre la commande lancée par une action, vous pouvez la vérifier dans le journal. Voir [Journal des commandes](../../reference/command-log/).
+
+### Messages d’erreur
+
+Quand une commande Git échoue, yaggui affiche un message en langage clair, la sortie brute de Git sous **Détails** et, quand il le peut, un bouton qui corrige ou explique le problème. Chaque message est listé dans [Messages d’erreur](../../reference/error-messages/).

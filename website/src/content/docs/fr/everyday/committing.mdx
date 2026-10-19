@@ -1,0 +1,196 @@
+---
+title: Commiter
+description: Rédigez un message de commit, créez un commit ou modifiez le dernier, exécutez les hooks, définissez votre identité, signez vos commits et réutilisez des modèles et des messages récents.
+sidebar:
+  order: 2
+sources:
+  - src/features/staging/CommitBox.tsx
+  - src/features/staging/commitDraft.ts
+  - src/features/staging/commitUi.ts
+  - src/features/staging/HookFailurePanel.tsx
+  - src/features/staging/IdentityForm.tsx
+  - src/features/staging/CommitIdentity.tsx
+  - src/features/staging/ProfilesDialog.tsx
+  - src/features/staging/MessageTools.tsx
+  - src/features/staging/ConventionalFields.tsx
+  - src/features/staging/TemplatesDialog.tsx
+  - src/features/staging/conventional.ts
+  - src/features/staging/commitToolsOps.ts
+  - src-tauri/src/repo/write.rs
+  - src-tauri/src/repo/commit_tools.rs
+  - src-tauri/src/store/commit_prefs.rs
+  - src-tauri/src/commands/commit_tools.rs
+  - src-tauri/src/git/errors.rs
+requirements: [F-064, F-065, F-066, F-067, F-068, F-070]
+---
+
+import Screenshot from '~/components/Screenshot.astro';
+import commitAreaDark from '../../../../assets/screens/commit-area-dark.png';
+import commitAreaLight from '../../../../assets/screens/commit-area-light.png';
+import commitHookFailedDark from '../../../../assets/screens/commit-hook-failed-dark.png';
+import commitHookFailedLight from '../../../../assets/screens/commit-hook-failed-light.png';
+import commitConventionalDark from '../../../../assets/screens/commit-conventional-dark.png';
+import commitConventionalLight from '../../../../assets/screens/commit-conventional-light.png';
+
+La zone de commit se trouve en bas du panneau **Changements locaux**. Elle enregistre vos changements indexés dans un nouveau commit, ou modifie le dernier, en s’appuyant sur votre configuration Git (identité, hooks, signature) comme le ferait `git commit` dans un terminal. Pour préparer le contenu du commit, voir [Indexer les changements](../../everyday/staging/).
+
+## Rédiger le message
+
+De haut en bas, la zone de commit contient :
+
+1. La rangée d’outils de message : **Conventional**, **Modèle** et **Récents** (voir [Réutiliser des messages](#réutiliser-des-messages)).
+2. Le champ **Résumé du commit**, avec un compteur `{length}/72`.
+3. Le champ **Description (facultative)**, pour le corps du commit.
+4. Les cases **Modifier le commit précédent** et **Push après commit**.
+5. Votre identité de commit et, quand les commits sont signés, la pastille de signature.
+6. Le bouton de commit et, quand il est désactivé, une indication.
+
+Au-delà de 72 caractères, le compteur passe à la couleur d’avertissement et une note indique « Au-delà de 72 caractères, le résumé est tronqué dans beaucoup d'outils. » Ce n’est qu’un avertissement : vous pouvez quand même commiter.
+
+Votre brouillon (résumé, description, modification du dernier commit) est conservé par dépôt tant que yaggui tourne, y compris quand vous changez d’onglet. Il est perdu quand vous quittez l’application et effacé après un commit réussi.
+
+<Screenshot
+  dark={commitAreaDark}
+  light={commitAreaLight}
+  alt="La zone de commit avec un résumé, une description, les cases Modifier le commit précédent et Push après commit, le sélecteur d’identité, la pastille Signé · SSH et le bouton Commit sur"
+/>
+
+## Commiter
+
+Cliquez sur le bouton de commit, ou appuyez sur <kbd>⌘↵</kbd> (<kbd>Ctrl+Enter</kbd> sous Windows et Linux). Le raccourci fonctionne aussi pendant la saisie dans le résumé ou la description, et peut être réassigné (voir [Palette et raccourcis](../../customize/palette-and-shortcuts/)).
+
+Le libellé du bouton indique ce qui va se passer :
+
+| Libellé                    | Quand                                       |
+| -------------------------- | ------------------------------------------- |
+| **Commit sur \{branch\}**  | Commit normal sur la branche courante       |
+| **Commit**                 | `HEAD` est détachée                         |
+| **Modifier le commit**     | **Modifier le commit précédent** est cochée |
+| **Commit en cours…**       | Le commit est en cours d’exécution          |
+
+Le bouton est désactivé, avec une indication en dessous, quand le résumé est vide (« Écris un résumé pour commiter. ») ou que rien n’est indexé (« Indexe des changements pour commiter. » ; non affiché pendant une modification du dernier commit).
+
+yaggui exécute :
+
+```bash
+git commit -F -    # the message is passed on stdin
+```
+
+Le message se compose du résumé sans espaces superflus, d’une ligne vide et de la description. yaggui ne supprime pas les lignes qui commencent par `#`. En cas de succès, un toast affiche « Commit \{sha\} créé », le brouillon est effacé et le focus revient au résumé.
+
+Pendant l’exécution du commit (par exemple quand un hook lent travaille), la barre d’état l’indique avec un lien **Annuler**. Annuler arrête Git et ses hooks ; si Git a laissé un `index.lock`, yaggui le supprime.
+
+### Modifier le dernier commit
+
+Cochez **Modifier le commit précédent** pour remplacer le dernier commit au lieu d’en créer un nouveau ([git commit --amend](https://git-scm.com/docs/git-commit#Documentation/git-commit.txt---amend)).
+
+- Si le résumé et la description sont vides, ils sont remplis avec le message du dernier commit. Décocher la case retire ce pré-remplissage si vous ne l’avez pas modifié.
+- Vous pouvez modifier le commit sans rien d’indexé pour ne changer que le message.
+- Le toast indique « Commit modifié (\{sha\}) ».
+- yaggui ne vous avertit pas si le commit a déjà été poussé ; le pousser ensuite demande un force push (voir [Fetch, pull et push](../../remotes/fetch-pull-push/)).
+- Modifier un commit est impossible avant le premier commit : « Il n'y a pas encore de commit à modifier. »
+
+### Push après commit
+
+Cochez **Push après commit** pour pousser juste après un commit réussi, exactement comme le bouton **Pousser** de la barre d’outils (voir [Fetch, pull et push](../../remotes/fetch-pull-push/)). La case est décochée par défaut et se réinitialise chaque fois que le panneau **Changements locaux** est remplacé, par exemple quand vous sélectionnez un commit.
+
+## Hooks
+
+Git exécute vos hooks (`pre-commit`, `prepare-commit-msg`, `commit-msg` et les autres) comme dans un terminal. yaggui ne passe jamais `--no-verify` et ne propose aucune option pour ignorer les hooks. Voir [Git hooks](https://git-scm.com/docs/githooks).
+
+Quand un hook rejette le commit, un panneau s’ouvre en haut de la zone de commit à la place d’un toast :
+
+- Le titre **Le hook \{hook\} a refusé le commit** (le nom du hook n’apparaît que si un seul hook de commit est installé ; sinon **Un hook Git a refusé le commit**) et le code de sortie.
+- « Rien n'a été commité. Corrige ce que le hook signale, puis recommence. »
+- La sortie du hook : sortie standard, puis `--- stderr ---` et la sortie d’erreur. Jusqu’à 2 Mo par flux sont conservés ; au-delà, le milieu est coupé et marqué `[...]`. Si le hook n’a rien affiché, le panneau le dit.
+- **Copier la sortie** et **Fermer**.
+
+Votre message reste dans les champs. Le panneau se ferme à votre prochaine tentative.
+
+<Screenshot
+  dark={commitHookFailedDark}
+  light={commitHookFailedLight}
+  alt="Le panneau d’échec du hook avec le nom du hook, le code de sortie et la sortie du hook, ainsi que les boutons Copier la sortie et Fermer"
+/>
+
+## Identité
+
+Git a besoin de `user.name` et `user.email` pour commiter ([première configuration](https://git-scm.com/book/en/v2/Getting-Started-First-Time-Git-Setup)).
+
+### Quand aucune identité n’est définie
+
+Si Git refuse de commiter parce qu’il ne sait pas qui vous êtes, le formulaire **Qui es-tu ?** s’ouvre dans la zone de commit :
+
+1. Renseignez **Nom** et **E-mail** (pré-remplis avec ce que Git connaît déjà).
+2. Cochez **Seulement pour ce dépôt** pour les écrire dans la configuration du dépôt plutôt que dans votre configuration globale (décochée par défaut).
+3. Cliquez sur **Enregistrer et commiter**, ou sur **Annuler** (ou <kbd>Esc</kbd>).
+
+yaggui exécute `git config --global user.name …` et `git config --global user.email …` (ou `--local`), affiche « Identité enregistrée » et relance le commit. Le nom et l’e-mail doivent chacun tenir sur une ligne sans `<` ni `>`, et l’e-mail doit ressembler à `nom@hôte`.
+
+### Sélecteur d’identité et profils
+
+Sous la description, le bouton **Identité du commit** indique sous quelle identité vous commitez (**En tant que \{name\} &lt;\{email\}&gt;**, ou **Identité non renseignée**) et le profil correspondant, le cas échéant. Son menu liste vos profils d’identité sous **Appliquer à ce dépôt**, ainsi que **Gérer les profils…**.
+
+Appliquer un profil exécute `git config --local user.name` et `user.email` dans ce dépôt et affiche le message Profil « \{label\} » appliqué à ce dépôt. Cela ne peut pas être défait depuis l’historique d’annulation ; appliquez un autre profil ou modifiez la configuration.
+
+La boîte de dialogue **Profils d'identité** (accessible aussi depuis la palette : **Gérer les profils d'identité**) liste vos profils avec **Appliquer** (ou **Utilisé** quand il correspond à l’identité courante), **Modifier** et un bouton de suppression (sans confirmation). Ajoutez-en un avec **Libellé** (par exemple « Perso » ou « Travail »), **Nom** et **E-mail**, puis **Ajouter le profil** ; **Reprendre l'identité actuelle** remplit le formulaire à partir de vos réglages actuels. Les profils sont stockés par yaggui pour tous les dépôts (voir [Données et confidentialité](../../reference/data-and-privacy/)).
+
+## Signature
+
+yaggui ne signe les commits que si votre configuration Git le demande (`commit.gpgsign = true`) ; il ne passe jamais `-S` et ne demande jamais de phrase de passe. Quand la signature est active, une pastille à côté de l’identité affiche **Signé · GPG**, **Signé · SSH** ou **Signé · X.509** (d’après `gpg.format`), avec la clé de `user.signingkey` dans son infobulle. Vous pouvez modifier ces réglages dans **Préférences › Configuration** (voir [Configuration de Git](../../customize/git-configuration/)). Pour savoir comment Git signe, voir [Signer votre travail](https://git-scm.com/book/en/v2/Git-Tools-Signing-Your-Work).
+
+La clé doit être utilisable sans invite, via `gpg-agent` ou `ssh-agent`. Les badges de signature des commits existants sont affichés dans les [détails du commit](../../history/commit-graph/).
+
+## Réutiliser des messages
+
+### Modèles
+
+Le menu **Modèle** liste :
+
+- **Modèle Git (commit.template)** : le fichier défini dans votre configuration `commit.template`, le cas échéant (les lignes qui commencent par `#` sont retirées). Git ne l’applique pas de lui-même quand yaggui commite, choisissez-le donc ici. Si le fichier est illisible, le menu indique **Le fichier commit.template est illisible**.
+- **Tes modèles** : les modèles enregistrés dans yaggui.
+- **Gérer les modèles…**
+
+Choisir un modèle remplace le brouillon : sa première ligne va dans le résumé, le reste dans la description.
+
+La boîte de dialogue **Modèles de message** (accessible aussi depuis la palette : **Gérer les modèles de message de commit**) liste vos modèles avec **Modifier** et un bouton de suppression (sans confirmation). Pour en ajouter un, donnez-lui un **Nom** et un **Message** (première ligne : le résumé, puis une ligne vide et la description), ou cliquez sur **Reprendre le message en cours**, puis sur **Ajouter le modèle**. Les noms doivent être uniques et tenir sur une ligne ; un message peut atteindre 16 Ko. Les modèles sont partagés par tous les dépôts.
+
+### Aide Conventional Commits
+
+Cliquez sur **Conventional** (ou sur l’action de la palette **Afficher ou masquer l'aide Conventional Commits**) pour afficher des champs qui construisent un en-tête [Conventional Commits](https://www.conventionalcommits.org/) dans le résumé :
+
+- **Type** : feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert.
+- **portée** : les suggestions viennent des portées de vos messages récents.
+- **Rupture (!)**.
+- Un compteur **sujet \{count\}/50** pour le texte situé après l’en-tête, qui passe à la couleur d’avertissement au-delà de 50.
+
+Les champs écrivent `type(scope)!: subject` dans le résumé et le relisent si vous modifiez le résumé à la main. Choisir un type pour un résumé simple le transforme en sujet. Le réglage s’applique à tous les dépôts et se réinitialise au redémarrage de yaggui.
+
+<Screenshot
+  dark={commitConventionalDark}
+  light={commitConventionalLight}
+  alt="Les champs Conventional Commits avec un type, une portée et le compteur de sujet au-dessus du résumé"
+/>
+
+### Messages récents
+
+Le menu **Récents** liste les 30 derniers messages commités depuis yaggui dans ce dépôt, du plus récent au plus ancien (les messages avec un corps sont marqués **avec une description**). En choisir un remplit le résumé et la description. Les commits faits en dehors de yaggui n’apparaissent pas.
+
+## Erreurs
+
+| Message                                                                                                                                                      | Que faire                                                                                  |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
+| « Le résumé du commit est vide. »                                                                                                                            | Rédigez un résumé.                                                                         |
+| « Rien à commiter : stage d'abord des modifications. »                                                                                                       | Indexez au moins un changement, ou cochez **Modifier le commit précédent**.                |
+| « Des fichiers sont encore en conflit : résous-les (et stage-les) d'abord. »                                                                                 | Résolvez les conflits (voir [Conflits](../../history/conflicts/)).                         |
+| Le panneau d’échec du hook                                                                                                                                   | Corrigez ce que signale la sortie du hook et commitez à nouveau.                           |
+| « Git ne sait pas qui tu es : … »                                                                                                                            | Remplissez le formulaire **Qui es-tu ?**                                                   |
+| « La clé de signature demande sa phrase de passe et aucun agent ne l'a fournie. … »                                                                          | Déverrouillez la clé dans `gpg-agent` ou `ssh-agent` (`ssh-add`), ou commitez depuis un terminal. |
+| « Git n'a pas pu signer le commit. Vérifie la clé de signature (user.signingkey, gpg.format) ou désactive la signature (commit.gpgsign). »                    | Corrigez la configuration de signature ; **Ouvrir le journal** montre la sortie de Git.    |
+| « Un autre processus Git utilise ce dépôt (index.lock). … »                                                                                                  | Voir [Dépannage](../../help/troubleshooting/).                                             |
+
+La liste complète se trouve dans [Messages d’erreur](../../reference/error-messages/).
+
+## Défaire un commit
+
+Un commit ou une modification de commit apparaît dans l’historique d’annulation sous la forme `commit « {summary} »` ou `amend « {summary} »`. Défaites-le avec le bouton **Annuler** de la barre d’outils ou <kbd>⌘Z</kbd> (<kbd>Ctrl+Z</kbd> sous Windows et Linux) hors d’un champ de texte. yaggui ramène la branche là où elle était ; votre arbre de travail n’est pas touché et les changements commités sont de nouveau indexés. Voir [Annuler et rétablir](../../history/undo-and-redo/).

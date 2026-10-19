@@ -1,0 +1,92 @@
+---
+title: Git LFS
+description: Comment yaggui détecte Git LFS, repère les fichiers LFS, affiche les pointeurs dans le diff et lance git lfs pull et git lfs track.
+sidebar:
+  order: 3
+sources:
+  - src/features/lfs/**
+  - src/features/submodules/ModuleDiffActions.tsx
+  - src/features/diff/ChangedFileRow.tsx
+  - src/features/diff/DiffPlaceholder.tsx
+  - src-tauri/src/git/read/lfs.rs
+  - src-tauri/src/repo/modules.rs
+requirements: [F-262]
+---
+
+import Screenshot from '~/components/Screenshot.astro';
+import lfsDiffDark from '../../../../assets/screens/lfs-diff-dark.png';
+import lfsDiffLight from '../../../../assets/screens/lfs-diff-light.png';
+import lfsTrackDark from '../../../../assets/screens/lfs-track-dark.png';
+import lfsTrackLight from '../../../../assets/screens/lfs-track-light.png';
+
+Git LFS stocke les gros fichiers en dehors du dépôt et ne versionne à leur place qu'un petit fichier pointeur (voir [git-lfs.com](https://git-lfs.com)). yaggui détecte LFS, repère les fichiers qu'il gère, et lance `git lfs pull` et `git lfs track` depuis la palette de commandes.
+
+## Détection
+
+À l'ouverture d'un dépôt, yaggui :
+
+- lance `git lfs version` pour savoir si Git LFS est installé ;
+- lit les motifs marqués `filter=lfs` dans le fichier `.gitattributes` à la racine ;
+- considère que le dépôt utilise LFS quand un fichier d'attributs le mentionne.
+
+Rien d'autre n'est configuré : yaggui utilise votre propre installation de Git LFS.
+
+## Git LFS n'est pas installé
+
+Si le dépôt utilise LFS et que Git LFS n'est pas installé, yaggui affiche un avertissement une fois par dépôt et par session :
+
+> **Git LFS n'est pas installé**
+> Ce dépôt stocke ses gros fichiers avec Git LFS : sans lui, ils restent de petits fichiers pointeurs. Installe Git LFS (git-lfs.com), puis lance git lfs install.
+
+L'avertissement ne bloque rien. Le même texte apparaît sous le diff des fichiers LFS et dans la boîte de dialogue **Suivre des fichiers avec Git LFS**, dont le bouton **Suivre** reste désactivé. Installez Git LFS depuis [git-lfs.com](https://git-lfs.com), lancez `git lfs install` une fois, puis rouvrez le dépôt.
+
+## La pastille LFS
+
+Les fichiers qui correspondent à un motif LFS portent une pastille **LFS** (infobulle **Stocké avec Git LFS**) dans le panneau des changements et dans les listes de fichiers des commits et des stashes.
+
+## Les fichiers LFS dans le diff
+
+yaggui n'affiche pas de diff texte pour un pointeur LFS. Le diff montre à la place **Fichier stocké avec Git LFS** avec la taille et l'identifiant d'objet de chaque côté (ou **contenu local** pour le fichier de votre dossier de travail), ainsi que la ligne **Seul un pointeur est versionné : pas de diff texte.** Le nombre de lignes n'est pas calculé pour les fichiers LFS, et ils ne peuvent pas être modifiés dans le diff. Voir [Diff](../../everyday/diff/).
+
+<Screenshot
+  dark={lfsDiffDark}
+  light={lfsDiffLight}
+  alt="Diff de hero.psd : le panneau Fichier stocké avec Git LFS avec les tailles, et la pastille LFS dans la liste des fichiers"
+/>
+
+## Télécharger les fichiers LFS (pull)
+
+Lancez **Git LFS : télécharger les fichiers (pull)** depuis la [palette de commandes](../../customize/palette-and-shortcuts/). yaggui exécute :
+
+```bash
+git lfs pull
+```
+
+La barre d'état affiche l'opération sous le nom **Git LFS** avec sa progression ; vous pouvez l'y annuler. yaggui affiche ensuite **Fichiers LFS téléchargés**.
+
+:::note
+`git lfs pull` ne peut pas être annulé : il a téléchargé et extrait du contenu. Il apparaît dans l'historique d'annulation sous le nom « git lfs pull » et empêche d'annuler au-delà de ce point. Voir [Annuler et rétablir](../../history/undo-and-redo/).
+:::
+
+## Suivre un motif avec LFS
+
+1. Lancez **Git LFS : suivre un motif…** depuis la palette de commandes.
+2. La boîte de dialogue **Suivre des fichiers avec Git LFS** liste les motifs **Déjà suivis** (ou indique **Aucun motif pour l'instant**).
+3. Saisissez un **Motif**, par exemple `*.psd` ou `assets/**/*.png`. La boîte de dialogue affiche la commande qu'elle va lancer.
+4. Cliquez sur **Suivre**.
+
+yaggui lance `git lfs track -- <pattern>` et affiche « `<pattern>` est maintenant stocké avec LFS ». Git LFS écrit le motif dans `.gitattributes`, qui reste non indexé : commitez-le pour que les fichiers correspondant au motif soient stockés avec LFS dès leur prochain commit.
+
+Le motif doit tenir sur une seule ligne et ne pas commencer par `-`. Sinon, yaggui affiche « `<pattern>` n'est pas un motif de fichiers (ex. \*.psd). »
+
+Le suivi d'un motif est annulable (« suivi LFS de `<pattern>` ») : l'annulation restaure le `.gitattributes` précédent. Voir [Annuler et rétablir](../../history/undo-and-redo/).
+
+<Screenshot
+  dark={lfsTrackDark}
+  light={lfsTrackLight}
+  alt="La boîte de dialogue Suivre des fichiers avec Git LFS, avec les motifs déjà suivis et un champ de saisie du motif"
+/>
+
+## Ce que yaggui ne fait pas
+
+Il n'y a ni bouton ni menu LFS en dehors de la palette, et les deux actions LFS n'ont pas de raccourci par défaut (vous pouvez en attribuer un dans les Préférences). Les autres commandes LFS, comme `git lfs untrack`, `git lfs migrate` ou les verrous, relèvent du [terminal](../../repository/terminal/).

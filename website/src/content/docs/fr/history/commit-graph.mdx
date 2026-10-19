@@ -1,0 +1,292 @@
+---
+title: Graphe des commits
+description: Lire le graphe des commits, sélectionner des commits, inspecter un commit, utiliser le menu contextuel, rechercher dans l’historique, et masquer ou isoler des branches.
+sidebar:
+  order: 1
+sources:
+  - src/features/graph/**
+  - src/features/compare/compareActions.ts
+  - src/app/RepoView.tsx
+  - src-tauri/src/graph/**
+  - src-tauri/src/commands/graph.rs
+  - src-tauri/src/repo/graph_tools.rs
+  - src-tauri/src/store/graph_filters.rs
+  - src-tauri/src/system/avatars.rs
+  - src-tauri/src/git/ops/commit_graph.rs
+requirements:
+  [F-020, F-021, F-022, F-023, F-024, F-025, F-027, F-028, F-030, F-031, F-033, F-066, F-088, F-143]
+---
+
+import Screenshot from '~/components/Screenshot.astro';
+import graphOverviewDark from '../../../../assets/screens/graph-overview-dark.png';
+import graphOverviewLight from '../../../../assets/screens/graph-overview-light.png';
+import graphCommitDetailsDark from '../../../../assets/screens/graph-commit-details-dark.png';
+import graphCommitDetailsLight from '../../../../assets/screens/graph-commit-details-light.png';
+
+Le graphe des commits occupe le centre d’un onglet de dépôt. Il affiche tous les commits accessibles depuis vos branches, vos branches distantes, vos tags et HEAD. C’est là que vous sélectionnez des commits pour les inspecter ou agir dessus.
+
+<Screenshot
+  dark={graphOverviewDark}
+  light={graphOverviewLight}
+  alt="Un onglet de dépôt avec le graphe des commits au centre : des voies colorées, des étiquettes de références sur les commits, la ligne Travail en cours en haut et le panneau de détail du commit à droite"
+/>
+
+## Lire le graphe
+
+Chaque ligne est un commit. Les commits sont classés topologiquement sur l’ensemble des références, comme avec `git log --topo-order --all` : un commit apparaît toujours au-dessus de ses parents. Les stashes ne sont pas des lignes : ils apparaissent sous forme d’étiquettes sur le commit d’où ils ont été créés.
+
+### Voies et couleurs
+
+La colonne **Graphe** dessine une voie par ligne d’historique, avec 8 couleurs qui se répètent. Une bifurcation sépare une voie en deux, un merge réunit deux voies par une courbe. Au-delà de 48 voies, les lignes supplémentaires sont dessinées sur la dernière voie.
+
+### Colonnes
+
+| Colonne     | Contenu                                                                                                 | Peut être masquée |
+| ----------- | ------------------------------------------------------------------------------------------------------- | ----------------- |
+| **Graphe**  | Les voies et les points des commits ; sa largeur s’adapte au nombre de voies tant que vous ne la changez pas | Non               |
+| **Message** | Les étiquettes de références, le cadenas de signature, puis la première ligne du message ; occupe la largeur restante | Non               |
+| **Auteur**  | Avatar et nom ; survolez pour afficher `Nom <email>`                                                    | Oui               |
+| **Date**    | Date relative ; survolez pour afficher la date et l’heure complètes                                     | Oui               |
+| **SHA**     | Les 7 premiers caractères du hash du commit                                                             | Oui               |
+
+Pour modifier les colonnes :
+
+- **Redimensionner** : faites glisser la poignée au bord droit de l’en-tête d’une colonne. Quand la poignée a le focus, <kbd>←</kbd> et <kbd>→</kbd> la déplacent. Double-cliquez sur la poignée de **Graphe** pour revenir à la largeur automatique. Une colonne **Auteur** étroite n’affiche que l’avatar.
+- **Masquer ou afficher** : faites un clic droit sur la ligne d’en-tête et cochez ou décochez **Auteur**, **Date** ou **SHA**. Une coche signale les colonnes visibles.
+
+Quand la fenêtre est trop étroite pour la colonne de message, yaggui masque temporairement des colonnes latérales (d’abord Date, puis Auteur, puis SHA). Votre disposition enregistrée n’est pas modifiée et les colonnes reviennent dès qu’il y a assez de place. Les largeurs et les colonnes masquées sont enregistrées par onglet.
+
+La hauteur des lignes suit la préférence **Densité** (Confortable ou Compacte), voir [Préférences](../../reference/preferences/).
+
+### La ligne Travail en cours
+
+Quand la copie de travail contient des changements (fichiers indexés, non indexés, non suivis ou en conflit), une ligne **Travail en cours** apparaît au-dessus du premier commit, avec le nombre de fichiers modifiés. Elle se place sur la voie de HEAD, reliée à HEAD par un trait en pointillés.
+
+Cliquez dessus, ou appuyez sur <kbd>↑</kbd> depuis la première ligne, pour ouvrir à droite le panneau Changements locaux, où vous indexez et commitez (voir [Indexer des changements](../../everyday/staging/)). Cette ligne n’a pas de menu contextuel et ne peut pas être glissée.
+
+### Étiquettes de références
+
+Les étiquettes de la colonne de message indiquent quelles références pointent sur un commit :
+
+| Étiquette                  | Icône                                                       |
+| -------------------------- | ----------------------------------------------------------- |
+| Branche courante           | Point, mis en évidence comme courante                       |
+| Branche locale             | Ordinateur portable                                         |
+| Branche distante           | Nuage                                                       |
+| Tag                        | Étiquette                                                   |
+| Stash (`stash@{n}`)        | Stash, placé sur le commit d’où le stash a été créé         |
+| HEAD détaché               | Point                                                       |
+
+Une branche locale et une branche distante situées sur le même commit partagent une seule étiquette quand la branche distante est l’upstream de la branche locale, ou porte le même nom court (`origin/feat/x` et `feat/x`). L’étiquette porte alors une icône de nuage supplémentaire, nommée d’après le remote.
+
+Les étiquettes sont classées ainsi : HEAD, branches locales (la courante d’abord), branches distantes, tags, stashes. Les noms longs sont raccourcis en leur milieu. Quand toutes les étiquettes ne tiennent pas, une pastille `+N` indique le nombre de références masquées ; survolez-la pour les lister.
+
+Double-cliquez sur l’étiquette d’une branche pour basculer dessus. L’étiquette d’une branche distante bascule sur une branche locale de suivi. Voir [Basculer sur une branche](../../history/branches/#basculer-sur-une-branche). Un double-clic sur l’étiquette d’un tag, d’un stash ou de HEAD ne fait rien. Vous pouvez aussi faire glisser l’étiquette d’une branche sur l’étiquette d’une autre branche locale pour la merger, la rebaser ou l’avancer en fast-forward, voir [Merge et rebase](../../history/merge-and-rebase/).
+
+### Commits signés
+
+Un cadenas avant le début du message signale un commit signé (GPG, SSH ou X.509). Par souci de rapidité, le graphe ne vérifie pas les signatures : l’infobulle indique « Signé (GPG), non vérifié — vérification dans le détail ». La vérification se fait dans le [détail du commit](#vérification-de-signature).
+
+### Avatars
+
+Par défaut, la colonne **Auteur** affiche les initiales de l’auteur (« Alex Martin » donne « AM ») sur une couleur dérivée de l’adresse e-mail, si bien que chaque auteur a toujours la même couleur. Aucune requête réseau n’est faite.
+
+Pour afficher les photos Gravatar, activez **Avatars Gravatar** dans Préférences > Apparence. yaggui envoie alors à gravatar.com un hash de l’e-mail de chaque auteur et met les photos en cache sur le disque pendant 7 jours. **Vider le cache des avatars**, dans la même section, supprime les photos téléchargées. Si une photo ne peut pas être chargée, les initiales restent affichées. Voir [Apparence](../../customize/appearance/).
+
+## Sélectionner des commits
+
+| Action                                                                      | Effet                                                                       |
+| --------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| Cliquer sur une ligne                                                       | Sélectionne le commit et affiche son détail à droite                        |
+| <kbd>⌘</kbd>-clic (<kbd>Ctrl</kbd>-clic sous Windows et Linux)              | Ajoute le commit à la sélection ou l’en retire                              |
+| <kbd>⇧</kbd>-clic                                                           | Sélectionne la plage depuis le dernier commit cliqué (jusqu’à 1 000 lignes) |
+| <kbd>⌘⇧</kbd>-clic (<kbd>Ctrl+Shift</kbd>-clic sous Windows et Linux)         | Ajoute une plage à la sélection en cours                                    |
+
+Quand le graphe a le focus :
+
+| Touche                                                         | Effet                                                                                         |
+| -------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| <kbd>↑</kbd> / <kbd>↓</kbd>                                    | Commit précédent / suivant                                                                    |
+| <kbd>⇧↑</kbd> / <kbd>⇧↓</kbd>                                  | Étendre la sélection                                                                          |
+| <kbd>Page Up</kbd> / <kbd>Page Down</kbd>                      | Se déplacer d’une page                                                                        |
+| <kbd>Home</kbd> / <kbd>End</kbd>                               | Première / dernière ligne                                                                     |
+| <kbd>Esc</kbd>                                                 | Réduire une sélection multiple à un seul commit, sinon fermer la barre de recherche           |
+| <kbd>⌘C</kbd> (<kbd>Ctrl+C</kbd> sous Windows et Linux)        | Copier le SHA, ou tous les SHA sélectionnés (un par ligne)                                    |
+| <kbd>⌘⇧C</kbd> (<kbd>Ctrl+Shift+C</kbd> sous Windows et Linux) | Copier la première ligne du message du commit                                                 |
+| Touche de menu contextuel ou <kbd>⇧F10</kbd>                   | Ouvrir le menu contextuel du commit                                                           |
+
+La sélection est conservée tant que le dépôt est ouvert, mais elle n’est pas enregistrée quand vous le fermez. Les raccourcis sont des valeurs par défaut et peuvent être modifiés, voir [Palette et raccourcis](../../customize/palette-and-shortcuts/).
+
+### La barre de sélection
+
+Quand au moins deux commits sont sélectionnés, une barre apparaît en bas du graphe avec le nombre de commits sélectionnés et :
+
+- **Cherry-pick de N commits sur _branche_** : applique les commits sélectionnés à la branche courante, du plus ancien au plus récent. Indisponible pendant un merge, un rebase, un cherry-pick ou un revert en cours. Voir [Cherry-pick, revert et reset](../../history/cherry-pick-revert-reset/).
+- **Comparer** et **Merge-base** (avec exactement deux commits) : ouvrent le [panneau de comparaison](../../inspect/compare/) ou vont à l’ancêtre commun des deux commits.
+- **Désélectionner** : ne garde que le commit principal sélectionné.
+
+## Inspecter un commit
+
+Sélectionner un commit ouvre à droite le panneau **Détail du commit**. Il affiche :
+
+- Le titre et le corps complet du message.
+- **Auteur** (avatar, nom, e-mail) et **Date** (date et heure, puis date relative).
+- **Committer**, seulement s’il diffère de l’auteur (autre e-mail ou autre heure, par exemple après un rebase).
+- **SHA** avec un bouton de copie.
+- **Parents** : cliquez sur un SHA court pour sélectionner ce parent dans le graphe. Un commit racine affiche « Aucun (commit racine) ».
+- **Références** : les étiquettes du commit.
+- **Signature**, pour les commits signés uniquement.
+- Les fichiers modifiés, sous le titre « Commit _abc1234_ », avec le nombre de fichiers et le total des lignes ajoutées et supprimées. Chaque fichier affiche son statut, la similarité en cas de renommage et ses compteurs de lignes `+`/`−`. **Afficher en arbre** / **Afficher en liste** regroupe ou non les fichiers par dossier.
+
+Cliquez sur un fichier pour ouvrir son diff au centre ([Consulter les diffs](../../everyday/diff/)). Faites un clic droit sur un fichier pour accéder à **Historique du fichier** et **Blame à ce commit** ([Historique d’un fichier et blame](../../inspect/file-history-and-blame/)).
+
+Si le commit ne peut pas être lu, le panneau affiche « Le commit n'a pas pu être chargé ». Si seule la liste des fichiers échoue, il affiche « Impossible de charger les fichiers modifiés » avec **Réessayer**.
+
+<Screenshot
+  dark={graphCommitDetailsDark}
+  light={graphCommitDetailsLight}
+  alt="Le panneau Détail du commit avec l’auteur, la date, le SHA, les parents, les références, un badge de signature Vérifié (SSH) et la liste des fichiers modifiés avec leurs compteurs de lignes"
+/>
+
+### Vérification de signature
+
+Pour un commit signé, la ligne **Signature** affiche d’abord « Signature GPG, vérification… » (ou SSH, X.509), puis le résultat. yaggui exécute :
+
+```bash
+git -c log.showSignature=false show -s --format=%G?%x00%GS%x00%GK <sha> --
+```
+
+Git appelle `gpg`, `gpgsm` ou `ssh-keygen` selon votre configuration ([`gpg.format`](https://git-scm.com/docs/git-config#Documentation/git-config.txt-gpgformat)).
+
+| Badge                       | Signification                                                                                                                                       |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Vérifié (GPG)               | Signature valide, faite avec une clé de confiance                                                                                                   |
+| Signé, non vérifié (GPG)    | Signature présente, mais la clé est inconnue ou non approuvée, ou il n'y a rien pour la vérifier (pour SSH, pas de `gpg.ssh.allowedSignersFile`)   |
+| Signé, clé expirée (GPG)    | La signature ou la clé a expiré                                                                                                                     |
+| Signé, clé révoquée (GPG)   | La clé a été révoquée                                                                                                                               |
+| Signature invalide (GPG)    | La signature ne correspond pas au commit                                                                                                            |
+| Signé (GPG)                 | La vérification n’a pas pu s’exécuter (Git a renvoyé une erreur)                                                                                    |
+
+Survolez le badge pour voir le signataire, la clé et l’explication de Git. Les résultats sont mis en cache jusqu’au redémarrage de l’application. Pour signer vos propres commits, voir [Committer](../../everyday/committing/).
+
+## Menu contextuel d’un commit
+
+Faites un clic droit sur un commit, ou appuyez sur la touche de menu contextuel ou sur <kbd>⇧F10</kbd> sur la ligne sélectionnée. Un clic droit sur un commit situé hors de la sélection le sélectionne d’abord. La ligne **Travail en cours** et l’espace vide n’ont pas de menu. Dans les libellés, _branche_ désigne la branche courante, ou « HEAD » quand HEAD est détaché.
+
+### Un seul commit
+
+| Élément                                                           | Disponible                | Effet                                                                                                                                                                                                                                                                                                                   |
+| ----------------------------------------------------------------- | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Checkout de ce commit**                                         | Toujours                  | Détache HEAD sur le commit (`git switch --detach <sha>`), sans confirmation ; si des modifications locales gênent, la boîte de dialogue des modifications locales s’ouvre d’abord. Notification : « HEAD est détaché sur _abc1234_ ». Voir [Basculer sur un commit](../../history/branches/#basculer-sur-un-commit-ou-une-branche-distante). |
+| **Créer une branche ici…**                                        | Toujours                  | [Crée une branche](../../history/branches/#créer-une-branche) à partir du commit                                                                                                                                                                                                                                        |
+| **Créer un tag ici…**                                             | Toujours                  | [Crée un tag](../../history/tags/#créer-un-tag) sur le commit                                                                                                                                                                                                                                                           |
+| **Cherry-pick sur _branche_**                                     | Aucune opération en cours | [Cherry-pick](../../history/cherry-pick-revert-reset/) du commit sur la branche courante                                                                                                                                                                                                                                |
+| **Revert de ce commit**                                           | Aucune opération en cours | [Revert](../../history/cherry-pick-revert-reset/) du commit. Pour un commit de merge, vous choisissez d’abord le parent.                                                                                                                                                                                                |
+| **Reset de _branche_ ici** ▸ **Soft** / **Mixed** / **Hard**      | Aucune opération en cours | Ouvre la [boîte de dialogue de reset](../../history/cherry-pick-revert-reset/) avec ce mode                                                                                                                                                                                                                             |
+| **Rebase interactif depuis ici…**                                 | Aucune opération en cours | Ouvre l’éditeur de [rebase interactif](../../history/interactive-rebase/) avec ce commit comme base                                                                                                                                                                                                                     |
+| **Créer un commit fixup…**                                        | Jamais                    | Affiché grisé, « Prévu en V2 »                                                                                                                                                                                                                                                                                          |
+| **Comparer avec HEAD**                                            | Toujours                  | Ouvre le [panneau de comparaison](../../inspect/compare/) entre le commit et HEAD                                                                                                                                                                                                                                       |
+| **Aller au merge-base avec HEAD**                                 | Toujours                  | [Va](#aller-à-un-commit) à l’ancêtre commun du commit et de HEAD                                                                                                                                                                                                                                                        |
+| **Copier le SHA**                                                 | Toujours                  | Copie le SHA complet. Notification : « SHA copié ».                                                                                                                                                                                                                                                                     |
+| **Copier le message**                                             | Toujours                  | Copie la première ligne du message. Notification : « Message copié ».                                                                                                                                                                                                                                                   |
+
+Tant qu’une opération est en cours, les éléments grisés affichent « Termine ou annule d’abord l’opération en cours ». Voir [Conflits](../../history/conflicts/).
+
+### Plusieurs commits
+
+Un clic droit à l’intérieur d’une sélection d’au moins deux commits affiche :
+
+| Élément                                      | Disponible                | Effet                                                           |
+| -------------------------------------------- | ------------------------- | --------------------------------------------------------------- |
+| **Cherry-pick de N commits sur _branche_**   | Aucune opération en cours | Cherry-pick de la sélection, du plus ancien au plus récent      |
+| **Comparer ces 2 commits**                   | Exactement 2 sélectionnés | Ouvre le [panneau de comparaison](../../inspect/compare/)       |
+| **Aller à leur merge-base**                  | Exactement 2 sélectionnés | Va à leur ancêtre commun                                        |
+| **Copier les SHA**                           | Toujours                  | Copie les SHA, un par ligne. Notification : « N SHA copiés ».   |
+
+Vous pouvez aussi faire glisser les commits sélectionnés sur l’étiquette d’une branche locale (dans le graphe ou la barre latérale) pour les y cherry-picker, voir [Cherry-pick, revert et reset](../../history/cherry-pick-revert-reset/).
+
+## Rechercher dans l’historique
+
+Appuyez sur <kbd>⌘F</kbd> (<kbd>Ctrl+F</kbd> sous Windows et Linux) n’importe où dans la vue du dépôt pour ouvrir la barre de recherche, en haut à droite du graphe. Saisissez votre recherche dans le champ (texte indicatif « Message, auteur ou SHA »).
+
+Cliquez sur **Plus de filtres** pour ajouter des critères :
+
+| Champ                  | Correspond à                                                                                                                  |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| Champ principal        | Un préfixe de SHA, n’importe quelle partie du message complet du commit, ou le nom ou l’e-mail de l’auteur                    |
+| **Auteur**             | N’importe quelle partie du nom ou de l’e-mail de l’auteur                                                                     |
+| **Fichier ou dossier** | Les commits qui ont modifié exactement ce chemin (par exemple `src/app`) par rapport à leur premier parent. Pas un motif glob. |
+| **Depuis**             | Date d’auteur à partir de ce jour (dès 00:00, heure locale)                                                                   |
+| **Jusqu'au**           | Date d’auteur jusqu’à ce jour inclus (jusqu’à 23:59:59, heure locale)                                                         |
+
+Tous les critères renseignés doivent correspondre. Le champ principal et **Auteur** ignorent la casse ; **Fichier ou dossier** la respecte.
+
+La recherche met en évidence les commits correspondants sans masquer les autres. Le compteur affiche « 3 / 42 » (résultat courant / total), « Recherche… », « Aucun résultat » ou « La recherche a échoué ». Le premier résultat situé au niveau du commit sélectionné ou plus bas est sélectionné et centré.
+
+- <kbd>Entrée</kbd> ou **Résultat suivant** : aller à la correspondance suivante.
+- <kbd>⇧Entrée</kbd> ou **Résultat précédent** : aller à la correspondance précédente.
+
+La navigation reprend au début (ou à la fin) quand on atteint l’extrémité. La recherche lit aussi l’historique qui n’est pas encore chargé, elle trouve donc les commits anciens, et elle se relance quand le graphe se recharge. Fermez la barre avec <kbd>Esc</kbd> ou **Fermer**.
+
+Pour retrouver un commit par son message depuis n’importe où, vous pouvez aussi utiliser la palette de commandes avec le préfixe `#`, voir [Palette et raccourcis](../../customize/palette-and-shortcuts/).
+
+## Masquer, isoler et filtrer des branches
+
+Vous pouvez alléger le graphe sans modifier le dépôt :
+
+| Action                                                                  | Où                                                              | Effet                                                                                                                                                                                                               |
+| ----------------------------------------------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Masquer du graphe** / **Afficher dans le graphe**                     | Clic droit sur une branche locale ou distante dans la barre latérale | Retire l’étiquette de la branche et ses propres commits. Les commits accessibles depuis HEAD restent toujours. Indisponible sur la branche courante : « La branche extraite reste toujours dans le graphe ». |
+| **Afficher seulement cette branche** / **Réafficher toutes les branches** | Clic droit sur une branche locale ou distante dans la barre latérale | N’affiche que l’historique de cette branche. Isoler une branche masquée la réaffiche.                                                                                                                              |
+| **Graphe : masquer ou afficher les branches distantes**                 | Palette de commandes                                            | Retire toutes les étiquettes de branches distantes et leurs propres commits                                                                                                                                         |
+| **Graphe : masquer ou afficher les stashes**                            | Palette de commandes                                            | Retire les étiquettes de stashes                                                                                                                                                                                    |
+| **Graphe : afficher toutes les branches**                               | Palette de commandes, quand un filtre est actif                 | Supprime tous les filtres                                                                                                                                                                                           |
+
+Les tags ne peuvent pas être masqués.
+
+Quand un filtre est actif, une barre au-dessus du graphe le résume, par exemple « Seulement main », « 2 refs masquées », « Branches distantes masquées » ou « Stashes masqués ». Dans cette barre :
+
+- Le bouton **Filtre du graphe** ouvre les cases à cocher **Masquer les branches distantes** et **Masquer les stashes**.
+- **Tout afficher** supprime tous les filtres.
+
+Dans la barre latérale, les branches masquées affichent une icône d’œil (« Masquée du graphe ») et la branche isolée une icône de cible.
+
+Les filtres sont enregistrés par dépôt et survivent à un redémarrage. Si l’enregistrement échoue, une notification indique « Le filtre du graphe n'a pas pu être enregistré ». Aucune commande Git n’est exécutée : yaggui reconstruit le graphe en mémoire.
+
+## Aller à un commit
+
+| Pour aller à                       | Comment                                                                                                                                                                                                                  |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| HEAD                               | <kbd>⌘⇧H</kbd> (<kbd>Ctrl+Shift+H</kbd> sous Windows et Linux), ou choisissez la branche courante dans le [sélecteur de branche](../../history/branches/#changer-de-branche-depuis-la-barre-doutils) de la barre d’outils |
+| Une branche ou un tag              | Cliquez dessus dans la barre latérale, ou saisissez `@` et son nom dans la palette de commandes (<kbd>⌘K</kbd>, <kbd>Ctrl+K</kbd> sous Windows et Linux)                                                                 |
+| Un parent                          | Cliquez sur un SHA court sous **Parents** dans le détail du commit                                                                                                                                                       |
+| Le merge-base de deux commits      | Sélectionnez deux commits, puis **Merge-base** dans la barre de sélection, **Aller à leur merge-base** dans le menu contextuel, ou l’action de palette **Aller au merge-base des 2 commits sélectionnés**                 |
+| Le merge-base avec HEAD            | **Aller au merge-base avec HEAD** dans le menu contextuel                                                                                                                                                                |
+| Le merge-base de deux branches     | Comparez les branches, puis cliquez sur le SHA après **Merge-base :** dans le [panneau de comparaison](../../inspect/compare/)                                                                                           |
+
+Le commit est sélectionné et centré. Pour un merge-base, vous pouvez voir :
+
+- « Aucun ancêtre commun : ces historiques n'ont pas de lien ».
+- « Le merge-base _abc1234_ n'est pas affiché dans le graphe (filtre) » : le commit est sélectionné et son détail s’affiche, mais un [filtre](#masquer-isoler-et-filtrer-des-branches) masque sa ligne.
+- « Le merge-base n'a pas pu être trouvé » : une erreur s’est produite, avec des détails.
+
+## Historiques volumineux
+
+Le graphe se charge par pages de 500 lignes pendant que vous défilez. Les lignes pas encore chargées apparaissent sous forme de zones grises. Pour les très longs historiques, la barre de défilement est proportionnelle plutôt qu’exacte.
+
+À la première ouverture d’un gros dépôt sans fichier commit-graph, yaggui lit l’historique en arrière-plan. Les lignes déjà affichées sont définitives, et un indicateur en bas du graphe affiche « Lecture de l'historique… 120 000 commits » pendant que le compteur augmente.
+
+Quand le dépôt n’a pas de fichier commit-graph, ou que celui-ci est très en retard, yaggui en écrit un en arrière-plan pour que les ouvertures suivantes soient rapides (sauf pour les clones superficiels, ou quand [`core.commitGraph`](https://git-scm.com/docs/git-config#Documentation/git-config.txt-corecommitGraph) vaut `false`) :
+
+```bash
+git commit-graph write --reachable --changed-paths --no-progress
+```
+
+Il apparaît sous le nom « Écriture du commit-graph » dans la barre d’état et dans le [journal des commandes](../../reference/command-log/). Voir [git commit-graph](https://git-scm.com/docs/git-commit-graph).
+
+Le graphe se recharge tout seul quand des branches ou des tags changent, y compris depuis un terminal. Il conserve le commit affiché en haut de la vue et la sélection. La position de défilement est conservée par dépôt quand vous changez d’onglet.
+
+### Quand le graphe est vide ou échoue
+
+- Un dépôt sans commit affiche « Aucun commit pour l'instant ».
+- Si le graphe ne peut pas être chargé, le centre affiche « Le graphe n'a pas pu être chargé » avec **Réessayer**. S’il échoue après la première page, une alerte intégrée avec **Réessayer** apparaît à la place. Consultez le [journal des commandes](../../reference/command-log/) et le [dépannage](../../help/troubleshooting/).

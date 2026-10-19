@@ -61,7 +61,7 @@ Faites un clic droit sur une branche autre que celle qui est extraite. Le menu p
 | ------------------------------------------------------ | ----------------------------------------------------------------- |
 | **Merger \{name\} dans \{current\}…**                  | Glisser `{name}` sur `{current}`, puis **Merger**                 |
 | **Rebaser \{name\} sur \{current\}**                   | Glisser `{name}` sur `{current}`, puis **Rebaser**                |
-| **Avancer \{current\} (fast-forward) jusqu’à \{name\}** | Glisser `{name}` sur `{current}`, puis **Avancer (fast-forward)** |
+| **Avancer \{current\} (fast-forward) jusqu’à \{name\}** | Glisser `{name}` sur `{current}`, puis **Avancer … (fast-forward) jusqu’à …** |
 
 Ces entrées sont masquées quand HEAD est détaché, et désactivées pendant qu’une opération est en cours. **Rebaser** est désactivée sur les branches distantes.
 
@@ -160,7 +160,7 @@ Erreurs propres au rebase :
 - Dans les deux cas, la notification d’erreur liste jusqu’à trois chemins et propose **Voir les changements**. Committez ou mettez de côté ([stash](../../everyday/stash/)) les modifications, puis recommencez.
 - Une autre opération en cours bloque les trois actions : « Une autre opération (merge, rebase, cherry-pick, revert ou bisect) est en cours : continue-la ou annule-la d'abord. » Il en va de même des fichiers encore en conflit : « Des fichiers sont encore en conflit : résous-les (et stage-les) d'abord. »
 
-Quand Git s’arrête sur des conflits, le merge ou le rebase reste en cours. Une notification indique combien de fichiers sont en conflit et propose **Voir les conflits**, un bandeau apparaît au-dessus du graphe, et le travail en cours est sélectionné afin que le panneau des conflits s’affiche. Résolvez les fichiers, puis choisissez **Continuer**, **Passer** (rebase uniquement) ou **Annuler le rebase** : voir [Résoudre les conflits](../../history/conflicts/).
+Quand Git s’arrête sur des conflits, le merge ou le rebase reste en cours. Une notification indique combien de fichiers sont en conflit et propose **Voir les conflits**, un bandeau apparaît au-dessus du graphe, et le travail en cours est sélectionné afin que le panneau des conflits s’affiche. Résolvez les fichiers, puis choisissez **Continuer**, **Passer** (rebase uniquement) ou le bouton d’annulation (**Annuler le merge**, **Annuler le rebase**) : voir [Résoudre les conflits](../../history/conflicts/).
 
 Chaque commande apparaît dans le [journal des commandes](../../reference/command-log/).
 
