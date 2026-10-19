@@ -11,6 +11,7 @@ use specta::Type;
 use crate::git::errors::{BackendError, YagguiError};
 use crate::git::read::ahead_behind;
 use crate::git::read::state::{HeadState, UpstreamState, count_exclusive, gix, read_head};
+use crate::git::redact::redact_urls;
 use crate::graph::types::{RefKind, RefLabel};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
@@ -461,10 +462,10 @@ pub fn read_refs(repo: &gix::Repository, cache: &mut RefsCache) -> Result<RepoRe
         .map(|name| {
             let push_url = config
                 .string(format!("remote.{name}.pushurl").as_str())
-                .map(|url| url.to_string());
+                .map(|url| redact_urls(&url.to_string()).into_owned());
             let url = repo.find_remote(name.as_bstr()).ok().and_then(|r| {
                 r.url(gix::remote::Direction::Fetch)
-                    .map(|u| u.to_bstring().to_string())
+                    .map(|u| redact_urls(&u.to_bstring().to_string()).into_owned())
             });
             RemoteRefs {
                 name: name.to_string(),
@@ -598,7 +599,10 @@ fn read_submodules(repo: &gix::Repository) -> Vec<SubmoduleRef> {
             let path = module.path().ok()?.to_string();
             Some(SubmoduleRef {
                 name: module.name().to_string(),
-                url: module.url().ok().map(|u| u.to_bstring().to_string()),
+                url: module
+                    .url()
+                    .ok()
+                    .map(|u| redact_urls(&u.to_bstring().to_string()).into_owned()),
                 sha: module.index_id().ok().flatten().map(|id| id.to_string()),
                 initialized: module.state().is_ok_and(|s| s.repository_exists),
                 path,
