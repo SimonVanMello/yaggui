@@ -123,6 +123,22 @@ for (const { name: theme, colorScheme } of THEMES) {
       await expect(unstaged(page).getByRole('option')).toHaveCount(0);
     });
 
+    test('discarding the file whose diff is open closes the diff', async ({ page }) => {
+      await openRepo(page);
+      const readme = file(unstaged(page), 'README.md');
+      await readme.click();
+      const diff = page.getByRole('region', { name: /^Diff of / });
+      await expect(diff).toBeVisible();
+
+      await readme.click({ button: 'right' });
+      await page.getByRole('menuitem', { name: 'Discard changes' }).click();
+      await page.getByRole('button', { name: 'Discard', exact: true }).click();
+
+      await expect(readme).toHaveCount(0);
+      await expect(diff).toHaveCount(0);
+      await expect(page.getByText('The diff could not be loaded')).toHaveCount(0);
+    });
+
     test('a failing hook shows its full output', async ({ page }) => {
       await openRepo(page);
       await summary(page).fill('feat: add things [hook-fail]');

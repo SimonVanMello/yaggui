@@ -87,7 +87,8 @@ export function DiffView({ selection, onClose, onSelect, stepper, actions }: Dif
   const code = useRef<CodeDiffHandle>(null);
   useWorktreeDiffRefresh(repoId);
 
-  const files = useChangedFiles(repoId, target).data?.files;
+  const filesQuery = useChangedFiles(repoId, target);
+  const files = filesQuery.data?.files;
   const query = useFileDiff(repoId, target, path, oldPath, { ...diffOptions, force });
   const diff = query.data;
   // An SVG is text: shown as an image, its source one click away (path it was asked for).
@@ -139,6 +140,13 @@ export function DiffView({ selection, onClose, onSelect, stepper, actions }: Dif
   const current = diff && diff.path === path ? diff : undefined;
   const worktree = target.kind === 'commits' ? null : target.kind;
 
+  // A working tree file left its list (discarded, staged, reverted outside the app): its diff
+  // has nothing left to show, so it closes instead of reporting the backend's "no changes".
+  const gone = worktree !== null && files !== undefined && index < 0;
+  useEffect(() => {
+    if (gone) keys.current.onClose();
+  }, [gone]);
+
   // Plain UTF-8 text the editor can write back as it is (the backend checks it again).
   const editable =
     worktree === 'unstaged' &&
@@ -174,6 +182,9 @@ export function DiffView({ selection, onClose, onSelect, stepper, actions }: Dif
   let body;
   if (editing && (editable || !current)) {
     body = <FileEditorLoader key={path} repoId={repoId} path={path} wrap={options.wrap} />;
+  } else if (gone || (worktree !== null && query.error && filesQuery.isFetching)) {
+    // Closing, or the list is being read again and may show the file gone: no error flash.
+    body = null;
   } else if (query.error) {
     const error =
       query.error instanceof YagguiIpcError
