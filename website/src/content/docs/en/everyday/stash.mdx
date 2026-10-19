@@ -43,7 +43,7 @@ The form offers:
 | **Include untracked files** | Off | Also stashes untracked files (`--include-untracked`) |
 | **Keep staged changes in the index** | Off | Stashes everything but leaves the staged changes in place (`--keep-index`) |
 
-The two checkboxes keep their value while the window stays open; the message is empty each time. Click **Stash** (or **Cancel**). With a clean working tree the form says "No local changes to stash." and **Stash** is disabled.
+The message starts empty each time you open the form. Click **Stash** (or **Cancel**). With a clean working tree the form says "No local changes to stash." and **Stash** is disabled.
 
 <Screenshot name="stash-popover" alt="The stash form under the toolbar Stash button, with the message field and the Include untracked files and Keep staged changes in the index checkboxes" />
 
@@ -75,7 +75,7 @@ The toast says "\{count\} files stashed". A partial stash can be undone ("stash 
 ## Find your stashes
 
 - **Sidebar**: the **Stashes** section lists every stash with its count, newest first, named by its message (**No stash** when empty). The ref filter at the top of the sidebar also matches stash messages.
-- **Graph**: each stash appears as a `stash@{n}` label on the commit it was made from, not as a separate row. To hide these labels, use the palette action **Graph: hide or show stashes** (see [The commit graph](../../history/commit-graph/)).
+- **Graph**: each stash appears as a `stash@{n}` label on the commit it was made from, not as a separate row. To hide these labels, use **Hide stashes** in the graph filter menu or the palette action **Graph: hide or show stashes** (see [The commit graph](../../history/commit-graph/)).
 
 ## Preview a stash
 

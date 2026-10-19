@@ -39,7 +39,7 @@ From top to bottom, the commit area contains:
 5. Your commit identity and, when commits are signed, the signing chip.
 6. The commit button and, when it is disabled, a hint.
 
-The counter counts characters as you see them (an emoji counts as one). Past 72 characters it turns to the warning color and a note says "Summaries over 72 characters get cut off in many tools." This is only a warning: you can still commit.
+Past 72 characters it turns to the warning color and a note says "Summaries over 72 characters get cut off in many tools." This is only a warning: you can still commit.
 
 Your draft (summary, description, amend) is kept per repository while yaggui runs, including when you switch tabs. It is lost when you quit and cleared after a successful commit.
 
@@ -82,7 +82,7 @@ Check **Amend previous commit** to replace the last commit instead of creating a
 
 ### Push after commit
 
-Check **Push after commit** to push right after a successful commit, exactly as the toolbar **Push** does (see [Fetch, pull and push](../../remotes/fetch-pull-push/)). The box is unchecked by default and is not remembered after a restart.
+Check **Push after commit** to push right after a successful commit, exactly as the toolbar **Push** does (see [Fetch, pull and push](../../remotes/fetch-pull-push/)). The box is unchecked by default and resets whenever the **Local changes** panel is replaced, for example when you select a commit.
 
 ## Hooks
 

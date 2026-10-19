@@ -54,53 +54,75 @@ async function captureRect(
   });
 }
 
+/** Widens the left panel so long submodule paths and their chips fit. */
+async function widenSidebar(page: Page) {
+  const resizer = page.getByRole('separator', { name: 'Resize the left panel' });
+  await resizer.focus();
+  for (let i = 0; i < 6; i += 1) await page.keyboard.press('ArrowRight');
+  await page.mouse.move(0, 0);
+}
+
+type Box = { x: number; y: number; width: number; height: number };
+
+/** The smallest rectangle holding every box, plus a margin, clipped to the viewport. */
+function union(page: Page, boxes: (Box | null)[], pad = 12): Box {
+  const viewport = page.viewportSize() ?? { width: 1280, height: 800 };
+  const shown = boxes.filter((box): box is Box => box !== null);
+  if (shown.length === 0) throw new Error('nothing to crop');
+  const x = Math.max(0, Math.min(...shown.map((b) => b.x)) - pad);
+  const y = Math.max(0, Math.min(...shown.map((b) => b.y)) - pad);
+  const right = Math.min(viewport.width, Math.max(...shown.map((b) => b.x + b.width)) + pad);
+  const bottom = Math.min(viewport.height, Math.max(...shown.map((b) => b.y + b.height)) + pad);
+  return { x, y, width: right - x, height: bottom - y };
+}
+
 test('submodules-sidebar', async ({ page }, testInfo) => {
   await start(page);
   await openRepo(page);
+  await widenSidebar(page);
   await expand(page, 'Submodules');
   await expand(page, 'Worktrees');
   const codemirror = tree(page).getByRole('treeitem', { name: /vendor\/codemirror/ });
   await expect(codemirror).toContainText('moved');
   await expect(codemirror).toContainText('modified');
-  await expect(tree(page).getByRole('treeitem', { name: /^yaggui-spike/ })).toContainText(
-    'missing',
-  );
-  await page.mouse.move(0, 0);
-  await capture(
-    page,
-    testInfo,
-    'submodules-sidebar',
-    page.getByRole('navigation', { name: 'References' }),
-  );
+  const spike = tree(page).getByRole('treeitem', { name: /^yaggui-spike/ });
+  await expect(spike).toContainText('missing');
+  const last = tree(page).getByRole('treeitem').last();
+  await last.scrollIntoViewIfNeeded();
+  const header = tree(page).getByRole('treeitem', { name: /^Submodules,/ });
+  const nav = await page.getByRole('navigation', { name: 'References' }).boundingBox();
+  const rows = union(page, [await header.boundingBox(), await last.boundingBox()], 8);
+  await captureRect(page, testInfo, 'submodules-sidebar', {
+    ...rows,
+    x: nav?.x ?? 0,
+    width: nav?.width ?? rows.width,
+  });
 });
 
 test('submodules-menu', async ({ page }, testInfo) => {
   await start(page);
   await openRepo(page);
+  await widenSidebar(page);
   await expand(page, 'Submodules');
+  const row = tree(page).getByRole('treeitem', { name: /vendor\/codemirror/ });
+  // The open menu hides the tree from the accessibility tree: measure the row first.
+  const rowBox = await row.boundingBox();
   await rowMenu(page, /vendor\/codemirror/);
   const menu = page.getByRole('menu');
   await expect(menu.getByRole('menuitem', { name: 'Copy SHA' })).toBeVisible();
-  const row = tree(page).getByRole('treeitem', { name: /vendor\/codemirror/ });
-  const [menuBox, rowBox] = await Promise.all([menu.boundingBox(), row.boundingBox()]);
-  if (!menuBox || !rowBox) throw new Error('submodules-menu: nothing to crop');
-  const x = Math.max(0, Math.min(menuBox.x, rowBox.x) - 12);
-  const y = Math.max(0, Math.min(menuBox.y, rowBox.y) - 12);
-  const right = Math.max(menuBox.x + menuBox.width, rowBox.x + rowBox.width) + 12;
-  const bottom = Math.max(menuBox.y + menuBox.height, rowBox.y + rowBox.height) + 12;
-  await captureRect(page, testInfo, 'submodules-menu', {
-    x,
-    y,
-    width: right - x,
-    height: bottom - y,
-  });
+  await captureRect(
+    page,
+    testInfo,
+    'submodules-menu',
+    union(page, [await menu.boundingBox(), rowBox]),
+  );
 });
 
 test('submodule-diff', async ({ page }, testInfo) => {
   const { diff } = await openDiffDemo(page, /codemirror/);
   await expect(diff).toContainText('Submodule commit changed');
   await page.mouse.move(0, 0);
-  await capture(page, testInfo, 'submodule-diff', page.getByRole('main'));
+  await capture(page, testInfo, 'submodule-diff');
 });
 
 test('worktree-create', async ({ page }, testInfo) => {
@@ -132,7 +154,7 @@ test('lfs-diff', async ({ page }, testInfo) => {
   await expect(files.getByRole('option', { name: /hero\.psd/ })).toContainText('LFS');
   await expect(diff).toContainText('Only a pointer is versioned');
   await page.mouse.move(0, 0);
-  await capture(page, testInfo, 'lfs-diff', page.getByRole('main'));
+  await capture(page, testInfo, 'lfs-diff');
 });
 
 test('lfs-track', async ({ page }, testInfo) => {
@@ -164,6 +186,15 @@ test.describe('terminal', () => {
     await expect(tabs).toHaveCount(2);
     await tabs.first().click();
     await expect(screen).toContainText('██ ██');
+    // Taller panel, so the output of both commands fits.
+    const resizer = terminal(page).getByRole('separator', { name: 'Resize the terminal' });
+    const box = await resizer.boundingBox();
+    if (!box) throw new Error('terminal-panel: no resizer');
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width / 2, box.y - 50, { steps: 4 });
+    await page.mouse.up();
+    await page.mouse.move(0, 400);
     await capture(page, testInfo, 'terminal-panel', terminal(page));
   });
 });
@@ -185,6 +216,12 @@ test('tabs-indicators', async ({ page }, testInfo) => {
   await openRepo(page, /^linux\b/);
   await page.keyboard.press('Control+T');
   await openRepo(page, /^blog\b/);
+  // The tooltip of the active tab; a running fetch puts a spinner on the yaggui tab.
+  await page.getByRole('tab', { name: /^linux/ }).click();
+  await page.evaluate(() => window.__yagguiMock?.simulateOp(1, { stepMs: 10_000 }));
+  await expect(page.getByRole('tab', { name: /^yaggui/ })).toHaveAccessibleName(
+    /Fetch in progress/,
+  );
   await page.getByRole('tab', { name: /^linux/ }).hover();
   const tooltip = page.getByRole('tooltip');
   await expect(tooltip).toContainText('Rebase in progress');
@@ -220,5 +257,6 @@ test('workspace-scan-results', async ({ page }, testInfo) => {
   await dialog(page).getByRole('button', { name: 'Scan', exact: true }).click();
   await expect(dialog(page)).toContainText('7 repositories found, 5 new.', { timeout: 15_000 });
   await expect(dialog(page).getByRole('button', { name: 'Import 7 repositories' })).toBeVisible();
+  await page.mouse.move(0, 0);
   await capture(page, testInfo, 'workspace-scan-results', dialog(page));
 });

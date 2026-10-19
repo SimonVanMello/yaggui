@@ -28,7 +28,7 @@ This page lists every setting of the **Preferences** dialog, tab by tab. Each ro
 - On macOS, **yaggui › Preferences…**.
 - **Edit shortcuts…** in the keyboard shortcuts sheet opens it on the **Shortcuts** tab.
 
-"Changes apply immediately.": there is no Save or Cancel button, only **Close**. Text fields save when you press <kbd>Enter</kbd> or leave the field. If yaggui refuses a value, the setting goes back to its previous value and a toast "Could not save the preference" explains why. <kbd>Esc</kbd> closes the dialog, except during a shortcut capture, where it only cancels the capture.
+Changes apply immediately: there is no Save or Cancel button, only **Close**. Text fields save when you press <kbd>Enter</kbd> or leave the field. If yaggui refuses a value, the setting goes back to its previous value and a toast "Could not save the preference" explains why. <kbd>Esc</kbd> closes the dialog, except during a shortcut capture, where it only cancels the capture.
 
 ## Appearance
 
@@ -94,7 +94,7 @@ Not yaggui preferences: this tab edits Git's own configuration files with `git c
 
 | Label | Values | Default | Effect |
 |---|---|---|---|
-| **Fetch automatically** | On, off | On | Fetches every open repository in the background. See [Fetch, pull and push](../../remotes/fetch-pull-push/) |
+| **Fetch automatically** | On, off | On | Fetches all remotes in the background, for the active tab's repository and the two other most recently shown repository tabs (the ones yaggui keeps loaded). Skipped while an operation runs, and silent: no toast. See [Fetch, pull and push](../../remotes/fetch-pull-push/) |
 | **Every (minutes)** | 1 to 240 | 10 | Interval of the automatic fetch. Disabled when automatic fetch is off. Out-of-range values are clamped |
 | **Prune on fetch** | On, off | On | Adds `--prune` to every fetch: remote-tracking branches deleted on the remote are removed |
 | **Default pull strategy** | **Git configuration**, **Fast-forward only**, **Merge**, **Rebase** | **Git configuration** | Used when you pull without choosing. **Git configuration** follows `branch.<name>.rebase`, `pull.rebase` and `pull.ff`, and falls back to fast-forward only |
@@ -104,7 +104,7 @@ Not yaggui preferences: this tab edits Git's own configuration files with `git c
 | **Check now** | Button | | Checks for an update immediately |
 | **Version** | **What's new** button | | Shows the running version and opens the changelog |
 
-`release/*` matches `release/1.0` but not `release` itself. Up to 100 protected entries are allowed.
+Only a trailing `/*` is a wildcard: `release/*` matches `release/1.0` and `release/a/b`, but not `release` itself. Any other entry must match the branch name exactly. Entries cannot contain spaces, and up to 100 are allowed.
 
 ## Confirmations you can turn off
 
@@ -125,7 +125,8 @@ A turned-off confirmation runs the action at once. Other confirmations are alway
 |---|---|---|
 | Split or unified diff | The [diff view](../../everyday/diff/) toolbar, or <kbd>⌘D</kbd> (<kbd>Ctrl+D</kbd>) in a diff | Split |
 | Diff options (wrap lines, ignore whitespace, context lines, full file, Markdown preview) | The diff view toolbar | Off, 3 lines of context |
-| Theme | Palette: **Theme: follow the system**, **Theme: light**, **Theme: dark** | System |
+
+The palette commands **Theme: follow the system**, **Theme: light** and **Theme: dark** change the same **Theme** setting as the dialog.
 
 ## Where preferences are stored
 
@@ -141,7 +142,7 @@ The `YAGGUI_CONFIG_DIR` environment variable replaces this folder.
 
 - Shortcuts are stored separately in `keybindings.json`, in the same folder, which you can edit by hand. See [Edit keybindings.json](../../customize/palette-and-shortcuts/#edit-keybindingsjson).
 - Avatars are cached in the OS cache folder, not with the preferences.
-- An unreadable or out-of-range value falls back to its default. If the database cannot be opened, yaggui starts with the defaults and does not save changes.
+- An unreadable or out-of-range value falls back to its default. If the database cannot be opened, yaggui starts with the defaults and keeps changes in memory only: they are lost when you quit.
 - To reset every preference, quit yaggui and delete `yaggui.db`. This also forgets your repositories, tabs and workspaces. See [Data and privacy](../../reference/data-and-privacy/).
 
 There is no import or export of preferences yet.

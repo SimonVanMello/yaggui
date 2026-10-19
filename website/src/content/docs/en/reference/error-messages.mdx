@@ -31,7 +31,6 @@ Each error can have:
 
 - **Details**: a collapsed section with the raw technical text, usually what Git printed on stderr. Expand it to see Git's exact words; select the text to copy it.
 - **An action button**: the fix yaggui can run for you. The labels are listed below.
-- **Open command log**: opens the [command log](../../reference/command-log/), switches its filter to **All** if needed, and expands and highlights the last failed command, with its full output.
 
 An error that is not one of yaggui's typed errors (a bug in the interface) shows a toast titled "Something went wrong", with the technical text under **Details**. Please [report it](../../help/troubleshooting/#report-a-bug).
 
@@ -41,7 +40,7 @@ An error that is not one of yaggui's typed errors (a bug in the interface) shows
 |---|---|
 | **Retry** | Runs the failed action again. |
 | **Refresh** | Reloads the data (file list, diff, branches) and runs the action again. |
-| **Open command log** | Opens the command log on the last failed command. |
+| **Open command log** | Opens the [command log](../../reference/command-log/), switches its filter to **All** if needed, and expands and highlights the last failed command with its full output. |
 | **Trust this folder…** | Asks for confirmation, then runs `git config --global --add safe.directory <path>` and opens the repository again. See [Repository won't open](../../help/troubleshooting/#the-repository-belongs-to-another-user). |
 | **Remove the lock…** | Asks for confirmation, then deletes the stale `index.lock`. See [Another Git process is using this repository](../../help/troubleshooting/#another-git-process-is-using-this-repository). |
 | **How to install Git** | Explains how to install Git 2.30 or later. |
@@ -81,7 +80,7 @@ yaggui recognizes Git's own errors by their English text (it runs Git with `LC_A
 |---|---|---|---|
 | \{path\} changed since its diff was shown. Refresh and select again. | You staged, unstaged or discarded hunks or lines of a file that changed on disk after the diff was displayed. The staging view shows "The file changed" and refreshes the diff. | Select the lines again in the refreshed diff. Button: **Refresh**. | <small>staleDiff</small> |
 | \{path\} changed on disk since it was opened. | You edited a file in the diff, and it changed on disk before you saved. The editor shows "\{path\} changed on disk while you were editing it." | Use **Reload from disk**, then redo your edit. Nothing was overwritten. | <small>fileChanged</small> |
-| "\{path\}" cannot be edited here: it is not UTF-8 text. (also: it is binary, it mixes LF and CRLF line endings) | You tried to edit a file in the diff that yaggui cannot edit safely. | Edit it in your editor. | <small>invalidArgument</small> |
+| "\{path\}" cannot be edited here: it is not UTF-8 text. (other endings: it was deleted, it is not a regular file, it is stored with Git LFS, it is too large, it is binary, it mixes LF and CRLF line endings) | You tried to edit a file in the diff that yaggui cannot edit safely. | Edit it in your editor. | <small>invalidArgument</small> |
 | Lines cannot be staged or discarded while whitespace is ignored. | Line staging was attempted while the diff hides whitespace changes. | Turn off the whitespace option in the [diff](../../everyday/diff/). | <small>invalidArgument</small> |
 | Nothing to stash: you have no local changes. | You stashed with a clean working tree. | Nothing to do. | <small>nothingToStash</small> |
 | The stash conflicts with your files. Resolve the conflicts; the stash is kept, drop it once you are done. | Applying or popping a stash produced conflicts. The **The stash conflicts** dialog lists the files. | Resolve the files, then drop the stash yourself. See [Stash](../../everyday/stash/). | <small>stashConflict</small> |
@@ -132,9 +131,9 @@ yaggui recognizes Git's own errors by their English text (it runs Git with `LC_A
 | Some files are still in conflict: resolve them (and stage them) first. | You continued or committed with unresolved files. | Resolve and stage every conflicted file. Button: **Show conflicts**. | <small>unresolvedConflicts</small> |
 | Your local changes would be overwritten by the \{merge, rebase, cherry-pick, revert or reset\}. Commit or stash them first. | Local changes are in the way of the operation. The toast lists the first files. | Commit or stash them, then retry. Button: **Show changes**. | <small>dirtyWorktree</small> |
 | Another operation (merge, rebase, cherry-pick, revert or bisect) is in progress: continue or abort it first. | You started an operation while another one is unfinished. | Continue, skip or abort it from the banner above the graph. | <small>operationInProgress</small> |
-| No merge, rebase, cherry-pick or revert is in progress. | You clicked Continue, Skip or Abort but the operation already ended (for example in a terminal). | Nothing to do. Button: **Refresh**. | <small>noOperation</small> |
+| No merge, rebase, cherry-pick or revert is in progress. | You clicked Continue, Skip or Abort but the operation already ended (for example in a terminal). | Nothing to do. | <small>noOperation</small> |
 | \{short\} is a merge commit: choose which parent's side to keep. | You cherry-picked or reverted a merge commit. | Choose the parent in the dialog that opens. See [Cherry-pick, revert and reset](../../history/cherry-pick-revert-reset/). | <small>mainlineRequired</small> |
-| \{short\} brings no change any more (it is probably already applied): skip it. | The commit being applied is already in the branch. | Button: **Skip**. | <small>emptyCommit</small> |
+| \{short\} brings no change any more (it is probably already applied): skip it. (or: This commit brings no change any more…) | The commit being applied is already in the branch. | Button: **Skip**. | <small>emptyCommit</small> |
 | The branches have diverged: "\{name\}" cannot be fast-forwarded. Merge with a merge commit, or rebase. | You asked for a fast-forward-only merge of diverged branches. | Button: **Merge instead…**, or rebase. | <small>notFastForward</small> |
 | The commits to rebase include merges: yaggui does not rebuild them. Choose a base after the last merge. | An interactive rebase range contains merge commits. | Pick a more recent base. See [Interactive rebase](../../history/interactive-rebase/). | <small>invalidArgument</small> |
 | More than 200 commits to rebase: choose a more recent base. | The interactive rebase range is too long. | Pick a more recent base. | <small>invalidArgument</small> |
@@ -190,7 +189,7 @@ yaggui recognizes Git's own errors by their English text (it runs Git with `LC_A
 | No application could open the file. Choose an editor in the preferences. | No editor is configured and the system has no default for the file. | Choose an editor in **Preferences → Tools**. | <small>editorNotFound</small> |
 | The file manager could not open the repository folder. | Opening the repository folder in the file manager failed. | Open the folder by hand. | <small>fileManagerFailed</small> |
 | Automatic refresh is unavailable for this repository (the system limit on watched files may be reached). Changes made outside yaggui will show after a manual refresh. | yaggui could not watch the repository folder. Shown as the **Automatic refresh unavailable** banner. | Click **Refresh** after outside changes. On Linux, [raise the inotify limit](../../help/troubleshooting/#changes-made-outside-yaggui-dont-show). | <small>watchUnavailable</small> |
-| Could not check for updates. | The update check could not read the latest release (offline, GitHub unreachable). | Try again later. Button: **Retry** on a manual check. See [Updates](../../start-here/updates/). | <small>updateCheckFailed</small> |
+| Could not check for updates. | The update check could not read the latest release (offline, GitHub unreachable). | Try again later. No button. See [Updates](../../start-here/updates/). | <small>updateCheckFailed</small> |
 | The update could not be installed. | Downloading, verifying or installing the update failed. **Details** says why. | Button: **Retry**, or download the release by hand. | <small>updateInstallFailed</small> |
 | The avatar could not be downloaded. | A Gravatar picture could not be fetched. Not shown as a toast: the author's initials stay. | Nothing to do. | <small>avatarUnavailable</small> |
 

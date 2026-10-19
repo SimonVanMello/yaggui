@@ -22,7 +22,7 @@ import Screenshot from '../../../../components/Screenshot.astro';
 
 These actions work on commits you select in the graph: copy them onto a branch (cherry-pick), create a commit that undoes one (revert), move the current branch to a commit (reset), or check a commit out without a branch.
 
-Most of them start from the commit context menu: right-click a row in the graph, or press <kbd>Shift+F10</kbd> or the context-menu key on the selected row. While a merge, rebase, cherry-pick or revert is in progress, these items are disabled (**Finish or abort the operation in progress first**).
+Most of them start from the commit context menu: right-click a row in the graph, or press <kbd>Shift+F10</kbd> or the context-menu key on the selected row. While a merge, rebase, cherry-pick or revert is in progress, the cherry-pick, revert and reset items are disabled (**Finish or abort the operation in progress first**).
 
 ## Cherry-pick commits
 
@@ -140,7 +140,7 @@ If local changes are in the way, the checkout dialog opens: see [Branches](../..
 | "\{short\} is a merge commit: choose which parent's side to keep." | yaggui opens the parent dialog |
 | "Parent \{n\} does not exist for \{short\}." | Choose an existing parent |
 | "There is no commit to apply them on yet." | The repository has no commit: make a first commit |
-| "Your local changes would be overwritten by the cherry-pick. Commit or stash them first." (same for revert and reset) | Commit or [stash](../../everyday/stash/) them. **Show changes** in the toast opens them |
+| "Your local changes would be overwritten by the cherry-pick. Commit or stash them first." (same for revert) | Commit or [stash](../../everyday/stash/) them. **Show changes** in the toast opens them |
 | "Another operation (merge, rebase, cherry-pick, revert or bisect) is in progress: continue or abort it first." | Finish it from the banner |
 
 When Git stops on conflicts, the cherry-pick or revert stays in progress: resolve the files, then **Continue**, **Skip** or **Abort**. See [Resolve conflicts](../../history/conflicts/). Other messages are in [Error messages](../../reference/error-messages/).

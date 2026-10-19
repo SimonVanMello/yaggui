@@ -20,7 +20,7 @@ A workspace is a named group of repositories, for example "Client X" or "Persona
 
 ## What a workspace is
 
-A workspace is a name and an ordered list of repositories that yaggui already knows: the same list as the favorites and recent repositories of the welcome screen. A repository can belong to several workspaces. Workspaces live in yaggui's database (see [Data and privacy](../../reference/data-and-privacy/)); they write nothing in your repositories, run no Git command, and cannot be undone.
+A workspace is a name and an ordered list of repositories that yaggui already knows: the same list as the favorites and recent repositories of the welcome screen. A repository can belong to several workspaces. Workspaces live in yaggui's database (see [Data and privacy](../../reference/data-and-privacy/)). Creating, editing or deleting one writes nothing in your repositories, runs no Git command, and cannot be undone.
 
 You reach workspaces from:
 
@@ -73,7 +73,7 @@ Click the list icon of a workspace card (**Overview of `<name>`**), or select th
 | **Changes** | **Clean**, "6 changes", or "1 conflict" in red. |
 | **Last fetch** | Time of the last fetch (from `FETCH_HEAD`), **Never**, **Fetching…** during a fetch, or **Failed** with the error in its tooltip. |
 
-Each row also has an open button and a remove button. A row reads **Reading…** while loading, and shows the error if the repository cannot be read. The overview reads repositories without running Git. Rows of repositories open in tabs update live; the others refresh when you reopen the dialog.
+Each row also has an open button and a remove button. A row reads **Reading…** while loading, and shows the error if the repository cannot be read. The overview reads repositories without running Git. Rows of repositories open in tabs update live; the others are read again when you reopen the dialog, at most every 15 seconds.
 
 <Screenshot name="workspace-overview" alt="Overview of the Personal workspace: branch, sync, changes and last fetch per repository, and a Folder not found row" />
 
@@ -100,7 +100,7 @@ Use **Scan a folder…** on the welcome screen, in the **Workspaces** dialog or 
 3. Click **Scan**. The dialog shows the repositories found and the folders explored. **Stop the scan** stops it.
 4. Review the results. Every repository found is checked; repositories yaggui already knows carry **Already known**. Use **Select all** / **Select none** to change the selection.
 5. Choose where to **Add to**: **No workspace**, an existing workspace, or **New workspace…** (then type its name).
-6. Click **Import**.
+6. Click **Import**. The button shows how many repositories are selected, as in **Import 4 repositories**.
 
 The scan reads only the file system: it skips `.git` and `node_modules` folders, does not follow symbolic links, does not look for repositories nested inside another repository, and ignores bare repositories. It stops at 2000 repositories; if it reaches that limit, choose a smaller folder or depth.
 
@@ -118,13 +118,13 @@ Scan errors:
 
 ## Moved or deleted repositories
 
-When a repository's folder no longer exists, yaggui marks it **Folder not found** on the welcome screen and in workspace overviews (also when the folder exists but no longer holds a repository). **Open all** skips it.
+When a repository's folder no longer exists, yaggui marks it **Folder not found** on the welcome screen and in workspace overviews, and **Open all** skips it. In an overview, a folder that still exists but no longer holds a repository is marked the same way; **Open all** tries to open it and reports it in its error toast.
 
 Click the repository on the welcome screen, or **Locate…** in its overview row. The dialog **`<name>` was moved or deleted** offers:
 
 - **Locate…**: pick the repository's new folder. It must be the root of the repository, not a subfolder. yaggui updates the path and name, reopens its tabs, and shows "`<name>` located". If that folder is already known, the two entries merge, keeping favorites and workspace memberships.
 - **Remove from `<workspace>`** (when opened from a workspace): removes it from that workspace only.
-- **Remove from yaggui**: forgets the repository everywhere (recents, favorites, all workspaces) and closes its terminals. Its tabs become welcome tabs.
+- **Remove from yaggui**: forgets the repository everywhere (recents, favorites, all workspaces) and closes its integrated terminals.
 
 Removing never deletes files: only yaggui's list changes. Neither action can be undone.
 

@@ -99,7 +99,7 @@ Redo re-applies the operation you last undid. Undo several operations, then redo
 
 - The history is kept in memory for the repository, for this session only. It is lost when you close the last tab of that repository or quit yaggui.
 - It holds the last 100 operations; older ones are dropped.
-- Undo needs a quiet repository: while a merge, rebase, cherry-pick, revert or bisect is in progress, or files are in conflict, undo of an operation that moves branches is refused ("Another operation (merge, rebase, cherry-pick, revert or bisect) is in progress: continue or abort it first.").
+- Undo needs a quiet repository: while a merge, rebase, cherry-pick, revert or bisect is in progress, undo and redo are refused ("Another operation (merge, rebase, cherry-pick, revert or bisect) is in progress: continue or abort it first."), and while files are in conflict too ("Some files are still in conflict: resolve them (and stage them) first."). Discards, stashes of selected files, `.gitignore` and LFS tracking changes, stash drops and remote changes can still be undone meanwhile.
 - yaggui does not detect a push made from a terminal: if you push from a terminal and then undo a commit, only your local branch moves.
 
 ## When the repository changed outside yaggui

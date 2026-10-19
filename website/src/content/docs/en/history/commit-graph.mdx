@@ -32,20 +32,20 @@ The **Graph** column draws one lane per line of history, with 8 colors that repe
 
 ### Columns
 
-| Column | Shows | Default width | Can be hidden |
-|---|---|---|---|
-| **Graph** | Lanes and commit dots | Fits the number of lanes | No |
-| **Commit message** | Ref labels, signature lock, then the commit summary | All remaining width | No |
-| **Author** | Avatar and name; hover for `Name <email>` | 140 px | Yes |
-| **Date** | Relative date; hover for the full date and time | 124 px | Yes |
-| **SHA** | First 7 characters of the commit hash | 76 px | Yes |
+| Column | Shows | Can be hidden |
+|---|---|---|
+| **Graph** | Lanes and commit dots; its width fits the number of lanes until you resize it | No |
+| **Commit message** | Ref labels, signature lock, then the commit summary; takes the remaining width | No |
+| **Author** | Avatar and name; hover for `Name <email>` | Yes |
+| **Date** | Relative date; hover for the full date and time | Yes |
+| **SHA** | First 7 characters of the commit hash | Yes |
 
 To change the columns:
 
-- **Resize**: drag the handle on the right edge of a column header. With the handle focused, <kbd>←</kbd> and <kbd>→</kbd> resize by 8 px. Double-click the **Graph** handle to return to the automatic width. Below 64 px, the **Author** column shows the avatar only.
+- **Resize**: drag the handle on the right edge of a column header. With the handle focused, <kbd>←</kbd> and <kbd>→</kbd> resize it. Double-click the **Graph** handle to return to the automatic width. A narrow **Author** column shows the avatar only.
 - **Hide or show**: right-click the header row and toggle **Author**, **Date** or **SHA**. A checkmark marks the visible ones.
 
-When the window is too narrow for the message to keep 160 px, yaggui hides side columns temporarily (Date first, then Author, then SHA). Your saved layout is not changed and the columns come back when there is room. Widths and hidden columns are saved per tab.
+When the window is too narrow for the message column, yaggui hides side columns temporarily (Date first, then Author, then SHA). Your saved layout is not changed and the columns come back when there is room. Widths and hidden columns are saved per tab.
 
 Row height follows the **Density** preference (Comfortable or Compact), see [Preferences](../../reference/preferences/).
 
@@ -66,7 +66,7 @@ Labels in the message column show which refs point at a commit:
 | Remote branch | Cloud |
 | Tag | Tag |
 | Stash (`stash@{n}`) | Stash, placed on the commit the stash was made from |
-| Detached HEAD | Colored dot |
+| Detached HEAD | Dot |
 
 A local branch and a remote branch on the same commit share one label when the remote branch is the local branch's upstream, or has the same short name (`origin/feat/x` and `feat/x`). The label then carries an extra cloud icon named after the remote.
 
@@ -90,7 +90,7 @@ To show Gravatar pictures, turn on **Gravatar avatars** in Preferences > Appeara
 |---|---|
 | Click a row | Selects the commit and shows its details on the right |
 | <kbd>⌘</kbd>-click (<kbd>Ctrl</kbd>-click on Windows and Linux) | Adds or removes the commit from the selection |
-| <kbd>⇧</kbd>-click | Selects the range from the last clicked commit (up to 1000 rows) |
+| <kbd>⇧</kbd>-click | Selects the range from the last clicked commit (up to 1,000 rows) |
 | <kbd>⌘⇧</kbd>-click (<kbd>Ctrl+Shift</kbd>-click on Windows and Linux) | Adds a range to the current selection |
 
 With the graph focused:
@@ -106,7 +106,7 @@ With the graph focused:
 | <kbd>⌘⇧C</kbd> (<kbd>Ctrl+Shift+C</kbd> on Windows and Linux) | Copy the commit summary |
 | Context menu key or <kbd>⇧F10</kbd> | Open the commit context menu |
 
-<kbd>Enter</kbd> does nothing in the graph. The selection is kept while the repository is open but is not saved when you close it. Shortcuts are defaults and can be changed, see [Palette and shortcuts](../../customize/palette-and-shortcuts/).
+The selection is kept while the repository is open but is not saved when you close it. Shortcuts are defaults and can be changed, see [Palette and shortcuts](../../customize/palette-and-shortcuts/).
 
 ### The selection bar
 
@@ -148,11 +148,11 @@ Git calls `gpg`, `gpgsm` or `ssh-keygen` according to your configuration ([`gpg.
 | Badge | Meaning |
 |---|---|
 | Verified (GPG) | Good signature from a trusted key |
-| Signed, not verified (GPG) | Signature present, but the key is unknown or not trusted |
+| Signed, not verified (GPG) | Signature present, but the key is unknown, not trusted, or there is nothing to check it with (for SSH, no `gpg.ssh.allowedSignersFile`) |
 | Signed, key expired (GPG) | The signature or the key has expired |
 | Signed, key revoked (GPG) | The key was revoked |
 | Invalid signature (GPG) | The signature does not match the commit |
-| Signed (GPG) | The check itself failed (for example, `gpg` is not installed) |
+| Signed (GPG) | The check could not run (Git returned an error) |
 
 Hover the badge for the signer, the key and Git's explanation. Results are cached until the app restarts. To sign your own commits, see [Committing](../../everyday/committing/).
 
@@ -164,7 +164,7 @@ Right-click a commit, or press the context menu key or <kbd>⇧F10</kbd> on the 
 
 | Item | Available | What it does |
 |---|---|---|
-| **Checkout this commit** | Always | Detaches HEAD at the commit (`git switch --detach <sha>`), with no warning dialog. Toast: "HEAD is now detached at *abc1234*". See [Check out a commit](../branches/#check-out-a-commit-or-a-remote-branch). |
+| **Checkout this commit** | Always | Detaches HEAD at the commit (`git switch --detach <sha>`), without confirmation; if local changes are in the way, the local changes dialog opens first. Toast: "HEAD is now detached at *abc1234*". See [Check out a commit](../branches/#check-out-a-commit-or-a-remote-branch). |
 | **Create branch here…** | Always | [Create a branch](../branches/#create-a-branch) starting at the commit |
 | **Create tag here…** | Always | [Create a tag](../tags/#create-a-tag) on the commit |
 | **Cherry-pick onto *branch*** | No operation in progress | [Cherry-pick](../cherry-pick-revert-reset/) the commit onto the checked-out branch |
@@ -206,7 +206,7 @@ Click **More filters** to add criteria:
 | **Since** | Author date on or after that day (from 00:00 local time) |
 | **Until** | Author date on or before that day (until 23:59:59 local time) |
 
-All filled criteria must match. Matching ignores case.
+All filled criteria must match. The main field and **Author** ignore case; **File or folder** does not.
 
 The search highlights matching commits but does not hide the others. The counter shows "3 / 42" (current result / total), "Searching…", "No result" or "Search failed". The first result at or below the selected commit is selected and centered.
 
@@ -244,7 +244,7 @@ Filters are saved per repository and survive a restart. If saving fails, a toast
 
 | To | How |
 |---|---|
-| HEAD | <kbd>⌘⇧H</kbd> (<kbd>Ctrl+Shift+H</kbd> on Windows and Linux), or click the current branch in the toolbar's [branch selector](../branches/#switch-branches-from-the-toolbar) |
+| HEAD | <kbd>⌘⇧H</kbd> (<kbd>Ctrl+Shift+H</kbd> on Windows and Linux), or pick the current branch in the toolbar's [branch selector](../branches/#switch-branches-from-the-toolbar) |
 | A branch or tag | Click it in the sidebar, or type `@` and its name in the command palette (<kbd>⌘K</kbd>, <kbd>Ctrl+K</kbd> on Windows and Linux) |
 | A parent | Click a short SHA under **Parents** in the commit details |
 | The merge-base of two commits | Select two commits, then **Merge-base** in the selection bar, **Go to their merge-base** in the context menu, or the palette action **Go to the merge-base of the 2 selected commits** |
@@ -261,9 +261,9 @@ The commit is selected and centered. For a merge-base, you may see:
 
 The graph loads in pages of 500 rows as you scroll. Rows not loaded yet show as grey placeholders. For very long histories, the scrollbar is proportional rather than exact.
 
-The first time you open a large repository without a commit-graph file, yaggui reads the history in the background. The rows already shown are final, and a status at the bottom of the graph reads "Reading the history… 120,000 commits" while the count grows. Some very old commits may be placed by date until the walk is done.
+The first time you open a large repository without a commit-graph file, yaggui reads the history in the background. The rows already shown are final, and a status at the bottom of the graph reads "Reading the history… 120,000 commits" while the count grows.
 
-When the repository has no commit-graph file, or it is far behind, yaggui writes one in the background so the next openings are fast (unless [`core.commitGraph`](https://git-scm.com/docs/git-config#Documentation/git-config.txt-corecommitGraph) is `false`):
+When the repository has no commit-graph file, or it is far behind, yaggui writes one in the background so the next openings are fast (not for shallow clones, nor when [`core.commitGraph`](https://git-scm.com/docs/git-config#Documentation/git-config.txt-corecommitGraph) is `false`):
 
 ```bash
 git commit-graph write --reachable --changed-paths --no-progress

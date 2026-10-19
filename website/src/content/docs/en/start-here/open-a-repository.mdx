@@ -59,7 +59,7 @@ Click a row, or highlight it and press <kbd>Enter</kbd>, to open it in this tab.
 Hover a row to show its buttons:
 
 - The star, **Add to favorites** or **Remove from favorites**, moves the repository to or from **Favorites**.
-- **×**, **Remove from recents**, removes the repository from yaggui's list at once, without confirmation. The folder on disk is not touched. It also closes the repository's integrated terminals. To bring it back, open the folder again.
+- **×**, **Remove from recents**, removes the repository from yaggui's list, and from every workspace that contains it, at once and without confirmation. The folder on disk is not touched. It also closes the repository's integrated terminals. To bring it back, open the folder again.
 
 ## Open an existing repository
 
@@ -90,7 +90,7 @@ yaggui /home/me/projects/website
 
 Give an absolute path. To open the current folder, use `yaggui "$PWD"` (on Windows, `yaggui "%CD%"` in Command Prompt). A relative path such as `yaggui .` fails with "Expected an absolute folder path".
 
-The path is read only when yaggui starts. If yaggui is already running, the command starts a second yaggui window.
+The path is read only when yaggui starts. If yaggui is already running, the command starts a second, separate instance of yaggui.
 
 Where the `yaggui` command lives depends on how you installed it: `/usr/bin/yaggui` for the `.deb`, `.rpm` and AUR packages, `/Applications/yaggui.app/Contents/MacOS/yaggui` on macOS, and the installation folder on Windows.
 
@@ -135,8 +135,8 @@ yaggui never asks for a password. HTTPS credentials come from your Git credentia
 
 When you click **Clone**, empty or invalid fields turn red and nothing starts:
 
-- **Repository address** and **Clone into** are required.
-- **Folder name** cannot contain `/` or `\`: "The folder name cannot contain / or \\."
+- **Repository address**, **Clone into** and **Folder name** are required.
+- **Folder name** cannot be `.` or `..`, nor contain `/` or `\`: "The folder name cannot contain / or \\."
 - **Depth (commits)** must be a whole number from 1 to 1,000,000: "The depth must be a whole number, 1 or more."
 - **Branch (optional)** is checked with `git check-ref-format --branch` before the clone starts.
 
@@ -215,7 +215,7 @@ When a known repository's folder is gone, its welcome-screen row shows **Folder 
 - **Remove from yaggui** removes it from the list. Removing never deletes files: only yaggui's list changes.
 - **Cancel** closes the dialog.
 
-A tab restored at startup for a repository that cannot be opened shows **Could not open \<name\>**, with **Retry**, **Locate…**, **Remove from recents** and **Close tab**.
+A tab restored at startup for a repository that cannot be opened shows **Could not open \<name\>**, with **Retry** and **Close tab**. When the folder is gone, it also offers **Locate…** and **Remove from recents** (which also closes the tab).
 
 ## Trust a folder owned by another user
 
@@ -234,14 +234,14 @@ Git refuses to work in a repository that belongs to another user account, for ex
 Only trust folders you know. Git hooks in a trusted repository run with your account's permissions when yaggui runs Git there.
 :::
 
-This cannot be turned off in the preferences and cannot be undone from yaggui. To revoke it, remove the `safe.directory` line from your global Git configuration, for example with `git config --global --unset safe.directory <path>`. See [safe.directory](https://git-scm.com/docs/git-config#Documentation/git-config.txt-safedirectory) in the Git documentation.
+This cannot be undone from yaggui. To revoke it, remove the `safe.directory` line from your global Git configuration, for example with `git config --global --unset safe.directory <path>`. See [safe.directory](https://git-scm.com/docs/git-config#Documentation/git-config.txt-safedirectory) in the Git documentation.
 
 ## What happens when a repository opens
 
-- A spinner and **Opening \<name\>…** show while yaggui reads the repository. Reading uses no Git process, so nothing appears in the command log, except `git rev-parse --git-dir` when yaggui checks the ownership of a folder owned by someone else.
+- A spinner and **Opening \<name\>…** show while yaggui reads the repository. yaggui reads it directly, without a `git` process, except `git rev-parse --git-dir` when the folder belongs to another user.
 - The repository moves to the top of **Recent**.
 - yaggui starts watching the folder, so changes made outside yaggui (an editor, a terminal) show up on their own. If the system cannot watch it, for example because the Linux limit on watched files is reached, the repository still opens with the **Automatic refresh unavailable** banner and a **Refresh** button. See [Troubleshooting](../../help/troubleshooting/).
-- If the repository's commit-graph file is missing or out of date, yaggui writes it in the background to speed up the graph:
+- If the repository's commit-graph file is missing 1,000 or more reachable commits, yaggui rewrites it in the background to speed up the graph (not in shallow clones, nor when `core.commitGraph` is `false`):
 
   ```bash
   git commit-graph write --reachable --changed-paths --no-progress

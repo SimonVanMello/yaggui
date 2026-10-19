@@ -13,8 +13,7 @@ const banner = (page: Page) => page.getByRole('status', { name: 'Operation in pr
 const conflictsPanel = (page: Page) => page.getByRole('region', { name: 'Conflicts' });
 
 /** The local branch row (a remote branch of the same name comes later in the tree). */
-const branchRow = (page: Page, name: RegExp) =>
-  tree(page).getByRole('treeitem', { name }).first();
+const branchRow = (page: Page, name: RegExp) => tree(page).getByRole('treeitem', { name }).first();
 
 async function openYaggui(page: Page) {
   await start(page);
@@ -28,15 +27,33 @@ async function palette(page: Page, query: string) {
   await page.keyboard.press('Enter');
 }
 
-/** Captures the smallest rectangle around all `targets` (plus the helper's margin). */
-async function captureUnion(page: Page, testInfo: TestInfo, name: string, targets: Locator[]) {
+interface Edges {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}
+
+/**
+ * Captures the smallest rectangle around all `targets` (plus the helper's margin), through an
+ * invisible fixed element; `adjust` can move its edges (e.g. to keep a neighbouring panel out).
+ */
+async function captureUnion(
+  page: Page,
+  testInfo: TestInfo,
+  name: string,
+  targets: Locator[],
+  adjust: (edges: Edges) => Edges = (edges) => edges,
+) {
   const boxes = await Promise.all(targets.map((target) => target.boundingBox()));
   const visible = boxes.filter((box) => box !== null);
   if (visible.length === 0) throw new Error(`${name}: no crop target is visible`);
-  const left = Math.min(...visible.map((b) => b.x));
-  const top = Math.min(...visible.map((b) => b.y));
-  const right = Math.max(...visible.map((b) => b.x + b.width));
-  const bottom = Math.max(...visible.map((b) => b.y + b.height));
+  const { left, top, right, bottom } = adjust({
+    left: Math.min(...visible.map((b) => b.x)),
+    top: Math.min(...visible.map((b) => b.y)),
+    right: Math.max(...visible.map((b) => b.x + b.width)),
+    bottom: Math.max(...visible.map((b) => b.y + b.height)),
+  });
   const frame = page.locator('#docs-screenshot-frame');
   await page.evaluate(
     ({ x, y, w, h }) => {
@@ -81,6 +98,12 @@ async function openConflict(page: Page, path: string) {
   await expect(page.locator(`[data-view="conflict:${path}"]`)).toBeVisible();
 }
 
+async function collapse(page: Page, item: Locator) {
+  await item.click();
+  if ((await item.getAttribute('aria-expanded')) === 'true') await page.keyboard.press('ArrowLeft');
+  await expect(item).toHaveAttribute('aria-expanded', 'false');
+}
+
 async function createBranch(page: Page, name: string) {
   await toolbar(page).getByRole('button', { name: 'Branch', exact: true }).click();
   const dialog = page.getByRole('dialog');
@@ -114,7 +137,19 @@ test('graph-commit-details', async ({ page }, testInfo) => {
 
 test('sidebar-refs', async ({ page }, testInfo) => {
   await openYaggui(page);
-  await tree(page).getByRole('treeitem', { name: /^Tags/ }).click();
+  // Fold the local `refactor/` folder and the `origin` remote so every section fits.
+  await collapse(
+    page,
+    tree(page)
+      .getByRole('treeitem', { name: /^refactor\b/ })
+      .first(),
+  );
+  await collapse(
+    page,
+    tree(page)
+      .getByRole('treeitem', { name: /^origin\b/ })
+      .first(),
+  );
   await page.mouse.move(0, 0);
   await capture(
     page,
@@ -137,6 +172,7 @@ test('branch-cleanup', async ({ page }, testInfo) => {
   await palette(page, 'Clean up merged');
   const dialog = page.getByRole('dialog', { name: 'Clean up branches' });
   await expect(dialog).toContainText('Checked out, left alone: feat/graph-lanes');
+  await page.mouse.move(0, 0);
   await capture(page, testInfo, 'branch-cleanup', dialog);
 });
 
@@ -171,7 +207,8 @@ test('compare-branches-dialog', async ({ page }, testInfo) => {
 
 test('compare-panel', async ({ page }, testInfo) => {
   await openYaggui(page);
-  await branchRow(page, /^main\b/).click({ button: 'right' });
+  // Few commits on one side, more on the other: both "Only in" sections show.
+  await branchRow(page, /^watcher-39\b/).click({ button: 'right' });
   await page.getByRole('menuitem', { name: 'Compare with feat/graph-lanes' }).click();
   const panel = page.getByRole('region', { name: 'Comparison' });
   await expect(panel).toContainText('Merge-base:');
@@ -192,7 +229,14 @@ test('history-drop-menu', async ({ page }, testInfo) => {
   await page.mouse.up();
   const menu = page.getByRole('menu');
   await expect(menu.getByRole('menuitem', { name: /Merge develop into main/ })).toBeVisible();
-  await captureUnion(page, testInfo, 'history-drop-menu', [menu, tree(page)]);
+  // The tree is aria-hidden behind the menu: reach it by its role attribute.
+  await captureUnion(
+    page,
+    testInfo,
+    'history-drop-menu',
+    [menu, page.locator('[role="tree"]')],
+    (edges) => ({ ...edges, bottom: Math.min(edges.bottom, box.y + 260) }),
+  );
 });
 
 test('history-merge-dialog', async ({ page }, testInfo) => {
@@ -213,11 +257,14 @@ test('history-selection-bar', async ({ page }, testInfo) => {
   const selection = page.getByRole('region', { name: 'Selection' });
   await expect(selection).toContainText('4 commits selected');
   await page.mouse.move(0, 0);
-  await captureUnion(page, testInfo, 'history-selection-bar', [
-    graphRow(page, 0),
-    graphRow(page, 12),
-    selection,
-  ]);
+  await captureUnion(
+    page,
+    testInfo,
+    'history-selection-bar',
+    [graph(page).getByText('Work in progress'), graphRow(page, 0), selection],
+    // Keep the sidebar out of the left margin.
+    (edges) => ({ ...edges, left: edges.left + 12 }),
+  );
 });
 
 test('history-parent-dialog', async ({ page }, testInfo) => {
@@ -233,16 +280,6 @@ test('history-parent-dialog', async ({ page }, testInfo) => {
   await expect(dialog.getByRole('radio', { name: /Parent 1/ })).toBeChecked();
   await expect(dialog.getByText('Reading the merge…')).toHaveCount(0);
   await capture(page, testInfo, 'history-parent-dialog', dialog);
-});
-
-test('history-reset-hard', async ({ page }, testInfo) => {
-  await openYaggui(page);
-  await graphRow(page, 3).click({ button: 'right' });
-  await page.getByRole('menuitem', { name: /^Reset .* to here/ }).hover();
-  await page.getByRole('menuitem', { name: /^Hard/ }).click();
-  const dialog = page.getByRole('dialog');
-  await expect(dialog.getByRole('list', { name: /lose their local content/ })).toBeVisible();
-  await capture(page, testInfo, 'history-reset-hard', dialog);
 });
 
 test('rebase-todo', async ({ page }, testInfo) => {
@@ -272,14 +309,6 @@ test('conflicts-banner', async ({ page }, testInfo) => {
   await capture(page, testInfo, 'conflicts-banner', banner(page));
 });
 
-test('conflicts-panel', async ({ page }, testInfo) => {
-  await stopOn(page, 'merge');
-  await page.getByRole('button', { name: 'Show conflicts' }).first().click();
-  await expect(conflictsPanel(page)).toContainText('4 unresolved of 4');
-  await page.mouse.move(0, 0);
-  await capture(page, testInfo, 'conflicts-panel', conflictsPanel(page));
-});
-
 test('conflicts-merge-editor', async ({ page }, testInfo) => {
   await stopOn(page, 'merge');
   await openConflict(page, 'src/app/App.tsx');
@@ -297,12 +326,19 @@ test('conflicts-choice-binary', async ({ page }, testInfo) => {
   await openConflict(page, 'assets/logo.png');
   await expect(page.getByRole('img', { name: 'Preview of assets/logo.png' })).toHaveCount(2);
   await page.mouse.move(0, 0);
-  await capture(
-    page,
-    testInfo,
-    'conflicts-choice-binary',
-    page.getByRole('region', { name: 'Conflict in assets/logo.png' }),
-  );
+  const view = page.getByRole('region', { name: 'Conflict in assets/logo.png' });
+  const button = await view
+    .getByRole('button', { name: /version$/ })
+    .last()
+    .boundingBox();
+  if (!button) throw new Error('no take button');
+  // The view is taller than its content: stop just below the cards.
+  await captureUnion(page, testInfo, 'conflicts-choice-binary', [view], (edges) => ({
+    left: edges.left + 12,
+    top: edges.top + 12,
+    right: edges.right - 12,
+    bottom: button.y + button.height + 24,
+  }));
 });
 
 test('undo-history', async ({ page }, testInfo) => {
@@ -310,7 +346,9 @@ test('undo-history', async ({ page }, testInfo) => {
   await createBranch(page, 'qa-undo-1');
   await createBranch(page, 'qa-undo-2');
   await page.keyboard.press('Control+z');
-  await expect(page.getByText('Undone: creation of branch qa-undo-2', { exact: true })).toBeVisible();
+  await expect(
+    page.getByText('Undone: creation of branch qa-undo-2', { exact: true }),
+  ).toBeVisible();
   await toolbar(page).getByRole('button', { name: 'Operation history' }).click();
   const history = page.getByRole('region', { name: 'Session history' });
   await expect(history.getByRole('listitem')).toHaveCount(2);
@@ -319,4 +357,32 @@ test('undo-history', async ({ page }, testInfo) => {
     toolbar(page).getByRole('button', { name: /^(Undo|Cannot)/ }),
     toolbar(page).getByRole('button', { name: /^Redo/ }),
   ]);
+});
+
+/** Taller window: these views do not fit 800 px. */
+test.describe(() => {
+  test.use({ viewport: { width: 1280, height: 1000 } });
+
+  test('history-reset-hard', async ({ page }, testInfo) => {
+    await openYaggui(page);
+    await graphRow(page, 3).click({ button: 'right' });
+    await page.getByRole('menuitem', { name: /^Reset .* to here/ }).hover();
+    await page.getByRole('menuitem', { name: /^Hard/ }).click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog.getByRole('list', { name: /lose their local content/ })).toBeVisible();
+    await capture(page, testInfo, 'history-reset-hard', dialog);
+  });
+});
+
+/** The conflicts list shares the right column with the local changes: give it room. */
+test.describe(() => {
+  test.use({ viewport: { width: 1280, height: 1200 } });
+
+  test('conflicts-panel', async ({ page }, testInfo) => {
+    await stopOn(page, 'merge');
+    await page.getByRole('button', { name: 'Show conflicts' }).first().click();
+    await expect(conflictsPanel(page)).toContainText('4 unresolved of 4');
+    await page.mouse.move(0, 0);
+    await capture(page, testInfo, 'conflicts-panel', conflictsPanel(page));
+  });
 });

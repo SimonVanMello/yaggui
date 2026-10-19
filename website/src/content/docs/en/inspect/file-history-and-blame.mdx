@@ -76,7 +76,7 @@ This differs from `git log --follow`: it is faster on large repositories, it fol
 
 The header shows the path and a chip with the version blamed (a short SHA, or **Working tree**). Each line of the grid has:
 
-- an **age bar**: eight shades from the oldest to the newest commit of this file. Shades follow the rank of the commit dates, not their distance in time, so a file written in two weeks uses the same range as one written over ten years. Uncommitted lines take the newest shade.
+- an **age bar**: eight shades from the oldest to the newest commit of this file. Shades follow the rank of the author dates, not their distance in time, so a file written in two weeks uses the same range as one written over ten years. Uncommitted lines take the newest shade.
 - on the first line of each block from the same commit: the summary, the author and the relative date, or **Not committed yet** for local changes,
 - the line number and the code.
 
@@ -89,7 +89,7 @@ Click a line: every line of the same commit is highlighted, and the commit is se
 - **Blame of the parent**: blames the file as it was just before this commit, and scrolls to where these lines were. It follows renames. It is disabled with "These lines were added with the file" when there is no earlier version.
 - **Show in graph**: closes the blame and shows the commit in the graph.
 
-Each **Blame of the parent** adds a step to a trail: the **Back to** *version* button in the header returns to the previous version. The trail is kept until you close the repository.
+Each **Blame of the parent** adds a step to a trail: the **Back to** *version* button in the header returns to the previous version. Closing the blame or opening another blame, file history or reflog clears the trail.
 
 ### Navigate and copy
 

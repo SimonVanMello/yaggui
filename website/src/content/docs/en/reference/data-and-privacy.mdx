@@ -25,7 +25,7 @@ yaggui makes only these requests:
 | Request | When | Where to | How to turn it off |
 |---|---|---|---|
 | Git operations | Fetch, pull, push, clone, and anything else that talks to a remote (submodules, Git LFS). Run by your `git`, with your own Git and SSH configuration. | Your remotes | Do not run them. |
-| Automatic fetch | Every 10 minutes by default, for the repository in the active tab only. It runs `git fetch --all`, like the **Fetch** button. | Your remotes | **Preferences → Behavior → Fetch automatically**. |
+| Automatic fetch | Every 10 minutes by default, for the repository of the active tab and of the other repository tabs yaggui keeps loaded (the two most recently shown). It runs `git fetch --all` (with `--prune` unless you turned **Prune on fetch** off), like the **Fetch** button. | Your remotes | **Preferences → Behavior → Fetch automatically**. |
 | Update check | At each launch, only if you accepted it. On first launch yaggui asks with a "Check for updates at startup?" notice; ignoring it leaves the check off. A manual **Check for updates** makes one request. | `github.com` (the latest release's `latest.json` file) | **Preferences → Behavior → Check for updates at startup**. |
 | Update download | Only when you click **Update and restart** or **Update** in an update notice. | `github.com` (release files) | Do not click it. See [Updates](../../start-here/updates/). |
 | Gravatar pictures | Only if you turn on **Gravatar avatars**. yaggui sends a SHA-256 hash of each author's email address, over HTTPS, never the address itself. | `www.gravatar.com` | **Preferences → Appearance → Gravatar avatars** (off by default). |
@@ -91,7 +91,7 @@ Everything in the cache folder can be deleted at any time: yaggui downloads it a
 
 yaggui changes a repository only by running Git commands, all of them listed in the command log. Besides the operations you ask for, it can write:
 
-- **The commit-graph file** (`.git/objects/info/commit-graph`): when a large repository has no up-to-date one, yaggui runs `git commit-graph write --reachable --changed-paths --no-progress` in the background. It only speeds up history reads. Set `core.commitGraph` to `false` in the repository to prevent it.
+- **The commit-graph file** (`.git/objects/info/commit-graph`): when it is missing or lacks 1,000 or more reachable commits (shallow clones excepted), yaggui runs `git commit-graph write --reachable --changed-paths --no-progress` in the background. It only speeds up history reads. Set `core.commitGraph` to `false` in the repository to prevent it.
 - **Git objects for undo**: before an operation that overwrites files (discard, hard reset…), yaggui stores their content with `git hash-object -w`. These objects are referenced by nothing; Git removes them during its usual garbage collection.
 
 yaggui adds no file or folder of its own to your repositories (no `.yaggui` folder, no hidden settings file).

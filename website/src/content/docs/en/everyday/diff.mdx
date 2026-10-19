@@ -73,11 +73,11 @@ If **Ignore whitespace** hides everything that changed, the diff says **Only whi
 ## Read the diff
 
 - **Syntax highlighting** follows the file name's language and appears a moment after the diff.
-- **Changed words** are highlighted inside modified lines. Lines over 1,000 characters, or lines where more than 60% changed, are shown as wholly changed.
+- **Changed words** are highlighted inside modified lines. Very long lines, and lines that changed almost entirely, are shown as wholly changed.
 - **Hunk headers** show `@@ -a,b +c,d @@` followed by the nearest enclosing function or section line.
 - **No newline at end of file** is marked when a file's last line has no line break.
 
-yaggui computes diffs itself (no `git diff` process). It honors `diff.algorithm` and `.gitattributes` (`binary`, `-diff`, text conversions), but does not run external diff drivers (`diff.<driver>.command`).
+yaggui computes diffs itself (no `git diff` process). It honors `diff.algorithm` and the `binary` and `-diff` attributes of `.gitattributes`, but does not run external diff drivers (`diff.<driver>.command`) or text conversions (`textconv`).
 
 ## Navigate with the keyboard
 
@@ -171,7 +171,7 @@ The **Open outside yaggui** menu in the diff toolbar offers:
 
 | Item | Effect |
 |---|---|
-| **Open in the external diff tool** | Runs `git difftool --no-prompt --tool=<tool>` on this file and waits until the tool closes. Staged diffs add `--cached`; commit diffs pass the two commits. Disabled while the tool is open |
+| **Open in the external diff tool** | Runs `git difftool --no-prompt --tool=<tool>` (`--gui` when only `diff.guitool` is set) on this file and waits until the tool closes. Staged diffs add `--cached`; commit diffs pass the two commits. Disabled while the tool is open |
 | **Open in the editor** | Opens the working-tree file in your editor (preference **Editor**, otherwise the system default) |
 | **Show in the file manager** | Reveals the file in Finder or Explorer; on Linux, opens its folder |
 

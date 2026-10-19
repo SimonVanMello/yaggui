@@ -43,7 +43,7 @@ With a clean working tree the panel says **Nothing to commit** and "The working 
 
 With changes, the panel shows two lists: **Unstaged** on top (changes in the working tree, including untracked files) and **Staged** below (changes in the index, ready to commit). Each list grows with its content up to about half the window height, then scrolls. When a list is empty it says **No unstaged changes** or **Nothing staged**.
 
-The list header shows the number of files and the total of added and removed lines (hidden when the change set is so large that yaggui skips line counts, above 2,000 files). The header buttons are:
+The list header shows the number of files and the total of added and removed lines (left out for very large change sets). The header buttons, shown when the list has files, are:
 
 | List | Buttons |
 |---|---|
@@ -92,7 +92,7 @@ Hover a row to see its full path in a tooltip (`old → new` for a rename).
 Every way of staging acts on the selection when the file you act on is part of it, otherwise on that file alone.
 
 - **Hover buttons**: on an Unstaged row, the plus button (**Stage file** / **Stage \{count\} files**); on a Staged row, the minus button (**Unstage file** / **Unstage \{count\} files**).
-- **Keyboard**: press <kbd>Space</kbd> in a focused list to stage (Unstaged list) or unstage (Staged list) the selection. Focus then moves to the next file, and if the diff of the file you acted on was open, the diff follows to that next file. <kbd>Enter</kbd> does nothing on the file lists.
+- **Keyboard**: press <kbd>Space</kbd> in a focused list to stage (Unstaged list) or unstage (Staged list) the selection. The selection then moves to the next file, and if the diff of the file you acted on was open, the diff follows to that next file.
 - **Drag and drop**: drag rows from one list and drop them on the other. Dragging a selected row drags the whole selection. The target list highlights while you hover it.
 - **Stage all** / **Unstage all** in the list headers.
 - **Context menu**: right-click a row (see below).
@@ -235,4 +235,4 @@ To ignore files with Git's own syntax, see [gitignore](https://git-scm.com/docs/
 
 ## When another Git process holds the index
 
-Staging writes Git's index, protected by `.git/index.lock`. If another program holds the lock, yaggui shows a banner above the repository ("Another Git process is using this repository") and staging fails until the lock goes away. A lock older than 10 seconds is likely left over from a crash: the banner then offers **Remove the lock…**. See [Troubleshooting](../../help/troubleshooting/).
+Staging writes Git's index, protected by `.git/index.lock`. If another program holds the lock, yaggui shows a banner above the repository ("Another Git process is using this repository") and staging fails until the lock goes away. When the lock has stayed for more than a few seconds, the banner changes to "A Git process probably crashed and left index.lock" and offers **Remove the lock…**, which asks you to make sure no other Git program is working on the repository before deleting the file. See [Troubleshooting](../../help/troubleshooting/).

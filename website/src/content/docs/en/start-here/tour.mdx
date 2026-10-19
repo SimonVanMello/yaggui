@@ -51,7 +51,7 @@ The toolbar sits at the top of a repository tab. Hover a button to see what it d
 | **Tag**                                        | Create a tag on the current commit                                                                        | [Tags](../../history/tags/)                            |
 | **Stash**                                      | Stash your changes                                                                                        | [Stash](../../everyday/stash/)                         |
 | **Pop**                                        | Apply and drop the latest stash                                                                           | [Stash](../../everyday/stash/)                         |
-| **Terminal**                                   | Open a terminal in the repository                                                                         | [Terminal](../../repository/terminal/)                 |
+| **Terminal**                                   | Show or hide the integrated terminal, or open your external terminal, depending on your preferences      | [Terminal](../../repository/terminal/)                 |
 | **Files**                                      | Open the repository folder in the file manager                                                            | —                                                      |
 | Current branch                                 | Shows the checked-out branch; click it to switch branches                                                 | [Branches](../../history/branches/)                    |
 | **Toggle left panel** / **Toggle right panel** | Hide or show the side panels                                                                              | [Resize and hide panels](#resize-and-hide-panels)      |
@@ -71,7 +71,7 @@ Some views take the place of the graph:
 - a file's history, blame, or the reflog: [File history and blame](../../inspect/file-history-and-blame/), [Reflog](../../inspect/reflog/);
 - the interactive rebase list: [Interactive rebase](../../history/interactive-rebase/).
 
-Press <kbd>Esc</kbd> or click **Graph** in the view's toolbar to return to the graph. In a diff where you selected lines, the first <kbd>Esc</kbd> clears the selection.
+Press <kbd>Esc</kbd> or click **Graph** in the view's toolbar to return to the graph. In a diff where you selected lines, the first <kbd>Esc</kbd> clears the selection. The interactive rebase list has no **Graph** button: <kbd>Esc</kbd> cancels it.
 
 ## Right panel: details
 
@@ -79,7 +79,7 @@ What the right panel shows depends on what you selected:
 
 | Selection                               | Right panel                                                      | Read more                                                                    |
 | --------------------------------------- | ---------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| Your working tree, or nothing           | The changes panel: unstaged and staged files, and the commit box | [Staging](../../everyday/staging/), [Committing](../../everyday/committing/) |
+| Your working tree, or nothing           | The changes panel: unstaged and staged files, and the commit box. During a merge, rebase or other operation, or with conflicts, a conflicts list sits above it | [Staging](../../everyday/staging/), [Committing](../../everyday/committing/), [Conflicts](../../history/conflicts/) |
 | A commit                                | Commit details: message, author, files                           | [Commit graph](../../history/commit-graph/)                                  |
 | A stash in the left panel               | Stash details                                                    | [Stash](../../everyday/stash/)                                               |
 | A comparison of two branches or commits | The comparison                                                   | [Compare](../../inspect/compare/)                                            |
@@ -126,7 +126,7 @@ Every message and what to do about it is listed in [Error messages](../../refere
 
 Banners appear above the graph when the repository needs your attention.
 
-- **Operation in progress**: a merge, rebase, cherry-pick, revert, bisect or `git am` is stopped, for example on conflicts. The banner shows the progress (such as "Rebase 3/7") and offers **Show conflicts**, **Continue**, **Skip** and **Abort**. See [Conflicts](../../history/conflicts/).
+- **Operation in progress**: a merge, rebase, cherry-pick, revert, bisect or `git am` is stopped, for example on conflicts. The banner shows the progress (such as "Rebase 3/7") and, depending on the state, **Show conflicts**, **Continue**, **Skip** and an abort button such as **Abort rebase** or **Stop bisect**. See [Conflicts](../../history/conflicts/).
 - **index.lock**: a `.git/index.lock` file exists. When it is recent, the banner says **Another Git process is using this repository** and goes away when that process ends. When it is older than 10 seconds, the banner says **A Git process probably crashed and left index.lock** and offers **Remove the lock…**. Make sure no other Git program is working on the repository, then confirm with **Remove lock**.
 - **Automatic refresh unavailable**: yaggui cannot watch the folder for changes, often because the system limit on watched files is reached. Changes made outside yaggui show after you click **Refresh**. See [Troubleshooting](../../help/troubleshooting/).
 

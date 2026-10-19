@@ -36,7 +36,7 @@ The editor refuses to start, with a message, when:
 | **There is no commit after this base: nothing to rebase.** | The base is the tip of the branch |
 | **This range contains merge commits. yaggui does not rebuild merges in an interactive rebase: choose a more recent base.** | A merge commit is above the base; **Start rebase** stays disabled |
 
-Your edits are kept in memory while the app is open: reopening the editor with the same base brings them back; another base starts over.
+Your edits live only in the open editor: leaving it (**Cancel**, <kbd>Esc</kbd>) discards them, and choosing another base starts over.
 
 ## Edit the list
 

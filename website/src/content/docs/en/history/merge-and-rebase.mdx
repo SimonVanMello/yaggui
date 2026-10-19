@@ -84,9 +84,9 @@ The dialog **Merge \{source\} into \{target\}** reads: "Choose how the commits o
 
 | Mode | Help text | Git option |
 |---|---|---|
-| **Fast-forward when possible** | Moves the target forward without a new commit when nothing diverged; otherwise creates a merge commit. | `--ff` |
+| **Fast-forward when possible** | Moves \{target\} forward without a new commit when nothing diverged; otherwise creates a merge commit. | `--ff` |
 | **Always create a merge commit** | Keeps the shape of the history: the branch stays visible in the graph. | `--no-ff` |
-| **Squash** | Combines all the commits of the branch into a single commit on the target. The branch is not linked to it. | `--squash` |
+| **Squash** | Combines all the commits of the branch into a single commit on \{target\}. The branch is not linked to it. | `--squash` |
 
 The last mode you used is remembered and preselected next time (stored by the app's web view, not in the preferences database). The default is **Fast-forward when possible**.
 
@@ -102,6 +102,8 @@ Click **Merge** or press <kbd>Enter</kbd>. yaggui runs:
 ```bash
 git merge <--ff|--no-ff|--squash> --no-edit [-m <message>] -- <source>
 ```
+
+`-m` is passed only for **Always create a merge commit** when you typed a message.
 
 For a squash, yaggui then creates the commit itself with `git commit -F -` (your hooks run). The message is the one you typed, else the message Git prepared, else `Squashed commit of <source>`.
 
@@ -144,7 +146,7 @@ Errors specific to rebase:
 - **Rebase** refuses as soon as a tracked file has changes, staged or not: "Your local changes would be overwritten by the rebase. Commit or stash them first." Untracked files do not block it.
 - **Merge** and **fast-forward** run with local changes; Git refuses only if they would be overwritten: "Your local changes would be overwritten by the merge. Commit or stash them first."
 - In both cases the error toast lists up to three paths and offers **Show changes**. Commit or [stash](../../everyday/stash/) the changes, then retry.
-- Another operation in progress blocks all three: "Another operation (merge, rebase, cherry-pick, revert or bisect) is in progress: continue or abort it first."
+- Another operation in progress blocks all three: "Another operation (merge, rebase, cherry-pick, revert or bisect) is in progress: continue or abort it first." So do files still in conflict: "Some files are still in conflict: resolve them (and stage them) first."
 
 When Git stops on conflicts, the merge or rebase stays in progress. A toast says how many files are in conflict and offers **Show conflicts**, a banner appears above the graph, and the working copy is selected so the conflicts panel shows. Resolve the files, then **Continue**, **Skip** (rebase only) or **Abort**: see [Resolve conflicts](../../history/conflicts/).
 
@@ -158,4 +160,4 @@ Every command appears in the [command log](../../reference/command-log/).
 | Merge that stopped on conflicts and was finished with **Continue** | No |
 | Rebase | No. While it is in progress, **Abort** restores the branch; afterwards, use the [reflog](../../inspect/reflog/) |
 
-Undoing a merge runs `git reset --keep` to the previous commit. Details and limits: [Undo and redo](../../history/undo-and-redo/).
+Undoing a merge runs `git reset --keep` to the previous commit. When yaggui checked out the target first, that checkout is a separate entry: undo it too to get back to the branch you were on. Details and limits: [Undo and redo](../../history/undo-and-redo/).

@@ -24,6 +24,50 @@ async function expandSection(page: Page, name: string) {
   if ((await section.getAttribute('aria-expanded')) !== 'true') await section.click();
 }
 
+/** Widens the right panel by `steps` × 16 px, for the commit area shots. */
+async function widenRightPanel(page: Page, steps: number) {
+  const resizer = page.getByRole('separator', { name: 'Resize the right panel' });
+  await resizer.focus();
+  for (let i = 0; i < steps; i++) await page.keyboard.press('ArrowLeft');
+  await resizer.blur();
+}
+
+/** The status bar sits right under the changes panel: hidden so a crop does not cut its text. */
+async function hideStatusBar(page: Page) {
+  await page.addStyleTag({ content: 'footer { visibility: hidden; }' });
+}
+
+/**
+ * An invisible box laid over the union of `parts`, to crop several elements that share no
+ * container (a popover and the toolbar button it opens from).
+ */
+async function around(page: Page, parts: Locator[]): Promise<Locator> {
+  const boxes = await Promise.all(parts.map((part) => part.boundingBox()));
+  const visible = boxes.filter((box) => box !== null);
+  if (visible.length !== parts.length) throw new Error('crop part not visible');
+  const left = Math.min(...visible.map((box) => box.x));
+  const top = Math.min(...visible.map((box) => box.y));
+  const right = Math.max(...visible.map((box) => box.x + box.width));
+  const bottom = Math.max(...visible.map((box) => box.y + box.height));
+  await page.evaluate(
+    ({ left, top, width, height }) => {
+      const box = document.createElement('div');
+      box.id = 'docs-crop';
+      Object.assign(box.style, {
+        position: 'fixed',
+        left: `${left}px`,
+        top: `${top}px`,
+        width: `${width}px`,
+        height: `${height}px`,
+        pointerEvents: 'none',
+      });
+      document.body.append(box);
+    },
+    { left, top, width: right - left, height: bottom - top },
+  );
+  return page.locator('#docs-crop');
+}
+
 async function openYaggui(page: Page) {
   await start(page);
   await openRepo(page);
@@ -46,8 +90,10 @@ async function openDemo(page: Page, name: string) {
 
 test('staging-changes-panel', async ({ page }, testInfo) => {
   await openYaggui(page);
-  await expect(page.getByRole('listbox', { name: 'Staged', exact: true }).getByRole('option'))
-    .toHaveCount(2);
+  await expect(
+    page.getByRole('listbox', { name: 'Staged', exact: true }).getByRole('option'),
+  ).toHaveCount(2);
+  await hideStatusBar(page);
   await capture(page, testInfo, 'staging-changes-panel', changesPanel(page));
 });
 
@@ -60,13 +106,16 @@ test('staging-hover-buttons', async ({ page }, testInfo) => {
 });
 
 test('staging-line-selection', async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 1280, height: 560 });
   await openYaggui(page);
   await file(unstaged(page), 'src/features/tabs/TabBar.tsx').click();
   const diff = diffView(page);
   await expect(diff.locator('.yaggui-hunk')).not.toHaveCount(0);
-  const gutter = diff.locator('.yaggui-signs .yaggui-selectable');
-  await gutter.first().click();
-  await gutter.nth(1).click({ modifiers: ['Shift'] });
+  // Unified: in side by side, a click on a replaced line takes both of its sides.
+  await page.getByRole('radio', { name: 'Unified' }).click();
+  const added = diff.locator('.yaggui-signs .yaggui-selectable').filter({ hasText: '+' });
+  await added.first().click();
+  await added.nth(1).click({ modifiers: ['ControlOrMeta'] });
   await expect(diff.getByRole('status')).toHaveText('2 lines selected');
   await page.mouse.move(0, 0);
   await capture(page, testInfo, 'staging-line-selection', diff);
@@ -94,6 +143,8 @@ test('staging-gitignore-dialog', async ({ page }, testInfo) => {
 
 test('commit-area', async ({ page }, testInfo) => {
   await openYaggui(page);
+  await widenRightPanel(page, 5);
+  await hideStatusBar(page);
   await summary(page).fill('fix(graph): keep lanes stable while scrolling');
   await page
     .getByRole('textbox', { name: 'Description' })
@@ -105,6 +156,8 @@ test('commit-area', async ({ page }, testInfo) => {
 
 test('commit-hook-failed', async ({ page }, testInfo) => {
   await openYaggui(page);
+  await widenRightPanel(page, 5);
+  await hideStatusBar(page);
   await summary(page).fill('wip [hook-fail]');
   await summary(page).press('ControlOrMeta+Enter');
   const panel = changesPanel(page).getByRole('alert').filter({ hasText: 'rejected the commit' });
@@ -114,6 +167,8 @@ test('commit-hook-failed', async ({ page }, testInfo) => {
 
 test('commit-conventional', async ({ page }, testInfo) => {
   await openYaggui(page);
+  await widenRightPanel(page, 5);
+  await hideStatusBar(page);
   await page.getByRole('button', { name: 'Conventional' }).click();
   const header = page.getByRole('group', { name: 'Conventional Commits header' });
   await header.getByRole('combobox', { name: 'Type' }).selectOption('feat');
@@ -133,7 +188,10 @@ test('stash-popover', async ({ page }, testInfo) => {
   await page.keyboard.press('Control+Shift+S');
   const popover = page.getByRole('form', { name: 'Stash changes' });
   await expect(popover).toBeVisible();
-  await capture(page, testInfo, 'stash-popover', popover);
+  const button = page
+    .getByRole('toolbar', { name: 'Repository actions' })
+    .getByRole('button', { name: 'Stash', exact: true });
+  await capture(page, testInfo, 'stash-popover', await around(page, [popover, button]));
 });
 
 test('stash-files-dialog', async ({ page }, testInfo) => {
@@ -149,10 +207,12 @@ test('stash-files-dialog', async ({ page }, testInfo) => {
 
 test('stash-preview', async ({ page }, testInfo) => {
   await openYaggui(page);
+  await hideStatusBar(page);
   await expandSection(page, 'Stashes');
-  await tree(page).getByRole('treeitem', { name: /lanes/ }).first().click();
+  await tree(page).getByRole('treeitem', { name: 'lanes', exact: true }).click();
   const details = page.getByRole('region', { name: 'Stash details' });
   await expect(details).toBeVisible();
+  await page.setViewportSize({ width: 1280, height: 620 });
   await page.mouse.move(0, 0);
   await capture(page, testInfo, 'stash-preview', details);
 });
@@ -184,6 +244,7 @@ test('diff-split', async ({ page }, testInfo) => {
 });
 
 test('diff-image-onion', async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 1280, height: 420 });
   await openDemo(page, 'screenshot.png');
   await page.getByRole('radio', { name: 'Onion skin' }).click();
   await expect(page.getByRole('slider', { name: /Opacity/ })).toBeVisible();
@@ -197,5 +258,6 @@ test('diff-markdown-preview', async ({ page }, testInfo) => {
   await expect(doc.locator('ins').filter({ hasText: 'Windows,' })).toBeVisible();
   await page.keyboard.press('n');
   await expect(page.getByText(/^Change 1 \/ \d+$/)).toBeVisible();
+  await page.getByRole('radio', { name: 'Preview' }).blur();
   await capture(page, testInfo, 'diff-markdown-preview', diffView(page));
 });

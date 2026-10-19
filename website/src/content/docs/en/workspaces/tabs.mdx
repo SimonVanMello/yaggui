@@ -24,7 +24,7 @@ Each repository you open gets a tab in the title bar. This page covers opening, 
 
 After a tab closes, the tab to its right becomes active (or the one to its left).
 
-Closing a tab never asks for confirmation and never touches the repository: an operation in progress, your changes and your stashes stay as they are. To get the tab back, open the repository again from the welcome screen.
+Closing a tab never asks for confirmation. It cancels any yaggui command still running or waiting for that repository (a fetch, a push…) and closes its integrated terminals. Your files, changes and stashes, and a merge or rebase stopped on conflicts, stay as they are. To get the tab back, open the repository again from the welcome screen.
 
 ## One tab per repository
 

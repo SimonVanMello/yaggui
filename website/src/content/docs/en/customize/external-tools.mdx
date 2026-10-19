@@ -51,7 +51,7 @@ The editor is used by:
 - **Open in editor** in the command palette: opens the repository folder.
 - **Open outside yaggui › Open in the editor** in the [diff view](../../everyday/diff/): opens the file from the working tree, even when you are looking at an older commit. It is disabled for a deleted file.
 
-When the editor cannot start, a toast "Could not open the editor" offers **Retry**, with one of these messages:
+When the editor cannot start, a toast "Could not open the editor" shows one of these messages (there is no button: fix the setting, then try again):
 
 - "The editor "*name*" could not be started. Check its name in the preferences." Check the spelling, or give the full path of the program.
 - "No application could open the file. Choose an editor in the preferences." No editor is set and the system has no default application for this file.
@@ -105,7 +105,7 @@ git difftool --no-prompt --tool=meld --cached -- src/main.rs
 Errors:
 
 - "No external diff tool is configured: choose one in the preferences (Tools) or set diff.tool in your Git configuration." yaggui never falls back to a terminal tool.
-- "The diff tool "*tool*" could not be started. Check that it is installed and configured (difftool.*tool*.cmd)." Shown under "The diff tool could not be opened", with **Retry**. The command log has Git's output.
+- "The diff tool "*tool*" could not be started. Check that it is installed and configured (difftool.*tool*.cmd)." Shown under "The diff tool could not be opened", with an **Open command log** button that shows Git's output.
 
 ## Merge tool
 

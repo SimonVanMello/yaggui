@@ -54,7 +54,7 @@ With **Prune on fetch** on (the default), every fetch adds `--prune`: remote-tra
 The toolbar tooltip and the **Fetch all remotes** hint always show `--all --prune`, even when **Prune on fetch** is off. The command that actually runs follows the setting: check it in the command log.
 :::
 
-A fetch with prune cannot be undone. It appears in the undo history as "not undoable" and blocks undo of older operations for the rest of the session. A fetch without prune is not recorded at all. See [Undo and redo](../../history/undo-and-redo/).
+A fetch with prune cannot be undone (see [What cannot be undone](#what-cannot-be-undone)).
 
 ## Auto-fetch
 
@@ -117,7 +117,7 @@ The tooltip of the **Pull** button names the resulting strategy. To change it fr
 - Conflicts with **Merge** or **Rebase**: the pull stops, a toast explains it, and the operation banner and conflict view open. Resolve the files, then **Continue** or **Abort**, as described in [Conflicts](../../history/conflicts/).
 - No upstream: "\"feature\" has no upstream branch." Publish the branch with a push first (see below).
 
-A pull that changed your branch cannot be undone: it appears as "not undoable" in the undo history. Reset the branch instead if needed ([Reset](../../history/cherry-pick-revert-reset/)).
+A pull that changed your branch cannot be undone (see [What cannot be undone](#what-cannot-be-undone)).
 
 ## Push
 
@@ -153,7 +153,7 @@ The remote is `origin` if it exists, otherwise the first remote of the repositor
 
 If the remote branch has commits you do not have, the push fails with "Push rejected: the remote branch has commits you don't have." The error toast has a **Pull then push** button: it pulls with the default strategy and, if the pull succeeds, pushes again. If the pull stops on conflicts, resolve them and push again yourself.
 
-A successful push cannot be undone in yaggui, because undo only changes your local repository. It appears as "not undoable" in the undo history, and older operations of the session can no longer be undone either. See [Undo and redo](../../history/undo-and-redo/).
+A successful push cannot be undone in yaggui (see [What cannot be undone](#what-cannot-be-undone)).
 
 ## Force push with lease
 
@@ -167,8 +167,10 @@ Entry points: toolbar **Push** chevron → **Force push (with lease)…**, or pa
 2. A confirmation titled **Overwrite origin/feature?** says how many commits will be dropped ("The force push will drop 2 commits from origin/feature (as of the last fetch). If the branch moved since, Git will refuse.") or that none will be lost, lists those commits (up to 100) and shows the command:
 
    ```bash
-   git push --force-with-lease=refs/heads/feature:<sha> origin feature
+   git push --force-with-lease=refs/heads/feature:<sha> origin HEAD
    ```
+
+   `<sha>` is the remote branch as of your last fetch. What actually runs pushes the branch by its full name: `git push --progress --porcelain --force-with-lease=refs/heads/feature:<sha> origin refs/heads/feature:refs/heads/feature`.
 
 3. Click **Force push**. The toast **origin/feature was overwritten** confirms it.
 
@@ -228,7 +230,7 @@ Auto-fetch failures show no toast; look in the status bar and the command log. T
 Undo in yaggui only changes your local repository. These network operations are recorded as "not undoable" and block undo of anything older in the same session:
 
 - a push, a force push, a tag push, or a deletion on the remote,
-- a pull that changed your branch,
+- a pull that changed your branch (reset the branch instead if needed: [Reset](../../history/cherry-pick-revert-reset/#reset-the-current-branch)),
 - a fetch with prune (the deleted remote-tracking branches come back with the next fetch if they still exist on the server).
 
 A fetch without prune and an up-to-date pull or push are not recorded. See [Undo and redo](../../history/undo-and-redo/).

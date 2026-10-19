@@ -66,7 +66,7 @@ For the two font fields:
 1. Type the name of a font installed on your system, for example `Fira Code`.
 2. Press <kbd>Enter</kbd> or leave the field. The font applies at once.
 
-An empty field restores the bundled font. If the font is not installed, the system falls back to the bundled one. A name longer than 200 characters, or one that contains control characters or any of `; { } < > \ " '`, is refused with "“name” is not a valid font name." and the field goes back to its previous value.
+An empty field restores the bundled font. If the font is not installed, the system falls back to the bundled one. A name longer than 200 characters, or one that contains control characters or any of `; { } < > \ " '`, is refused: a "Could not save the preference" toast says "\{name\}" is not a valid font name., and the previous font stays in use.
 
 ## Change the language
 
