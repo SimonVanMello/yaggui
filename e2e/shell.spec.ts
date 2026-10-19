@@ -76,31 +76,31 @@ for (const { name: theme, colorScheme } of THEMES) {
       await capture(page, theme, 'welcome');
     });
 
-    test('welcome rows: border on hover only, selection only from the keyboard', async ({
+    test('welcome rows: highlighted with a border while hovered, nothing left after', async ({
       page,
     }) => {
       const rows = page.getByRole('option');
       const row = rows.nth(3);
-      const border = () => row.evaluate((el) => getComputedStyle(el).borderTopColor);
-      const background = () => row.evaluate((el) => getComputedStyle(el).backgroundColor);
-      const restBorder = await border();
-      const restBackground = await background();
+      const look = () =>
+        row.evaluate((el) => {
+          const style = getComputedStyle(el);
+          return `${style.borderTopColor} ${style.backgroundColor}`;
+        });
+      const rest = await look();
       await expect(page.locator('[role="option"][data-active]')).toHaveCount(0);
 
       await row.hover();
-      expect(await border()).not.toBe(restBorder);
-      expect(await background()).toBe(restBackground);
+      await expect(row).toHaveAttribute('data-active', 'true');
+      expect(await look()).not.toBe(rest);
       await capture(page, theme, 'welcome-row-hover');
 
       await page.mouse.move(0, 0);
-      expect(await border()).toBe(restBorder);
-      expect(await background()).toBe(restBackground);
-
-      await page.getByRole('combobox').press('ArrowDown');
-      await expect(rows.nth(1)).toHaveAttribute('data-active', 'true');
-      await capture(page, theme, 'welcome-row-keyboard');
-      await rows.nth(1).hover();
       await expect(page.locator('[role="option"][data-active]')).toHaveCount(0);
+      expect(await look()).toBe(rest);
+
+      await page.getByRole('combobox').press('ArrowUp');
+      await expect(rows.nth(2)).toHaveAttribute('data-active', 'true');
+      await capture(page, theme, 'welcome-row-keyboard');
     });
 
     test('repository open', async ({ page }) => {
