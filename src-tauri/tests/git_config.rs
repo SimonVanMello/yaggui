@@ -302,6 +302,22 @@ fn diff_and_merge_tools_are_looked_up_in_git() {
         .unwrap();
     assert!(configured.ok, "{configured:?}");
 
+    // A diff tool falls back to `diff.guitool`, like launching it does.
+    e.repos
+        .git_config_set(
+            Some(e.id),
+            ConfigScope::Repo,
+            "diff.guitool".into(),
+            Some("mine".into()),
+        )
+        .unwrap();
+    let gui = e
+        .repos
+        .check_external_tool(ExternalToolKind::DiffTool, None, Some(e.id))
+        .unwrap();
+    assert!(gui.ok, "{gui:?}");
+    assert_eq!(gui.tool, "mine");
+
     let err = e
         .repos
         .check_external_tool(ExternalToolKind::DiffTool, Some("--evil".into()), None)
