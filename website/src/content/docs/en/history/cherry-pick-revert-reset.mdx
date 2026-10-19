@@ -30,12 +30,12 @@ A cherry-pick applies the changes of existing commits as new commits on the curr
 
 ### One commit
 
-Right-click the commit and choose **Cherry-pick onto {branch}**, where `{branch}` is the checked-out branch, or `HEAD` when detached.
+Right-click the commit and choose **Cherry-pick onto \{branch\}**, where `{branch}` is the checked-out branch, or `HEAD` when detached.
 
 ### Several commits
 
 1. Select the commits in the graph: <kbd>⌘</kbd>-click (<kbd>Ctrl</kbd>-click on Windows and Linux) to add or remove one, <kbd>Shift</kbd>-click or <kbd>Shift+↑</kbd>/<kbd>Shift+↓</kbd> for a range.
-2. The selection bar shows **{count} commits selected**. Click **Cherry-pick {count} commits onto {branch}** in the bar, or right-click inside the selection and choose the same item.
+2. The selection bar shows **\{count\} commits selected**. Click **Cherry-pick \{count\} commits onto \{branch\}** in the bar, or right-click inside the selection and choose the same item.
 
 <kbd>Esc</kbd> collapses the selection back to one commit.
 
@@ -45,7 +45,7 @@ The commits are applied oldest first, whatever order you selected them in. Dupli
 
 ### Drag commits onto a branch
 
-Drag a commit row (or a row of the current multi-selection, which drags the whole selection) onto a local branch in the sidebar or on a branch label in the graph. The drop menu offers **Cherry-pick this commit onto {target}** or **Cherry-pick {count} commits onto {target}**, with the hint **Checks out {target} first** when the target is not the current branch. yaggui checks out the target, then cherry-picks. If local changes prevent that checkout, the checkout dialog opens and the cherry-pick does not run.
+Drag a commit row (or a row of the current multi-selection, which drags the whole selection) onto a local branch in the sidebar or on a branch label in the graph. The drop menu offers **Cherry-pick this commit onto \{target\}** or **Cherry-pick \{count\} commits onto \{target\}**, with the hint **Checks out \{target\} first** when the target is not the current branch. yaggui checks out the target, then cherry-picks. If local changes prevent that checkout, the checkout dialog opens and the cherry-pick does not run.
 
 ### From the palette
 
@@ -59,7 +59,7 @@ There is no confirmation. yaggui runs:
 git cherry-pick [-m <parent>] <sha1> <sha2> …
 ```
 
-Toast: **Commit cherry-picked onto {target}** or **{count} commits cherry-picked onto {target}**.
+Toast: **Commit cherry-picked onto \{target\}** or **\{count\} commits cherry-picked onto \{target\}**.
 
 Picking a merge commit needs a parent: yaggui opens the [parent dialog](#revert-or-cherry-pick-a-merge-commit).
 
@@ -67,35 +67,35 @@ Picking a merge commit needs a parent: yaggui opens the [parent dialog](#revert-
 
 A revert creates a new commit that undoes the changes of an existing one ([git-revert](https://git-scm.com/docs/git-revert)).
 
-Right-click the commit and choose **Revert this commit**, or run **Revert the selected commit** from the palette (it uses the selected commit). For an ordinary commit there is no confirmation; yaggui runs `git revert --no-edit <sha>` and shows **{sha} reverted**.
+Right-click the commit and choose **Revert this commit**, or run **Revert the selected commit** from the palette (it uses the selected commit). For an ordinary commit there is no confirmation; yaggui runs `git revert --no-edit <sha>` and shows **\{sha\} reverted**.
 
 ### Revert or cherry-pick a merge commit
 
 A merge commit has several parents, so Git needs to know which side to keep. yaggui opens a dialog:
 
-- **Revert merge {sha}**: "A merge has several parents. Choose the one whose side is kept: the revert undoes what the other side brought."
-- **Cherry-pick merge {sha}**: "A merge has several parents. Choose the one the changes are computed against."
+- **Revert merge \{sha\}**: "A merge has several parents. Choose the one whose side is kept: the revert undoes what the other side brought."
+- **Cherry-pick merge \{sha\}**: "A merge has several parents. Choose the one the changes are computed against."
 
 <Screenshot name="history-parent-dialog" alt="Revert merge dialog asking which parent to keep, with Parent 1 selected" />
 
-Under **Parent kept**, each option shows **Parent {n}**, its short SHA and its summary. **Parent 1** is selected by default and is "Usually the branch the merge was made on"; the others are "Usually the branch that was merged in". The dialog previews `git revert -m <n> <sha>` or `git cherry-pick -m <n> <sha>`. Click **Revert** or **Cherry-pick**.
+Under **Parent kept**, each option shows **Parent \{n\}**, its short SHA and its summary. **Parent 1** is selected by default and is "Usually the branch the merge was made on"; the others are "Usually the branch that was merged in". The dialog previews `git revert -m <n> <sha>` or `git cherry-pick -m <n> <sha>`. Click **Revert** or **Cherry-pick**.
 
 ## Reset the current branch
 
 A reset moves the current branch to another commit ([git-reset](https://git-scm.com/docs/git-reset)).
 
-- Right-click a commit, open **Reset {branch} to here** and pick **Soft** (Keeps all changes staged), **Mixed** (Keeps changes, unstaged) or **Hard** (Discards local changes). The dialog opens with that mode selected.
+- Right-click a commit, open **Reset \{branch\} to here** and pick **Soft** (Keeps all changes staged), **Mixed** (Keeps changes, unstaged) or **Hard** (Discards local changes). The dialog opens with that mode selected.
 - Or run **Reset the current branch to the selected commit…** from the palette. The dialog opens on **Mixed**.
 
-The dialog **Reset {branch} to {sha}** reads: "Moves the current branch to this commit. Choose what happens to your changes." It works on a detached HEAD too (`{branch}` is then `HEAD`).
+The dialog **Reset \{branch\} to \{sha\}** reads: "Moves the current branch to this commit. Choose what happens to your changes." It works on a detached HEAD too (`{branch}` is then `HEAD`).
 
 <Screenshot name="history-reset-hard" alt="Reset dialog in Hard mode, listing the files that lose their local content" />
 
 It first checks what would change (**Checking what would change…**) and summarizes the effect on the branch:
 
-- **{branch} loses {count} commits (still in the reflog).**
-- **{branch} moves forward by {count} commits.**
-- **{branch} already points to this commit.**
+- **\{branch\} loses \{count\} commits (still in the reflog).**
+- **\{branch\} moves forward by \{count\} commits.**
+- **\{branch\} already points to this commit.**
 
 Then choose a **Reset mode**:
 
@@ -116,7 +116,7 @@ For **Hard**, the dialog lists the files that lose their local content, each wit
 
 Untracked files that the target does not have are left alone and not listed. Under the list: **These files are saved to a backup before the reset.** If nothing would be lost, the dialog says **No local change would be lost.**
 
-The dialog shows `git reset --<mode> <sha>` and is the confirmation: click **Reset (soft)**, **Reset (mixed)** or **Reset (hard)**. The button is available once the check has finished. yaggui runs `git reset -q --<mode> <sha> --`, after copying the listed files to a backup for a hard reset. Toast: **Reset ({mode}) to {sha}**, plus **Local files saved to a backup first.** when a backup was made.
+The dialog shows `git reset --<mode> <sha>` and is the confirmation: click **Reset (soft)**, **Reset (mixed)** or **Reset (hard)**. The button is available once the check has finished. yaggui runs `git reset -q --<mode> <sha> --`, after copying the listed files to a backup for a hard reset. Toast: **Reset (\{mode\}) to \{sha\}**, plus **Local files saved to a backup first.** when a backup was made.
 
 :::caution
 A hard reset overwrites your working tree. yaggui keeps a backup of the listed files so that undo can restore them during this session, but the commits the branch leaves are only reachable through the [reflog](../../inspect/reflog/) afterwards.
@@ -124,7 +124,7 @@ A hard reset overwrites your working tree. yaggui keeps a backup of the listed f
 
 ## Check out a commit (detached HEAD)
 
-Right-click a commit and choose **Checkout this commit**. yaggui runs `git switch --detach <sha>` and shows **HEAD is now detached at {sha}**. No branch is checked out any more; commits you make are not on any branch until you create one (**Create branch here…**). See [detached HEAD](https://git-scm.com/docs/git-checkout#_detached_head).
+Right-click a commit and choose **Checkout this commit**. yaggui runs `git switch --detach <sha>` and shows **HEAD is now detached at \{sha\}**. No branch is checked out any more; commits you make are not on any branch until you create one (**Create branch here…**). See [detached HEAD](https://git-scm.com/docs/git-checkout#_detached_head).
 
 :::note
 There is no warning before detaching. To get back, check out a branch or press <kbd>⌘Z</kbd> (<kbd>Ctrl+Z</kbd> on Windows and Linux).
@@ -136,9 +136,9 @@ If local changes are in the way, the checkout dialog opens: see [Branches](../..
 
 | Message | What to do |
 |---|---|
-| "{short} brings no change any more (it is probably already applied): skip it." | The commit is already in the branch. The cherry-pick or revert stays in progress; click **Skip** in the toast or the banner, or **Abort** |
-| "{short} is a merge commit: choose which parent's side to keep." | yaggui opens the parent dialog |
-| "Parent {n} does not exist for {short}." | Choose an existing parent |
+| "\{short\} brings no change any more (it is probably already applied): skip it." | The commit is already in the branch. The cherry-pick or revert stays in progress; click **Skip** in the toast or the banner, or **Abort** |
+| "\{short\} is a merge commit: choose which parent's side to keep." | yaggui opens the parent dialog |
+| "Parent \{n\} does not exist for \{short\}." | Choose an existing parent |
 | "There is no commit to apply them on yet." | The repository has no commit: make a first commit |
 | "Your local changes would be overwritten by the cherry-pick. Commit or stash them first." (same for revert and reset) | Commit or [stash](../../everyday/stash/) them. **Show changes** in the toast opens them |
 | "Another operation (merge, rebase, cherry-pick, revert or bisect) is in progress: continue or abort it first." | Finish it from the banner |
@@ -149,11 +149,11 @@ When Git stops on conflicts, the cherry-pick or revert stays in progress: resolv
 
 | Operation | Undo label | What undo does |
 |---|---|---|
-| Cherry-pick that completed in one go | **cherry-pick of {count} commits** | Moves the branch back with `git reset --keep` |
-| Revert that completed in one go | **revert of {sha}** | Same |
-| Soft reset | **soft reset to {sha}** | Moves the branch back |
-| Mixed reset | **mixed reset to {sha}** | Moves the branch back and restores the index |
-| Hard reset | **hard reset to {sha}** | Moves the branch back and writes the backed-up files back |
-| Checkout of a commit | **checkout of {sha} (detached HEAD)** | Switches back to the previous branch or commit, keeping local changes |
+| Cherry-pick that completed in one go | **cherry-pick of \{count\} commits** | Moves the branch back with `git reset --keep` |
+| Revert that completed in one go | **revert of \{sha\}** | Same |
+| Soft reset | **soft reset to \{sha\}** | Moves the branch back |
+| Mixed reset | **mixed reset to \{sha\}** | Moves the branch back and restores the index |
+| Hard reset | **hard reset to \{sha\}** | Moves the branch back and writes the backed-up files back |
+| Checkout of a commit | **checkout of \{sha\} (detached HEAD)** | Switches back to the previous branch or commit, keeping local changes |
 
 A cherry-pick or revert that stopped on conflicts and was finished with **Continue** cannot be undone. See [Undo and redo](../../history/undo-and-redo/).

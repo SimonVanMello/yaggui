@@ -19,6 +19,7 @@
     "check": "node scripts/check-case.mjs && pnpm lint && pnpm format:check && pnpm typecheck && pnpm test",
     "test:ui": "playwright test",
     "screenshots": "playwright test --config playwright.screenshots.config.ts",
+    "screenshots:docs": "playwright test --config playwright.docs-screenshots.config.ts",
     "perf:tabs": "playwright test --config playwright.perf.config.ts perf.spec",
     "perf:startup": "node scripts/measure-startup.mjs",
     "release:version": "node scripts/version.mjs set",

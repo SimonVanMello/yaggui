@@ -58,9 +58,9 @@ The toast says "Changes stashed". If Git found nothing to stash, the form closes
 ## Stash only some files
 
 1. In the **Local changes** panel, select the files (<kbd>⌘</kbd>-click or <kbd>Shift</kbd>-click; <kbd>Ctrl</kbd>-click on Windows and Linux).
-2. Right-click one of them and choose **Stash this file…** or **Stash {count} files…**. Conflicted files are left out.
-3. The **Stash {count} files** dialog lists the files. Add a **Message (optional)**. If the selection contains untracked files, **Include the untracked files** is shown and checked; uncheck it to leave them in place (they are then marked "untracked, left as is").
-4. Click **Stash {count} files**.
+2. Right-click one of them and choose **Stash this file…** or **Stash \{count\} files…**. Conflicted files are left out.
+3. The **Stash \{count\} files** dialog lists the files. Add a **Message (optional)**. If the selection contains untracked files, **Include the untracked files** is shown and checked; uncheck it to leave them in place (they are then marked "untracked, left as is").
+4. Click **Stash \{count\} files**.
 
 Both the staged and unstaged changes of these files go into the stash; every other change stays where it is. yaggui backs the files up first, then runs:
 
@@ -68,7 +68,7 @@ Both the staged and unstaged changes of these files go into the stash; every oth
 git --literal-pathspecs stash push -q [--include-untracked] [--message=<message>] --pathspec-from-file=- --pathspec-file-nul
 ```
 
-The toast says "{count} files stashed". A partial stash can be undone ("stash of {count} files"): undo writes the files back and removes the stash entry. See [Undo and redo](../../history/undo-and-redo/).
+The toast says "\{count\} files stashed". A partial stash can be undone ("stash of \{count\} files"): undo writes the files back and removes the stash entry. See [Undo and redo](../../history/undo-and-redo/).
 
 <Screenshot name="stash-files-dialog" alt="The Stash 2 files dialog listing the selected files, with a message field and the Stash 2 files button" />
 
@@ -81,7 +81,7 @@ The toast says "{count} files stashed". A partial stash can be undone ("stash of
 
 Click a stash in the sidebar. The graph selects and scrolls to the stash's base commit, and the right panel shows **Stash details**:
 
-- The message, `stash@{n}` and **on {sha}** (the base commit).
+- The message, `stash@{n}` and **on \{sha\}** (the base commit).
 - **Apply**, **Pop** and **Drop…** buttons.
 - **Stashed files**: the changes compared to the base commit, and **Untracked files** if the stash contains some.
 
@@ -116,7 +116,7 @@ Use the toolbar **Pop** button, <kbd>⌘⇧⌥S</kbd> (<kbd>Ctrl+Shift+Alt+S</kb
 
 **Drop…** asks for confirmation: **Drop this stash?**, "The stash leaves the list and its changes are no longer applicable from yaggui.", the stash message and `stash@{n}`, the command `git stash drop stash@{n}`, and **Drop the stash**. You can turn this confirmation off in **Preferences › Behavior › Confirmations** (**Drop a stash**).
 
-The toast says "Stash dropped" and gives the stash commit's SHA. To get the stash back, undo ("drop of stash \"{message}\""): yaggui runs `git stash store`, which puts it back at the top of the list.
+The toast says "Stash dropped" and gives the stash commit's SHA. To get the stash back, undo ("drop of stash \"\{message\}\""): yaggui runs `git stash store`, which puts it back at the top of the list.
 
 ### Rename a stash
 

@@ -53,7 +53,7 @@ The button label tells you what will happen:
 
 | Label | When |
 |---|---|
-| **Commit on {branch}** | Normal commit on the current branch |
+| **Commit on \{branch\}** | Normal commit on the current branch |
 | **Commit** | `HEAD` is detached |
 | **Amend commit** | **Amend previous commit** is checked |
 | **Committing…** | The commit is running |
@@ -66,7 +66,7 @@ yaggui runs:
 git commit -F -    # the message is passed on stdin
 ```
 
-The message is the trimmed summary, a blank line and the description. yaggui does not strip lines starting with `#`. On success a toast shows "Commit {sha} created", the draft is cleared and focus returns to the summary.
+The message is the trimmed summary, a blank line and the description. yaggui does not strip lines starting with `#`. On success a toast shows "Commit \{sha\} created", the draft is cleared and focus returns to the summary.
 
 While the commit runs (for example, while a slow hook works), the status bar shows it with a **Cancel** link. Cancelling stops Git and its hooks; if Git left an `index.lock` behind, yaggui removes it.
 
@@ -76,7 +76,7 @@ Check **Amend previous commit** to replace the last commit instead of creating a
 
 - If the summary and description are empty, they are filled with the last commit's message. Unchecking the box removes that prefill if you did not edit it.
 - You can amend with nothing staged to change only the message.
-- The toast says "Commit amended ({sha})".
+- The toast says "Commit amended (\{sha\})".
 - yaggui does not warn you if the commit was already pushed; pushing it afterwards needs a force push (see [Fetch, pull and push](../../remotes/fetch-pull-push/)).
 - Amending is impossible before the first commit: "There is no commit to amend yet."
 
@@ -90,7 +90,7 @@ Git runs your hooks (`pre-commit`, `prepare-commit-msg`, `commit-msg` and the ot
 
 When a hook rejects the commit, a panel opens at the top of the commit area instead of a toast:
 
-- Title **The {hook} hook rejected the commit** (the hook name appears only when exactly one commit hook is installed; otherwise **A Git hook rejected the commit**) and the exit code.
+- Title **The \{hook\} hook rejected the commit** (the hook name appears only when exactly one commit hook is installed; otherwise **A Git hook rejected the commit**) and the exit code.
 - "Nothing was committed. Fix what the hook reports, then commit again."
 - The hook output: standard output, then `--- stderr ---` and standard error. Up to 2 MB per stream is kept; beyond that the middle is cut and marked `[...]`. If the hook printed nothing, the panel says so.
 - **Copy output** and **Dismiss**.
@@ -115,9 +115,9 @@ yaggui runs `git config --global user.name …` and `git config --global user.em
 
 ### Identity picker and profiles
 
-Below the description, the **Commit identity** button shows who you commit as (**As {name} &lt;{email}&gt;**, or **Identity not set**) and the matching profile, if any. Its menu lists your identity profiles under **Apply to this repository**, and **Manage profiles…**.
+Below the description, the **Commit identity** button shows who you commit as (**As \{name\} &lt;\{email\}&gt;**, or **Identity not set**) and the matching profile, if any. Its menu lists your identity profiles under **Apply to this repository**, and **Manage profiles…**.
 
-Applying a profile runs `git config --local user.name` and `user.email` in this repository and shows "Profile \"{label}\" applied to this repository". It cannot be undone from the undo history; apply another profile or edit the config instead.
+Applying a profile runs `git config --local user.name` and `user.email` in this repository and shows "Profile \"\{label\}\" applied to this repository". It cannot be undone from the undo history; apply another profile or edit the config instead.
 
 The **Identity profiles** dialog (also from the palette: **Manage identity profiles**) lists your profiles with **Apply** (or **In use** when it matches the current identity), **Edit** and a delete button (no confirmation). Add one with **Label** (for example "Personal" or "Work"), **Name** and **Email**, then **Add profile**; **Use current identity** fills the form from your current settings. Profiles are stored by yaggui for every repository (see [Data and privacy](../../reference/data-and-privacy/)).
 
@@ -148,7 +148,7 @@ Click **Conventional** (or the palette action **Toggle the Conventional Commits 
 - **Type**: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert.
 - **scope**: suggestions come from scopes in your recent messages.
 - **Breaking (!)**.
-- A **subject {count}/50** counter for the text after the header, which turns to the warning color above 50.
+- A **subject \{count\}/50** counter for the text after the header, which turns to the warning color above 50.
 
 The fields write `type(scope)!: subject` into the summary and read it back if you edit the summary by hand. Choosing a type for a plain summary turns it into the subject. The toggle applies to all repositories and resets when you restart yaggui.
 

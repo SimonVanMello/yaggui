@@ -2,6 +2,83 @@
   {
     "label": "Start here",
     "translations": { "fr": "Pour commencer" },
-    "items": ["index"]
+    "items": [
+      "index",
+      "start-here/introduction",
+      "start-here/install",
+      "start-here/updates",
+      "start-here/open-a-repository",
+      "start-here/tour"
+    ]
+  },
+  {
+    "label": "Everyday work",
+    "translations": { "fr": "Au quotidien" },
+    "items": ["everyday/staging", "everyday/committing", "everyday/stash", "everyday/diff"]
+  },
+  {
+    "label": "Branches and history",
+    "translations": { "fr": "Branches et historique" },
+    "items": [
+      "history/commit-graph",
+      "history/branches",
+      "history/tags",
+      "history/merge-and-rebase",
+      "history/cherry-pick-revert-reset",
+      "history/interactive-rebase",
+      "history/conflicts",
+      "history/undo-and-redo"
+    ]
+  },
+  {
+    "label": "Remotes",
+    "translations": { "fr": "Dépôts distants" },
+    "items": ["remotes/fetch-pull-push", "remotes/remotes", "remotes/authentication"]
+  },
+  {
+    "label": "Inspecting history",
+    "translations": { "fr": "Explorer l’historique" },
+    "items": ["inspect/compare", "inspect/file-history-and-blame", "inspect/reflog"]
+  },
+  {
+    "label": "Repository features",
+    "translations": { "fr": "Fonctions du dépôt" },
+    "items": [
+      "repository/submodules",
+      "repository/worktrees",
+      "repository/git-lfs",
+      "repository/terminal"
+    ]
+  },
+  {
+    "label": "Tabs and workspaces",
+    "translations": { "fr": "Onglets et espaces de travail" },
+    "items": ["workspaces/tabs", "workspaces/workspaces"]
+  },
+  {
+    "label": "Customization",
+    "translations": { "fr": "Personnalisation" },
+    "items": [
+      "customize/appearance",
+      "customize/palette-and-shortcuts",
+      "customize/external-tools",
+      "customize/git-configuration"
+    ]
+  },
+  {
+    "label": "Reference",
+    "translations": { "fr": "Référence" },
+    "items": [
+      "reference/keyboard-shortcuts",
+      "reference/preferences",
+      "reference/error-messages",
+      "reference/command-log",
+      "reference/data-and-privacy"
+    ]
+  },
+  {
+    "label": "Help",
+    "translations": { "fr": "Aide" },
+    "items": ["help/troubleshooting", "help/faq"]
   }
 ]

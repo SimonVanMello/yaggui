@@ -25,7 +25,7 @@ Bring the commits of one branch into another: merge them, fast-forward the branc
 
 1. Press a branch in the sidebar or a branch label (pill) in the graph, local or remote, and move the pointer. The drag starts after a few pixels and a label with the branch name follows the pointer.
 2. Release it on a **local** branch, in the sidebar or on a graph pill. The branch under the pointer is highlighted. Remote branches are not drop targets.
-3. A menu titled **Dropped on {target}** opens at the pointer. Pick an action, or press <kbd>Esc</kbd> to cancel.
+3. A menu titled **Dropped on \{target\}** opens at the pointer. Pick an action, or press <kbd>Esc</kbd> to cancel.
 
 Press <kbd>Esc</kbd> during the drag to cancel it.
 
@@ -51,9 +51,9 @@ Right-click a branch other than the checked-out one. The menu has the same three
 
 | Menu item | Same as |
 |---|---|
-| **Merge {name} into {current}…** | Dragging `{name}` onto `{current}`, then **Merge** |
-| **Rebase {name} onto {current}** | Dragging `{name}` onto `{current}`, then **Rebase** |
-| **Fast-forward {current} to {name}** | Dragging `{name}` onto `{current}`, then **Fast-forward** |
+| **Merge \{name\} into \{current\}…** | Dragging `{name}` onto `{current}`, then **Merge** |
+| **Rebase \{name\} onto \{current\}** | Dragging `{name}` onto `{current}`, then **Rebase** |
+| **Fast-forward \{current\} to \{name\}** | Dragging `{name}` onto `{current}`, then **Fast-forward** |
 
 These items are hidden when HEAD is detached, and disabled while an operation is in progress. **Rebase** is disabled on remote branches.
 
@@ -72,7 +72,7 @@ They have no default shortcut; you can bind one (see [Palette and shortcuts](../
 
 ## Merge a branch
 
-The dialog **Merge {source} into {target}** reads: "Choose how the commits of the branch are brought in. The choice is remembered."
+The dialog **Merge \{source\} into \{target\}** reads: "Choose how the commits of the branch are brought in. The choice is remembered."
 
 <Screenshot name="history-merge-dialog" alt="Merge dialog with the three merge modes, the message field and the command preview" />
 
@@ -90,7 +90,7 @@ The dialog **Merge {source} into {target}** reads: "Choose how the commits of th
 
 The last mode you used is remembered and preselected next time (stored by the app's web view, not in the preferences database). The default is **Fast-forward when possible**.
 
-When the target is not checked out, the dialog says **{target} will be checked out first.** The bottom of the dialog previews the commands, for example:
+When the target is not checked out, the dialog says **\{target\} will be checked out first.** The bottom of the dialog previews the commands, for example:
 
 ```bash
 git checkout main
@@ -105,7 +105,7 @@ git merge <--ff|--no-ff|--squash> --no-edit [-m <message>] -- <source>
 
 For a squash, yaggui then creates the commit itself with `git commit -F -` (your hooks run). The message is the one you typed, else the message Git prepared, else `Squashed commit of <source>`.
 
-Result toasts: **{source} merged into {target}**, **{target} fast-forwarded to {source}**, **{source} squashed into {target}**. If the target already contains every commit of the source, yaggui runs nothing and shows **{target} already contains {source}**.
+Result toasts: **\{source\} merged into \{target\}**, **\{target\} fast-forwarded to \{source\}**, **\{source\} squashed into \{target\}**. If the target already contains every commit of the source, yaggui runs nothing and shows **\{target\} already contains \{source\}**.
 
 If a squash brings nothing new, the toast **The squash brings no change** explains that there is nothing to commit and offers **Abort merge** to clean up.
 
@@ -113,22 +113,22 @@ See [git-merge](https://git-scm.com/docs/git-merge) for the merge strategies the
 
 ## Fast-forward a branch
 
-**Fast-forward {target} to {source}** (drop menu or sidebar) runs without a dialog: it checks out the target if needed, then runs
+**Fast-forward \{target\} to \{source\}** (drop menu or sidebar) runs without a dialog: it checks out the target if needed, then runs
 
 ```bash
 git merge --ff-only --no-edit -- <source>
 ```
 
-If the branches have diverged, Git refuses and you see: "The branches have diverged: "{source}" cannot be fast-forwarded. Merge with a merge commit, or rebase." The toast has a **Merge instead…** button that opens the merge dialog for the same two branches.
+If the branches have diverged, Git refuses and you see: "The branches have diverged: "\{source\}" cannot be fast-forwarded. Merge with a merge commit, or rebase." The toast has a **Merge instead…** button that opens the merge dialog for the same two branches.
 
 ## Rebase onto a branch
 
 A rebase replays the commits of a branch on top of another branch; they get new SHAs ([git-rebase](https://git-scm.com/docs/git-rebase)). For reordering, squashing or editing commits, use the [interactive rebase](../../history/interactive-rebase/).
 
-- **From the palette**: the dialog **Rebase {branch} onto {onto}** rebases the current branch. Pick the branch in **Rebase onto** (local branches except the current one, and remote branches), check the preview `git rebase <onto>`, and click **Rebase**. The dialog is the confirmation.
-- **From the drop menu or the sidebar**: a confirmation **Rebase {branch} onto {onto}?** explains: "The commits of {branch} are replayed on top of {onto}: they get new SHAs. If {branch} was already pushed, it will need a force push (with lease)." When the rebased branch is not the current one, it adds "{branch} is checked out for the rebase and stays checked out." The command shown is `git rebase <onto> <branch>`. Click **Rebase**.
+- **From the palette**: the dialog **Rebase \{branch\} onto \{onto\}** rebases the current branch. Pick the branch in **Rebase onto** (local branches except the current one, and remote branches), check the preview `git rebase <onto>`, and click **Rebase**. The dialog is the confirmation.
+- **From the drop menu or the sidebar**: a confirmation **Rebase \{branch\} onto \{onto\}?** explains: "The commits of \{branch\} are replayed on top of \{onto\}: they get new SHAs. If \{branch\} was already pushed, it will need a force push (with lease)." When the rebased branch is not the current one, it adds "\{branch\} is checked out for the rebase and stays checked out." The command shown is `git rebase <onto> <branch>`. Click **Rebase**.
 
-yaggui resolves `<onto>` to a commit and runs `git rebase <onto-sha> [<branch>]`. The step (`Rebasing 3/7`) shows in the status bar. On success: **{branch} rebased onto {onto}**, or **{branch} is already based on {onto}** when there was nothing to replay.
+yaggui resolves `<onto>` to a commit and runs `git rebase <onto-sha> [<branch>]`. The step (`Rebasing 3/7`) shows in the status bar. On success: **\{branch\} rebased onto \{onto\}**, or **\{branch\} is already based on \{onto\}** when there was nothing to replay.
 
 :::note
 yaggui does not check whether the rebased commits were pushed. The confirmation only reminds you that a pushed branch will need a force push with lease afterwards: see [Fetch, pull and push](../../remotes/fetch-pull-push/).
@@ -154,7 +154,7 @@ Every command appears in the [command log](../../reference/command-log/).
 
 | Operation | Undoable |
 |---|---|
-| Merge, fast-forward or squash that completed in one go | Yes, with <kbd>⌘Z</kbd> (<kbd>Ctrl+Z</kbd> on Windows and Linux): **merge of {source}** |
+| Merge, fast-forward or squash that completed in one go | Yes, with <kbd>⌘Z</kbd> (<kbd>Ctrl+Z</kbd> on Windows and Linux): **merge of \{source\}** |
 | Merge that stopped on conflicts and was finished with **Continue** | No |
 | Rebase | No. While it is in progress, **Abort** restores the branch; afterwards, use the [reflog](../../inspect/reflog/) |
 

@@ -27,8 +27,8 @@ yaggui reads the operation state from the `.git` folder (`MERGE_HEAD`, `rebase-m
 
 The banner shows:
 
-- **A title**: for a rebase with a known step, **Rebase {step}/{total}** (for example "Rebase 3/7") with a progress bar. Otherwise **Merge in progress**, **Rebase in progress**, **Cherry-pick in progress**, **Revert in progress**, **Bisect in progress** or **Applying patches (git am)**.
-- **A summary**: **Rebasing {branch} onto {onto}**, **Merging {source} into {target}**, **Squash-merging {source} into {target}**, **Cherry-picking {commit} onto {target}** or **Reverting {commit} on {target}**.
+- **A title**: for a rebase with a known step, **Rebase \{step\}/\{total\}** (for example "Rebase 3/7") with a progress bar. Otherwise **Merge in progress**, **Rebase in progress**, **Cherry-pick in progress**, **Revert in progress**, **Bisect in progress** or **Applying patches (git am)**.
+- **A summary**: **Rebasing \{branch\} onto \{onto\}**, **Merging \{source\} into \{target\}**, **Squash-merging \{source\} into \{target\}**, **Cherry-picking \{commit\} onto \{target\}** or **Reverting \{commit\} on \{target\}**.
 - **The number of conflicts** still unresolved, and **Show conflicts**, which selects the working copy so the conflicts panel appears.
 - The **Continue**, **Skip** and abort buttons described below.
 
@@ -36,7 +36,7 @@ While an operation is in progress, the other history actions (merge, rebase, che
 
 ### Continue
 
-**Continue** is disabled until every conflict is resolved; its tooltip says **Resolve the {count} remaining conflicts first**. It is hidden during a bisect.
+**Continue** is disabled until every conflict is resolved; its tooltip says **Resolve the \{count\} remaining conflicts first**. It is hidden during a bisect.
 
 For a merge, cherry-pick or revert, a **Continue** dialog lets you edit the message of the commit about to be created ("Edit the message of the commit that is about to be created, if needed."), prefilled with the message Git prepared. Click **Continue** or press <kbd>⌘Enter</kbd> (<kbd>Ctrl+Enter</kbd> on Windows and Linux). If Git prepared no message, yaggui continues without the dialog. A rebase continues directly.
 
@@ -47,13 +47,13 @@ For a merge, cherry-pick or revert, a **Continue** dialog lets you edit the mess
 | Rebase | `git rebase --continue` |
 | `git am` | `git am --continue` |
 
-Toasts: **Merge completed**, **Rebase completed**, **Cherry-pick completed**, **Revert completed**, **Patch applied**. If a rebase stops again on a commit marked **Edit**, you see **Rebase paused at step {step}/{total}** with "Amend the commit if needed, then continue." If it stops on new conflicts, the conflicts toast comes back.
+Toasts: **Merge completed**, **Rebase completed**, **Cherry-pick completed**, **Revert completed**, **Patch applied**. If a rebase stops again on a commit marked **Edit**, you see **Rebase paused at step \{step\}/\{total\}** with "Amend the commit if needed, then continue." If it stops on new conflicts, the conflicts toast comes back.
 
-If the stopped cherry-pick or revert brings no change any more, Continue fails with "{short} brings no change any more (it is probably already applied): skip it."
+If the stopped cherry-pick or revert brings no change any more, Continue fails with "\{short\} brings no change any more (it is probably already applied): skip it."
 
 ### Skip
 
-**Skip** drops the current commit and goes on with the next one: `git rebase --skip`, `git cherry-pick --skip`, `git revert --skip`, `git am --skip` or `git bisect skip`. There is no confirmation. It is not offered for a merge, which has no commit to skip. Toast: **{operation}: commit skipped**.
+**Skip** drops the current commit and goes on with the next one: `git rebase --skip`, `git cherry-pick --skip`, `git revert --skip`, `git am --skip` or `git bisect skip`. There is no confirmation. It is not offered for a merge, which has no commit to skip. Toast: **\{operation\}: commit skipped**.
 
 ### Abort
 
@@ -68,11 +68,11 @@ The abort button is named after the operation: **Abort merge**, **Abort rebase**
 | Bisect | **Stop the bisect?** HEAD goes back to where it was before the bisect started. | `git bisect reset` |
 | `git am` | **Abort the patch application?** The branch goes back to how it was before. | `git am --abort` |
 
-Toast: **{operation}: cancelled, back to the previous state**.
+Toast: **\{operation\}: cancelled, back to the previous state**.
 
 ## The conflicts panel
 
-When an operation is in progress and the working copy is selected, the **Conflicts** panel sits above the local changes in the right panel. Its counter reads **{unresolved} unresolved of {total}**, then **All {total} resolved**.
+When an operation is in progress and the working copy is selected, the **Conflicts** panel sits above the local changes in the right panel. Its counter reads **\{unresolved\} unresolved of \{total\}**, then **All \{total\} resolved**.
 
 <Screenshot name="conflicts-panel" alt="Conflicts panel listing four files with their kind of conflict and the Resolve, Take and Mark resolved buttons" />
 
@@ -82,8 +82,8 @@ Each row shows the path, a **Binary** badge when relevant, and what happened:
 |---|---|
 | **Both sides changed the content** | Both changed the same file |
 | **Both sides added this file** | Both added a file at the same path |
-| **Deleted on {ours}, modified on {theirs}** / **Modified on {ours}, deleted on {theirs}** | Delete/modify |
-| **Added on {ours} only** / **Added on {theirs} only** | The file exists on one side only |
+| **Deleted on \{ours\}, modified on \{theirs\}** / **Modified on \{ours\}, deleted on \{theirs\}** | Delete/modify |
+| **Added on \{ours\} only** / **Added on \{theirs\} only** | The file exists on one side only |
 | **Deleted on both sides** | Both deleted or renamed it differently |
 
 Files resolved during the operation stay in the list, marked **Resolved**.
@@ -91,7 +91,7 @@ Files resolved during the operation stay in the list, marked **Resolved**.
 Buttons on an unresolved file, all without confirmation:
 
 - **Resolve…** opens the file in the [merge editor](#the-3-way-merge-editor) or the [choice view](#deleted-added-and-binary-files).
-- **Take {side}** (two buttons) keeps the whole file as it is on that side: `git checkout --ours|--theirs` then `git add`, or `git rm` when that side deleted the file.
+- **Take \{side\}** (two buttons) keeps the whole file as it is on that side: `git checkout --ours|--theirs` then `git add`, or `git rm` when that side deleted the file.
 - **Mark resolved** stages the file as it is on disk (`git add`, or `git rm` if it no longer exists).
 
 :::caution
@@ -118,13 +118,13 @@ During a rebase, Git replays your commits on top of the other branch, so "ours" 
 <Screenshot name="conflicts-merge-editor" alt="Merge editor with the two sides on top, conflict blocks with checkboxes, and the editable Result below" />
 
 - **Top**: the two sides, read only, titled with the side name, its role and `sha · summary`. Changes that do not conflict are already merged.
-- **Each conflict block** has a header **Conflict {n} / {total}** in both side panels, with a checkbox (**Keep conflict {n} from {name}**):
+- **Each conflict block** has a header **Conflict \{n\} / \{total\}** in both side panels, with a checkbox (**Keep conflict \{n\} from \{name\}**):
   - one side ticked: its lines go into the result;
   - both ticked: both go in, in the order you ticked them (a badge shows which comes first);
   - none ticked: the block stays unresolved and shows "Unresolved conflict: tick a side above, or type the result here".
-- **Bottom**: the **Result**, editable. Typing in a block resolves it with your text; ticking a box afterwards replaces your edit with that side. **Take all from {name}** takes every block from one side.
+- **Bottom**: the **Result**, editable. Typing in a block resolves it with your text; ticking a box afterwards replaces your edit with that side. **Take all from \{name\}** takes every block from one side.
 
-The toolbar shows the file position (**File {index} / {total}**), a counter (**{count} conflicts left**, then **All blocks resolved**), and navigation buttons.
+The toolbar shows the file position (**File \{index\} / \{total\}**), a counter (**\{count\} conflicts left**, then **All blocks resolved**), and navigation buttons.
 
 | Key | Action |
 |---|---|
@@ -133,13 +133,13 @@ The toolbar shows the file position (**File {index} / {total}**), a counter (**{
 | <kbd>⌘S</kbd> (<kbd>Ctrl+S</kbd> on Windows and Linux) | **Save and mark resolved** |
 | <kbd>Esc</kbd> | Back to the graph (not while typing in the Result) |
 
-**Save and mark resolved** stays disabled until every block is resolved (**Resolve the {count} conflicts left first**). It writes the file, keeping its line endings, and stages it. yaggui then opens the next unresolved file. After the last one: **All conflicts are resolved**, "Continue the operation in progress to finish it.", and the graph comes back.
+**Save and mark resolved** stays disabled until every block is resolved (**Resolve the \{count\} conflicts left first**). It writes the file, keeping its line endings, and stages it. yaggui then opens the next unresolved file. After the last one: **All conflicts are resolved**, "Continue the operation in progress to finish it.", and the graph comes back.
 
 Leaving the editor with unsaved choices (**Graph**, <kbd>Esc</kbd>, or **Resolve…** on another file) asks **Discard the resolution in progress?**; the file stays in conflict.
 
 ## External merge tool
 
-In the merge editor, **Open in {tool}** runs
+In the merge editor, **Open in \{tool\}** runs
 
 ```bash
 git mergetool --no-prompt --tool=<tool> -- <path>
@@ -147,9 +147,9 @@ git mergetool --no-prompt --tool=<tool> -- <path>
 
 and waits for the tool to close. The tool is the **Merge tool** preference if set (see [External tools](../../customize/external-tools/)), else Git's `merge.tool` setting. Without either, the button reads **External tool** and is disabled: "No merge tool configured: set merge.tool in your Git configuration (git config merge.tool <tool>)."
 
-- If you saved the result in the tool: **File resolved with {tool}**, and the next file opens.
-- If you closed it without saving: **{tool} closed without resolving the file**; the file stays in conflict.
-- "The merge tool "{tool}" could not be started. Check that it is installed and configured (mergetool.{tool}.cmd)."
+- If you saved the result in the tool: **File resolved with \{tool\}**, and the next file opens.
+- If you closed it without saving: **\{tool\} closed without resolving the file**; the file stays in conflict.
+- "The merge tool "\{tool\}" could not be started. Check that it is installed and configured (mergetool.\{tool\}.cmd)."
 
 The external tool is offered only for text conflicts, not in the choice view.
 
@@ -159,7 +159,7 @@ Files that cannot be merged line by line open in a choice view: one side deleted
 
 <Screenshot name="conflicts-choice-binary" alt="Choice view for a binary image, with both versions side by side and a button to take each" />
 
-Two cards show each side: what it did (**Changed the file**, **Added the file**, **Deleted the file**, **Does not have this file**), the size, the line count or **Binary**, and a preview (images are shown; text shows its first 40 lines). Click the button on the card you want: **Take {name}'s version**, **Keep the changed version**, **Keep the file**, **Accept the deletion** or **Drop the file**. There is no confirmation; accepting a deletion runs `git rm`.
+Two cards show each side: what it did (**Changed the file**, **Added the file**, **Deleted the file**, **Does not have this file**), the size, the line count or **Binary**, and a preview (images are shown; text shows its first 40 lines). Click the button on the card you want: **Take \{name\}'s version**, **Keep the changed version**, **Keep the file**, **Accept the deletion** or **Drop the file**. There is no confirmation; accepting a deletion runs `git rm`.
 
 ## Undo
 

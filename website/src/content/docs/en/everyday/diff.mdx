@@ -99,7 +99,7 @@ A notice bar above the code reports changes that are not visible as lines:
 
 | Notice | Meaning |
 |---|---|
-| **Renamed from {from} ({similarity}% similar)** | Rename or copy detected; similarity is 100% for an identical file |
+| **Renamed from \{from\} (\{similarity\}% similar)** | Rename or copy detected; similarity is 100% for an identical file |
 | **File mode changed: 100644 → 100755** | The executable bit (or another mode) changed |
 | **Line endings changed: LF → CRLF. Ignore whitespace to hide these lines.** | Every line changed only by its ending; `CRLF + LF` means mixed endings |
 | **Mixed line endings (CRLF and LF)** | The new version mixes both endings |
@@ -116,7 +116,7 @@ Some files show a placeholder instead of code:
 
 ## Large files
 
-To stay fast, yaggui does not render diffs over 5,000 lines or files over 1 MB. It shows **Large diff not shown** with the line count ("This diff has {lines} lines. Showing it may slow yaggui down.") or the size ("This file weighs {size}. It was not loaded, to keep yaggui fast."). Click **Show anyway** to render it; yaggui remembers this for that file until you quit.
+To stay fast, yaggui does not render diffs over 5,000 lines or files over 1 MB. It shows **Large diff not shown** with the line count ("This diff has \{lines\} lines. Showing it may slow yaggui down.") or the size ("This file weighs \{size\}. It was not loaded, to keep yaggui fast."). Click **Show anyway** to render it; yaggui remembers this for that file until you quit.
 
 ## Binary files
 
@@ -141,7 +141,7 @@ The mode stays selected for other images until you quit. Images over 8 MB are no
 For Markdown files (`.md`, `.markdown`, `.mdx` and similar), the **Diff layout** control has a third choice, **Preview**. It renders the new version of the document and marks the changes:
 
 - Changed, added and removed blocks are marked in the margin; inserted words are highlighted and removed words struck through in place.
-- A strip counts **{count} blocks added**, **removed** and **changed**. <kbd>N</kbd> and <kbd>P</kbd>, or **Next change** and **Previous change**, move between changes (**Change {index} / {total}**).
+- A strip counts **\{count\} blocks added**, **removed** and **changed**. <kbd>N</kbd> and <kbd>P</kbd>, or **Next change** and **Previous change**, move between changes (**Change \{index\} / \{total\}**).
 - **Show removed text** (on by default) hides or shows removed text.
 - Renumbering an ordered list is not counted as a change. If only spaces or line breaks changed: "No change in the rendered text (spaces or line breaks only)".
 
@@ -157,7 +157,7 @@ In an unstaged diff of a text file, **Edit** turns the diff into an editor of th
 2. Click **Save** or press <kbd>⌘S</kbd> (<kbd>Ctrl+S</kbd> on Windows and Linux). The toolbar shows **Saved**.
 3. Click **Done** to go back to the diff. With unsaved changes, **Discard your changes?** asks first.
 
-If you leave the file without saving, your edits are kept until you quit and come back when you reopen it. If the file changes on disk while you have unsaved edits, yaggui says "{path} changed on disk while you were editing it." and offers **Reload from disk** or **Keep my version**.
+If you leave the file without saving, your edits are kept until you quit and come back when you reopen it. If the file changes on disk while you have unsaved edits, yaggui says "\{path\} changed on disk while you were editing it." and offers **Reload from disk** or **Keep my version**.
 
 Editing is not offered for staged or commit diffs, and is refused for LFS files, files over 1 MB, non-UTF-8 or binary files and files mixing LF and CRLF endings ("This file cannot be edited").
 
@@ -180,5 +180,5 @@ The editor and file-manager items always act on the working-tree file, even from
 Errors:
 
 - "No external diff tool is configured: choose one in the preferences (Tools) or set diff.tool in your Git configuration."
-- "The diff tool \"{tool}\" could not be started. Check that it is installed and configured (difftool.{tool}.cmd)." The [command log](../../reference/command-log/) shows Git's output.
-- "The editor \"{name}\" could not be started. Check its name in the preferences."
+- "The diff tool \"\{tool\}\" could not be started. Check that it is installed and configured (difftool.\{tool\}.cmd)." The [command log](../../reference/command-log/) shows Git's output.
+- "The editor \"\{name\}\" could not be started. Check its name in the preferences."

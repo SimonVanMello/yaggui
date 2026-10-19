@@ -7,7 +7,7 @@ export default defineConfig({
   testDir: './e2e',
   // Measurements run on a production build (`pnpm perf:*`, playwright.perf.config.ts); README
   // screenshots have their own config (`pnpm screenshots`).
-  testIgnore: ['perf*.spec.ts', 'readme-screenshots.spec.ts'],
+  testIgnore: ['perf*.spec.ts', 'readme-screenshots.spec.ts', 'docs-screenshots/**'],
   outputDir: './test-results',
   fullyParallel: true,
   reporter: [['list']],

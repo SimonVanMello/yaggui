@@ -29,9 +29,9 @@ On macOS, the **Edit** menu also has **Undo** and **Redo**. Shortcuts can be reb
 - They are ignored while a dialog is open.
 - One undo or redo runs at a time per repository; pressing the shortcut again while one is running does nothing.
 
-The **Undo** and **Redo** buttons sit at the left of the toolbar. Their tooltip names the operation: **Undo: {op}** / **Redo: {op}**. When there is nothing to undo, the button is disabled with **Nothing to undo in this session** (**Nothing to redo**). When the latest operation cannot be undone, the button looks disabled with **Cannot undo {op}: {reason}**; the shortcut then shows a **Cannot undo** toast with the reason.
+The **Undo** and **Redo** buttons sit at the left of the toolbar. Their tooltip names the operation: **Undo: \{op\}** / **Redo: \{op\}**. When there is nothing to undo, the button is disabled with **Nothing to undo in this session** (**Nothing to redo**). When the latest operation cannot be undone, the button looks disabled with **Cannot undo \{op\}: \{reason\}**; the shortcut then shows a **Cannot undo** toast with the reason.
 
-After an undo or redo, a toast confirms it: **Undone: {op}** or **Redone: {op}**, for example "Undone: creation of branch qa-undo". Undo and redo themselves are not recorded as operations.
+After an undo or redo, a toast confirms it: **Undone: \{op\}** or **Redone: \{op\}**, for example "Undone: creation of branch qa-undo". Undo and redo themselves are not recorded as operations.
 
 ## The session history
 
@@ -52,25 +52,25 @@ Undo always targets the newest operation that is not already undone; press it ag
 
 | Operation | Label in the history | What undo restores |
 |---|---|---|
-| Commit, amend | commit "{summary}", amend "{summary}" | The branch moves back to the previous commit. Your changes stay staged |
-| Checkout of a branch or commit | checkout of {branch}, checkout of {sha} (detached HEAD) | Switches back to the previous branch or commit, carrying local changes |
-| Create a branch | creation of branch {name} | Deletes the branch (switches back first if it was checked out) |
-| Delete a local branch | deletion of branch {name} | Recreates it at the same commit, with its upstream |
-| Clean up branches | deletion of {count} branches | Recreates all of them |
-| Rename a branch | rename of {from} to {to} | Renames it back (`git branch -m`) |
-| Create or delete a tag | creation of tag {name}, deletion of tag {name} | Deletes or recreates the tag |
-| Merge, fast-forward, squash merge | merge of {source} | `git reset --keep` to the previous commit |
-| Cherry-pick | cherry-pick of {count} commits | `git reset --keep` to the previous commit |
-| Revert | revert of {sha} | `git reset --keep` to the previous commit |
-| Soft or mixed reset | {mode} reset to {target} | The branch moves back; a mixed reset also restores the index |
-| Hard reset | hard reset to {target} | The branch moves back and the overwritten files are written back from the backup |
-| Discard changes (files or hunks) | discard of {path}, discard of {count} files | The discarded content comes back in the working tree and the index |
-| Stash selected files | stash of {path}, stash of {count} files | The files come back and the stash entry is dropped |
-| Drop a stash | drop of stash "{message}" | The stash comes back, on top of the list |
-| Add to .gitignore | addition of {rule} to .gitignore | `.gitignore` is restored |
-| Track a pattern with Git LFS | LFS tracking of {pattern} | `.gitattributes` is restored |
-| Create a worktree, remove a clean worktree | creation/removal of the worktree {name} | Removes or recreates the worktree (the folder must be empty or absent) |
-| Add, rename, change the URL of, or remove a remote | addition of remote {name}, rename of remote {from} to {to}, URL change of remote {name}, removal of remote {name} | Restores the remote's configuration (and, after a removal, its remote branches and the upstreams that used it) |
+| Commit, amend | commit "\{summary\}", amend "\{summary\}" | The branch moves back to the previous commit. Your changes stay staged |
+| Checkout of a branch or commit | checkout of \{branch\}, checkout of \{sha\} (detached HEAD) | Switches back to the previous branch or commit, carrying local changes |
+| Create a branch | creation of branch \{name\} | Deletes the branch (switches back first if it was checked out) |
+| Delete a local branch | deletion of branch \{name\} | Recreates it at the same commit, with its upstream |
+| Clean up branches | deletion of \{count\} branches | Recreates all of them |
+| Rename a branch | rename of \{from\} to \{to\} | Renames it back (`git branch -m`) |
+| Create or delete a tag | creation of tag \{name\}, deletion of tag \{name\} | Deletes or recreates the tag |
+| Merge, fast-forward, squash merge | merge of \{source\} | `git reset --keep` to the previous commit |
+| Cherry-pick | cherry-pick of \{count\} commits | `git reset --keep` to the previous commit |
+| Revert | revert of \{sha\} | `git reset --keep` to the previous commit |
+| Soft or mixed reset | \{mode\} reset to \{target\} | The branch moves back; a mixed reset also restores the index |
+| Hard reset | hard reset to \{target\} | The branch moves back and the overwritten files are written back from the backup |
+| Discard changes (files or hunks) | discard of \{path\}, discard of \{count\} files | The discarded content comes back in the working tree and the index |
+| Stash selected files | stash of \{path\}, stash of \{count\} files | The files come back and the stash entry is dropped |
+| Drop a stash | drop of stash "\{message\}" | The stash comes back, on top of the list |
+| Add to .gitignore | addition of \{rule\} to .gitignore | `.gitignore` is restored |
+| Track a pattern with Git LFS | LFS tracking of \{pattern\} | `.gitattributes` is restored |
+| Create a worktree, remove a clean worktree | creation/removal of the worktree \{name\} | Removes or recreates the worktree (the folder must be empty or absent) |
+| Add, rename, change the URL of, or remove a remote | addition of remote \{name\}, rename of remote \{from\} to \{to\}, URL change of remote \{name\}, removal of remote \{name\} | Restores the remote's configuration (and, after a removal, its remote branches and the upstreams that used it) |
 
 Redo applies the operation again, as it was.
 
@@ -106,7 +106,7 @@ Redo re-applies the operation you last undid. Undo several operations, then redo
 
 Before it undoes anything, yaggui checks that every branch the undo would move is still exactly where the operation left it.
 
-- If a branch moved since (a commit in a terminal, for example), the button shows **Cannot undo {op}: {refs} moved since, outside yaggui**, and the shortcut opens **Cannot undo: the repository changed since**: "Branches or files changed after this operation, in a terminal or by an action yaggui does not record. Undoing it would lose those changes, so nothing was touched." It lists what moved or changed. Nothing is modified.
+- If a branch moved since (a commit in a terminal, for example), the button shows **Cannot undo \{op\}: \{refs\} moved since, outside yaggui**, and the shortcut opens **Cannot undo: the repository changed since**: "Branches or files changed after this operation, in a terminal or by an action yaggui does not record. Undoing it would lose those changes, so nothing was touched." It lists what moved or changed. Nothing is modified.
 - If your local changes are in the way (you edited a file after discarding it, or after a hard reset, or the files a merge undo would touch), yaggui asks **Local changes are in the way**: "Your local changes to the files below would be overwritten. Stash them, and the undo is retried right away; pop the stash afterwards to get them back." **Stash and retry** runs `git stash push --include-untracked`, then undoes. Pop the stash afterwards (see [Stash](../../everyday/stash/)).
 
 ## Backups of discarded files
