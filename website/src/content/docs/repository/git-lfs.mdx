@@ -1,0 +1,80 @@
+---
+title: Git LFS
+description: How yaggui detects Git LFS, marks LFS files, shows pointers in the diff, and runs git lfs pull and git lfs track.
+sidebar:
+  order: 3
+sources:
+  - src/features/lfs/**
+  - src/features/submodules/ModuleDiffActions.tsx
+  - src/features/diff/ChangedFileRow.tsx
+  - src/features/diff/DiffPlaceholder.tsx
+  - src-tauri/src/git/read/lfs.rs
+  - src-tauri/src/repo/modules.rs
+requirements: [F-262]
+---
+
+import Screenshot from '../../../../components/Screenshot.astro';
+
+Git LFS stores large files outside the repository and versions only a small pointer file in their place (see [git-lfs.com](https://git-lfs.com)). yaggui detects LFS, marks the files it stores, and runs `git lfs pull` and `git lfs track` from the command palette.
+
+## Detection
+
+When you open a repository, yaggui:
+
+- runs `git lfs version` to know whether Git LFS is installed;
+- reads the patterns marked `filter=lfs` in the root `.gitattributes` file;
+- considers that the repository uses LFS when an attributes file mentions it.
+
+Nothing else is configured: yaggui uses your own Git LFS installation.
+
+## Git LFS not installed
+
+If the repository uses LFS and Git LFS is not installed, yaggui shows a warning once per repository and session:
+
+> **Git LFS is not installed**
+> This repository stores large files with Git LFS: without it, they stay as small pointer files. Install Git LFS (git-lfs.com), then run git lfs install.
+
+The warning does not block anything. The same text appears under the diff of LFS files and in the **Track files with Git LFS** dialog, whose **Track** button stays disabled. Install Git LFS from [git-lfs.com](https://git-lfs.com), run `git lfs install` once, then reopen the repository.
+
+## The LFS badge
+
+Files matching an LFS pattern carry an **LFS** chip (tooltip **Stored with Git LFS**) in the changes panel and in the file lists of commits and stashes.
+
+## LFS files in the diff
+
+yaggui does not show a text diff for an LFS pointer. Instead, the diff shows **File stored with Git LFS** with each side's size and object ID (or **local content** for the file in your working folder), and the line **Only a pointer is versioned: no text diff.** Line counts are not computed for LFS files, and LFS files cannot be edited in the diff. See [Diff](../../everyday/diff/).
+
+<Screenshot name="lfs-diff" alt="Diff of hero.psd: the File stored with Git LFS panel with sizes, and the LFS chip in the file list" />
+
+## Download LFS files (pull)
+
+Run **Git LFS: download the files (pull)** from the [command palette](../../customize/palette-and-shortcuts/). yaggui runs:
+
+```bash
+git lfs pull
+```
+
+The status bar shows the operation as **Git LFS** with its progress; you can cancel it there. yaggui then shows **LFS files downloaded**.
+
+:::note
+`git lfs pull` cannot be undone: it downloaded and checked out content. It appears in the undo history as "git lfs pull" and blocks undo past that point. See [Undo and redo](../../history/undo-and-redo/).
+:::
+
+## Track a pattern with LFS
+
+1. Run **Git LFS: track a pattern…** from the command palette.
+2. The **Track files with Git LFS** dialog lists the patterns **Already tracked** (or **No pattern yet**).
+3. Type a **Pattern**, for example `*.psd` or `assets/**/*.png`. The dialog shows the command it will run.
+4. Click **Track**.
+
+yaggui runs `git lfs track -- <pattern>` and shows "`<pattern>` is now stored with LFS". Git LFS writes the pattern to `.gitattributes`, which stays unstaged: commit it so that the files matching the pattern are stored with LFS from their next commit.
+
+The pattern must be a single line that does not start with `-`. Otherwise yaggui shows "`<pattern>` is not a file pattern (e.g. *.psd)."
+
+Tracking a pattern is undoable ("LFS tracking of `<pattern>`"): undo restores the previous `.gitattributes`. See [Undo and redo](../../history/undo-and-redo/).
+
+<Screenshot name="lfs-track" alt="The Track files with Git LFS dialog with the already tracked patterns and a pattern field" />
+
+## What yaggui does not do
+
+There are no LFS buttons or menus outside the palette, and the two LFS actions have no default shortcut (you can assign one in Preferences). Other LFS commands, such as `git lfs untrack`, `git lfs migrate` or locks, are for the [terminal](../../repository/terminal/).

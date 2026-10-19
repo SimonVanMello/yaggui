@@ -1,0 +1,123 @@
+---
+title: Worktrees
+description: List, create, open, remove and prune Git worktrees from yaggui.
+sidebar:
+  order: 2
+sources:
+  - src/features/worktrees/**
+  - src/features/sidebar/RefTreeRow.tsx
+  - src/features/sidebar/RefContextMenu.tsx
+  - src-tauri/src/repo/modules.rs
+  - src-tauri/src/git/read/refs.rs
+  - src-tauri/src/repo/journal.rs
+requirements: [F-261]
+---
+
+import Screenshot from '../../../../components/Screenshot.astro';
+
+A worktree is a second working folder attached to the same repository, with its own checked-out branch (see [git worktree](https://git-scm.com/docs/git-worktree)). yaggui lists them, creates and removes them, and opens each one in its own tab.
+
+## See the worktrees
+
+The **Worktrees** section of the left panel lists the main worktree and every linked one, including the one the current tab shows, by folder name. The section is collapsed by default and reads **No other worktree** when there is none.
+
+- The worktree shown by the current tab is styled as current.
+- A lock icon marks a locked worktree (`git worktree lock`).
+- A **missing** chip marks a worktree whose folder no longer exists. Tooltip: **The folder no longer exists: prune to forget it**.
+
+Clicking a worktree selects its HEAD commit in the graph.
+
+A local branch checked out in another worktree carries a folder mark with the tooltip "Checked out in the worktree `<path>`". You cannot check it out here: double-clicking it shows that message, and **Check out** in its menu is disabled with the hint **Checked out in another worktree**.
+
+## Worktree context menu
+
+Right-click a worktree. For the current worktree, the menu only offers **New worktree…** and the copy items. For the others:
+
+| Item | When | What it does |
+|---|---|---|
+| **Open in a new tab** | Disabled with **The folder no longer exists** for a missing worktree | Opens the worktree folder as a repository tab. |
+| **New worktree…** | Always | Opens the creation dialog. |
+| **Prune missing worktrees** | The worktree is missing | Runs `git worktree prune`. |
+| **Remove the worktree…** | Not the main worktree | Opens the removal dialog. |
+| **Copy path** | Always | Copies the worktree folder path. |
+| **Copy SHA** | Always | Copies the SHA of its HEAD. |
+
+The palette offers **New worktree…** (with a repository open) and **Prune missing worktrees** (when a worktree is missing). Neither has a default shortcut.
+
+## Create a worktree
+
+1. Start from one of these:
+   - **New worktree…** in a worktree's context menu or in the [command palette](../../customize/palette-and-shortcuts/).
+   - **Check out in a new worktree…** in a local branch's context menu. The dialog opens in **Existing branch** mode with that branch selected. The item is disabled when the branch is already checked out here or in another worktree.
+2. Choose the mode:
+   - **New branch** (default): enter the **Name of the new branch** (checked as you type, like in the branch dialog) and the **Starting point**: any branch, tag or SHA. It defaults to the current branch, or `HEAD` when detached.
+   - **Existing branch**: pick the **Branch to check out** among the local branches not checked out in any worktree. If there is none, the dialog reads **Every local branch is already checked out in a worktree.**
+3. Check the **Folder**. It must be a new or empty folder. By default yaggui suggests a sibling of the repository named after the branch: for `hotfix/login` in `/Users/alex/dev/yaggui`, it suggests `/Users/alex/dev/yaggui-hotfix-login`. The suggestion follows the branch name until you edit the field. **Choose…** opens a folder picker.
+4. Leave **Open it in a new tab** checked to open the new worktree right away (the default).
+5. Check the command shown at the bottom, then click **Create the worktree**.
+
+The dialog shows the command it will run:
+
+```bash
+# New branch (the starting point is resolved to a full SHA)
+git worktree add -b <branch> -- <folder> <start>
+# Existing branch
+git worktree add -- <folder> <branch>
+```
+
+The status bar shows the operation as **Worktree**. When it ends, yaggui shows **Worktree created** and, if asked, opens the new worktree in a tab. The new folder is then a known repository like any other.
+
+<Screenshot name="worktree-create" alt="The New worktree dialog in New branch mode, with branch name, starting point, folder and the git worktree add command" />
+
+### Errors when creating
+
+Errors appear inside the dialog, so you can fix the field and try again:
+
+| Message | What to do |
+|---|---|
+| "The folder `<path>` already exists and is not empty. Choose another folder, or an empty one." | Pick another folder. |
+| "The branch `<branch>` is checked out in the worktree `<path>`: open that worktree, or check out another branch here." | Pick a free branch, or open that worktree. |
+| "A branch named `<name>` already exists." | Choose another name, or use **Existing branch**. |
+| "`<name>` is not a valid branch name: …" | Fix the name (no spaces, no `~ ^ : ? * [ \`, no `..`). |
+| "No commit matches `<rev>`." | Fix the starting point. |
+| "Expected an absolute folder path, got `<path>`." | Enter a full path. |
+
+## Open a worktree in a tab
+
+Choose **Open in a new tab** in the worktree's context menu. Each worktree is a separate repository tab, with its own changes, status and checked-out branch. See [Tabs](../../workspaces/tabs/).
+
+## Remove a worktree
+
+1. Right-click a linked worktree (neither the main one nor the one this tab shows) and choose **Remove the worktree…**.
+2. yaggui checks the worktree (**Checking the worktree…**), then the dialog **Remove the worktree `<name>`?** states the effect:
+   - on a branch: "The folder `<path>` is deleted. The branch `<branch>` stays in the repository."
+   - detached: "The folder `<path>` is deleted. Its commits stay in the repository."
+   - folder already gone: "The folder `<path>` no longer exists: only the worktree's entry is forgotten."
+3. Click **Remove the worktree**.
+
+yaggui runs `git worktree remove -- <path>`, shown in the dialog. yaggui then shows **Worktree removed**. The branch is never deleted.
+
+**Locked worktree.** The dialog shows **This worktree is locked (git worktree lock). Unlock it before removing it.** and the remove button stays disabled. yaggui has no unlock action: run `git worktree unlock <path>` in the [terminal](../../repository/terminal/).
+
+**Local changes.** If the worktree has staged, modified, untracked or conflicted files, the dialog shows **This worktree has local changes** with their count, and the remove button stays disabled until you check **Remove anyway and lose these changes**. The command then becomes `git worktree remove --force -- <path>`.
+
+:::caution
+A forced removal deletes the worktree's uncommitted changes for good. Commit or stash them in that worktree first if you need them.
+:::
+
+<Screenshot name="worktree-remove" alt="The Remove the worktree dialog warning about local changes, with the Remove anyway and lose these changes checkbox" />
+
+## Prune missing worktrees
+
+When you delete a worktree folder outside yaggui, Git keeps its entry and yaggui marks it **missing**. Choose **Prune missing worktrees** in its context menu or in the palette to run `git worktree prune`. yaggui shows **Missing worktrees pruned**.
+
+## Undo
+
+| Operation | Undo |
+|---|---|
+| Create a worktree | Undoable ("creation of the worktree `<name>`"). Undo runs `git worktree remove` and deletes the branch created with it. It is refused while the worktree has local changes: "Your local changes would be overwritten. Commit or stash them first." |
+| Remove a clean worktree | Undoable ("removal of the worktree `<name>`"): undo adds the worktree back in the same folder, which must be absent or empty. |
+| Remove with **Remove anyway** | Not undoable: the worktree's local changes were deleted with it. |
+| Remove a missing worktree, prune | No undo entry. |
+
+See [Undo and redo](../../history/undo-and-redo/).

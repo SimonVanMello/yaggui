@@ -1,0 +1,139 @@
+---
+title: Workspaces
+description: Group repositories into named workspaces, open them all at once, check their state at a glance, fetch them together, and import repositories by scanning a folder.
+sidebar:
+  order: 2
+sources:
+  - src/features/workspaces/**
+  - src/features/welcome/WelcomeScreen.tsx
+  - src/features/welcome/RepoRow.tsx
+  - src-tauri/src/commands/workspaces.rs
+  - src-tauri/src/repo/workspace.rs
+  - src-tauri/src/repo/scan.rs
+  - src-tauri/src/store/workspaces.rs
+requirements: [F-006, F-007, F-008, F-009]
+---
+
+import Screenshot from '../../../../components/Screenshot.astro';
+
+A workspace is a named group of repositories, for example "Client X" or "Personal". You open all of its repositories in tabs in one click, see their state in an overview, and fetch them together.
+
+## What a workspace is
+
+A workspace is a name and an ordered list of repositories that yaggui already knows: the same list as the favorites and recent repositories of the welcome screen. A repository can belong to several workspaces. Workspaces live in yaggui's database (see [Data and privacy](../../reference/data-and-privacy/)); they write nothing in your repositories, run no Git command, and cannot be undone.
+
+You reach workspaces from:
+
+- the **Workspaces** section of the welcome screen: one card per workspace, with **Scan a folder…** and **Manage** links;
+- the command palette: **Workspaces…** and **Scan a folder for repositories…** (no default shortcut).
+
+<Screenshot name="workspaces-welcome" alt="The Workspaces section of the welcome screen with the Personal and Kernel cards" />
+
+## Create, rename and delete a workspace
+
+**Create.** Open the **Workspaces** dialog (**Manage** or **Workspaces…**), click **New workspace**, type a name and click **Create**. <kbd>Esc</kbd> cancels the form without closing the dialog. You can also create one while importing a scan (see below).
+
+**Rename.** In the workspace's overview, click **Rename** (gear icon), edit the name and click **Rename**.
+
+A name must:
+
+- not be empty: "The workspace needs a name.";
+- have at most 100 characters, without control characters;
+- differ from the other workspace names, ignoring case: "A workspace named "Personal" already exists."
+
+**Delete.** Click **Delete workspace** (trash icon). The confirmation **Delete the workspace `<name>`?** reminds you that its repositories stay in your list and on disk. Click **Delete workspace**. Only the group is deleted.
+
+## Add and remove repositories
+
+In the overview, click **Add** to open the list of known repositories that are not yet in the workspace. Filter it with **Search known repositories** (name or path) and click **Add** on a row: the repository is appended at the end of the workspace. To bring in repositories yaggui does not know yet, click **Scan a folder…** there (see [Scan a folder](#scan-a-folder-for-repositories)) or open them once.
+
+To remove a repository from the workspace, click the minus button at the end of its row. There is no confirmation: the repository stays known and on disk.
+
+Repositories keep the order in which you added them; you cannot reorder them.
+
+## Open all the repositories of a workspace
+
+Click a workspace card on the welcome screen, or **Open all** in its overview. yaggui opens the repositories one after the other, in workspace order, each in its own tab:
+
+- A repository that already has a tab is not opened twice: its tab is reused.
+- From a welcome card, the first repository opens in the welcome tab you clicked from.
+- At the end, the tab of the first repository is active.
+- Missing folders are skipped. A toast says "1 repository was not found" with the names, and a **Review** button that opens the overview.
+- Repositories that fail to open are reported in an error toast.
+
+## The workspace overview
+
+Click the list icon of a workspace card (**Overview of `<name>`**), or select the workspace in the **Workspaces** dialog. The table shows one row per repository:
+
+| Column | Shows |
+|---|---|
+| **Repository** | Color dot, name and path. |
+| **Branch** | Current branch, or "detached at `<sha>`", plus a badge such as **Rebase in progress** when an operation is under way. |
+| **Sync** | Commits ahead (↑) and behind (↓) the upstream, **Up to date**, **No upstream**, or **Upstream gone**. Computed from local refs: fetch to refresh it. |
+| **Changes** | **Clean**, "6 changes", or "1 conflict" in red. |
+| **Last fetch** | Time of the last fetch (from `FETCH_HEAD`), **Never**, **Fetching…** during a fetch, or **Failed** with the error in its tooltip. |
+
+Each row also has an open button and a remove button. A row reads **Reading…** while loading, and shows the error if the repository cannot be read. The overview reads repositories without running Git. Rows of repositories open in tabs update live; the others refresh when you reopen the dialog.
+
+<Screenshot name="workspace-overview" alt="Overview of the Personal workspace: branch, sync, changes and last fetch per repository, and a Folder not found row" />
+
+## Fetch all
+
+Click **Fetch all** in the overview. For every repository whose folder exists, yaggui runs:
+
+```bash
+git fetch --progress --prune --all
+```
+
+`--prune` is added only when **Prune on fetch** is on in Preferences (it is on by default; see [Preferences](../../reference/preferences/)). At most four repositories fetch at once. Each row shows its own progress and result, and each fetch appears in the status bar of an open repository, where you can cancel it.
+
+At the end, yaggui shows "3 repositories of Personal fetched", or "Fetch failed for 1 of 3 repositories". Hover **Failed** in a row to read the error; network and authentication errors are explained in [Authentication](../../remotes/authentication/) and [Error messages](../../reference/error-messages/).
+
+A fetch with prune cannot be undone in an open repository: see [Fetch, pull and push](../../remotes/fetch-pull-push/).
+
+## Scan a folder for repositories
+
+Use **Scan a folder…** on the welcome screen, in the **Workspaces** dialog or its **Add** panel, or the palette action **Scan a folder for repositories…**.
+
+1. Enter the **Folder** to scan as a full path, or click **Browse…**.
+2. Set the **Depth**: the number of folder levels explored, from 1 (direct subfolders) to 8. The default is 3.
+3. Click **Scan**. The dialog shows the repositories found and the folders explored. **Stop the scan** stops it.
+4. Review the results. Every repository found is checked; repositories yaggui already knows carry **Already known**. Use **Select all** / **Select none** to change the selection.
+5. Choose where to **Add to**: **No workspace**, an existing workspace, or **New workspace…** (then type its name).
+6. Click **Import**.
+
+The scan reads only the file system: it skips `.git` and `node_modules` folders, does not follow symbolic links, does not look for repositories nested inside another repository, and ignores bare repositories. It stops at 2000 repositories; if it reaches that limit, choose a smaller folder or depth.
+
+Imported repositories join your known repositories (shown as **Never opened** in the recents) and, if you chose one, the workspace, in path order. A folder that is no longer a repository at import time is skipped with a warning. When you import into a workspace, its overview opens.
+
+Scan errors:
+
+| Message | What to do |
+|---|---|
+| "Expected an absolute folder path, got `<path>`." | Enter a full path. |
+| "The folder `<path>` does not exist." | Check the path. |
+| "No repository found in N folders." | Pick another folder or a larger depth, then **Scan again**. |
+
+<Screenshot name="workspace-scan-results" alt="Scan a folder results: repositories found with checkboxes, Already known chips and the Add to selector" />
+
+## Moved or deleted repositories
+
+When a repository's folder no longer exists, yaggui marks it **Folder not found** on the welcome screen and in workspace overviews (also when the folder exists but no longer holds a repository). **Open all** skips it.
+
+Click the repository on the welcome screen, or **Locate…** in its overview row. The dialog **`<name>` was moved or deleted** offers:
+
+- **Locate…**: pick the repository's new folder. It must be the root of the repository, not a subfolder. yaggui updates the path and name, reopens its tabs, and shows "`<name>` located". If that folder is already known, the two entries merge, keeping favorites and workspace memberships.
+- **Remove from `<workspace>`** (when opened from a workspace): removes it from that workspace only.
+- **Remove from yaggui**: forgets the repository everywhere (recents, favorites, all workspaces) and closes its terminals. Its tabs become welcome tabs.
+
+Removing never deletes files: only yaggui's list changes. Neither action can be undone.
+
+If locating fails, the toast **Could not locate the repository** explains why: the folder does not exist, is not a Git repository ("`<path>` is not a Git repository."), or is a bare repository ("Bare repositories are not supported yet.").
+
+## Workspaces, favorites and recents
+
+Workspaces, favorites and recents all point to the same known repositories:
+
+- Adding a repository to a workspace does not make it a favorite; deleting a workspace never changes favorites or recents.
+- Opening a repository from a workspace updates its last-opened time, as any other opening does, so it moves up in the recents.
+- Removing a repository from yaggui removes it from every workspace too.
