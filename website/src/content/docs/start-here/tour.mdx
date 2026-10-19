@@ -1,0 +1,155 @@
+---
+title: Tour of the window
+description: The areas of the yaggui window, what each one shows, and where to read more about it.
+sidebar:
+  order: 5
+sources:
+  - src/app/**
+  - src/features/repo/RepoBanners.tsx
+  - src/features/statusbar/**
+  - src/features/command-log/**
+  - src/features/toolbar/**
+  - src/ui/Toaster.tsx
+  - src/ui/toastStore.ts
+  - src/ipc/nativeMenu.ts
+  - src-tauri/src/store/repo_ui_state.rs
+requirements: [F-004, F-300, F-301, F-302, F-322]
+---
+
+import Screenshot from '../../../../components/Screenshot.astro';
+
+This page walks through the yaggui window from top to bottom, and links each area to the page that covers it in detail.
+
+<Screenshot name="tour-window" alt="The yaggui window with a repository open: tab bar, toolbar, refs panel, commit graph, changes panel and status bar" />
+
+## Title bar and tabs
+
+The top bar holds one tab per open repository.
+
+- Each repository tab shows a color dot, the repository name and, when there are uncommitted changes, their number. A spinner means the repository is opening or an operation is running; a warning icon means a merge, rebase or similar operation is in progress or there are conflicts; a red icon means the repository could not be opened. Hover a tab to see its full path and status.
+- **+** (**New tab**, <kbd>⌘T</kbd>, <kbd>Ctrl+T</kbd> on Windows and Linux) opens a welcome tab.
+- The gear button on the right, **Preferences**, opens the preferences (<kbd>⌘,</kbd>, <kbd>Ctrl+,</kbd> on Windows and Linux).
+- On Windows and Linux, yaggui draws its own **Minimize**, **Maximize** and **Close** buttons at the right. On macOS, the usual window buttons are at the left.
+- Drag an empty part of the bar to move the window; double-click it to maximize or restore.
+
+Switching, reordering and closing tabs, and their shortcuts, are in [Tabs](../../workspaces/tabs/).
+
+## Toolbar
+
+The toolbar sits at the top of a repository tab. Hover a button to see what it does, the Git command it runs and its shortcut.
+
+| Button | What it does | Read more |
+|---|---|---|
+| **Undo** / **Redo** | Undo or redo the last local operation; the arrow next to them lists the history | [Undo and redo](../../history/undo-and-redo/) |
+| **Pull** | Fetch and integrate the upstream branch; the arrow chooses the strategy. The badge counts commits to pull | [Fetch, pull and push](../../remotes/fetch-pull-push/) |
+| **Push** | Push the current branch; the arrow offers force push with lease. The badge counts commits to push | [Fetch, pull and push](../../remotes/fetch-pull-push/) |
+| **Fetch** | Fetch all remotes; the arrow fetches one remote | [Fetch, pull and push](../../remotes/fetch-pull-push/) |
+| **Branch** | Create a branch from the current commit | [Branches](../../history/branches/) |
+| **Tag** | Create a tag on the current commit | [Tags](../../history/tags/) |
+| **Stash** | Stash your changes | [Stash](../../everyday/stash/) |
+| **Pop** | Apply and drop the latest stash | [Stash](../../everyday/stash/) |
+| **Terminal** | Open a terminal in the repository | [Terminal](../../repository/terminal/) |
+| **Files** | Open the repository folder in the file manager | — |
+| Current branch | Shows the checked-out branch; click it to switch branches | [Branches](../../history/branches/) |
+| **Toggle left panel** / **Toggle right panel** | Hide or show the side panels | [Resize and hide panels](#resize-and-hide-panels) |
+
+## Left panel: references
+
+The left panel lists the repository's local branches, remote branches, tags, stashes, submodules and worktrees, with a filter field at the top. Click an entry to show its commit in the graph; right-click it for its actions. See [Branches](../../history/branches/), [Tags](../../history/tags/), [Stash](../../everyday/stash/), [Submodules](../../repository/submodules/) and [Worktrees](../../repository/worktrees/).
+
+## Center: the commit graph and the views that replace it
+
+The center shows the commit graph: every commit, with branches drawn as colored lanes. The top row, when you have uncommitted changes, stands for your working tree. See [Commit graph](../../history/commit-graph/).
+
+Some views take the place of the graph:
+
+- the diff of a file: [Diff](../../everyday/diff/);
+- the conflict editor: [Conflicts](../../history/conflicts/);
+- a file's history, blame, or the reflog: [File history and blame](../../inspect/file-history-and-blame/), [Reflog](../../inspect/reflog/);
+- the interactive rebase list: [Interactive rebase](../../history/interactive-rebase/).
+
+Press <kbd>Esc</kbd> or click **Graph** in the view's toolbar to return to the graph. In a diff where you selected lines, the first <kbd>Esc</kbd> clears the selection.
+
+## Right panel: details
+
+What the right panel shows depends on what you selected:
+
+| Selection | Right panel | Read more |
+|---|---|---|
+| Your working tree, or nothing | The changes panel: unstaged and staged files, and the commit box | [Staging](../../everyday/staging/), [Committing](../../everyday/committing/) |
+| A commit | Commit details: message, author, files | [Commit graph](../../history/commit-graph/) |
+| A stash in the left panel | Stash details | [Stash](../../everyday/stash/) |
+| A comparison of two branches or commits | The comparison | [Compare](../../inspect/compare/) |
+
+## Status bar
+
+The bar at the bottom of the window shows:
+
+- **On the left**, in a repository tab: the operation that is running, with its name, phase, percentage, transferred data and a small progress bar. Click **Cancel** to stop an operation that can be stopped. When it ends, the bar keeps a short result such as "Fetch completed" or "Push failed" with the time.
+- **yaggui \<version\>**: opens **What's new**. See [Updates](../updates/#whats-new).
+- **git \<version\>**: the Git version yaggui uses. A warning icon appears when it is older than 2.30, and **git not found** replaces it when there is no Git. See [Install yaggui](../install/#requirements).
+- **Log (\<count\>)**: shows or hides the command log. The number counts the commands it holds, as in **Log (12)**.
+
+## Command log
+
+The command log lists every Git command yaggui ran, newest first, with its exit status, duration and time. Open it with <kbd>⌘J</kbd> (<kbd>Ctrl+J</kbd> on Windows and Linux), the **Log** button of the status bar, or **Open command log** on an error. Click a command to see its folder and output, and to copy the command or its output.
+
+<Screenshot name="tour-command-log" alt="The command log panel open at the bottom of the window, with one command expanded to show its output" />
+
+The log is kept in memory and cleared when yaggui quits. See [Command log](../../reference/command-log/).
+
+## Notifications and errors
+
+Notifications appear in the bottom-right corner.
+
+- Information and success notifications close on their own after a few seconds.
+- Error notifications stay until you close them with **×** (or swipe them to the right).
+- **Details** expands the technical text behind a message, usually Git's own output.
+- A notification can carry one button that acts on the problem, for example **Retry**, **Open command log**, **Trust this folder…**, **Remove the lock…**, **Set your identity** or **Pull then push**.
+
+<Screenshot name="tour-error-toast" alt="An error notification with its message, a Details section and a Retry button" />
+
+Inside a dialog or a panel, errors appear in place, with the same message, **Details** and action button.
+
+Every message and what to do about it is listed in [Error messages](../../reference/error-messages/).
+
+## Banners
+
+Banners appear above the graph when the repository needs your attention.
+
+- **Operation in progress**: a merge, rebase, cherry-pick, revert, bisect or `git am` is stopped, for example on conflicts. The banner shows the progress (such as "Rebase 3/7") and offers **Show conflicts**, **Continue**, **Skip** and **Abort**. See [Conflicts](../../history/conflicts/).
+- **index.lock**: a `.git/index.lock` file exists. When it is recent, the banner says **Another Git process is using this repository** and goes away when that process ends. When it is older than 10 seconds, the banner says **A Git process probably crashed and left index.lock** and offers **Remove the lock…**. Make sure no other Git program is working on the repository, then confirm with **Remove lock**.
+- **Automatic refresh unavailable**: yaggui cannot watch the folder for changes, often because the system limit on watched files is reached. Changes made outside yaggui show after you click **Refresh**. See [Troubleshooting](../../help/troubleshooting/).
+
+<Screenshot name="tour-banner-lock" alt="Banner above the graph saying a Git process probably crashed and left index.lock, with a Remove the lock button" />
+
+## Resize and hide panels
+
+Drag the border between two panels to resize them. The left panel can be 160 to 480 pixels wide, the right panel 260 to 600. Drag a panel below about half its minimum width to collapse it.
+
+The borders also work from the keyboard: focus one with <kbd>Tab</kbd>, then use <kbd>←</kbd> and <kbd>→</kbd> to resize by 16 pixels, and <kbd>Enter</kbd> or <kbd>Space</kbd> to collapse or expand. Double-clicking a border also collapses or expands the panel.
+
+| Panel | Toolbar button | Shortcut |
+|---|---|---|
+| Left | **Toggle left panel** | <kbd>⌥⌘B</kbd> (<kbd>Ctrl+Alt+B</kbd> on Windows and Linux) |
+| Right | **Toggle right panel** | <kbd>⌥⌘I</kbd> (<kbd>Ctrl+Alt+I</kbd> on Windows and Linux) |
+| Command log | **Log** in the status bar | <kbd>⌘J</kbd> (<kbd>Ctrl+J</kbd> on Windows and Linux) |
+
+On a narrow window, yaggui keeps the graph at least 320 pixels wide by shrinking the right panel first, then the left one. Your chosen sizes come back when the window is wide again.
+
+yaggui remembers the panel sizes, which panels are collapsed, the sections of the left panel and the graph columns for each repository. Reopening a repository, in any tab, restores its layout. The command log's height is not remembered.
+
+## macOS menu bar
+
+On macOS, yaggui has a menu bar. Windows and Linux have none: use the toolbar, the command palette (<kbd>Ctrl+K</kbd>) and the shortcuts.
+
+| Menu | Items |
+|---|---|
+| **yaggui** | About yaggui, **Preferences…**, **Terminal Setting…**, Services, Hide yaggui, Hide Others, Show All, Quit yaggui |
+| **File** | **New Tab** (<kbd>⌘T</kbd>), **Open Repository…** (<kbd>⌘O</kbd>), **Clone Repository…**, **Initialize Repository…**, **Close Tab** (<kbd>⌘W</kbd>) |
+| **Edit** | **Undo** (<kbd>⌘Z</kbd>), **Redo** (<kbd>⇧⌘Z</kbd>), Cut, Copy, Paste, Select All |
+| **View** | **Show or Hide Left Panel** (<kbd>⌥⌘B</kbd>), **Show or Hide Right Panel** (<kbd>⌥⌘I</kbd>), **Command Log** (<kbd>⌘J</kbd>), Enter Full Screen |
+| **Window** | Minimize, Zoom, **Show Next Tab**, **Show Previous Tab**, Bring All to Front |
+| **Help** | **What's New in yaggui**, **Command Log** |
+
+**Undo** and **Redo** undo yaggui operations, except when a text field has the focus: then they undo typing. **Close Tab** closes the tab, never the window. Menu items do nothing while a dialog is open. If you change a shortcut, the menu shows the new one.
