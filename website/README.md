@@ -27,8 +27,8 @@ pnpm check     # astro check (strict TypeScript, content schema) + Prettier
 | `src/styles/theme.css`                         | Theme adapter: every color of the site comes from the app's `src/theme/graphite.css` and `paper.css` through it         |
 | `src/i18n/ui.ts`                               | Strings of the site outside the docs content, EN and FR                                                                 |
 | `src/lib/`                                     | Docs versions, latest release lookup                                                                                    |
-| `versions.json`                                | Published docs versions                                                                                                 |
-| `scripts/`                                     | Version extraction, `add-version.ts` (release workflow), link check                                                     |
+| `versions.json`                                | Optional overrides of the docs versions found in git tags                                                               |
+| `scripts/`                                     | Version extraction, link check                                                                                          |
 | `public/_headers`                              | Cloudflare Pages headers (cache of `/_astro/`)                                                                          |
 
 ## Docs pages
@@ -78,12 +78,14 @@ The component shows the image of the current theme and opens it in a lightbox on
 
 The visitor picks the version in the docs header; the latest release is the default.
 
-- `versions.json` lists the published versions: `[{ "version": "0.5.0", "ref": "<commit sha>" }]`.
-- At config time (`astro dev`, `build`, `check`), `scripts/versions.ts` extracts `website/src/content/docs/`, `website/src/assets/` and `docs/assets/` of each ref with `git archive` into `.cache/versions/<version>/` (gitignored, re-extracted when the ref changes). This needs the full history: `fetch-depth: 0` in CI, no shallow clone locally.
+- Versions come from git tags: every `vX.Y.Z` tag whose tree has `website/src/content/docs/` is a docs version, read from the tag (`src/lib/docs-versions.ts`). Releasing needs nothing else.
+- `versions.json` holds optional overrides, empty by default: `{ "version": "0.5.0", "ref": "<sha or vX.Y.Z>" }` serves a version from another ref (or adds an untagged one), `{ "version": "0.5.0", "hidden": true }` hides one, e.g. a tag cut while the docs were still placeholders.
+- At config time (`astro dev`, `build`, `check`), `scripts/versions.ts` extracts `website/src/content/docs/`, `website/src/assets/` and `docs/assets/` of each version's ref with `git archive` into `.cache/versions/<version>/` (gitignored, re-extracted when the ref points to another commit). This needs the tags and the full history: `fetch-depth: 0` in CI; a shallow clone or one without tags builds `master` only.
 - One content collection holds every version, under ids that encode locale and version (`src/content.config.ts`). URLs: latest release at `/docs/…`, `master` at `/docs/next/…` (labelled "Next (unreleased)"), older releases at `/docs/<version>/…`; the same under `/fr/docs/`.
 - `src/route-middleware.ts` gives each page the sidebar and previous / next links of its own version, keeps the search index to the default version, and points "Edit page" at the file on `master` when it still exists there.
 - The switcher (`src/components/starlight/VersionSelect.astro`) links each version to the same page when it exists there, otherwise to that version's docs home.
-- **Bootstrap**: while `versions.json` is empty, `master` is served at `/docs/` and the switcher shows only it. Once the docs are complete, add the first entry by hand: the commit that merges them, labelled with the app version current at that time. From then on, publishing a release opens a pull request that adds it (`.github/workflows/docs-version.yml`, see [`docs/RELEASING.md`](../docs/RELEASING.md#website-docs)).
+- **Bootstrap**: until a tag has the docs, `master` is served at `/docs/` and the switcher shows only it.
+- **Search** covers the default version only (known limitation): results never send a visitor to another version, and older versions and `next` are not searchable.
 
 ### Why not `starlight-versions`
 

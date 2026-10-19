@@ -1,11 +1,21 @@
-// Docs versions: the pure part shared by the Astro config (content loader, sidebar), the route
-// middleware and the version switcher. Extraction from git lives in scripts/versions.ts.
-import versionsFile from '../../versions.json' with { type: 'json' };
+// Docs versions, shared by the Astro config (content loader, sidebar), the route middleware and
+// the version switcher. Every `vX.Y.Z` tag whose tree has the docs is a version; versions.json can
+// override that. Extraction of each version's files lives in scripts/versions.ts.
+import { execFileSync } from 'node:child_process';
 
-/** One entry of `website/versions.json`: a released version and the commit its docs come from. */
+import overridesFile from '../../versions.json' with { type: 'json' };
+
+/** A released version and the git ref its docs come from. */
 export interface VersionEntry {
   version: string;
   ref: string;
+}
+
+/** One entry of `website/versions.json`: another ref for a version, or a version hidden. */
+export interface VersionOverride {
+  version: string;
+  ref?: string;
+  hidden?: boolean;
 }
 
 export interface DocsVersion {
@@ -43,28 +53,71 @@ export function compareVersions(a: string, b: string): number {
   return 0;
 }
 
-export function parseVersionEntries(raw: unknown): VersionEntry[] {
+export function parseOverrides(raw: unknown): VersionOverride[] {
   if (!Array.isArray(raw)) throw new Error('versions.json must be an array');
   const seen = new Set<string>();
   return raw.map((item: unknown, i) => {
     if (typeof item !== 'object' || item === null) throw new Error(`versions.json[${i}]: object`);
-    const { version, ref } = item as Record<string, unknown>;
+    const { version, ref, hidden } = item as Record<string, unknown>;
     if (typeof version !== 'string' || !VERSION_RE.test(version)) {
       throw new Error(`versions.json[${i}].version must be X.Y.Z`);
     }
     // The ref is passed to git: a strict format rules out options and revision expressions.
-    if (typeof ref !== 'string' || !REF_RE.test(ref)) {
+    if (ref !== undefined && (typeof ref !== 'string' || !REF_RE.test(ref))) {
       throw new Error(`versions.json[${i}].ref must be a commit SHA or a vX.Y.Z tag`);
+    }
+    if (hidden !== undefined && typeof hidden !== 'boolean') {
+      throw new Error(`versions.json[${i}].hidden must be a boolean`);
+    }
+    if (ref === undefined && hidden !== true) {
+      throw new Error(`versions.json[${i}]: give a ref or "hidden": true`);
     }
     if (seen.has(version)) throw new Error(`versions.json: ${version} is listed twice`);
     seen.add(version);
-    return { version, ref };
+    return { version, ...(ref !== undefined && { ref }), ...(hidden !== undefined && { hidden }) };
   });
+}
+
+/** Docs folder in a ref's tree, from the repository root. */
+export const DOCS_PATH = `website/${MASTER_CONTENT}`;
+
+/** Release tags (`vX.Y.Z`) of the repository whose tree has the docs. */
+export function taggedVersions(cwd = process.cwd()): VersionEntry[] {
+  const git = (args: string[]) =>
+    execFileSync('git', ['-C', cwd, ...args], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+  return git(['tag', '--list', 'v*'])
+    .split('\n')
+    .filter((tag) => /^v\d+\.\d+\.\d+$/.test(tag))
+    .filter((tag) => {
+      try {
+        git(['cat-file', '-e', `${tag}^{commit}:${DOCS_PATH}`]);
+        return true;
+      } catch {
+        return false;
+      }
+    })
+    .map((tag) => ({ version: tag.slice(1), ref: tag }));
+}
+
+/** Tagged versions with the overrides of versions.json applied. */
+export function resolveEntries(
+  tagged: VersionEntry[],
+  overrides: VersionOverride[],
+): VersionEntry[] {
+  const byVersion = new Map(tagged.map((e) => [e.version, e]));
+  for (const o of overrides) {
+    if (o.hidden) byVersion.delete(o.version);
+    else if (o.ref) byVersion.set(o.version, { version: o.version, ref: o.ref });
+  }
+  return [...byVersion.values()];
 }
 
 /**
  * The published docs versions, in switcher order: latest release (default), `next`, older releases.
- * With no release listed (bootstrap), `master` alone is served at `/docs/`.
+ * With no released docs yet (bootstrap), `master` alone is served at `/docs/`.
  */
 export function docsVersions(entries: VersionEntry[]): DocsVersion[] {
   const released = [...entries].sort((a, b) => compareVersions(b.version, a.version));
@@ -85,7 +138,9 @@ export function docsVersions(entries: VersionEntry[]): DocsVersion[] {
   ];
 }
 
-export const versions: DocsVersion[] = docsVersions(parseVersionEntries(versionsFile));
+export const versions: DocsVersion[] = docsVersions(
+  resolveEntries(taggedVersions(), parseOverrides(overridesFile)),
+);
 
 function findDefault(all: DocsVersion[]): DocsVersion {
   const found = all.find((v) => v.isDefault);
