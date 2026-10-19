@@ -23,7 +23,15 @@ sources:
 requirements: [F-180, F-181, F-182, F-183, F-184]
 ---
 
-import Screenshot from '../../../../components/Screenshot.astro';
+import Screenshot from '~/components/Screenshot.astro';
+import stashPopoverDark from '../../../../assets/screens/stash-popover-dark.png';
+import stashPopoverLight from '../../../../assets/screens/stash-popover-light.png';
+import stashFilesDialogDark from '../../../../assets/screens/stash-files-dialog-dark.png';
+import stashFilesDialogLight from '../../../../assets/screens/stash-files-dialog-light.png';
+import stashPreviewDark from '../../../../assets/screens/stash-preview-dark.png';
+import stashPreviewLight from '../../../../assets/screens/stash-preview-light.png';
+import stashConflictDark from '../../../../assets/screens/stash-conflict-dark.png';
+import stashConflictLight from '../../../../assets/screens/stash-conflict-light.png';
 
 A stash saves your uncommitted changes and gives you a clean working tree, so you can switch to something else and bring the changes back later ([git stash](https://git-scm.com/docs/git-stash)). This page covers stashing everything or only some files, finding your stashes, and applying or removing them.
 
@@ -37,15 +45,19 @@ Open the stash form with any of:
 
 The form offers:
 
-| Field | Default | Effect |
-|---|---|---|
-| **Message (optional)** | Empty | The stash name. Without one, Git names it `WIP on <branch>: <sha> <summary>` |
-| **Include untracked files** | Off | Also stashes untracked files (`--include-untracked`) |
-| **Keep staged changes in the index** | Off | Stashes everything but leaves the staged changes in place (`--keep-index`) |
+| Field                                | Default | Effect                                                                       |
+| ------------------------------------ | ------- | ---------------------------------------------------------------------------- |
+| **Message (optional)**               | Empty   | The stash name. Without one, Git names it `WIP on <branch>: <sha> <summary>` |
+| **Include untracked files**          | Off     | Also stashes untracked files (`--include-untracked`)                         |
+| **Keep staged changes in the index** | Off     | Stashes everything but leaves the staged changes in place (`--keep-index`)   |
 
 The message starts empty each time you open the form. Click **Stash** (or **Cancel**). With a clean working tree the form says "No local changes to stash." and **Stash** is disabled.
 
-<Screenshot name="stash-popover" alt="The stash form under the toolbar Stash button, with the message field and the Include untracked files and Keep staged changes in the index checkboxes" />
+<Screenshot
+  dark={stashPopoverDark}
+  light={stashPopoverLight}
+  alt="The stash form under the toolbar Stash button, with the message field and the Include untracked files and Keep staged changes in the index checkboxes"
+/>
 
 yaggui runs:
 
@@ -70,7 +82,11 @@ git --literal-pathspecs stash push -q [--include-untracked] [--message=<message>
 
 The toast says "\{count\} files stashed". A partial stash can be undone ("stash of \{count\} files"): undo writes the files back and removes the stash entry. See [Undo and redo](../../history/undo-and-redo/).
 
-<Screenshot name="stash-files-dialog" alt="The Stash 2 files dialog listing the selected files, with a message field and the Stash 2 files button" />
+<Screenshot
+  dark={stashFilesDialogDark}
+  light={stashFilesDialogLight}
+  alt="The Stash 2 files dialog listing the selected files, with a message field and the Stash 2 files button"
+/>
 
 ## Find your stashes
 
@@ -87,20 +103,24 @@ Click a stash in the sidebar. The graph selects and scrolls to the stash's base 
 
 Click a file to open its diff in place of the graph. The diff is read-only: no hunk or line actions. Selecting a commit in the graph closes the preview. Clicking the `stash@{n}` label in the graph does not open the preview.
 
-<Screenshot name="stash-preview" alt="The Stash details panel with the stash message, its base commit, the Apply, Pop and Drop buttons and the list of stashed files" />
+<Screenshot
+  dark={stashPreviewDark}
+  light={stashPreviewLight}
+  alt="The Stash details panel with the stash message, its base commit, the Apply, Pop and Drop buttons and the list of stashed files"
+/>
 
 ## Apply, pop, drop, rename
 
 Right-click a stash in the sidebar. Items, in order:
 
-| Item | Effect | Git | Undo |
-|---|---|---|---|
-| **Apply** | Applies the changes, keeps the stash | `git stash apply stash@{n}` | No |
-| **Pop** | Applies the changes and removes the stash | `git stash pop stash@{n}` | No |
-| **Create a branch here…** | Creates a branch on the base commit, checks it out, applies the stash and drops it | `git stash branch <name> stash@{n}` | No |
-| **Rename…** | Changes the stash message | see below | No |
-| **Drop…** | Deletes the stash | `git stash drop -q stash@{n}` | Yes |
-| **Copy name**, **Copy SHA** | Copy to the clipboard | | |
+| Item                        | Effect                                                                             | Git                                 | Undo |
+| --------------------------- | ---------------------------------------------------------------------------------- | ----------------------------------- | ---- |
+| **Apply**                   | Applies the changes, keeps the stash                                               | `git stash apply stash@{n}`         | No   |
+| **Pop**                     | Applies the changes and removes the stash                                          | `git stash pop stash@{n}`           | No   |
+| **Create a branch here…**   | Creates a branch on the base commit, checks it out, applies the stash and drops it | `git stash branch <name> stash@{n}` | No   |
+| **Rename…**                 | Changes the stash message                                                          | see below                           | No   |
+| **Drop…**                   | Deletes the stash                                                                  | `git stash drop -q stash@{n}`       | Yes  |
+| **Copy name**, **Copy SHA** | Copy to the clipboard                                                              |                                     |      |
 
 **Apply**, **Pop** and **Drop…** are also in the Stash details panel.
 
@@ -145,15 +165,19 @@ Click **Understood**, then resolve as described in [Conflicts](../../history/con
 
 If the stash would overwrite local changes, nothing is applied and the toast says "Your local changes would be overwritten by the checkout. Stash them first (stash, checkout, then pop)." Commit or stash your current changes, then try again.
 
-<Screenshot name="stash-conflict" alt="The stash conflicts dialog listing the conflicted files and the three steps to follow" />
+<Screenshot
+  dark={stashConflictDark}
+  light={stashConflictLight}
+  alt="The stash conflicts dialog listing the conflicted files and the three steps to follow"
+/>
 
 ## What can be undone
 
-| Action | Undoable |
-|---|---|
-| Quick stash | No (pop the stash instead) |
-| Partial stash | Yes |
-| Apply, pop, rename, create a branch | No |
-| Drop | Yes |
+| Action                              | Undoable                   |
+| ----------------------------------- | -------------------------- |
+| Quick stash                         | No (pop the stash instead) |
+| Partial stash                       | Yes                        |
+| Apply, pop, rename, create a branch | No                         |
+| Drop                                | Yes                        |
 
 See [Undo and redo](../../history/undo-and-redo/).

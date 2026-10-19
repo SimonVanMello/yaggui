@@ -13,7 +13,9 @@ sources:
 requirements: [F-004]
 ---
 
-import Screenshot from '../../../../components/Screenshot.astro';
+import Screenshot from '~/components/Screenshot.astro';
+import tabsIndicatorsDark from '../../../../assets/screens/tabs-indicators-dark.png';
+import tabsIndicatorsLight from '../../../../assets/screens/tabs-indicators-light.png';
 
 Each repository you open gets a tab in the title bar. This page covers opening, closing, switching and reordering tabs, what their indicators mean, and what yaggui remembers between launches.
 
@@ -32,11 +34,11 @@ A repository opens in a single tab. Opening a repository that already has a tab 
 
 ## Switch between tabs
 
-| Shortcut | Effect |
-|---|---|
-| <kbd>Ctrl+Tab</kbd> / <kbd>Ctrl+Shift+Tab</kbd> | Next / previous tab. This uses the Control key on macOS too. |
-| <kbd>⌘1</kbd> … <kbd>⌘8</kbd> (<kbd>Ctrl+1</kbd> … <kbd>Ctrl+8</kbd> on Windows and Linux) | Go to the tab at that position. |
-| <kbd>⌘9</kbd> (<kbd>Ctrl+9</kbd> on Windows and Linux) | Go to the last tab, however many there are. |
+| Shortcut                                                                                   | Effect                                                       |
+| ------------------------------------------------------------------------------------------ | ------------------------------------------------------------ |
+| <kbd>Ctrl+Tab</kbd> / <kbd>Ctrl+Shift+Tab</kbd>                                            | Next / previous tab. This uses the Control key on macOS too. |
+| <kbd>⌘1</kbd> … <kbd>⌘8</kbd> (<kbd>Ctrl+1</kbd> … <kbd>Ctrl+8</kbd> on Windows and Linux) | Go to the tab at that position.                              |
+| <kbd>⌘9</kbd> (<kbd>Ctrl+9</kbd> on Windows and Linux)                                     | Go to the last tab, however many there are.                  |
 
 When a tab has keyboard focus, <kbd>←</kbd> / <kbd>→</kbd> move to the previous or next tab (wrapping around), and <kbd>Home</kbd> / <kbd>End</kbd> to the first or last one.
 
@@ -56,26 +58,30 @@ When tabs no longer fit, they shrink evenly, then the strip scrolls: use the mou
 
 Right-click a tab:
 
-| Item | Available when | Effect |
-|---|---|---|
-| **Close tab** | Always | Closes this tab. |
-| **Close other tabs** | Two tabs or more | Closes every other tab. |
-| **Close tabs to the right** | The tab is not the last one | Closes the tabs to its right. |
-| **Move right** / **Move left** | The tab is not at that end | Moves the tab one place. |
-| **Copy path** | Repository tabs | Copies the repository path and shows **Path copied**. |
+| Item                           | Available when              | Effect                                                |
+| ------------------------------ | --------------------------- | ----------------------------------------------------- |
+| **Close tab**                  | Always                      | Closes this tab.                                      |
+| **Close other tabs**           | Two tabs or more            | Closes every other tab.                               |
+| **Close tabs to the right**    | The tab is not the last one | Closes the tabs to its right.                         |
+| **Move right** / **Move left** | The tab is not at that end  | Moves the tab one place.                              |
+| **Copy path**                  | Repository tabs             | Copies the repository path and shows **Path copied**. |
 
 ## Tab indicators
 
-<Screenshot name="tabs-indicators" alt="Tab strip with three repositories: a spinner, a warning icon and a change count badge, and the tooltip of the active tab" />
+<Screenshot
+  dark={tabsIndicatorsDark}
+  light={tabsIndicatorsLight}
+  alt="Tab strip with three repositories: a spinner, a warning icon and a change count badge, and the tooltip of the active tab"
+/>
 
 A repository tab shows a colored dot (computed from the repository name, so it stays the same), the repository name, and:
 
-| Indicator | Meaning |
-|---|---|
-| Spinner | The repository is opening, or an operation (fetch, rebase, push…) is running. |
+| Indicator          | Meaning                                                                                                                                              |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Spinner            | The repository is opening, or an operation (fetch, rebase, push…) is running.                                                                        |
 | Amber warning icon | A merge, rebase, cherry-pick, revert, bisect or patch application is in progress, or there are conflicts. See [Conflicts](../../history/conflicts/). |
-| Red error icon | The repository could not be opened. |
-| Number badge | Number of changed files: staged, modified, untracked and conflicted. |
+| Red error icon     | The repository could not be opened.                                                                                                                  |
+| Number badge       | Number of changed files: staged, modified, untracked and conflicted.                                                                                 |
 
 Hover a tab to see a tooltip with the name, the full path and a status line, for example "Rebase in progress · 1 conflict · 6 changes", or **Could not be opened**. Screen readers get the same text.
 

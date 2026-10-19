@@ -15,7 +15,15 @@ sources:
 requirements: [F-146, F-160, F-161, F-162, F-163, F-164, F-165]
 ---
 
-import Screenshot from '../../../../components/Screenshot.astro';
+import Screenshot from '~/components/Screenshot.astro';
+import conflictsBannerDark from '../../../../assets/screens/conflicts-banner-dark.png';
+import conflictsBannerLight from '../../../../assets/screens/conflicts-banner-light.png';
+import conflictsPanelDark from '../../../../assets/screens/conflicts-panel-dark.png';
+import conflictsPanelLight from '../../../../assets/screens/conflicts-panel-light.png';
+import conflictsMergeEditorDark from '../../../../assets/screens/conflicts-merge-editor-dark.png';
+import conflictsMergeEditorLight from '../../../../assets/screens/conflicts-merge-editor-light.png';
+import conflictsChoiceBinaryDark from '../../../../assets/screens/conflicts-choice-binary-dark.png';
+import conflictsChoiceBinaryLight from '../../../../assets/screens/conflicts-choice-binary-light.png';
 
 When a merge, rebase, cherry-pick or revert stops, yaggui shows a banner above the graph and lists the conflicted files. This page covers the banner and its **Continue**, **Skip** and **Abort** buttons, the conflicts panel, the 3-way merge editor, the choice view for deleted or binary files, and external merge tools. For what a conflict is, see [Basic merge conflicts](https://git-scm.com/book/en/v2/Git-Branching-Basic-Branching-and-Merging#_basic_merge_conflicts).
 
@@ -23,7 +31,11 @@ When a merge, rebase, cherry-pick or revert stops, yaggui shows a banner above t
 
 yaggui reads the operation state from the `.git` folder (`MERGE_HEAD`, `rebase-merge/`, `CHERRY_PICK_HEAD`, `REVERT_HEAD`, the sequencer, bisect and `git am` state). The banner therefore also appears for an operation you started in a terminal, and it is still there after you restart the app.
 
-<Screenshot name="conflicts-banner" alt="Banner reading Rebase 3/7 with a progress bar, the conflict count and the Show conflicts, Continue, Skip and Abort rebase buttons" />
+<Screenshot
+  dark={conflictsBannerDark}
+  light={conflictsBannerLight}
+  alt="Banner reading Rebase 3/7 with a progress bar, the conflict count and the Show conflicts, Continue, Skip and Abort rebase buttons"
+/>
 
 The banner shows:
 
@@ -40,12 +52,12 @@ While an operation is in progress, the other history actions (merge, rebase, che
 
 For a merge, cherry-pick or revert, a **Continue** dialog lets you edit the message of the commit about to be created ("Edit the message of the commit that is about to be created, if needed."), prefilled with the message Git prepared. Click **Continue** or press <kbd>⌘Enter</kbd> (<kbd>Ctrl+Enter</kbd> on Windows and Linux). If Git prepared no message, yaggui continues without the dialog. A rebase continues directly.
 
-| Operation | What Continue runs |
-|---|---|
-| Merge | `git commit -F -` with the message |
+| Operation           | What Continue runs                                                                                                           |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Merge               | `git commit -F -` with the message                                                                                           |
 | Cherry-pick, revert | `git commit -F -` for the stopped commit, then `git cherry-pick --continue` / `git revert --continue` if more commits remain |
-| Rebase | `git rebase --continue` |
-| `git am` | `git am --continue` |
+| Rebase              | `git rebase --continue`                                                                                                      |
+| `git am`            | `git am --continue`                                                                                                          |
 
 Toasts: **Merge completed**, **Rebase completed**, **Cherry-pick completed**, **Revert completed**, **Patch applied**. If a rebase stops again on a commit marked **Edit**, you see **Rebase paused at step \{step\}/\{total\}** with "Amend the commit if needed, then continue." If it stops on new conflicts, the conflicts toast comes back.
 
@@ -59,14 +71,14 @@ If the stopped cherry-pick or revert brings no change any more, Continue fails w
 
 The abort button is named after the operation: **Abort merge**, **Abort rebase**, **Abort cherry-pick**, **Abort revert**, **Stop bisect** or **Abort**. It asks for confirmation:
 
-| Operation | Confirmation | Command |
-|---|---|---|
-| Merge | **Abort the merge?** The branch goes back to how it was before the merge. Conflict resolutions already made are lost. | `git merge --abort` (`git reset -q --merge` for a squash merge) |
-| Rebase | **Abort the rebase?** The branch goes back to how it was before the rebase started. The commits already replayed are discarded. | `git rebase --abort` |
-| Cherry-pick | **Abort the cherry-pick?** The branch goes back to how it was before the cherry-pick. Conflict resolutions already made are lost. | `git cherry-pick --abort` |
-| Revert | **Abort the revert?** The branch goes back to how it was before the revert. Conflict resolutions already made are lost. | `git revert --abort` |
-| Bisect | **Stop the bisect?** HEAD goes back to where it was before the bisect started. | `git bisect reset` |
-| `git am` | **Abort the patch application?** The branch goes back to how it was before. | `git am --abort` |
+| Operation   | Confirmation                                                                                                                      | Command                                                         |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| Merge       | **Abort the merge?** The branch goes back to how it was before the merge. Conflict resolutions already made are lost.             | `git merge --abort` (`git reset -q --merge` for a squash merge) |
+| Rebase      | **Abort the rebase?** The branch goes back to how it was before the rebase started. The commits already replayed are discarded.   | `git rebase --abort`                                            |
+| Cherry-pick | **Abort the cherry-pick?** The branch goes back to how it was before the cherry-pick. Conflict resolutions already made are lost. | `git cherry-pick --abort`                                       |
+| Revert      | **Abort the revert?** The branch goes back to how it was before the revert. Conflict resolutions already made are lost.           | `git revert --abort`                                            |
+| Bisect      | **Stop the bisect?** HEAD goes back to where it was before the bisect started.                                                    | `git bisect reset`                                              |
+| `git am`    | **Abort the patch application?** The branch goes back to how it was before.                                                       | `git am --abort`                                                |
 
 Toast: **\{operation\}: cancelled, back to the previous state**.
 
@@ -74,17 +86,21 @@ Toast: **\{operation\}: cancelled, back to the previous state**.
 
 When an operation is in progress and the working copy is selected, the **Conflicts** panel sits above the local changes in the right panel. Its counter reads **\{unresolved\} unresolved of \{total\}**, then **All \{total\} resolved**.
 
-<Screenshot name="conflicts-panel" alt="Conflicts panel listing four files with their kind of conflict and the Resolve, Take and Mark resolved buttons" />
+<Screenshot
+  dark={conflictsPanelDark}
+  light={conflictsPanelLight}
+  alt="Conflicts panel listing four files with their kind of conflict and the Resolve, Take and Mark resolved buttons"
+/>
 
 Each row shows the path, a **Binary** badge when relevant, and what happened:
 
-| Text | Situation |
-|---|---|
-| **Both sides changed the content** | Both changed the same file |
-| **Both sides added this file** | Both added a file at the same path |
-| **Deleted on \{ours\}, modified on \{theirs\}** / **Modified on \{ours\}, deleted on \{theirs\}** | Delete/modify |
-| **Added on \{ours\} only** / **Added on \{theirs\} only** | The file exists on one side only |
-| **Deleted on both sides** | Both deleted or renamed it differently |
+| Text                                                                                              | Situation                              |
+| ------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| **Both sides changed the content**                                                                | Both changed the same file             |
+| **Both sides added this file**                                                                    | Both added a file at the same path     |
+| **Deleted on \{ours\}, modified on \{theirs\}** / **Modified on \{ours\}, deleted on \{theirs\}** | Delete/modify                          |
+| **Added on \{ours\} only** / **Added on \{theirs\} only**                                         | The file exists on one side only       |
+| **Deleted on both sides**                                                                         | Both deleted or renamed it differently |
 
 Files resolved during the operation stay in the list, marked **Resolved**.
 
@@ -102,12 +118,12 @@ Buttons on an unresolved file, all without confirmation:
 
 Instead of "ours" and "theirs", yaggui names each side after its branch (or the commit's short SHA, or **mine** / **theirs** when there is nothing better) and gives its role:
 
-| Operation | Left side ("ours") | Right side ("theirs") |
-|---|---|---|
-| Merge | The current branch (**current branch**) | The branch being merged (**merged branch**) |
-| Rebase | The branch you rebase onto (**rebasing onto**) | Your branch's commit being replayed (**commit being replayed**) |
-| Cherry-pick | The current branch | The picked commit (**cherry-picked commit**) |
-| Revert | The current branch | The reverted commit (**reverted commit**) |
+| Operation   | Left side ("ours")                             | Right side ("theirs")                                           |
+| ----------- | ---------------------------------------------- | --------------------------------------------------------------- |
+| Merge       | The current branch (**current branch**)        | The branch being merged (**merged branch**)                     |
+| Rebase      | The branch you rebase onto (**rebasing onto**) | Your branch's commit being replayed (**commit being replayed**) |
+| Cherry-pick | The current branch                             | The picked commit (**cherry-picked commit**)                    |
+| Revert      | The current branch                             | The reverted commit (**reverted commit**)                       |
 
 During a rebase, Git replays your commits on top of the other branch, so "ours" is the other branch and "theirs" is your own work. That is the opposite of a merge. yaggui shows the branch names, so **Take main** always means the version from `main`. See [git-rebase](https://git-scm.com/docs/git-rebase#Documentation/git-rebase.txt---ours).
 
@@ -115,7 +131,11 @@ During a rebase, Git replays your commits on top of the other branch, so "ours" 
 
 **Resolve…** on a text file changed on both sides opens the editor in place of the graph. It shows the versions as they are when it opens; changes made on disk meanwhile are not reloaded.
 
-<Screenshot name="conflicts-merge-editor" alt="Merge editor with the two sides on top, conflict blocks with checkboxes, and the editable Result below" />
+<Screenshot
+  dark={conflictsMergeEditorDark}
+  light={conflictsMergeEditorLight}
+  alt="Merge editor with the two sides on top, conflict blocks with checkboxes, and the editable Result below"
+/>
 
 - **Top**: the two sides, read only, titled with the side name, its role and `sha · summary`. Changes that do not conflict are already merged.
 - **Each conflict block** has a header **Conflict \{n\} / \{total\}** in both side panels, with a checkbox (**Keep conflict \{n\} from \{name\}**):
@@ -126,12 +146,12 @@ During a rebase, Git replays your commits on top of the other branch, so "ours" 
 
 The toolbar shows the file position (**File \{index\} / \{total\}**), a counter (**\{count\} conflicts left**, then **All blocks resolved**), and navigation buttons.
 
-| Key | Action |
-|---|---|
-| <kbd>⌥↓</kbd> (<kbd>Alt+↓</kbd> on Windows and Linux) | **Next conflict** (wraps around) |
-| <kbd>⌥↑</kbd> (<kbd>Alt+↑</kbd> on Windows and Linux) | **Previous conflict** |
-| <kbd>⌘S</kbd> (<kbd>Ctrl+S</kbd> on Windows and Linux) | **Save and mark resolved** |
-| <kbd>Esc</kbd> | Back to the graph (not while typing in the Result) |
+| Key                                                    | Action                                             |
+| ------------------------------------------------------ | -------------------------------------------------- |
+| <kbd>⌥↓</kbd> (<kbd>Alt+↓</kbd> on Windows and Linux)  | **Next conflict** (wraps around)                   |
+| <kbd>⌥↑</kbd> (<kbd>Alt+↑</kbd> on Windows and Linux)  | **Previous conflict**                              |
+| <kbd>⌘S</kbd> (<kbd>Ctrl+S</kbd> on Windows and Linux) | **Save and mark resolved**                         |
+| <kbd>Esc</kbd>                                         | Back to the graph (not while typing in the Result) |
 
 **Save and mark resolved** stays disabled until every block is resolved (**Resolve the \{count\} conflicts left first**). It writes the file, keeping its line endings, and stages it. yaggui then opens the next unresolved file. After the last one: **All conflicts are resolved**, "Continue the operation in progress to finish it.", and the graph comes back.
 
@@ -145,7 +165,7 @@ In the merge editor, **Open in \{tool\}** runs
 git mergetool --no-prompt --tool=<tool> -- <path>
 ```
 
-and waits for the tool to close. The tool is the **Merge tool** preference if set (see [External tools](../../customize/external-tools/)), else Git's `merge.tool` setting. Without either, the button reads **External tool** and is disabled: "No merge tool configured: set merge.tool in your Git configuration (git config merge.tool <tool>)."
+and waits for the tool to close. The tool is the **Merge tool** preference if set (see [External tools](../../customize/external-tools/)), else Git's `merge.tool` setting. Without either, the button reads **External tool** and is disabled: "No merge tool configured: set merge.tool in your Git configuration (git config merge.tool \<tool\>)."
 
 - If you saved the result in the tool: **File resolved with \{tool\}**, and the next file opens.
 - If you closed it without saving: **\{tool\} closed without resolving the file**; the file stays in conflict.
@@ -157,7 +177,11 @@ The external tool is offered only for text conflicts, not in the choice view.
 
 Files that cannot be merged line by line open in a choice view: one side deleted the file, only one side has it, both deleted it, or it is binary. A sentence explains the situation, for example "Binary file changed on both sides: it cannot be merged line by line. Choose the version to keep."
 
-<Screenshot name="conflicts-choice-binary" alt="Choice view for a binary image, with both versions side by side and a button to take each" />
+<Screenshot
+  dark={conflictsChoiceBinaryDark}
+  light={conflictsChoiceBinaryLight}
+  alt="Choice view for a binary image, with both versions side by side and a button to take each"
+/>
 
 Two cards show each side: what it did (**Changed the file**, **Added the file**, **Deleted the file**, **Does not have this file**), the size, the line count or **Binary**, and a preview (images are shown; text shows its first 40 lines). Click the button on the card you want: **Take \{name\}'s version**, **Keep the changed version**, **Keep the file**, **Accept the deletion** or **Drop the file**. There is no confirmation; accepting a deletion runs `git rm`.
 

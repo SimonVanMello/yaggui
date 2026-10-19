@@ -149,5 +149,5 @@ test('index-lock-banner', async ({ page }, testInfo) => {
   const banner = page.getByRole('status').filter({ hasText: 'index.lock' });
   await expect(banner).toContainText('A Git process probably crashed and left index.lock');
   await expect(banner.getByRole('button', { name: 'Remove the lock…' })).toBeVisible();
-  await capture(page, testInfo, 'index-lock-banner', banner);
+  await capture(page, testInfo, 'index-lock-banner', banner, { pad: 0 });
 });

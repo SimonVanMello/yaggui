@@ -18,23 +18,31 @@ sources:
 requirements: [F-320, F-321, F-033]
 ---
 
-import Screenshot from '../../../../components/Screenshot.astro';
+import Screenshot from '~/components/Screenshot.astro';
+import prefsAppearanceDark from '../../../../assets/screens/prefs-appearance-dark.png';
+import prefsAppearanceLight from '../../../../assets/screens/prefs-appearance-light.png';
+import styleTerminalDark from '../../../../assets/screens/style-terminal-dark.png';
+import styleTerminalLight from '../../../../assets/screens/style-terminal-light.png';
 
 Everything on this page lives in **Preferences › Appearance**. Changes apply as soon as you make them: there is no Save button.
 
 To open the preferences, click the gear button (**Preferences**) in the title bar, press <kbd>⌘,</kbd> (<kbd>Ctrl+,</kbd> on Windows and Linux), or run **Open preferences** from the [command palette](../../customize/palette-and-shortcuts/). On macOS, the **yaggui › Preferences…** menu item opens it too. The tab opens on **Appearance**.
 
-<Screenshot name="prefs-appearance" alt="The Appearance tab of the Preferences dialog with Theme, Style, High contrast, Gravatar avatars, Density, Language, fonts and Text size" />
+<Screenshot
+  dark={prefsAppearanceDark}
+  light={prefsAppearanceLight}
+  alt="The Appearance tab of the Preferences dialog with Theme, Style, High contrast, Gravatar avatars, Density, Language, fonts and Text size"
+/>
 
 ## Choose the theme and style
 
 yaggui has three looks:
 
-| Look | How to get it |
-|---|---|
-| **Graphite** (dark) | **Style**: **Graphite / Paper**, **Theme**: **Dark** (or **System** with a dark OS) |
-| **Paper** (light) | **Style**: **Graphite / Paper**, **Theme**: **Light** (or **System** with a light OS) |
-| **Terminal** (dense, monospace, dark) | **Style**: **Terminal** |
+| Look                                  | How to get it                                                                         |
+| ------------------------------------- | ------------------------------------------------------------------------------------- |
+| **Graphite** (dark)                   | **Style**: **Graphite / Paper**, **Theme**: **Dark** (or **System** with a dark OS)   |
+| **Paper** (light)                     | **Style**: **Graphite / Paper**, **Theme**: **Light** (or **System** with a light OS) |
+| **Terminal** (dense, monospace, dark) | **Style**: **Terminal**                                                               |
 
 - **Theme** takes **System**, **Light** or **Dark**. The default, **System**, follows the light or dark setting of your OS and switches live when the OS changes.
 - **Style** takes **Graphite / Paper** (default) or **Terminal**. The Terminal style is always dark, so the **Theme** setting has no effect while it is selected. The tab reminds you: "Dense, monospace and dark: the light / dark choice does not apply."
@@ -43,7 +51,11 @@ You can also switch the theme from the command palette with **Theme: follow the 
 
 yaggui applies the last theme before the window first paints, so a dark setup never flashes white at startup.
 
-<Screenshot name="style-terminal" alt="yaggui in the Terminal style: dense monospace rows on a near-black background" />
+<Screenshot
+  dark={styleTerminalDark}
+  light={styleTerminalLight}
+  alt="yaggui in the Terminal style: dense monospace rows on a near-black background"
+/>
 
 ## Turn on high contrast
 
@@ -55,11 +67,11 @@ yaggui applies the last theme before the window first paints, so a dark setup ne
 
 ## Change the fonts and text size
 
-| Setting | Default | What it does |
-|---|---|---|
-| **Interface font** | Empty: the bundled Inter font | Font of menus, labels and lists |
-| **Code font** | Empty: the bundled JetBrains Mono font | Font of diffs, the blame view, SHAs, the command log and the integrated terminal |
-| **Text size** | 13 px | Slider from 11 to 18 px. Scales every text in the app |
+| Setting            | Default                                | What it does                                                                     |
+| ------------------ | -------------------------------------- | -------------------------------------------------------------------------------- |
+| **Interface font** | Empty: the bundled Inter font          | Font of menus, labels and lists                                                  |
+| **Code font**      | Empty: the bundled JetBrains Mono font | Font of diffs, the blame view, SHAs, the command log and the integrated terminal |
+| **Text size**      | 13 px                                  | Slider from 11 to 18 px. Scales every text in the app                            |
 
 For the two font fields:
 

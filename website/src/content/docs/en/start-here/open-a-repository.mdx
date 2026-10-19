@@ -19,7 +19,13 @@ sources:
 requirements: [F-001, F-002, F-003, F-005, F-009]
 ---
 
-import Screenshot from '../../../../components/Screenshot.astro';
+import Screenshot from '~/components/Screenshot.astro';
+import openWelcomeDark from '../../../../assets/screens/open-welcome-dark.png';
+import openWelcomeLight from '../../../../assets/screens/open-welcome-light.png';
+import openCloneDialogDark from '../../../../assets/screens/open-clone-dialog-dark.png';
+import openCloneDialogLight from '../../../../assets/screens/open-clone-dialog-light.png';
+import openInitDialogDark from '../../../../assets/screens/open-init-dialog-dark.png';
+import openInitDialogLight from '../../../../assets/screens/open-init-dialog-light.png';
 
 Each repository opens in its own tab. A new tab starts on the welcome screen, where you open an existing repository, clone one, or create one. This page covers every way to open a repository and what can go wrong.
 
@@ -28,7 +34,8 @@ Each repository opens in its own tab. A new tab starts on the welcome screen, wh
 The welcome screen appears in a new tab (<kbd>⌘T</kbd>, <kbd>Ctrl+T</kbd> on Windows and Linux) and when you close the last tab.
 
 <Screenshot
-  name="open-welcome"
+  dark={openWelcomeDark}
+  light={openWelcomeLight}
   alt="Welcome screen with the Open, Clone and Init tiles, the workspaces section, the search field and the lists of favorite and recent repositories"
 />
 
@@ -114,7 +121,8 @@ Open the **Clone a repository** dialog from:
 There is no default shortcut; you can assign one in [Palette and shortcuts](../../customize/palette-and-shortcuts/).
 
 <Screenshot
-  name="open-clone-dialog"
+  dark={openCloneDialogDark}
+  light={openCloneDialogLight}
   alt="The Clone a repository dialog with the address, target folder, folder name, branch, shallow clone and submodule options"
 />
 
@@ -181,7 +189,8 @@ Open the **Initialize a repository** dialog from:
 - on macOS, **File** > **Initialize Repository…**.
 
 <Screenshot
-  name="open-init-dialog"
+  dark={openInitDialogDark}
+  light={openInitDialogLight}
   alt="The Initialize a repository dialog with the folder, default branch, .gitignore templates and README options"
 />
 

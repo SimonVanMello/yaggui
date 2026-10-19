@@ -13,7 +13,11 @@ sources:
 requirements: [F-262]
 ---
 
-import Screenshot from '../../../../components/Screenshot.astro';
+import Screenshot from '~/components/Screenshot.astro';
+import lfsDiffDark from '../../../../assets/screens/lfs-diff-dark.png';
+import lfsDiffLight from '../../../../assets/screens/lfs-diff-light.png';
+import lfsTrackDark from '../../../../assets/screens/lfs-track-dark.png';
+import lfsTrackLight from '../../../../assets/screens/lfs-track-light.png';
 
 Git LFS stores large files outside the repository and versions only a small pointer file in their place (see [git-lfs.com](https://git-lfs.com)). yaggui detects LFS, marks the files it stores, and runs `git lfs pull` and `git lfs track` from the command palette.
 
@@ -44,7 +48,11 @@ Files matching an LFS pattern carry an **LFS** chip (tooltip **Stored with Git L
 
 yaggui does not show a text diff for an LFS pointer. Instead, the diff shows **File stored with Git LFS** with each side's size and object ID (or **local content** for the file in your working folder), and the line **Only a pointer is versioned: no text diff.** Line counts are not computed for LFS files, and LFS files cannot be edited in the diff. See [Diff](../../everyday/diff/).
 
-<Screenshot name="lfs-diff" alt="Diff of hero.psd: the File stored with Git LFS panel with sizes, and the LFS chip in the file list" />
+<Screenshot
+  dark={lfsDiffDark}
+  light={lfsDiffLight}
+  alt="Diff of hero.psd: the File stored with Git LFS panel with sizes, and the LFS chip in the file list"
+/>
 
 ## Download LFS files (pull)
 
@@ -69,11 +77,15 @@ The status bar shows the operation as **Git LFS** with its progress; you can can
 
 yaggui runs `git lfs track -- <pattern>` and shows "`<pattern>` is now stored with LFS". Git LFS writes the pattern to `.gitattributes`, which stays unstaged: commit it so that the files matching the pattern are stored with LFS from their next commit.
 
-The pattern must be a single line that does not start with `-`. Otherwise yaggui shows "`<pattern>` is not a file pattern (e.g. *.psd)."
+The pattern must be a single line that does not start with `-`. Otherwise yaggui shows "`<pattern>` is not a file pattern (e.g. \*.psd)."
 
 Tracking a pattern is undoable ("LFS tracking of `<pattern>`"): undo restores the previous `.gitattributes`. See [Undo and redo](../../history/undo-and-redo/).
 
-<Screenshot name="lfs-track" alt="The Track files with Git LFS dialog with the already tracked patterns and a pattern field" />
+<Screenshot
+  dark={lfsTrackDark}
+  light={lfsTrackLight}
+  alt="The Track files with Git LFS dialog with the already tracked patterns and a pattern field"
+/>
 
 ## What yaggui does not do
 

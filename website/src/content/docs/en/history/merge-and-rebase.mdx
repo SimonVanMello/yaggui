@@ -17,7 +17,11 @@ sources:
 requirements: [F-026, F-140, F-141]
 ---
 
-import Screenshot from '../../../../components/Screenshot.astro';
+import Screenshot from '~/components/Screenshot.astro';
+import historyDropMenuDark from '../../../../assets/screens/history-drop-menu-dark.png';
+import historyDropMenuLight from '../../../../assets/screens/history-drop-menu-light.png';
+import historyMergeDialogDark from '../../../../assets/screens/history-merge-dialog-dark.png';
+import historyMergeDialogLight from '../../../../assets/screens/history-merge-dialog-light.png';
 
 Bring the commits of one branch into another: merge them, fast-forward the branch, or replay them on top of it with a rebase. Each action can start from a drag and drop, from the sidebar menu of a branch, or from the command palette.
 
@@ -29,15 +33,19 @@ Bring the commits of one branch into another: merge them, fast-forward the branc
 
 Press <kbd>Esc</kbd> during the drag to cancel it.
 
-<Screenshot name="history-drop-menu" alt="Drop menu after dragging develop onto main, listing Merge, Rebase and Fast-forward" />
+<Screenshot
+  dark={historyDropMenuDark}
+  light={historyDropMenuLight}
+  alt="Drop menu after dragging develop onto main, listing Merge, Rebase and Fast-forward"
+/>
 
 When you drag branch `X` onto branch `Y`:
 
-| Menu item | What it does | Notes |
-|---|---|---|
-| **Merge X into Y…** | Opens the [merge dialog](#merge-a-branch) | Hint **Checks out Y first** when `Y` is not the current branch |
-| **Rebase X onto Y** | Asks for confirmation, then [rebases](#rebase-onto-a-branch) `X` onto `Y` | Disabled for a remote branch: **A remote branch cannot be rebased**. Hint **Checks out X first** when `X` is not the current branch |
-| **Fast-forward Y to X** | [Fast-forwards](#fast-forward-a-branch) `Y` to `X`, without a dialog | Hint **Checks out Y first** when `Y` is not the current branch |
+| Menu item               | What it does                                                              | Notes                                                                                                                               |
+| ----------------------- | ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| **Merge X into Y…**     | Opens the [merge dialog](#merge-a-branch)                                 | Hint **Checks out Y first** when `Y` is not the current branch                                                                      |
+| **Rebase X onto Y**     | Asks for confirmation, then [rebases](#rebase-onto-a-branch) `X` onto `Y` | Disabled for a remote branch: **A remote branch cannot be rebased**. Hint **Checks out X first** when `X` is not the current branch |
+| **Fast-forward Y to X** | [Fast-forwards](#fast-forward-a-branch) `Y` to `X`, without a dialog      | Hint **Checks out Y first** when `Y` is not the current branch                                                                      |
 
 - Dropping a branch on itself shows a single disabled item, **Nothing to do: same branch**.
 - Dragging commits instead of a branch offers a cherry-pick: see [Cherry-pick, revert and reset](../../history/cherry-pick-revert-reset/#drag-commits-onto-a-branch).
@@ -49,10 +57,10 @@ When the target must be checked out first and you have local changes in the way,
 
 Right-click a branch other than the checked-out one. The menu has the same three actions, always against the current branch:
 
-| Menu item | Same as |
-|---|---|
-| **Merge \{name\} into \{current\}…** | Dragging `{name}` onto `{current}`, then **Merge** |
-| **Rebase \{name\} onto \{current\}** | Dragging `{name}` onto `{current}`, then **Rebase** |
+| Menu item                                | Same as                                                   |
+| ---------------------------------------- | --------------------------------------------------------- |
+| **Merge \{name\} into \{current\}…**     | Dragging `{name}` onto `{current}`, then **Merge**        |
+| **Rebase \{name\} onto \{current\}**     | Dragging `{name}` onto `{current}`, then **Rebase**       |
 | **Fast-forward \{current\} to \{name\}** | Dragging `{name}` onto `{current}`, then **Fast-forward** |
 
 These items are hidden when HEAD is detached, and disabled while an operation is in progress. **Rebase** is disabled on remote branches.
@@ -63,10 +71,10 @@ This menu is the keyboard path to the drag: in the sidebar, press <kbd>Shift+F10
 
 Open the palette with <kbd>⌘K</kbd> (<kbd>Ctrl+K</kbd> on Windows and Linux) and run:
 
-| Action | What it opens |
-|---|---|
+| Action                                      | What it opens                                      |
+| ------------------------------------------- | -------------------------------------------------- |
 | **Merge a branch into the current branch…** | The merge dialog with a **Branch to merge** picker |
-| **Rebase the current branch onto…** | The rebase dialog with a **Rebase onto** picker |
+| **Rebase the current branch onto…**         | The rebase dialog with a **Rebase onto** picker    |
 
 They have no default shortcut; you can bind one (see [Palette and shortcuts](../../customize/palette-and-shortcuts/)). Both are unavailable while an operation is in progress.
 
@@ -74,19 +82,23 @@ They have no default shortcut; you can bind one (see [Palette and shortcuts](../
 
 The dialog **Merge \{source\} into \{target\}** reads: "Choose how the commits of the branch are brought in. The choice is remembered."
 
-<Screenshot name="history-merge-dialog" alt="Merge dialog with the three merge modes, the message field and the command preview" />
+<Screenshot
+  dark={historyMergeDialogDark}
+  light={historyMergeDialogLight}
+  alt="Merge dialog with the three merge modes, the message field and the command preview"
+/>
 
-| Field | Content |
-|---|---|
-| **Branch to merge** | Only when opened from the palette. Local branches except the target, plus remote branches |
-| **Merge mode** | One of the three modes below |
-| **Commit message** | Only for **Always create a merge commit** and **Squash**. Leave it empty to use Git's default message |
+| Field               | Content                                                                                               |
+| ------------------- | ----------------------------------------------------------------------------------------------------- |
+| **Branch to merge** | Only when opened from the palette. Local branches except the target, plus remote branches             |
+| **Merge mode**      | One of the three modes below                                                                          |
+| **Commit message**  | Only for **Always create a merge commit** and **Squash**. Leave it empty to use Git's default message |
 
-| Mode | Help text | Git option |
-|---|---|---|
-| **Fast-forward when possible** | Moves \{target\} forward without a new commit when nothing diverged; otherwise creates a merge commit. | `--ff` |
-| **Always create a merge commit** | Keeps the shape of the history: the branch stays visible in the graph. | `--no-ff` |
-| **Squash** | Combines all the commits of the branch into a single commit on \{target\}. The branch is not linked to it. | `--squash` |
+| Mode                             | Help text                                                                                                  | Git option |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------- | ---------- |
+| **Fast-forward when possible**   | Moves \{target\} forward without a new commit when nothing diverged; otherwise creates a merge commit.     | `--ff`     |
+| **Always create a merge commit** | Keeps the shape of the history: the branch stays visible in the graph.                                     | `--no-ff`  |
+| **Squash**                       | Combines all the commits of the branch into a single commit on \{target\}. The branch is not linked to it. | `--squash` |
 
 The last mode you used is remembered and preselected next time (stored by the app's web view, not in the preferences database). The default is **Fast-forward when possible**.
 
@@ -154,10 +166,10 @@ Every command appears in the [command log](../../reference/command-log/).
 
 ## Undo
 
-| Operation | Undoable |
-|---|---|
-| Merge, fast-forward or squash that completed in one go | Yes, with <kbd>⌘Z</kbd> (<kbd>Ctrl+Z</kbd> on Windows and Linux): **merge of \{source\}** |
-| Merge that stopped on conflicts and was finished with **Continue** | No |
-| Rebase | No. While it is in progress, **Abort** restores the branch; afterwards, use the [reflog](../../inspect/reflog/) |
+| Operation                                                          | Undoable                                                                                                        |
+| ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
+| Merge, fast-forward or squash that completed in one go             | Yes, with <kbd>⌘Z</kbd> (<kbd>Ctrl+Z</kbd> on Windows and Linux): **merge of \{source\}**                       |
+| Merge that stopped on conflicts and was finished with **Continue** | No                                                                                                              |
+| Rebase                                                             | No. While it is in progress, **Abort** restores the branch; afterwards, use the [reflog](../../inspect/reflog/) |
 
 Undoing a merge runs `git reset --keep` to the previous commit. When yaggui checked out the target first, that checkout is a separate entry: undo it too to get back to the branch you were on. Details and limits: [Undo and redo](../../history/undo-and-redo/).

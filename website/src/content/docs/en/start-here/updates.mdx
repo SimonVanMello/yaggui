@@ -13,7 +13,13 @@ sources:
 requirements: []
 ---
 
-import Screenshot from '../../../../components/Screenshot.astro';
+import Screenshot from '~/components/Screenshot.astro';
+import updatesNoticeDark from '../../../../assets/screens/updates-notice-dark.png';
+import updatesNoticeLight from '../../../../assets/screens/updates-notice-light.png';
+import updatesUpgradeDialogDark from '../../../../assets/screens/updates-upgrade-dialog-dark.png';
+import updatesUpgradeDialogLight from '../../../../assets/screens/updates-upgrade-dialog-light.png';
+import updatesWhatsNewDark from '../../../../assets/screens/updates-whats-new-dark.png';
+import updatesWhatsNewLight from '../../../../assets/screens/updates-whats-new-light.png';
 
 yaggui checks for a new version only if you allow it. When one is available, it installs it the way that fits how you installed yaggui. This page also covers the **What's new** dialog, which lists the changes of each release.
 
@@ -47,7 +53,8 @@ yaggui downloads `latest.json` from the latest GitHub release over HTTPS and com
 When a newer version exists, a notification titled **yaggui \<version\> is available** stays in the bottom-right corner until you act on it or close it. Its button depends on how yaggui was installed.
 
 <Screenshot
-  name="updates-notice"
+  dark={updatesNoticeDark}
+  light={updatesNoticeLight}
   alt="Notification saying a new version of yaggui is available, with an Update and restart button"
 />
 
@@ -68,7 +75,8 @@ A notification shows **Downloading yaggui \<version\>…** with a percentage. Wh
 For the `.deb`, `.rpm` and AUR packages, **Update** opens the **Updating yaggui to \<version\>** dialog. It holds a terminal where the package manager runs, so you can type your password and answer its questions.
 
 <Screenshot
-  name="updates-upgrade-dialog"
+  dark={updatesUpgradeDialogDark}
+  light={updatesUpgradeDialogLight}
   alt="The Updating yaggui dialog with a terminal running the package manager"
 />
 
@@ -110,7 +118,8 @@ Open it from:
 - on macOS, **Help** > **What's New in yaggui**.
 
 <Screenshot
-  name="updates-whats-new"
+  dark={updatesWhatsNewDark}
+  light={updatesWhatsNewLight}
   alt="The What's new dialog listing releases with their new features and fixes"
 />
 

@@ -14,7 +14,13 @@ sources:
 requirements: [F-006, F-007, F-008, F-009]
 ---
 
-import Screenshot from '../../../../components/Screenshot.astro';
+import Screenshot from '~/components/Screenshot.astro';
+import workspacesWelcomeDark from '../../../../assets/screens/workspaces-welcome-dark.png';
+import workspacesWelcomeLight from '../../../../assets/screens/workspaces-welcome-light.png';
+import workspaceOverviewDark from '../../../../assets/screens/workspace-overview-dark.png';
+import workspaceOverviewLight from '../../../../assets/screens/workspace-overview-light.png';
+import workspaceScanResultsDark from '../../../../assets/screens/workspace-scan-results-dark.png';
+import workspaceScanResultsLight from '../../../../assets/screens/workspace-scan-results-light.png';
 
 A workspace is a named group of repositories, for example "Client X" or "Personal". You open all of its repositories in tabs in one click, see their state in an overview, and fetch them together.
 
@@ -27,7 +33,11 @@ You reach workspaces from:
 - the **Workspaces** section of the welcome screen: one card per workspace, with **Scan a folder…** and **Manage** links;
 - the command palette: **Workspaces…** and **Scan a folder for repositories…** (no default shortcut).
 
-<Screenshot name="workspaces-welcome" alt="The Workspaces section of the welcome screen with the Kernel and Personal cards" />
+<Screenshot
+  dark={workspacesWelcomeDark}
+  light={workspacesWelcomeLight}
+  alt="The Workspaces section of the welcome screen with the Kernel and Personal cards"
+/>
 
 ## Create, rename and delete a workspace
 
@@ -65,17 +75,21 @@ Click a workspace card on the welcome screen, or **Open all** in its overview. y
 
 Click the list icon of a workspace card (**Overview of `<name>`**), or select the workspace in the **Workspaces** dialog. The table shows one row per repository:
 
-| Column | Shows |
-|---|---|
-| **Repository** | Color dot, name and path. |
-| **Branch** | Current branch, or "detached at `<sha>`", plus a badge such as **Rebase in progress** when an operation is under way. |
-| **Sync** | Commits ahead (↑) and behind (↓) the upstream, **Up to date**, **No upstream**, or **Upstream gone**. Computed from local refs: fetch to refresh it. |
-| **Changes** | **Clean**, "6 changes", or "1 conflict" in red. |
-| **Last fetch** | Time of the last fetch (from `FETCH_HEAD`), **Never**, **Fetching…** during a fetch, or **Failed** with the error in its tooltip. |
+| Column         | Shows                                                                                                                                                |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Repository** | Color dot, name and path.                                                                                                                            |
+| **Branch**     | Current branch, or "detached at `<sha>`", plus a badge such as **Rebase in progress** when an operation is under way.                                |
+| **Sync**       | Commits ahead (↑) and behind (↓) the upstream, **Up to date**, **No upstream**, or **Upstream gone**. Computed from local refs: fetch to refresh it. |
+| **Changes**    | **Clean**, "6 changes", or "1 conflict" in red.                                                                                                      |
+| **Last fetch** | Time of the last fetch (from `FETCH_HEAD`), **Never**, **Fetching…** during a fetch, or **Failed** with the error in its tooltip.                    |
 
 Each row also has an open button and a remove button. A row reads **Reading…** while loading, and shows the error if the repository cannot be read. The overview reads repositories without running Git. Rows of repositories open in tabs update live; the others are read again when you reopen the dialog, at most every 15 seconds.
 
-<Screenshot name="workspace-overview" alt="Overview of the Personal workspace: branch, sync, changes and last fetch per repository, and a Folder not found row" />
+<Screenshot
+  dark={workspaceOverviewDark}
+  light={workspaceOverviewLight}
+  alt="Overview of the Personal workspace: branch, sync, changes and last fetch per repository, and a Folder not found row"
+/>
 
 ## Fetch all
 
@@ -108,13 +122,17 @@ Imported repositories join your known repositories (shown as **Never opened** in
 
 Scan errors:
 
-| Message | What to do |
-|---|---|
-| "Expected an absolute folder path, got `<path>`." | Enter a full path. |
-| "The folder `<path>` does not exist." | Check the path. |
-| "No repository found in N folders." | Pick another folder or a larger depth, then **Scan again**. |
+| Message                                           | What to do                                                  |
+| ------------------------------------------------- | ----------------------------------------------------------- |
+| "Expected an absolute folder path, got `<path>`." | Enter a full path.                                          |
+| "The folder `<path>` does not exist."             | Check the path.                                             |
+| "No repository found in N folders."               | Pick another folder or a larger depth, then **Scan again**. |
 
-<Screenshot name="workspace-scan-results" alt="Scan a folder results: repositories found with checkboxes, Already known chips and the Add to selector" />
+<Screenshot
+  dark={workspaceScanResultsDark}
+  light={workspaceScanResultsLight}
+  alt="Scan a folder results: repositories found with checkboxes, Already known chips and the Add to selector"
+/>
 
 ## Moved or deleted repositories
 

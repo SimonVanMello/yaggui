@@ -18,7 +18,11 @@ sources:
 requirements: [F-322, F-325]
 ---
 
-import Screenshot from '../../../../components/Screenshot.astro';
+import Screenshot from '~/components/Screenshot.astro';
+import prefsGitDark from '../../../../assets/screens/prefs-git-dark.png';
+import prefsGitLight from '../../../../assets/screens/prefs-git-light.png';
+import gitconfigGlobalDark from '../../../../assets/screens/gitconfig-global-dark.png';
+import gitconfigGlobalLight from '../../../../assets/screens/gitconfig-global-light.png';
 
 yaggui runs the `git` program installed on your computer for every write. **Preferences › Git** chooses which Git that is; **Preferences › Configuration** edits Git's own settings (`~/.gitconfig` or a repository's `.git/config`) without leaving the app.
 
@@ -26,7 +30,11 @@ yaggui runs the `git` program installed on your computer for every write. **Pref
 
 By default yaggui runs `git` from your `PATH`. The **Git binary** field of the **Git** tab is empty ("Detected automatically") and the line under it shows what yaggui found, for example "Git 2.47.1 · /usr/bin/git".
 
-<Screenshot name="prefs-git" alt="The Git tab of the preferences with the Git binary field, the Apply and Auto-detect buttons and the detected Git version" />
+<Screenshot
+  dark={prefsGitDark}
+  light={prefsGitLight}
+  alt="The Git tab of the preferences with the Git binary field, the Apply and Auto-detect buttons and the detected Git version"
+/>
 
 To use another Git:
 
@@ -38,14 +46,14 @@ To use another Git:
 
 ### What the status line means
 
-| Status | Meaning |
-|---|---|
-| "Git *version* · *path*" | A working Git. **Apply** is enabled if the path differs from the saved one |
-| "Git *version* is older than 2.30, the oldest version yaggui is tested with. Some features may not work." | It works and can be applied, but some features may fail. Update Git if you can |
-| "This is not a working Git: the file must exist and answer to --version." | The file does not exist or is not Git. **Apply** stays disabled |
-| "Git was not found. Install Git or enter its path." | The field is empty and no Git was found. Install Git ([git-scm.com/downloads](https://git-scm.com/downloads)) or enter its path |
+| Status                                                                                                    | Meaning                                                                                                                         |
+| --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| "Git _version_ · _path_"                                                                                  | A working Git. **Apply** is enabled if the path differs from the saved one                                                      |
+| "Git _version_ is older than 2.30, the oldest version yaggui is tested with. Some features may not work." | It works and can be applied, but some features may fail. Update Git if you can                                                  |
+| "This is not a working Git: the file must exist and answer to --version."                                 | The file does not exist or is not Git. **Apply** stays disabled                                                                 |
+| "Git was not found. Install Git or enter its path."                                                       | The field is empty and no Git was found. Install Git ([git-scm.com/downloads](https://git-scm.com/downloads)) or enter its path |
 
-If the path stops working between the check and **Apply**, the save is refused and the message ""*path*" is not a working Git: …" shows under the field.
+If the path stops working between the check and **Apply**, the save is refused and the message ""_path_" is not a working Git: …" shows under the field.
 
 ### How Git is found
 
@@ -66,28 +74,32 @@ If a saved path stops working (Git uninstalled or moved), yaggui falls back to `
 The **Configuration** tab reads and writes Git's configuration files with `git config`. Choose the file with **Configuration file**:
 
 - **Global**: "Your ~/.gitconfig: applies to every repository."
-- **This repository**: ".git/config of *repo*: overrides the global configuration." This choice exists only when the preferences were opened from a repository tab.
+- **This repository**: ".git/config of _repo_: overrides the global configuration." This choice exists only when the preferences were opened from a repository tab.
 
 The tab always opens on **Global**. A missing `~/.gitconfig` is simply shown as empty; it is created on the first change.
 
-<Screenshot name="gitconfig-global" alt="The Configuration tab with the Common settings fields and the All entries table of the global Git configuration" />
+<Screenshot
+  dark={gitconfigGlobalDark}
+  light={gitconfigGlobalLight}
+  alt="The Configuration tab with the Common settings fields and the All entries table of the global Git configuration"
+/>
 
 ### Common settings
 
-| Field | Values | Notes |
-|---|---|---|
-| **Name (user.name)** | Free text | Author name of your commits |
-| **Email (user.email)** | Free text | Author e-mail of your commits |
-| **Pull strategy (pull.rebase)** | Not set, `false`, `true`, `merges`, `interactive` | "true rebases local commits on pull, false merges." |
-| **Line endings (core.autocrlf)** | Not set, `false`, `true`, `input` | "true: CRLF in the working tree, LF committed. input: LF only." |
-| **Default branch (init.defaultBranch)** | Free text | "Name of the first branch of new repositories." |
-| **Sign commits (commit.gpgsign)** | Not set, `true`, `false` | "Needs a signing key." |
-| **Signature format (gpg.format)** | Not set, `openpgp`, `ssh`, `x509` | |
-| **Signing key (user.signingkey)** | Free text | "A GPG key id, or the path of an SSH key." |
+| Field                                   | Values                                            | Notes                                                           |
+| --------------------------------------- | ------------------------------------------------- | --------------------------------------------------------------- |
+| **Name (user.name)**                    | Free text                                         | Author name of your commits                                     |
+| **Email (user.email)**                  | Free text                                         | Author e-mail of your commits                                   |
+| **Pull strategy (pull.rebase)**         | Not set, `false`, `true`, `merges`, `interactive` | "true rebases local commits on pull, false merges."             |
+| **Line endings (core.autocrlf)**        | Not set, `false`, `true`, `input`                 | "true: CRLF in the working tree, LF committed. input: LF only." |
+| **Default branch (init.defaultBranch)** | Free text                                         | "Name of the first branch of new repositories."                 |
+| **Sign commits (commit.gpgsign)**       | Not set, `true`, `false`                          | "Needs a signing key."                                          |
+| **Signature format (gpg.format)**       | Not set, `openpgp`, `ssh`, `x509`                 |                                                                 |
+| **Signing key (user.signingkey)**       | Free text                                         | "A GPG key id, or the path of an SSH key."                      |
 
 - Text fields save when you press <kbd>Enter</kbd> or leave the field. Emptying a field removes the key.
 - Choosing **Not set** in a list removes the key.
-- In **This repository**, an unset field shows the inherited global value: as the placeholder of a text field, or as "Not set (global: *value*)" in a list.
+- In **This repository**, an unset field shows the inherited global value: as the placeholder of a text field, or as "Not set (global: _value_)" in a list.
 - A key that is set several times in the file is read-only here; use **All entries** or edit the file.
 
 The **Pull strategy** here is Git's `pull.rebase`. yaggui also has its own **Default pull strategy** in **Preferences › Behavior**, which wins when set; see [Fetch, pull and push](../../remotes/fetch-pull-push/).
@@ -118,7 +130,7 @@ Changes to the global file are applied one at a time, and changes to a repositor
 
 If Git refuses a change, the field goes back to its previous value and a toast "Could not change the Git configuration" shows the reason. yaggui checks the input first:
 
-- ""*key*" is not a valid Git configuration key (section.name or section.subsection.name)." The section and name use letters, digits and `-`, the name starts with a letter, and the key is at most 200 characters.
+- ""_key_" is not a valid Git configuration key (section.name or section.subsection.name)." The section and name use letters, digits and `-`, the name starts with a letter, and the key is at most 200 characters.
 - "The value is too long or contains a NUL character." Values are limited to 16 KiB.
 
 If the file cannot be read (for example a syntax error in it), the tab shows "Could not read the Git configuration." Fix the file in an editor; `git config --list` in a terminal shows where Git stops.

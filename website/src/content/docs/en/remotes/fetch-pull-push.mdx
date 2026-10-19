@@ -18,7 +18,13 @@ sources:
 requirements: [F-120, F-121, F-122, F-123, F-124, F-126, F-127]
 ---
 
-import Screenshot from '../../../../components/Screenshot.astro';
+import Screenshot from '~/components/Screenshot.astro';
+import pullStrategyMenuDark from '../../../../assets/screens/pull-strategy-menu-dark.png';
+import pullStrategyMenuLight from '../../../../assets/screens/pull-strategy-menu-light.png';
+import forcePushConfirmDark from '../../../../assets/screens/force-push-confirm-dark.png';
+import forcePushConfirmLight from '../../../../assets/screens/force-push-confirm-light.png';
+import networkProgressDark from '../../../../assets/screens/network-progress-dark.png';
+import networkProgressLight from '../../../../assets/screens/network-progress-light.png';
 
 This page covers the three network buttons of the toolbar: **Fetch**, **Pull** and **Push**, plus auto-fetch, force push, progress and the errors you can meet. Remotes themselves are managed on the [Remotes](../../remotes/remotes/) page, and credentials on [Authentication](../../remotes/authentication/).
 
@@ -28,14 +34,14 @@ Every network command runs in the background on the repository's operation queue
 
 A fetch downloads new commits and branches from a remote without touching your branches or files ([git fetch](https://git-scm.com/docs/git-fetch)).
 
-| Entry point | What it fetches |
-|---|---|
-| Toolbar **Fetch** button | All remotes |
-| Toolbar **Fetch** chevron (**Fetch options**) → **Fetch all remotes** | All remotes |
-| Toolbar **Fetch** chevron → **Fetch origin** (one item per remote) | That remote only |
-| <kbd>⌘⇧F</kbd> (<kbd>Ctrl+Shift+F</kbd> on Windows and Linux) | All remotes |
-| Palette (<kbd>⌘K</kbd>) → **Fetch** | All remotes |
-| Sidebar, right-click a remote folder under **Remote** → **Fetch** | That remote only |
+| Entry point                                                           | What it fetches  |
+| --------------------------------------------------------------------- | ---------------- |
+| Toolbar **Fetch** button                                              | All remotes      |
+| Toolbar **Fetch** chevron (**Fetch options**) → **Fetch all remotes** | All remotes      |
+| Toolbar **Fetch** chevron → **Fetch origin** (one item per remote)    | That remote only |
+| <kbd>⌘⇧F</kbd> (<kbd>Ctrl+Shift+F</kbd> on Windows and Linux)         | All remotes      |
+| Palette (<kbd>⌘K</kbd>) → **Fetch**                                   | All remotes      |
+| Sidebar, right-click a remote folder under **Remote** → **Fetch**     | That remote only |
 
 yaggui runs:
 
@@ -60,10 +66,10 @@ A fetch with prune cannot be undone (see [What cannot be undone](#what-cannot-be
 
 yaggui fetches all remotes of the active repository in the background, at a fixed interval.
 
-| Setting (Preferences → Behavior) | Default | Effect |
-|---|---|---|
-| **Fetch automatically** | On | Turns auto-fetch on or off |
-| **Every (minutes)** | 10 | Interval, from 1 to 240 minutes. Disabled when auto-fetch is off |
+| Setting (Preferences → Behavior) | Default | Effect                                                           |
+| -------------------------------- | ------- | ---------------------------------------------------------------- |
+| **Fetch automatically**          | On      | Turns auto-fetch on or off                                       |
+| **Every (minutes)**              | 10      | Interval, from 1 to 240 minutes. Disabled when auto-fetch is off |
 
 How it behaves:
 
@@ -79,23 +85,27 @@ To turn it off, uncheck **Fetch automatically** in **Preferences → Behavior**.
 
 A pull fetches the upstream of the current branch and integrates its commits ([git pull](https://git-scm.com/docs/git-pull)). The **Pull** button shows a badge with the number of commits you are behind, and is disabled when HEAD is detached.
 
-| Entry point | Strategy |
-|---|---|
-| Toolbar **Pull** button | Default strategy |
-| Toolbar **Pull** chevron (**Pull strategy**) → **Fast-forward only**, **Merge** or **Rebase** | The one you pick |
-| <kbd>⌘⇧L</kbd> (<kbd>Ctrl+Shift+L</kbd> on Windows and Linux) | Default strategy |
-| Palette → **Pull** | Default strategy |
-| Sidebar, right-click a local branch with an upstream → **Pull** | Default strategy. Only enabled on the checked-out branch ("Pull only applies to the checked-out branch") |
+| Entry point                                                                                   | Strategy                                                                                                 |
+| --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Toolbar **Pull** button                                                                       | Default strategy                                                                                         |
+| Toolbar **Pull** chevron (**Pull strategy**) → **Fast-forward only**, **Merge** or **Rebase** | The one you pick                                                                                         |
+| <kbd>⌘⇧L</kbd> (<kbd>Ctrl+Shift+L</kbd> on Windows and Linux)                                 | Default strategy                                                                                         |
+| Palette → **Pull**                                                                            | Default strategy                                                                                         |
+| Sidebar, right-click a local branch with an upstream → **Pull**                               | Default strategy. Only enabled on the checked-out branch ("Pull only applies to the checked-out branch") |
 
-<Screenshot name="pull-strategy-menu" alt="The Pull strategy menu open under the toolbar, with Fast-forward only marked as default, Merge and Rebase" />
+<Screenshot
+  dark={pullStrategyMenuDark}
+  light={pullStrategyMenuLight}
+  alt="The Pull strategy menu open under the toolbar, with Fast-forward only marked as default, Merge and Rebase"
+/>
 
 The **Pull with…** menu marks the default strategy with **default**. The three strategies run:
 
-| Strategy | Command | Result |
-|---|---|---|
+| Strategy              | Command                                     | Result                                                                    |
+| --------------------- | ------------------------------------------- | ------------------------------------------------------------------------- |
 | **Fast-forward only** | `git pull --progress --no-rebase --ff-only` | Moves your branch forward. Fails if your branch and its upstream diverged |
-| **Merge** | `git pull --progress --no-rebase --ff` | Fast-forwards when possible, otherwise creates a merge commit |
-| **Rebase** | `git pull --progress --rebase` | Replays your local commits on top of the upstream |
+| **Merge**             | `git pull --progress --no-rebase --ff`      | Fast-forwards when possible, otherwise creates a merge commit             |
+| **Rebase**            | `git pull --progress --rebase`              | Replays your local commits on top of the upstream                         |
 
 ### Default strategy
 
@@ -123,14 +133,14 @@ A pull that changed your branch cannot be undone (see [What cannot be undone](#w
 
 A push sends the commits of a local branch to its upstream ([git push](https://git-scm.com/docs/git-push)). The **Push** button shows a badge with the number of commits you are ahead, and is disabled when HEAD is detached.
 
-| Entry point | What it pushes |
-|---|---|
-| Toolbar **Push** button | The current branch |
-| Toolbar **Push** chevron (**Push options**) → **Push** | The current branch |
-| <kbd>⌘⇧P</kbd> (<kbd>Ctrl+Shift+P</kbd> on Windows and Linux) | The current branch |
-| Palette → **Push** | The current branch |
-| Sidebar, right-click a local branch → **Push** | That branch, checked out or not |
-| Commit box, **Push after commit** checkbox | The current branch, right after a successful commit ([Committing](../../everyday/committing/)) |
+| Entry point                                                   | What it pushes                                                                                 |
+| ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Toolbar **Push** button                                       | The current branch                                                                             |
+| Toolbar **Push** chevron (**Push options**) → **Push**        | The current branch                                                                             |
+| <kbd>⌘⇧P</kbd> (<kbd>Ctrl+Shift+P</kbd> on Windows and Linux) | The current branch                                                                             |
+| Palette → **Push**                                            | The current branch                                                                             |
+| Sidebar, right-click a local branch → **Push**                | That branch, checked out or not                                                                |
+| Commit box, **Push after commit** checkbox                    | The current branch, right after a successful commit ([Committing](../../everyday/committing/)) |
 
 yaggui pushes the branch to the remote and branch named by its upstream configuration (`branch.<name>.remote` and `branch.<name>.merge`):
 
@@ -161,7 +171,11 @@ A force push replaces the remote branch with yours, dropping the commits that on
 
 Entry points: toolbar **Push** chevron → **Force push (with lease)…**, or palette → **Force push (with lease)**. There is no default shortcut. The item is disabled when HEAD is detached or the branch has no upstream.
 
-<Screenshot name="force-push-confirm" alt="The Overwrite origin/feat/graph-lanes? confirmation, listing the commits the force push would drop and the git push --force-with-lease command" />
+<Screenshot
+  dark={forcePushConfirmDark}
+  light={forcePushConfirmLight}
+  alt="The Overwrite origin/main? confirmation, listing the four commits the force push would drop and the git push --force-with-lease command"
+/>
 
 1. yaggui lists the commits of the remote branch that are not in yours, as of your last fetch.
 2. A confirmation titled **Overwrite origin/feature?** says how many commits will be dropped ("The force push will drop 2 commits from origin/feature (as of the last fetch). If the branch moved since, Git will refuse.") or that none will be lost, lists those commits (up to 100) and shows the command:
@@ -198,7 +212,11 @@ Fetch tags, push one tag or all of them, and delete a tag on a remote from the s
 
 While a fetch, pull or push runs, the left part of the status bar shows the operation (**Fetch**, **Pull** or **Push**), Git's current phase (for example "Receiving objects"), the percentage, the amount transferred and the rate, with a progress bar and a **Cancel** button.
 
-<Screenshot name="network-progress" alt="The status bar during a push: Push, Receiving objects, percentage, transferred size and rate, a progress bar and a Cancel button" />
+<Screenshot
+  dark={networkProgressDark}
+  light={networkProgressLight}
+  alt="The status bar during a push: Push, Receiving objects, percentage, transferred size and rate, a progress bar and a Cancel button"
+/>
 
 Click **Cancel** to stop it. The status bar shows "Cancelling Push…", then **Push cancelled**, and a toast confirms it. yaggui stops Git and its child processes (such as `ssh`) within about a second. Cancellation is offered for fetch, pull, push, and tag pushes, fetches and deletions on a remote.
 
@@ -212,16 +230,16 @@ A failed fetch, pull or push shows an error toast titled **Fetch failed**, **Pul
 - **Details**, collapsed, with Git's own output,
 - at most one action button, when one helps.
 
-| Message | What to do | Button |
-|---|---|---|
-| The remote host can't be reached. Check your connection and the remote URL. | Check the network or the URL ([Remotes](../../remotes/remotes/#change-the-urls)) | **Retry** |
-| Authentication failed. yaggui never asks for passwords: configure a Git credential helper… | See [Authentication](../../remotes/authentication/#https-use-a-credential-helper) | — |
-| SSH authentication failed. Load your key in ssh-agent (ssh-add)… | See [Authentication](../../remotes/authentication/#ssh-use-ssh-agent) | — |
-| Remote not found: check its name and URL. | Fix the URL of the remote | — |
-| Push rejected: the remote branch has commits you don't have. | Pull, then push | **Pull then push** |
-| "feature" has no upstream branch. | Publish the branch | **Set upstream and push** |
-| HEAD is detached (no current branch): check out a branch first. | Check out a branch | — |
-| The Git command failed. | Read Git's output | **Open command log** |
+| Message                                                                                    | What to do                                                                        | Button                    |
+| ------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------- | ------------------------- |
+| The remote host can't be reached. Check your connection and the remote URL.                | Check the network or the URL ([Remotes](../../remotes/remotes/#change-the-urls))  | **Retry**                 |
+| Authentication failed. yaggui never asks for passwords: configure a Git credential helper… | See [Authentication](../../remotes/authentication/#https-use-a-credential-helper) | —                         |
+| SSH authentication failed. Load your key in ssh-agent (ssh-add)…                           | See [Authentication](../../remotes/authentication/#ssh-use-ssh-agent)             | —                         |
+| Remote not found: check its name and URL.                                                  | Fix the URL of the remote                                                         | —                         |
+| Push rejected: the remote branch has commits you don't have.                               | Pull, then push                                                                   | **Pull then push**        |
+| "feature" has no upstream branch.                                                          | Publish the branch                                                                | **Set upstream and push** |
+| HEAD is detached (no current branch): check out a branch first.                            | Check out a branch                                                                | —                         |
+| The Git command failed.                                                                    | Read Git's output                                                                 | **Open command log**      |
 
 Auto-fetch failures show no toast; look in the status bar and the command log. The full list of messages is in [Error messages](../../reference/error-messages/).
 

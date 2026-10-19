@@ -306,7 +306,7 @@ test('conflicts-banner', async ({ page }, testInfo) => {
   await stopOn(page, 'rebase');
   await expect(banner(page)).toContainText('Rebase 3/7');
   await page.mouse.move(0, 0);
-  await capture(page, testInfo, 'conflicts-banner', banner(page));
+  await capture(page, testInfo, 'conflicts-banner', banner(page), { pad: 0 });
 });
 
 test('conflicts-merge-editor', async ({ page }, testInfo) => {

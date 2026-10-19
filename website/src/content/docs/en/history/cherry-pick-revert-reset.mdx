@@ -18,7 +18,13 @@ sources:
 requirements: [F-025, F-143, F-144, F-145]
 ---
 
-import Screenshot from '../../../../components/Screenshot.astro';
+import Screenshot from '~/components/Screenshot.astro';
+import historySelectionBarDark from '../../../../assets/screens/history-selection-bar-dark.png';
+import historySelectionBarLight from '../../../../assets/screens/history-selection-bar-light.png';
+import historyParentDialogDark from '../../../../assets/screens/history-parent-dialog-dark.png';
+import historyParentDialogLight from '../../../../assets/screens/history-parent-dialog-light.png';
+import historyResetHardDark from '../../../../assets/screens/history-reset-hard-dark.png';
+import historyResetHardLight from '../../../../assets/screens/history-reset-hard-light.png';
 
 These actions work on commits you select in the graph: copy them onto a branch (cherry-pick), create a commit that undoes one (revert), move the current branch to a commit (reset), or check a commit out without a branch.
 
@@ -39,7 +45,11 @@ Right-click the commit and choose **Cherry-pick onto \{branch\}**, where `{branc
 
 <kbd>Esc</kbd> collapses the selection back to one commit.
 
-<Screenshot name="history-selection-bar" alt="Four commits selected in the graph, with the selection bar offering to cherry-pick them" />
+<Screenshot
+  dark={historySelectionBarDark}
+  light={historySelectionBarLight}
+  alt="Four commits selected in the graph, with the selection bar offering to cherry-pick them"
+/>
 
 The commits are applied oldest first, whatever order you selected them in. Duplicates are ignored.
 
@@ -76,7 +86,11 @@ A merge commit has several parents, so Git needs to know which side to keep. yag
 - **Revert merge \{sha\}**: "A merge has several parents. Choose the one whose side is kept: the revert undoes what the other side brought."
 - **Cherry-pick merge \{sha\}**: "A merge has several parents. Choose the one the changes are computed against."
 
-<Screenshot name="history-parent-dialog" alt="Revert merge dialog asking which parent to keep, with Parent 1 selected" />
+<Screenshot
+  dark={historyParentDialogDark}
+  light={historyParentDialogLight}
+  alt="Revert merge dialog asking which parent to keep, with Parent 1 selected"
+/>
 
 Under **Parent kept**, each option shows **Parent \{n\}**, its short SHA and its summary. **Parent 1** is selected by default and is "Usually the branch the merge was made on"; the others are "Usually the branch that was merged in". The dialog previews `git revert -m <n> <sha>` or `git cherry-pick -m <n> <sha>`. Click **Revert** or **Cherry-pick**.
 
@@ -89,7 +103,11 @@ A reset moves the current branch to another commit ([git-reset](https://git-scm.
 
 The dialog **Reset \{branch\} to \{sha\}** reads: "Moves the current branch to this commit. Choose what happens to your changes." It works on a detached HEAD too (`{branch}` is then `HEAD`).
 
-<Screenshot name="history-reset-hard" alt="Reset dialog in Hard mode, listing the files that lose their local content" />
+<Screenshot
+  dark={historyResetHardDark}
+  light={historyResetHardLight}
+  alt="Reset dialog in Hard mode, listing the files that lose their local content"
+/>
 
 It first checks what would change (**Checking what would change…**) and summarizes the effect on the branch:
 
@@ -99,20 +117,20 @@ It first checks what would change (**Checking what would change…**) and summar
 
 Then choose a **Reset mode**:
 
-| Mode | What happens |
-|---|---|
-| **Soft** | Only the branch moves. The undone commits' changes stay staged, ready to commit again. |
-| **Mixed** | The branch and the index move. Your changes stay in the working tree, unstaged. |
-| **Hard** | The branch, the index and the working tree all take this commit's content. Local changes are lost (saved to a backup first). |
+| Mode      | What happens                                                                                                                 |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| **Soft**  | Only the branch moves. The undone commits' changes stay staged, ready to commit again.                                       |
+| **Mixed** | The branch and the index move. Your changes stay in the working tree, unstaged.                                              |
+| **Hard**  | The branch, the index and the working tree all take this commit's content. Local changes are lost (saved to a backup first). |
 
 For **Hard**, the dialog lists the files that lose their local content, each with what happens to it:
 
-| Note | Meaning |
-|---|---|
-| **changes discarded** | A tracked file with local changes (or in conflict) |
-| **will be deleted** | A file you added that does not exist in the target commit |
-| **comes back** | A file you deleted that exists in the target commit |
-| **overwritten** | An untracked file that the target commit tracks |
+| Note                  | Meaning                                                   |
+| --------------------- | --------------------------------------------------------- |
+| **changes discarded** | A tracked file with local changes (or in conflict)        |
+| **will be deleted**   | A file you added that does not exist in the target commit |
+| **comes back**        | A file you deleted that exists in the target commit       |
+| **overwritten**       | An untracked file that the target commit tracks           |
 
 Untracked files that the target does not have are left alone and not listed. Under the list: **These files are saved to a backup before the reset.** If nothing would be lost, the dialog says **No local change would be lost.**
 
@@ -134,26 +152,26 @@ If local changes are in the way, the checkout dialog opens: see [Branches](../..
 
 ## Errors
 
-| Message | What to do |
-|---|---|
-| "\{short\} brings no change any more (it is probably already applied): skip it." | The commit is already in the branch. The cherry-pick or revert stays in progress; click **Skip** in the toast or the banner, or **Abort** |
-| "\{short\} is a merge commit: choose which parent's side to keep." | yaggui opens the parent dialog |
-| "Parent \{n\} does not exist for \{short\}." | Choose an existing parent |
-| "There is no commit to apply them on yet." | The repository has no commit: make a first commit |
-| "Your local changes would be overwritten by the cherry-pick. Commit or stash them first." (same for revert) | Commit or [stash](../../everyday/stash/) them. **Show changes** in the toast opens them |
-| "Another operation (merge, rebase, cherry-pick, revert or bisect) is in progress: continue or abort it first." | Finish it from the banner |
+| Message                                                                                                        | What to do                                                                                                                                |
+| -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| "\{short\} brings no change any more (it is probably already applied): skip it."                               | The commit is already in the branch. The cherry-pick or revert stays in progress; click **Skip** in the toast or the banner, or **Abort** |
+| "\{short\} is a merge commit: choose which parent's side to keep."                                             | yaggui opens the parent dialog                                                                                                            |
+| "Parent \{n\} does not exist for \{short\}."                                                                   | Choose an existing parent                                                                                                                 |
+| "There is no commit to apply them on yet."                                                                     | The repository has no commit: make a first commit                                                                                         |
+| "Your local changes would be overwritten by the cherry-pick. Commit or stash them first." (same for revert)    | Commit or [stash](../../everyday/stash/) them. **Show changes** in the toast opens them                                                   |
+| "Another operation (merge, rebase, cherry-pick, revert or bisect) is in progress: continue or abort it first." | Finish it from the banner                                                                                                                 |
 
 When Git stops on conflicts, the cherry-pick or revert stays in progress: resolve the files, then **Continue**, **Skip** or **Abort**. See [Resolve conflicts](../../history/conflicts/). Other messages are in [Error messages](../../reference/error-messages/).
 
 ## Undo
 
-| Operation | Undo label | What undo does |
-|---|---|---|
-| Cherry-pick that completed in one go | **cherry-pick of \{count\} commits** | Moves the branch back with `git reset --keep` |
-| Revert that completed in one go | **revert of \{sha\}** | Same |
-| Soft reset | **soft reset to \{sha\}** | Moves the branch back |
-| Mixed reset | **mixed reset to \{sha\}** | Moves the branch back and restores the index |
-| Hard reset | **hard reset to \{sha\}** | Moves the branch back and writes the backed-up files back |
-| Checkout of a commit | **checkout of \{sha\} (detached HEAD)** | Switches back to the previous branch or commit, keeping local changes |
+| Operation                            | Undo label                              | What undo does                                                        |
+| ------------------------------------ | --------------------------------------- | --------------------------------------------------------------------- |
+| Cherry-pick that completed in one go | **cherry-pick of \{count\} commits**    | Moves the branch back with `git reset --keep`                         |
+| Revert that completed in one go      | **revert of \{sha\}**                   | Same                                                                  |
+| Soft reset                           | **soft reset to \{sha\}**               | Moves the branch back                                                 |
+| Mixed reset                          | **mixed reset to \{sha\}**              | Moves the branch back and restores the index                          |
+| Hard reset                           | **hard reset to \{sha\}**               | Moves the branch back and writes the backed-up files back             |
+| Checkout of a commit                 | **checkout of \{sha\} (detached HEAD)** | Switches back to the previous branch or commit, keeping local changes |
 
 A cherry-pick or revert that stopped on conflicts and was finished with **Continue** cannot be undone. See [Undo and redo](../../history/undo-and-redo/).

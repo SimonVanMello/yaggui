@@ -15,7 +15,11 @@ sources:
 requirements: [F-124, F-200, F-201, F-202]
 ---
 
-import Screenshot from '../../../../components/Screenshot.astro';
+import Screenshot from '~/components/Screenshot.astro';
+import tagCreateDark from '../../../../assets/screens/tag-create-dark.png';
+import tagCreateLight from '../../../../assets/screens/tag-create-light.png';
+import tagCheckoutDark from '../../../../assets/screens/tag-checkout-dark.png';
+import tagCheckoutLight from '../../../../assets/screens/tag-checkout-light.png';
 
 Tags mark a commit with a permanent name, usually a release (`v1.0.0`). This page covers creating, deleting, pushing, fetching and checking out tags. For what tags are, see [Git Basics - Tagging](https://git-scm.com/book/en/v2/Git-Basics-Tagging).
 
@@ -25,31 +29,35 @@ Tags appear as labels on their commit in the [commit graph](../../history/commit
 
 Open the **Create a tag** dialog from:
 
-| Entry point | Tags |
-|---|---|
-| Toolbar button **Tag**, or palette action **Create a tag…** | The commit HEAD points to when the dialog opens |
-| **Create tag here…** in the graph's commit menu | That commit |
-| **Create a tag here…** in the sidebar menu of a local branch or a detached HEAD | Its tip |
+| Entry point                                                                     | Tags                                            |
+| ------------------------------------------------------------------------------- | ----------------------------------------------- |
+| Toolbar button **Tag**, or palette action **Create a tag…**                     | The commit HEAD points to when the dialog opens |
+| **Create tag here…** in the graph's commit menu                                 | That commit                                     |
+| **Create a tag here…** in the sidebar menu of a local branch or a detached HEAD | Its tip                                         |
 
 In a repository with no commit yet, the toolbar button is disabled: "Nothing to tag yet: the repository has no commit". There is no default shortcut.
 
-<Screenshot name="tag-create" alt="The Create a tag dialog with the target commit, the tag name field, the optional message and the Sign the tag (GPG) checkbox" />
+<Screenshot
+  dark={tagCreateDark}
+  light={tagCreateLight}
+  alt="The Create a tag dialog with the target commit, the tag name field, the optional message and the Sign the tag (GPG) checkbox"
+/>
 
 1. Check **On commit**: the target commit.
-2. Type the **Tag name** (for example `v1.0.0`). yaggui checks it as you type: "This name is available.", "A tag named "*name*" already exists." or "*name* is not a valid tag name: …".
+2. Type the **Tag name** (for example `v1.0.0`). yaggui checks it as you type: "This name is available.", "A tag named "_name_" already exists." or "_name_ is not a valid tag name: …".
 3. Optional: type a **Message (optional)**.
    - Without a message, the tag is lightweight: just a name on the commit.
    - With a message, the tag is annotated: it records its author and date.
 4. Optional, with a message only: check **Sign the tag (GPG)**. Git uses your signing configuration ([`gpg.format`](https://git-scm.com/docs/git-config#Documentation/git-config.txt-gpgformat), `user.signingKey`).
 5. Click **Create tag**.
 
-| Tag | Command |
-|---|---|
-| Lightweight | `git tag -- <name> <sha>` |
-| Annotated | `git tag -a -F - -- <name> <sha>` (message passed on standard input) |
-| Signed | `git tag -s -F - -- <name> <sha>` |
+| Tag         | Command                                                              |
+| ----------- | -------------------------------------------------------------------- |
+| Lightweight | `git tag -- <name> <sha>`                                            |
+| Annotated   | `git tag -a -F - -- <name> <sha>` (message passed on standard input) |
+| Signed      | `git tag -s -F - -- <name> <sha>`                                    |
 
-The toast reads "Tag *name* created". If signing fails (no key, wrong passphrase, `gpg` missing), an error explains it with a link to the [command log](../../reference/command-log/).
+The toast reads "Tag _name_ created". If signing fails (no key, wrong passphrase, `gpg` missing), an error explains it with a link to the [command log](../../reference/command-log/).
 
 The tag is local until you [push it](#push-tags). Undo deletes it.
 
@@ -58,38 +66,38 @@ The tag is local until you [push it](#push-tags). Undo deletes it.
 ### Locally
 
 1. Expand **Tags** in the sidebar, right-click the tag, then **Delete the tag…**.
-2. The **Delete the tag *name*?** dialog explains that only the local tag is deleted (a pushed tag stays on the remote) and shows `git tag -d <name>`.
+2. The **Delete the tag _name_?** dialog explains that only the local tag is deleted (a pushed tag stays on the remote) and shows `git tag -d <name>`.
 3. Click **Delete the tag**.
 
-The toast reads "Tag *name* deleted. It pointed at *abc1234*." Undo recreates it, including the annotation.
+The toast reads "Tag _name_ deleted. It pointed at _abc1234_." Undo recreates it, including the annotation.
 
 You can turn this confirmation off in **Preferences › Behavior › Confirmations** (**Delete a tag**).
 
 ### On a remote
 
 1. Right-click the tag in the sidebar, then **Delete on the remote…**. With several remotes, pick one in the **Delete on a remote** submenu. With one remote, it is used. With none, you see "This repository has no remote."
-2. The **Delete tag *name* on *origin*?** dialog warns that the tag is deleted on the remote for everyone and that the local tag is not touched. It shows `git push origin --delete refs/tags/<name>`. This confirmation cannot be turned off.
+2. The **Delete tag _name_ on _origin_?** dialog warns that the tag is deleted on the remote for everyone and that the local tag is not touched. It shows `git push origin --delete refs/tags/<name>`. This confirmation cannot be turned off.
 3. Click **Delete on the remote**.
 
-The toast reads "Tag *name* deleted on *origin*". A tag already missing on the remote counts as deleted. This cannot be undone in yaggui.
+The toast reads "Tag _name_ deleted on _origin_". A tag already missing on the remote counts as deleted. This cannot be undone in yaggui.
 
 ## Push tags
 
 `git push` does not send tags by default ([Sharing tags](https://git-scm.com/book/en/v2/Git-Basics-Tagging#_sharing_tags)). yaggui pushes them explicitly.
 
-| Push | Where | Command |
-|---|---|---|
-| One tag | Right-click the tag, then **Push the tag** (or **Push the tag to** ▸ remote when you have several) | `git push --progress --porcelain <remote> refs/tags/<tag>:refs/tags/<tag>` |
-| All tags | Right-click the **Tags** section header, then **Push all tags** (or **Push all tags to** ▸ remote); right-click a remote folder, then **Push all tags here**; or palette action **Push all tags** | `git push --progress --porcelain <remote> refs/tags/*:refs/tags/*` |
+| Push     | Where                                                                                                                                                                                             | Command                                                                    |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| One tag  | Right-click the tag, then **Push the tag** (or **Push the tag to** ▸ remote when you have several)                                                                                                | `git push --progress --porcelain <remote> refs/tags/<tag>:refs/tags/<tag>` |
+| All tags | Right-click the **Tags** section header, then **Push all tags** (or **Push all tags to** ▸ remote); right-click a remote folder, then **Push all tags here**; or palette action **Push all tags** | `git push --progress --porcelain <remote> refs/tags/*:refs/tags/*`         |
 
 When no remote is chosen, yaggui uses `origin`, or the first remote if there is no `origin`.
 
 Results:
 
-- "Tag *name* pushed to *origin*", or "Tag *name* is already on *origin*".
-- "N tags pushed to *origin*" with the list, "Every tag is already on *origin*", or "No tag to push".
-- If the remote already has a tag of the same name on another commit: "The remote refused the tag *name*: a tag of that name already exists there and points to another commit. Delete the remote tag first, or rename yours." When pushing all tags, the other tags are still pushed.
-- If a server rule or hook declines the tag: "The remote refused the tag *name* (server rule or hook). See the command log for its answer."
+- "Tag _name_ pushed to _origin_", or "Tag _name_ is already on _origin_".
+- "N tags pushed to _origin_" with the list, "Every tag is already on _origin_", or "No tag to push".
+- If the remote already has a tag of the same name on another commit: "The remote refused the tag _name_: a tag of that name already exists there and points to another commit. Delete the remote tag first, or rename yours." When pushing all tags, the other tags are still pushed.
+- If a server rule or hook declines the tag: "The remote refused the tag _name_ (server rule or hook). See the command log for its answer."
 
 Pushing all tags does not delete the remote's tags that you do not have locally. Progress shows in the status bar, where you can cancel. A push cannot be undone in yaggui. For authentication problems, see [Authentication](../../remotes/authentication/).
 
@@ -97,10 +105,10 @@ Pushing all tags does not delete the remote's tags that you do not have locally.
 
 A normal fetch already brings the tags of the branches it fetches. To fetch every tag:
 
-| Where | Command |
-|---|---|
-| Palette action **Fetch tags**, or **Fetch tags from every remote** on the right-click menu of the **Tags** or **Remote** section header | `git fetch --progress --tags --all` |
-| **Fetch its tags** on the right-click menu of a remote folder | `git fetch --progress --tags <remote>` |
+| Where                                                                                                                                   | Command                                |
+| --------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| Palette action **Fetch tags**, or **Fetch tags from every remote** on the right-click menu of the **Tags** or **Remote** section header | `git fetch --progress --tags --all`    |
+| **Fetch its tags** on the right-click menu of a remote folder                                                                           | `git fetch --progress --tags <remote>` |
 
 The toast reads "Tags fetched". Fetching tags never deletes local tags. It is not recorded for undo. See [Fetch, pull and push](../../remotes/fetch-pull-push/).
 
@@ -110,26 +118,30 @@ Checking out a tag detaches HEAD ([detached HEAD](https://git-scm.com/docs/git-c
 
 Double-click a tag in the sidebar, or right-click it, then **Check out the tag…**. Double-clicking a tag label in the graph does nothing.
 
-<Screenshot name="tag-checkout" alt="The Check out the tag dialog with the Detached HEAD warning, the Create a branch from the tag field and the Continue in detached HEAD button" />
+<Screenshot
+  dark={tagCheckoutDark}
+  light={tagCheckoutLight}
+  alt="The Check out the tag dialog with the Detached HEAD warning, the Create a branch from the tag field and the Continue in detached HEAD button"
+/>
 
-The **Check out the tag *name*** dialog warns that commits made in detached HEAD belong to no branch and are easily lost. It offers:
+The **Check out the tag _name_** dialog warns that commits made in detached HEAD belong to no branch and are easily lost. It offers:
 
-| Button | What it does |
-|---|---|
+| Button                             | What it does                                                                                                                                                                                         |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Create and check out** (default) | Creates a branch at the tag, named in **Branch name** (default `<tag>-branch`, checked as you type), then checks it out: `git branch -- <name> refs/tags/<tag>`, then `git switch --no-guess <name>` |
-| **Continue in detached HEAD** | `git switch --detach <commit>`, for looking at the code only. You can create a branch later from the HEAD row of the sidebar. |
-| **Cancel** | Nothing |
+| **Continue in detached HEAD**      | `git switch --detach <commit>`, for looking at the code only. You can create a branch later from the HEAD row of the sidebar.                                                                        |
+| **Cancel**                         | Nothing                                                                                                                                                                                              |
 
 If you have local changes, the [local changes dialog](../../history/branches/#when-you-have-local-changes) appears before the switch. With **Create and check out**, the branch is created even if you then cancel the switch.
 
 ## Undo
 
-| Operation | Undo |
-|---|---|
-| Create a tag | Yes |
-| Delete a local tag | Yes, the tag comes back as it was |
-| Check out a tag | Yes. With **Create and check out**, the branch creation and the checkout are two separate undo steps. |
-| Push a tag, push all tags, delete a tag on a remote | No: the remote changed |
-| Fetch tags | No (not recorded) |
+| Operation                                           | Undo                                                                                                  |
+| --------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Create a tag                                        | Yes                                                                                                   |
+| Delete a local tag                                  | Yes, the tag comes back as it was                                                                     |
+| Check out a tag                                     | Yes. With **Create and check out**, the branch creation and the checkout are two separate undo steps. |
+| Push a tag, push all tags, delete a tag on a remote | No: the remote changed                                                                                |
+| Fetch tags                                          | No (not recorded)                                                                                     |
 
 See [Undo and redo](../../history/undo-and-redo/). Every command appears in the [command log](../../reference/command-log/).

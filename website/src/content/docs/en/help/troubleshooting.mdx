@@ -21,7 +21,9 @@ sources:
 requirements: [F-009, F-065, F-301, F-302, F-322]
 ---
 
-import Screenshot from '../../../../components/Screenshot.astro';
+import Screenshot from '~/components/Screenshot.astro';
+import indexLockBannerDark from '../../../../assets/screens/index-lock-banner-dark.png';
+import indexLockBannerLight from '../../../../assets/screens/index-lock-banner-light.png';
 
 Find the symptom you see below. For the meaning of a specific error message, search the [error messages](../../reference/error-messages/) reference. In most cases the [command log](../../reference/command-log/) (<kbd>⌘J</kbd>, <kbd>Ctrl+J</kbd> on Windows and Linux) shows Git's exact answer.
 
@@ -72,7 +74,11 @@ yaggui never does this on its own. To undo it, remove the line from your `~/.git
 
 Git creates `.git/index.lock` while it works and deletes it at the end. If yaggui finds this file, it shows a banner above the graph.
 
-<Screenshot name="index-lock-banner" alt="Danger banner above the graph: A Git process probably crashed and left index.lock, lock created 42 s ago, with a Remove the lock… button" />
+<Screenshot
+  dark={indexLockBannerDark}
+  light={indexLockBannerLight}
+  alt="Danger banner above the graph: A Git process probably crashed and left index.lock, lock created 42 s ago, with a Remove the lock… button"
+/>
 
 - **"Another Git process is using this repository"**: the lock is recent. Another program (a terminal, your editor, another Git client) is probably running a Git command. Wait: the banner disappears when the lock does.
 - **"A Git process probably crashed and left index.lock"**: the lock is older than 10 seconds. If no Git program is running, remove it:

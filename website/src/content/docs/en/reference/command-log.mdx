@@ -13,11 +13,17 @@ sources:
 requirements: [F-300]
 ---
 
-import Screenshot from '../../../../components/Screenshot.astro';
+import Screenshot from '~/components/Screenshot.astro';
+import commandLogExpandedDark from '../../../../assets/screens/command-log-expanded-dark.png';
+import commandLogExpandedLight from '../../../../assets/screens/command-log-expanded-light.png';
 
 yaggui runs your own `git` for every change it makes, and records each command in the command log. Use it to see exactly what an action did, to read Git's full answer when something fails, or to repeat a command in a terminal.
 
-<Screenshot name="command-log-expanded" alt="Command log panel at the bottom of the window, with one entry expanded showing the folder, Copy command and Copy output buttons, and Git's output" />
+<Screenshot
+  dark={commandLogExpandedDark}
+  light={commandLogExpandedLight}
+  alt="Command log panel at the bottom of the window, with one entry expanded showing the folder, Copy command and Copy output buttons, and Git's output"
+/>
 
 ## What is recorded
 
@@ -31,15 +37,15 @@ Most reads (the graph, the status, diffs) do not run Git at all: yaggui reads th
 
 Each entry holds:
 
-| Field | Shown as |
-|---|---|
-| Command | `git …`, with arguments quoted for a POSIX shell such as bash or zsh |
-| Status | an icon: **Succeeded**, **Failed**, **Cancelled**, or **Could not start** (the `git` program itself could not run) |
-| Exit code | "exit \{code\}" when it is not 0 |
-| Duration and time | how long it ran, and when it started |
-| Folder | the folder it ran in ("in …"), when expanded |
-| Output | Git's standard output and standard error, when expanded |
-| Repository | the repository name, when the filter is **All** |
+| Field             | Shown as                                                                                                           |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Command           | `git …`, with arguments quoted for a POSIX shell such as bash or zsh                                               |
+| Status            | an icon: **Succeeded**, **Failed**, **Cancelled**, or **Could not start** (the `git` program itself could not run) |
+| Exit code         | "exit \{code\}" when it is not 0                                                                                   |
+| Duration and time | how long it ran, and when it started                                                                               |
+| Folder            | the folder it ran in ("in …"), when expanded                                                                       |
+| Output            | Git's standard output and standard error, when expanded                                                            |
+| Repository        | the repository name, when the filter is **All**                                                                    |
 
 ## Open the command log
 

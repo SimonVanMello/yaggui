@@ -25,11 +25,11 @@ When Git would need to ask, the operation fails at once with an authentication e
 
 A [credential helper](https://git-scm.com/docs/gitcredentials) stores your user name and password or token, and gives them to Git when it needs them. yaggui uses whatever `credential.helper` your Git configuration names.
 
-| System | Usual helper | Setting |
-|---|---|---|
-| Windows | Git Credential Manager, installed with Git for Windows | `git config --global credential.helper manager` |
-| macOS | Keychain | `git config --global credential.helper osxkeychain` |
-| Linux | Git Credential Manager, or `libsecret` (GNOME Keyring, KWallet) | `git config --global credential.helper manager` or the path of `git-credential-libsecret` on your distribution |
+| System  | Usual helper                                                    | Setting                                                                                                        |
+| ------- | --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Windows | Git Credential Manager, installed with Git for Windows          | `git config --global credential.helper manager`                                                                |
+| macOS   | Keychain                                                        | `git config --global credential.helper osxkeychain`                                                            |
+| Linux   | Git Credential Manager, or `libsecret` (GNOME Keyring, KWallet) | `git config --global credential.helper manager` or the path of `git-credential-libsecret` on your distribution |
 
 To set it up once:
 
@@ -42,6 +42,7 @@ To set it up once:
    ```
 
    Hosting services such as GitHub refuse account passwords over HTTPS: enter a personal access token instead, or let Git Credential Manager open its browser sign-in.
+
 4. Back in yaggui, fetch again.
 
 :::caution
@@ -60,6 +61,7 @@ For SSH remotes (`git@host:owner/repo.git`), Git starts `ssh`, which needs your 
    ```
 
    On macOS, add `--apple-use-keychain` so the key is reloaded after a restart: `ssh-add --apple-use-keychain ~/.ssh/id_ed25519`.
+
 3. Check it is loaded: `ssh-add -l`.
 4. Connect once to accept the server's host key, if you never did:
 
@@ -80,12 +82,12 @@ If you set `SSH_ASKPASS` yourself, `ssh` can use that program to ask for the pas
 
 An authentication failure shows an error toast (**Fetch failed**, **Pull failed**, **Push failed**, or the clone error) with one of these messages. **Details** shows Git's own output. There is no **Retry** button, because the fix happens outside yaggui: run the operation again once it is done.
 
-| Message | Typical cause | What to do |
-|---|---|---|
+| Message                                                                                                                                                    | Typical cause                                                                                                                                     | What to do                                                                                                                                       |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Authentication failed. yaggui never asks for passwords: configure a Git credential helper (git config credential.helper) and sign in once from a terminal. | HTTPS remote, no helper or no saved credentials (`terminal prompts disabled`, `could not read Username`), wrong or expired token, HTTP 401 or 403 | [Set up a credential helper](#https-use-a-credential-helper), sign in once. For an expired token, sign in again so the helper stores the new one |
-| SSH authentication failed. Load your key in ssh-agent (ssh-add) and check that the remote knows it. | `Permission denied (publickey)`: the key is not in the agent, or the server does not know it | [Load the key](#ssh-use-ssh-agent); check the public key is added to your account on the server |
-| SSH authentication failed. Load your key in ssh-agent (ssh-add) and check that the remote knows it. | `Host key verification failed`: the server's host key is unknown or changed | Run `ssh -T git@host` once in a terminal to accept it. If the key changed and you did not expect it, check with the server's administrator first |
-| Remote not found: check its name and URL. | Wrong URL, or a private repository your credentials cannot see (some services answer "not found") | Check the URL ([Change the URLs](../../remotes/remotes/#change-the-urls)) and that your account has access |
+| SSH authentication failed. Load your key in ssh-agent (ssh-add) and check that the remote knows it.                                                        | `Permission denied (publickey)`: the key is not in the agent, or the server does not know it                                                      | [Load the key](#ssh-use-ssh-agent); check the public key is added to your account on the server                                                  |
+| SSH authentication failed. Load your key in ssh-agent (ssh-add) and check that the remote knows it.                                                        | `Host key verification failed`: the server's host key is unknown or changed                                                                       | Run `ssh -T git@host` once in a terminal to accept it. If the key changed and you did not expect it, check with the server's administrator first |
+| Remote not found: check its name and URL.                                                                                                                  | Wrong URL, or a private repository your credentials cannot see (some services answer "not found")                                                 | Check the URL ([Change the URLs](../../remotes/remotes/#change-the-urls)) and that your account has access                                       |
 
 The full list is in [Error messages](../../reference/error-messages/).
 

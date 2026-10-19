@@ -13,14 +13,23 @@ sources:
   - src-tauri/src/store/graph_filters.rs
   - src-tauri/src/system/avatars.rs
   - src-tauri/src/git/ops/commit_graph.rs
-requirements: [F-020, F-021, F-022, F-023, F-024, F-025, F-027, F-028, F-030, F-031, F-033, F-066, F-088, F-143]
+requirements:
+  [F-020, F-021, F-022, F-023, F-024, F-025, F-027, F-028, F-030, F-031, F-033, F-066, F-088, F-143]
 ---
 
-import Screenshot from '../../../../components/Screenshot.astro';
+import Screenshot from '~/components/Screenshot.astro';
+import graphOverviewDark from '../../../../assets/screens/graph-overview-dark.png';
+import graphOverviewLight from '../../../../assets/screens/graph-overview-light.png';
+import graphCommitDetailsDark from '../../../../assets/screens/graph-commit-details-dark.png';
+import graphCommitDetailsLight from '../../../../assets/screens/graph-commit-details-light.png';
 
 The commit graph fills the center of a repository tab. It shows every commit reachable from your branches, remote branches, tags and HEAD, and it is where you select commits to inspect them or act on them.
 
-<Screenshot name="graph-overview" alt="A repository tab with the commit graph in the center: colored lanes, ref labels on commits, the Work in progress row at the top, and the commit details panel on the right" />
+<Screenshot
+  dark={graphOverviewDark}
+  light={graphOverviewLight}
+  alt="A repository tab with the commit graph in the center: colored lanes, ref labels on commits, the Work in progress row at the top, and the commit details panel on the right"
+/>
 
 ## Read the graph
 
@@ -32,13 +41,13 @@ The **Graph** column draws one lane per line of history, with 8 colors that repe
 
 ### Columns
 
-| Column | Shows | Can be hidden |
-|---|---|---|
-| **Graph** | Lanes and commit dots; its width fits the number of lanes until you resize it | No |
-| **Commit message** | Ref labels, signature lock, then the commit summary; takes the remaining width | No |
-| **Author** | Avatar and name; hover for `Name <email>` | Yes |
-| **Date** | Relative date; hover for the full date and time | Yes |
-| **SHA** | First 7 characters of the commit hash | Yes |
+| Column             | Shows                                                                          | Can be hidden |
+| ------------------ | ------------------------------------------------------------------------------ | ------------- |
+| **Graph**          | Lanes and commit dots; its width fits the number of lanes until you resize it  | No            |
+| **Commit message** | Ref labels, signature lock, then the commit summary; takes the remaining width | No            |
+| **Author**         | Avatar and name; hover for `Name <email>`                                      | Yes           |
+| **Date**           | Relative date; hover for the full date and time                                | Yes           |
+| **SHA**            | First 7 characters of the commit hash                                          | Yes           |
 
 To change the columns:
 
@@ -59,14 +68,14 @@ Click it, or press <kbd>↑</kbd> on the first row, to open the Changes panel on
 
 Labels in the message column show which refs point at a commit:
 
-| Label | Icon |
-|---|---|
-| Checked-out branch | Dot, highlighted as current |
-| Local branch | Laptop |
-| Remote branch | Cloud |
-| Tag | Tag |
+| Label               | Icon                                                |
+| ------------------- | --------------------------------------------------- |
+| Checked-out branch  | Dot, highlighted as current                         |
+| Local branch        | Laptop                                              |
+| Remote branch       | Cloud                                               |
+| Tag                 | Tag                                                 |
 | Stash (`stash@{n}`) | Stash, placed on the commit the stash was made from |
-| Detached HEAD | Dot |
+| Detached HEAD       | Dot                                                 |
 
 A local branch and a remote branch on the same commit share one label when the remote branch is the local branch's upstream, or has the same short name (`origin/feat/x` and `feat/x`). The label then carries an extra cloud icon named after the remote.
 
@@ -86,25 +95,25 @@ To show Gravatar pictures, turn on **Gravatar avatars** in Preferences > Appeara
 
 ## Select commits
 
-| Action | Effect |
-|---|---|
-| Click a row | Selects the commit and shows its details on the right |
-| <kbd>⌘</kbd>-click (<kbd>Ctrl</kbd>-click on Windows and Linux) | Adds or removes the commit from the selection |
-| <kbd>⇧</kbd>-click | Selects the range from the last clicked commit (up to 1,000 rows) |
-| <kbd>⌘⇧</kbd>-click (<kbd>Ctrl+Shift</kbd>-click on Windows and Linux) | Adds a range to the current selection |
+| Action                                                                 | Effect                                                            |
+| ---------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| Click a row                                                            | Selects the commit and shows its details on the right             |
+| <kbd>⌘</kbd>-click (<kbd>Ctrl</kbd>-click on Windows and Linux)        | Adds or removes the commit from the selection                     |
+| <kbd>⇧</kbd>-click                                                     | Selects the range from the last clicked commit (up to 1,000 rows) |
+| <kbd>⌘⇧</kbd>-click (<kbd>Ctrl+Shift</kbd>-click on Windows and Linux) | Adds a range to the current selection                             |
 
 With the graph focused:
 
-| Key | Effect |
-|---|---|
-| <kbd>↑</kbd> / <kbd>↓</kbd> | Previous / next commit |
-| <kbd>⇧↑</kbd> / <kbd>⇧↓</kbd> | Extend the selection |
-| <kbd>Page Up</kbd> / <kbd>Page Down</kbd> | Move by one page |
-| <kbd>Home</kbd> / <kbd>End</kbd> | First / last row |
-| <kbd>Esc</kbd> | Reduce a multi-selection to one commit, otherwise close the search bar |
-| <kbd>⌘C</kbd> (<kbd>Ctrl+C</kbd> on Windows and Linux) | Copy the SHA, or every selected SHA (one per line) |
-| <kbd>⌘⇧C</kbd> (<kbd>Ctrl+Shift+C</kbd> on Windows and Linux) | Copy the commit summary |
-| Context menu key or <kbd>⇧F10</kbd> | Open the commit context menu |
+| Key                                                           | Effect                                                                 |
+| ------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| <kbd>↑</kbd> / <kbd>↓</kbd>                                   | Previous / next commit                                                 |
+| <kbd>⇧↑</kbd> / <kbd>⇧↓</kbd>                                 | Extend the selection                                                   |
+| <kbd>Page Up</kbd> / <kbd>Page Down</kbd>                     | Move by one page                                                       |
+| <kbd>Home</kbd> / <kbd>End</kbd>                              | First / last row                                                       |
+| <kbd>Esc</kbd>                                                | Reduce a multi-selection to one commit, otherwise close the search bar |
+| <kbd>⌘C</kbd> (<kbd>Ctrl+C</kbd> on Windows and Linux)        | Copy the SHA, or every selected SHA (one per line)                     |
+| <kbd>⌘⇧C</kbd> (<kbd>Ctrl+Shift+C</kbd> on Windows and Linux) | Copy the commit summary                                                |
+| Context menu key or <kbd>⇧F10</kbd>                           | Open the commit context menu                                           |
 
 The selection is kept while the repository is open but is not saved when you close it. Shortcuts are defaults and can be changed, see [Palette and shortcuts](../../customize/palette-and-shortcuts/).
 
@@ -112,7 +121,7 @@ The selection is kept while the repository is open but is not saved when you clo
 
 When two or more commits are selected, a bar appears at the bottom of the graph with the number of selected commits and:
 
-- **Cherry-pick N commits onto *branch***: applies the selected commits to the checked-out branch, oldest first. Unavailable while a merge, rebase, cherry-pick or revert is in progress. See [Cherry-pick, revert and reset](../../history/cherry-pick-revert-reset/).
+- **Cherry-pick N commits onto _branch_**: applies the selected commits to the checked-out branch, oldest first. Unavailable while a merge, rebase, cherry-pick or revert is in progress. See [Cherry-pick, revert and reset](../../history/cherry-pick-revert-reset/).
 - **Compare** and **Merge-base** (exactly two commits): open the [Compare panel](../../inspect/compare/) or jump to the commits' common ancestor.
 - **Clear selection**: keeps only the main commit selected.
 
@@ -127,13 +136,17 @@ Selecting a commit opens the **Commit details** panel on the right. It shows:
 - **Parents**: click a short SHA to select that parent in the graph. A root commit shows "None (root commit)".
 - **Refs**: the labels on the commit.
 - **Signature**, for signed commits only.
-- The changed files, titled "Commit *abc1234*", with the number of files and the total of added and removed lines. Each file shows its status, rename similarity and `+`/`−` line counts. Toggle **Show as tree** / **Show as list** to group files by folder.
+- The changed files, titled "Commit _abc1234_", with the number of files and the total of added and removed lines. Each file shows its status, rename similarity and `+`/`−` line counts. Toggle **Show as tree** / **Show as list** to group files by folder.
 
 Click a file to open its diff in the center ([Viewing diffs](../../everyday/diff/)). Right-click a file for **File history** and **Blame at this commit** ([File history and blame](../../inspect/file-history-and-blame/)).
 
 If the commit cannot be read, the panel shows "The commit could not be loaded". If only the file list fails, it shows "Could not load the changed files" with **Retry**.
 
-<Screenshot name="graph-commit-details" alt="The Commit details panel with author, date, SHA, parents, refs, a Verified (SSH) signature badge and the list of changed files with line counts" />
+<Screenshot
+  dark={graphCommitDetailsDark}
+  light={graphCommitDetailsLight}
+  alt="The Commit details panel with author, date, SHA, parents, refs, a Verified (SSH) signature badge and the list of changed files with line counts"
+/>
 
 ### Signature verification
 
@@ -145,37 +158,37 @@ git -c log.showSignature=false show -s --format=%G?%x00%GS%x00%GK <sha> --
 
 Git calls `gpg`, `gpgsm` or `ssh-keygen` according to your configuration ([`gpg.format`](https://git-scm.com/docs/git-config#Documentation/git-config.txt-gpgformat)).
 
-| Badge | Meaning |
-|---|---|
-| Verified (GPG) | Good signature from a trusted key |
+| Badge                      | Meaning                                                                                                                                 |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Verified (GPG)             | Good signature from a trusted key                                                                                                       |
 | Signed, not verified (GPG) | Signature present, but the key is unknown, not trusted, or there is nothing to check it with (for SSH, no `gpg.ssh.allowedSignersFile`) |
-| Signed, key expired (GPG) | The signature or the key has expired |
-| Signed, key revoked (GPG) | The key was revoked |
-| Invalid signature (GPG) | The signature does not match the commit |
-| Signed (GPG) | The check could not run (Git returned an error) |
+| Signed, key expired (GPG)  | The signature or the key has expired                                                                                                    |
+| Signed, key revoked (GPG)  | The key was revoked                                                                                                                     |
+| Invalid signature (GPG)    | The signature does not match the commit                                                                                                 |
+| Signed (GPG)               | The check could not run (Git returned an error)                                                                                         |
 
 Hover the badge for the signer, the key and Git's explanation. Results are cached until the app restarts. To sign your own commits, see [Committing](../../everyday/committing/).
 
 ## Commit context menu
 
-Right-click a commit, or press the context menu key or <kbd>⇧F10</kbd> on the selected row. Right-clicking a commit outside the selection selects it first. The **Work in progress** row and empty space have no menu. In the labels, *branch* is the checked-out branch, or "HEAD" when HEAD is detached.
+Right-click a commit, or press the context menu key or <kbd>⇧F10</kbd> on the selected row. Right-clicking a commit outside the selection selects it first. The **Work in progress** row and empty space have no menu. In the labels, _branch_ is the checked-out branch, or "HEAD" when HEAD is detached.
 
 ### One commit
 
-| Item | Available | What it does |
-|---|---|---|
-| **Checkout this commit** | Always | Detaches HEAD at the commit (`git switch --detach <sha>`), without confirmation; if local changes are in the way, the local changes dialog opens first. Toast: "HEAD is now detached at *abc1234*". See [Check out a commit](../../history/branches/#check-out-a-commit-or-a-remote-branch). |
-| **Create branch here…** | Always | [Create a branch](../../history/branches/#create-a-branch) starting at the commit |
-| **Create tag here…** | Always | [Create a tag](../../history/tags/#create-a-tag) on the commit |
-| **Cherry-pick onto *branch*** | No operation in progress | [Cherry-pick](../../history/cherry-pick-revert-reset/) the commit onto the checked-out branch |
-| **Revert this commit** | No operation in progress | [Revert](../../history/cherry-pick-revert-reset/) the commit. For a merge commit, you first choose the parent. |
-| **Reset *branch* to here** ▸ **Soft** / **Mixed** / **Hard** | No operation in progress | Opens the [reset dialog](../../history/cherry-pick-revert-reset/) with that mode |
-| **Interactive rebase from here…** | No operation in progress | Opens the [interactive rebase](../../history/interactive-rebase/) editor with this commit as the base |
-| **Create fixup commit…** | Never | Shown disabled, "Planned for V2" |
-| **Compare with HEAD** | Always | Opens the [Compare panel](../../inspect/compare/) between the commit and HEAD |
-| **Go to the merge-base with HEAD** | Always | [Jumps](#jump-to-a-commit) to the common ancestor of the commit and HEAD |
-| **Copy SHA** | Always | Copies the full SHA. Toast: "SHA copied". |
-| **Copy message** | Always | Copies the summary line. Toast: "Message copied". |
+| Item                                                         | Available                | What it does                                                                                                                                                                                                                                                                                 |
+| ------------------------------------------------------------ | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Checkout this commit**                                     | Always                   | Detaches HEAD at the commit (`git switch --detach <sha>`), without confirmation; if local changes are in the way, the local changes dialog opens first. Toast: "HEAD is now detached at _abc1234_". See [Check out a commit](../../history/branches/#check-out-a-commit-or-a-remote-branch). |
+| **Create branch here…**                                      | Always                   | [Create a branch](../../history/branches/#create-a-branch) starting at the commit                                                                                                                                                                                                            |
+| **Create tag here…**                                         | Always                   | [Create a tag](../../history/tags/#create-a-tag) on the commit                                                                                                                                                                                                                               |
+| **Cherry-pick onto _branch_**                                | No operation in progress | [Cherry-pick](../../history/cherry-pick-revert-reset/) the commit onto the checked-out branch                                                                                                                                                                                                |
+| **Revert this commit**                                       | No operation in progress | [Revert](../../history/cherry-pick-revert-reset/) the commit. For a merge commit, you first choose the parent.                                                                                                                                                                               |
+| **Reset _branch_ to here** ▸ **Soft** / **Mixed** / **Hard** | No operation in progress | Opens the [reset dialog](../../history/cherry-pick-revert-reset/) with that mode                                                                                                                                                                                                             |
+| **Interactive rebase from here…**                            | No operation in progress | Opens the [interactive rebase](../../history/interactive-rebase/) editor with this commit as the base                                                                                                                                                                                        |
+| **Create fixup commit…**                                     | Never                    | Shown disabled, "Planned for V2"                                                                                                                                                                                                                                                             |
+| **Compare with HEAD**                                        | Always                   | Opens the [Compare panel](../../inspect/compare/) between the commit and HEAD                                                                                                                                                                                                                |
+| **Go to the merge-base with HEAD**                           | Always                   | [Jumps](#jump-to-a-commit) to the common ancestor of the commit and HEAD                                                                                                                                                                                                                     |
+| **Copy SHA**                                                 | Always                   | Copies the full SHA. Toast: "SHA copied".                                                                                                                                                                                                                                                    |
+| **Copy message**                                             | Always                   | Copies the summary line. Toast: "Message copied".                                                                                                                                                                                                                                            |
 
 While an operation is in progress, the disabled items say "Finish or abort the operation in progress first". See [Conflicts](../../history/conflicts/).
 
@@ -183,12 +196,12 @@ While an operation is in progress, the disabled items say "Finish or abort the o
 
 Right-clicking inside a selection of two or more commits shows:
 
-| Item | Available | What it does |
-|---|---|---|
-| **Cherry-pick N commits onto *branch*** | No operation in progress | Cherry-picks the selection, oldest first |
-| **Compare these 2 commits** | Exactly 2 selected | Opens the [Compare panel](../../inspect/compare/) |
-| **Go to their merge-base** | Exactly 2 selected | Jumps to their common ancestor |
-| **Copy SHAs** | Always | Copies the SHAs, one per line. Toast: "N SHAs copied". |
+| Item                                    | Available                | What it does                                           |
+| --------------------------------------- | ------------------------ | ------------------------------------------------------ |
+| **Cherry-pick N commits onto _branch_** | No operation in progress | Cherry-picks the selection, oldest first               |
+| **Compare these 2 commits**             | Exactly 2 selected       | Opens the [Compare panel](../../inspect/compare/)      |
+| **Go to their merge-base**              | Exactly 2 selected       | Jumps to their common ancestor                         |
+| **Copy SHAs**                           | Always                   | Copies the SHAs, one per line. Toast: "N SHAs copied". |
 
 You can also drag selected commits onto a local branch label (graph or sidebar) to cherry-pick them there, see [Cherry-pick, revert and reset](../../history/cherry-pick-revert-reset/).
 
@@ -198,13 +211,13 @@ Press <kbd>⌘F</kbd> (<kbd>Ctrl+F</kbd> on Windows and Linux) anywhere in the r
 
 Click **More filters** to add criteria:
 
-| Field | Matches |
-|---|---|
-| Main field | A SHA prefix, any part of the full commit message, or the author's name or e-mail |
-| **Author** | Any part of the author's name or e-mail |
+| Field              | Matches                                                                                                            |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| Main field         | A SHA prefix, any part of the full commit message, or the author's name or e-mail                                  |
+| **Author**         | Any part of the author's name or e-mail                                                                            |
 | **File or folder** | Commits that changed this exact path (for example `src/app`) compared with their first parent. Not a glob pattern. |
-| **Since** | Author date on or after that day (from 00:00 local time) |
-| **Until** | Author date on or before that day (until 23:59:59 local time) |
+| **Since**          | Author date on or after that day (from 00:00 local time)                                                           |
+| **Until**          | Author date on or before that day (until 23:59:59 local time)                                                      |
 
 All filled criteria must match. The main field and **Author** ignore case; **File or folder** does not.
 
@@ -221,13 +234,13 @@ To find a commit by message from anywhere, you can also use the command palette 
 
 You can lighten the graph without changing the repository:
 
-| Action | Where | Effect |
-|---|---|---|
-| **Hide from the graph** / **Show in the graph** | Right-click a local or remote branch in the sidebar | Removes the branch's label and its own commits. Commits reachable from HEAD always stay. Not available on the checked-out branch: "The checked-out branch always stays in the graph". |
-| **Show only this branch** / **Show every branch again** | Right-click a local or remote branch in the sidebar | Shows only that branch's history. Soloing a hidden branch shows it again. |
-| **Graph: hide or show remote branches** | Command palette | Removes all remote branch labels and their own commits |
-| **Graph: hide or show stashes** | Command palette | Removes the stash labels |
-| **Graph: show every branch** | Command palette, when a filter is active | Clears every filter |
+| Action                                                  | Where                                               | Effect                                                                                                                                                                                |
+| ------------------------------------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Hide from the graph** / **Show in the graph**         | Right-click a local or remote branch in the sidebar | Removes the branch's label and its own commits. Commits reachable from HEAD always stay. Not available on the checked-out branch: "The checked-out branch always stays in the graph". |
+| **Show only this branch** / **Show every branch again** | Right-click a local or remote branch in the sidebar | Shows only that branch's history. Soloing a hidden branch shows it again.                                                                                                             |
+| **Graph: hide or show remote branches**                 | Command palette                                     | Removes all remote branch labels and their own commits                                                                                                                                |
+| **Graph: hide or show stashes**                         | Command palette                                     | Removes the stash labels                                                                                                                                                              |
+| **Graph: show every branch**                            | Command palette, when a filter is active            | Clears every filter                                                                                                                                                                   |
 
 Tags cannot be hidden.
 
@@ -242,19 +255,19 @@ Filters are saved per repository and survive a restart. If saving fails, a toast
 
 ## Jump to a commit
 
-| To | How |
-|---|---|
-| HEAD | <kbd>⌘⇧H</kbd> (<kbd>Ctrl+Shift+H</kbd> on Windows and Linux), or pick the current branch in the toolbar's [branch selector](../../history/branches/#switch-branches-from-the-toolbar) |
-| A branch or tag | Click it in the sidebar, or type `@` and its name in the command palette (<kbd>⌘K</kbd>, <kbd>Ctrl+K</kbd> on Windows and Linux) |
-| A parent | Click a short SHA under **Parents** in the commit details |
-| The merge-base of two commits | Select two commits, then **Merge-base** in the selection bar, **Go to their merge-base** in the context menu, or the palette action **Go to the merge-base of the 2 selected commits** |
-| The merge-base with HEAD | **Go to the merge-base with HEAD** in the context menu |
-| The merge-base of two branches | Compare the branches, then click the SHA after **Merge-base:** in the [Compare panel](../../inspect/compare/) |
+| To                             | How                                                                                                                                                                                    |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| HEAD                           | <kbd>⌘⇧H</kbd> (<kbd>Ctrl+Shift+H</kbd> on Windows and Linux), or pick the current branch in the toolbar's [branch selector](../../history/branches/#switch-branches-from-the-toolbar) |
+| A branch or tag                | Click it in the sidebar, or type `@` and its name in the command palette (<kbd>⌘K</kbd>, <kbd>Ctrl+K</kbd> on Windows and Linux)                                                       |
+| A parent                       | Click a short SHA under **Parents** in the commit details                                                                                                                              |
+| The merge-base of two commits  | Select two commits, then **Merge-base** in the selection bar, **Go to their merge-base** in the context menu, or the palette action **Go to the merge-base of the 2 selected commits** |
+| The merge-base with HEAD       | **Go to the merge-base with HEAD** in the context menu                                                                                                                                 |
+| The merge-base of two branches | Compare the branches, then click the SHA after **Merge-base:** in the [Compare panel](../../inspect/compare/)                                                                          |
 
 The commit is selected and centered. For a merge-base, you may see:
 
 - "No common ancestor: these histories are unrelated".
-- "The merge-base *abc1234* is not shown in the graph (filter)": the commit is selected and its details are shown, but a [filter](#hide-solo-and-filter-branches) hides its row.
+- "The merge-base _abc1234_ is not shown in the graph (filter)": the commit is selected and its details are shown, but a [filter](#hide-solo-and-filter-branches) hides its row.
 - "The merge-base could not be found": an error occurred, with details.
 
 ## Long histories

@@ -12,12 +12,15 @@ sources:
 requirements: []
 ---
 
-import Screenshot from '../../../../components/Screenshot.astro';
+import Screenshot from '~/components/Screenshot.astro';
+import introMainWindowDark from '../../../../assets/screens/intro-main-window-dark.png';
+import introMainWindowLight from '../../../../assets/screens/intro-main-window-light.png';
 
 yaggui is a graphical Git client for macOS, Windows and Linux. It runs on your computer, works with your own `git` installation, and shows every Git command it runs. This page sums up what yaggui does, what it leaves out, and how to read the rest of the docs.
 
 <Screenshot
-  name="intro-main-window"
+  dark={introMainWindowDark}
+  light={introMainWindowLight}
   alt="The yaggui window with a repository open: refs on the left, the commit graph in the center, the changes panel on the right"
 />
 

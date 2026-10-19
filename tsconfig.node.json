@@ -22,6 +22,7 @@
     "playwright.config.ts",
     "playwright.perf.config.ts",
     "playwright.screenshots.config.ts",
+    "playwright.docs-screenshots.config.ts",
     "eslint.config.js",
     "e2e",
     "src/**/*.node.test.ts"

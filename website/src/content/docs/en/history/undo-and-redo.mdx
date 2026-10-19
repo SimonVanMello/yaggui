@@ -11,17 +11,19 @@ sources:
 requirements: [F-240, F-241, F-242, F-243]
 ---
 
-import Screenshot from '../../../../components/Screenshot.astro';
+import Screenshot from '~/components/Screenshot.astro';
+import undoHistoryDark from '../../../../assets/screens/undo-history-dark.png';
+import undoHistoryLight from '../../../../assets/screens/undo-history-light.png';
 
 yaggui records the operations you run in it and can undo them one by one, newest first, then redo them. This page lists what each undo restores, what cannot be undone, and the limits of the history.
 
 ## Undo and redo
 
-| Action | Shortcut | Toolbar | Palette |
-|---|---|---|---|
-| Undo | <kbd>⌘Z</kbd> (<kbd>Ctrl+Z</kbd> on Windows and Linux) | **Undo** | **Undo the latest operation** |
-| Redo | <kbd>⌘⇧Z</kbd> (<kbd>Ctrl+Shift+Z</kbd> or <kbd>Ctrl+Y</kbd> on Windows and Linux) | **Redo** | **Redo the latest undone operation** |
-| Show the history | none by default | **Operation history** (arrow next to **Redo**) | **Show the operation history** |
+| Action           | Shortcut                                                                           | Toolbar                                        | Palette                              |
+| ---------------- | ---------------------------------------------------------------------------------- | ---------------------------------------------- | ------------------------------------ |
+| Undo             | <kbd>⌘Z</kbd> (<kbd>Ctrl+Z</kbd> on Windows and Linux)                             | **Undo**                                       | **Undo the latest operation**        |
+| Redo             | <kbd>⌘⇧Z</kbd> (<kbd>Ctrl+Shift+Z</kbd> or <kbd>Ctrl+Y</kbd> on Windows and Linux) | **Redo**                                       | **Redo the latest undone operation** |
+| Show the history | none by default                                                                    | **Operation history** (arrow next to **Redo**) | **Show the operation history**       |
 
 On macOS, the **Edit** menu also has **Undo** and **Redo**. Shortcuts can be rebound: see [Palette and shortcuts](../../customize/palette-and-shortcuts/).
 
@@ -37,7 +39,11 @@ After an undo or redo, a toast confirms it: **Undone: \{op\}** or **Redone: \{op
 
 Click the arrow next to **Redo** to open **Session history**.
 
-<Screenshot name="undo-history" alt="Session history popover listing operations newest first, one struck through and marked undone, with their times" />
+<Screenshot
+  dark={undoHistoryDark}
+  light={undoHistoryLight}
+  alt="Session history popover listing operations newest first, one struck through and marked undone, with their times"
+/>
 
 - Operations are listed newest first, each with its time (hours, minutes, seconds).
 - Undone operations are struck through and marked **undone**.
@@ -50,26 +56,26 @@ When nothing was recorded yet: **No operation yet in this session.**
 
 Undo always targets the newest operation that is not already undone; press it again to go further back.
 
-| Operation | Label in the history | What undo restores |
-|---|---|---|
-| Commit, amend | commit "\{summary\}", amend "\{summary\}" | The branch moves back to the previous commit. Your changes stay staged |
-| Checkout of a branch or commit | checkout of \{branch\}, checkout of \{sha\} (detached HEAD) | Switches back to the previous branch or commit, carrying local changes |
-| Create a branch | creation of branch \{name\} | Deletes the branch (switches back first if it was checked out) |
-| Delete a local branch | deletion of branch \{name\} | Recreates it at the same commit, with its upstream |
-| Clean up branches | deletion of \{count\} branches | Recreates all of them |
-| Rename a branch | rename of \{from\} to \{to\} | Renames it back (`git branch -m`) |
-| Create or delete a tag | creation of tag \{name\}, deletion of tag \{name\} | Deletes or recreates the tag |
-| Merge, fast-forward, squash merge | merge of \{source\} | `git reset --keep` to the previous commit |
-| Cherry-pick | cherry-pick of \{count\} commits | `git reset --keep` to the previous commit |
-| Revert | revert of \{sha\} | `git reset --keep` to the previous commit |
-| Soft or mixed reset | \{mode\} reset to \{target\} | The branch moves back; a mixed reset also restores the index |
-| Hard reset | hard reset to \{target\} | The branch moves back and the overwritten files are written back from the backup |
-| Discard changes (files or hunks) | discard of \{path\}, discard of \{count\} files | The discarded content comes back in the working tree and the index |
-| Stash selected files | stash of \{path\}, stash of \{count\} files | The files come back and the stash entry is dropped |
-| Drop a stash | drop of stash "\{message\}" | The stash comes back, on top of the list |
-| Add to .gitignore | addition of \{rule\} to .gitignore | `.gitignore` is restored |
-| Track a pattern with Git LFS | LFS tracking of \{pattern\} | `.gitattributes` is restored |
-| Create a worktree, remove a clean worktree | creation/removal of the worktree \{name\} | Removes or recreates the worktree (the folder must be empty or absent) |
+| Operation                                          | Label in the history                                                                                                        | What undo restores                                                                                             |
+| -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Commit, amend                                      | commit "\{summary\}", amend "\{summary\}"                                                                                   | The branch moves back to the previous commit. Your changes stay staged                                         |
+| Checkout of a branch or commit                     | checkout of \{branch\}, checkout of \{sha\} (detached HEAD)                                                                 | Switches back to the previous branch or commit, carrying local changes                                         |
+| Create a branch                                    | creation of branch \{name\}                                                                                                 | Deletes the branch (switches back first if it was checked out)                                                 |
+| Delete a local branch                              | deletion of branch \{name\}                                                                                                 | Recreates it at the same commit, with its upstream                                                             |
+| Clean up branches                                  | deletion of \{count\} branches                                                                                              | Recreates all of them                                                                                          |
+| Rename a branch                                    | rename of \{from\} to \{to\}                                                                                                | Renames it back (`git branch -m`)                                                                              |
+| Create or delete a tag                             | creation of tag \{name\}, deletion of tag \{name\}                                                                          | Deletes or recreates the tag                                                                                   |
+| Merge, fast-forward, squash merge                  | merge of \{source\}                                                                                                         | `git reset --keep` to the previous commit                                                                      |
+| Cherry-pick                                        | cherry-pick of \{count\} commits                                                                                            | `git reset --keep` to the previous commit                                                                      |
+| Revert                                             | revert of \{sha\}                                                                                                           | `git reset --keep` to the previous commit                                                                      |
+| Soft or mixed reset                                | \{mode\} reset to \{target\}                                                                                                | The branch moves back; a mixed reset also restores the index                                                   |
+| Hard reset                                         | hard reset to \{target\}                                                                                                    | The branch moves back and the overwritten files are written back from the backup                               |
+| Discard changes (files or hunks)                   | discard of \{path\}, discard of \{count\} files                                                                             | The discarded content comes back in the working tree and the index                                             |
+| Stash selected files                               | stash of \{path\}, stash of \{count\} files                                                                                 | The files come back and the stash entry is dropped                                                             |
+| Drop a stash                                       | drop of stash "\{message\}"                                                                                                 | The stash comes back, on top of the list                                                                       |
+| Add to .gitignore                                  | addition of \{rule\} to .gitignore                                                                                          | `.gitignore` is restored                                                                                       |
+| Track a pattern with Git LFS                       | LFS tracking of \{pattern\}                                                                                                 | `.gitattributes` is restored                                                                                   |
+| Create a worktree, remove a clean worktree         | creation/removal of the worktree \{name\}                                                                                   | Removes or recreates the worktree (the folder must be empty or absent)                                         |
 | Add, rename, change the URL of, or remove a remote | addition of remote \{name\}, rename of remote \{from\} to \{to\}, URL change of remote \{name\}, removal of remote \{name\} | Restores the remote's configuration (and, after a removal, its remote branches and the upstreams that used it) |
 
 Redo applies the operation again, as it was.
@@ -78,14 +84,14 @@ Redo applies the operation again, as it was.
 
 Some operations are recorded but marked **not undoable**. Because undo always works from the newest entry, such an operation is a **barrier**: once it is the newest operation, nothing older can be undone for the rest of the session.
 
-| Operation | Why |
-|---|---|
-| Push of a branch or tag, push of every tag, deleting a branch or tag on the remote, deleting a branch together with its remote branch | It changed a remote, which an undo here would not change |
-| Fetch with prune | Deleted remote branches come back with the next fetch |
-| Pull | What it fetched stays. Reset the branch instead if needed |
-| `git lfs pull`, submodule update | It downloaded and checked out content (LFS files, submodule commits) |
-| Removing a worktree that had local changes | The worktree's local changes were deleted with it |
-| Any operation whose previous state could not be recorded | Its previous state could not be recorded |
+| Operation                                                                                                                             | Why                                                                  |
+| ------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| Push of a branch or tag, push of every tag, deleting a branch or tag on the remote, deleting a branch together with its remote branch | It changed a remote, which an undo here would not change             |
+| Fetch with prune                                                                                                                      | Deleted remote branches come back with the next fetch                |
+| Pull                                                                                                                                  | What it fetched stays. Reset the branch instead if needed            |
+| `git lfs pull`, submodule update                                                                                                      | It downloaded and checked out content (LFS files, submodule commits) |
+| Removing a worktree that had local changes                                                                                            | The worktree's local changes were deleted with it                    |
+| Any operation whose previous state could not be recorded                                                                              | Its previous state could not be recorded                             |
 
 For example, after you commit and then push in yaggui, the commit can no longer be undone in this session.
 

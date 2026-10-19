@@ -13,7 +13,9 @@ sources:
 requirements: [F-142]
 ---
 
-import Screenshot from '../../../../components/Screenshot.astro';
+import Screenshot from '~/components/Screenshot.astro';
+import rebaseTodoDark from '../../../../assets/screens/rebase-todo-dark.png';
+import rebaseTodoLight from '../../../../assets/screens/rebase-todo-light.png';
 
 The interactive rebase editor rewrites the recent commits of the current branch: you arrange them in a list, check the result, and yaggui runs `git rebase --interactive` for you without opening a text editor. For the Git side, see [Rewriting history](https://git-scm.com/book/en/v2/Git-Tools-Rewriting-History).
 
@@ -28,19 +30,23 @@ The editor replaces the graph. Both entry points are disabled while another oper
 
 The editor refuses to start, with a message, when:
 
-| Message | Cause |
-|---|---|
-| "HEAD is detached (no current branch): check out a branch first." | No branch is checked out |
-| "\{short\} is not an ancestor of the current branch." | The base is not in the history of the current branch |
-| "More than 200 commits to rebase: choose a more recent base." | The range is too long |
-| **There is no commit after this base: nothing to rebase.** | The base is the tip of the branch |
+| Message                                                                                                                    | Cause                                                             |
+| -------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| "HEAD is detached (no current branch): check out a branch first."                                                          | No branch is checked out                                          |
+| "\{short\} is not an ancestor of the current branch."                                                                      | The base is not in the history of the current branch              |
+| "More than 200 commits to rebase: choose a more recent base."                                                              | The range is too long                                             |
+| **There is no commit after this base: nothing to rebase.**                                                                 | The base is the tip of the branch                                 |
 | **This range contains merge commits. yaggui does not rebuild merges in an interactive rebase: choose a more recent base.** | A merge commit is above the base; **Start rebase** stays disabled |
 
 Your edits live only in the open editor: leaving it (**Cancel**, <kbd>Esc</kbd>) discards them, and choosing another base starts over.
 
 ## Edit the list
 
-<Screenshot name="rebase-todo" alt="Interactive rebase editor with commits set to reword, squash, fixup, drop and edit, and the Result panel" />
+<Screenshot
+  dark={rebaseTodoDark}
+  light={rebaseTodoLight}
+  alt="Interactive rebase editor with commits set to reword, squash, fixup, drop and edit, and the Result panel"
+/>
 
 The header shows the branch, **onto \{sha\} \{summary\}** and the number of commits. The list **Commits to rebase, newest first** has the newest commit on top, like the graph, so "below" means older. Each row shows a drag grip, the SHA, summary, author and date, a **Pushed** badge when the commit is already on the upstream (**Already on \{target\}**), and the action buttons.
 
@@ -48,14 +54,14 @@ The header shows the branch, **onto \{sha\} \{summary\}** and the number of comm
 
 Click a button on the row, or focus the row and press its key (no modifier):
 
-| Action | Key | Effect |
-|---|---|---|
-| **Pick** | <kbd>P</kbd> | Keep the commit as it is |
-| **Reword** | <kbd>R</kbd> | Keep the changes, write a new message |
+| Action     | Key          | Effect                                             |
+| ---------- | ------------ | -------------------------------------------------- |
+| **Pick**   | <kbd>P</kbd> | Keep the commit as it is                           |
+| **Reword** | <kbd>R</kbd> | Keep the changes, write a new message              |
 | **Squash** | <kbd>S</kbd> | Meld into the commit below, combining the messages |
-| **Fixup** | <kbd>F</kbd> | Meld into the commit below, keeping its message |
-| **Drop** | <kbd>D</kbd> | Remove the commit |
-| **Edit** | <kbd>E</kbd> | Stop after this commit to amend it or add commits |
+| **Fixup**  | <kbd>F</kbd> | Meld into the commit below, keeping its message    |
+| **Drop**   | <kbd>D</kbd> | Remove the commit                                  |
+| **Edit**   | <kbd>E</kbd> | Stop after this commit to amend it or add commits  |
 
 Rows that are melded show **Melded into "\{summary\}"**; an **Edit** row shows **The rebase stops here**.
 

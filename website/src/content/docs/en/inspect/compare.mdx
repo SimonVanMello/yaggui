@@ -12,7 +12,11 @@ sources:
 requirements: [F-029, F-030, F-104]
 ---
 
-import Screenshot from '../../../../components/Screenshot.astro';
+import Screenshot from '~/components/Screenshot.astro';
+import compareBranchesDialogDark from '../../../../assets/screens/compare-branches-dialog-dark.png';
+import compareBranchesDialogLight from '../../../../assets/screens/compare-branches-dialog-light.png';
+import comparePanelDark from '../../../../assets/screens/compare-panel-dark.png';
+import comparePanelLight from '../../../../assets/screens/compare-panel-light.png';
 
 The Compare panel shows how two commits or two branches differ: the commits that are only on each side, and the overall change between them. It opens on the right of the repository tab, in place of the commit details.
 
@@ -30,13 +34,13 @@ To compare one commit with HEAD, right-click it, then **Compare with HEAD**. Sid
 
 ## Compare two branches
 
-| Entry point | Compares |
-|---|---|
-| Sidebar: right-click a branch, then **Compare with *current*** | That branch (A) with the checked-out branch (B) |
-| Sidebar: right-click a branch, then **Compare with…** | Opens the dialog below, with that branch as **Branch** |
-| Command palette: **Compare two branches…** | Opens the dialog below |
+| Entry point                                                    | Compares                                               |
+| -------------------------------------------------------------- | ------------------------------------------------------ |
+| Sidebar: right-click a branch, then **Compare with _current_** | That branch (A) with the checked-out branch (B)        |
+| Sidebar: right-click a branch, then **Compare with…**          | Opens the dialog below, with that branch as **Branch** |
+| Command palette: **Compare two branches…**                     | Opens the dialog below                                 |
 
-**Compare with *current*** is disabled on the checked-out branch and when HEAD is detached: "Check out another branch to compare with".
+**Compare with _current_** is disabled on the checked-out branch and when HEAD is detached: "Check out another branch to compare with".
 
 The **Compare two branches** dialog lists local and remote branches:
 
@@ -44,7 +48,11 @@ The **Compare two branches** dialog lists local and remote branches:
 2. Pick what it is **Compared with** (side B). It defaults to the checked-out branch.
 3. Click **Compare**. The button stays disabled until the two branches differ: "Choose two different branches."
 
-<Screenshot name="compare-branches-dialog" alt="The Compare two branches dialog with the Branch and Compared with selectors" />
+<Screenshot
+  dark={compareBranchesDialogDark}
+  light={compareBranchesDialogLight}
+  alt="The Compare two branches dialog with the Branch and Compared with selectors"
+/>
 
 ## Read the Compare panel
 
@@ -52,17 +60,21 @@ The panel header shows the two sides, A ⇄ B. **Swap the sides** exchanges them
 
 Switch between the two views with **Commits** and **Changes**.
 
-<Screenshot name="compare-panel" alt="The Compare panel showing the Only in sections for both sides with their commits, the merge-base link and the Commits and Changes switch" />
+<Screenshot
+  dark={comparePanelDark}
+  light={comparePanelLight}
+  alt="The Compare panel showing the Only in sections for both sides with their commits, the merge-base link and the Commits and Changes switch"
+/>
 
 ### Commits
 
-Two lists, **Only in *A*** and **Only in *B***, each with a count. They hold the commits reachable from one side but not from the other, like `git log B..A` and `git log A..B`. A side with none shows "No commit".
+Two lists, **Only in _A_** and **Only in _B_**, each with a count. They hold the commits reachable from one side but not from the other, like `git log B..A` and `git log A..B`. A side with none shows "No commit".
 
 Each list shows up to 1000 commits; beyond that, "N more commits, not listed (first 1000 shown)". Click a commit to select it in the graph.
 
 ### Changes
 
-The file list "Changes *B* → *A*" (both sides as short SHAs) holds the overall difference between the two sides, as `git diff B A` would show it: what A has that B lacks. Each file shows its status and `+`/`−` line counts. Click a file to open its diff in the center, with every feature of the [diff viewer](../../everyday/diff/). If the two sides have the same content, the list reads "No difference between the two".
+The file list "Changes _B_ → _A_" (both sides as short SHAs) holds the overall difference between the two sides, as `git diff B A` would show it: what A has that B lacks. Each file shows its status and `+`/`−` line counts. Click a file to open its diff in the center, with every feature of the [diff viewer](../../everyday/diff/). If the two sides have the same content, the list reads "No difference between the two".
 
 For two commits, B is the older one, so the changes read from older to newer.
 
@@ -80,4 +92,4 @@ To select the common ancestor of two commits in the graph:
 - For a commit and HEAD: right-click the commit, then **Go to the merge-base with HEAD**.
 - For two branches: compare them, then click the SHA after **Merge-base:** in the panel.
 
-The merge-base is selected and centered. If the histories are unrelated, a toast says "No common ancestor: these histories are unrelated". If a [graph filter](../../history/commit-graph/#hide-solo-and-filter-branches) hides the merge-base, it is still selected and its details shown, with "The merge-base *abc1234* is not shown in the graph (filter)".
+The merge-base is selected and centered. If the histories are unrelated, a toast says "No common ancestor: these histories are unrelated". If a [graph filter](../../history/commit-graph/#hide-solo-and-filter-branches) hides the merge-base, it is still selected and its details shown, with "The merge-base _abc1234_ is not shown in the graph (filter)".

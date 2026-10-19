@@ -24,7 +24,13 @@ sources:
 requirements: [F-064, F-065, F-066, F-067, F-068, F-070]
 ---
 
-import Screenshot from '../../../../components/Screenshot.astro';
+import Screenshot from '~/components/Screenshot.astro';
+import commitAreaDark from '../../../../assets/screens/commit-area-dark.png';
+import commitAreaLight from '../../../../assets/screens/commit-area-light.png';
+import commitHookFailedDark from '../../../../assets/screens/commit-hook-failed-dark.png';
+import commitHookFailedLight from '../../../../assets/screens/commit-hook-failed-light.png';
+import commitConventionalDark from '../../../../assets/screens/commit-conventional-dark.png';
+import commitConventionalLight from '../../../../assets/screens/commit-conventional-light.png';
 
 The commit area sits at the bottom of the **Local changes** panel. It records your staged changes as a new commit, or amends the last one, using your Git configuration (identity, hooks, signing) as `git commit` would in a terminal. To prepare what goes into the commit, see [Staging changes](../../everyday/staging/).
 
@@ -43,7 +49,11 @@ Past 72 characters it turns to the warning color and a note says "Summaries over
 
 Your draft (summary, description, amend) is kept per repository while yaggui runs, including when you switch tabs. It is lost when you quit and cleared after a successful commit.
 
-<Screenshot name="commit-area" alt="The commit area with a summary, a description, the Amend previous commit and Push after commit checkboxes, the identity picker, the Signed · SSH chip and the Commit on button" />
+<Screenshot
+  dark={commitAreaDark}
+  light={commitAreaLight}
+  alt="The commit area with a summary, a description, the Amend previous commit and Push after commit checkboxes, the identity picker, the Signed · SSH chip and the Commit on button"
+/>
 
 ## Commit
 
@@ -51,12 +61,12 @@ Click the commit button, or press <kbd>⌘↵</kbd> (<kbd>Ctrl+Enter</kbd> on Wi
 
 The button label tells you what will happen:
 
-| Label | When |
-|---|---|
-| **Commit on \{branch\}** | Normal commit on the current branch |
-| **Commit** | `HEAD` is detached |
-| **Amend commit** | **Amend previous commit** is checked |
-| **Committing…** | The commit is running |
+| Label                    | When                                 |
+| ------------------------ | ------------------------------------ |
+| **Commit on \{branch\}** | Normal commit on the current branch  |
+| **Commit**               | `HEAD` is detached                   |
+| **Amend commit**         | **Amend previous commit** is checked |
+| **Committing…**          | The commit is running                |
 
 The button is disabled, with a hint below it, when the summary is empty ("Write a summary to commit.") or nothing is staged ("Stage changes to commit."; not shown when amending).
 
@@ -97,7 +107,11 @@ When a hook rejects the commit, a panel opens at the top of the commit area inst
 
 Your message stays in the fields. The panel closes on your next attempt.
 
-<Screenshot name="commit-hook-failed" alt="The hook failure panel showing the hook name, exit code and the hook's output with Copy output and Dismiss buttons" />
+<Screenshot
+  dark={commitHookFailedDark}
+  light={commitHookFailedLight}
+  alt="The hook failure panel showing the hook name, exit code and the hook's output with Copy output and Dismiss buttons"
+/>
 
 ## Identity
 
@@ -152,7 +166,11 @@ Click **Conventional** (or the palette action **Toggle the Conventional Commits 
 
 The fields write `type(scope)!: subject` into the summary and read it back if you edit the summary by hand. Choosing a type for a plain summary turns it into the subject. The toggle applies to all repositories and resets when you restart yaggui.
 
-<Screenshot name="commit-conventional" alt="The Conventional Commits fields with a type, a scope and the subject counter above the summary" />
+<Screenshot
+  dark={commitConventionalDark}
+  light={commitConventionalLight}
+  alt="The Conventional Commits fields with a type, a scope and the subject counter above the summary"
+/>
 
 ### Recent messages
 
@@ -160,16 +178,16 @@ The **Recent** menu lists the last 30 messages committed from yaggui in this rep
 
 ## Errors
 
-| Message | What to do |
-|---|---|
-| "The commit summary is empty." | Write a summary. |
-| "Nothing to commit: stage changes first." | Stage at least one change, or check **Amend previous commit**. |
-| "Some files are still in conflict: resolve them (and stage them) first." | Resolve the conflicts (see [Conflicts](../../history/conflicts/)). |
-| The hook failure panel | Fix what the hook output reports and commit again. |
-| "Git does not know who you are…" | Fill the **Who are you?** form. |
-| "The signing key needs its passphrase and no agent provided it…" | Unlock the key in `gpg-agent` or `ssh-agent` (`ssh-add`), or commit from a terminal. |
-| "Git could not sign the commit. Check the signing key (user.signingkey, gpg.format) or turn signing off (commit.gpgsign)." | Fix the signing config; **Open command log** shows Git's output. |
-| "Another Git process is using this repository (index.lock)…" | See [Troubleshooting](../../help/troubleshooting/). |
+| Message                                                                                                                    | What to do                                                                           |
+| -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| "The commit summary is empty."                                                                                             | Write a summary.                                                                     |
+| "Nothing to commit: stage changes first."                                                                                  | Stage at least one change, or check **Amend previous commit**.                       |
+| "Some files are still in conflict: resolve them (and stage them) first."                                                   | Resolve the conflicts (see [Conflicts](../../history/conflicts/)).                   |
+| The hook failure panel                                                                                                     | Fix what the hook output reports and commit again.                                   |
+| "Git does not know who you are…"                                                                                           | Fill the **Who are you?** form.                                                      |
+| "The signing key needs its passphrase and no agent provided it…"                                                           | Unlock the key in `gpg-agent` or `ssh-agent` (`ssh-add`), or commit from a terminal. |
+| "Git could not sign the commit. Check the signing key (user.signingkey, gpg.format) or turn signing off (commit.gpgsign)." | Fix the signing config; **Open command log** shows Git's output.                     |
+| "Another Git process is using this repository (index.lock)…"                                                               | See [Troubleshooting](../../help/troubleshooting/).                                  |
 
 The full list is in [Error messages](../../reference/error-messages/).
 

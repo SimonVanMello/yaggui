@@ -15,7 +15,11 @@ sources:
 requirements: [F-266, F-267]
 ---
 
-import Screenshot from '../../../../components/Screenshot.astro';
+import Screenshot from '~/components/Screenshot.astro';
+import terminalPanelDark from '../../../../assets/screens/terminal-panel-dark.png';
+import terminalPanelLight from '../../../../assets/screens/terminal-panel-light.png';
+import terminalPrefsToolsDark from '../../../../assets/screens/terminal-prefs-tools-dark.png';
+import terminalPrefsToolsLight from '../../../../assets/screens/terminal-prefs-tools-light.png';
 
 yaggui gives each repository a terminal panel at the bottom of its view, running your shell in the repository folder. If you prefer your own terminal application, switch the **Terminal** button to open it instead.
 
@@ -23,17 +27,21 @@ yaggui gives each repository a terminal panel at the bottom of its view, running
 
 With a repository open, use any of these:
 
-| Entry point | Effect |
-|---|---|
-| **Terminal** button in the toolbar | Shows or hides the panel. |
+| Entry point                                                  | Effect                                                                                                          |
+| ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
+| **Terminal** button in the toolbar                           | Shows or hides the panel.                                                                                       |
 | <kbd>Ctrl+&#96;</kbd>, palette **Show or hide the terminal** | Opens the panel; if it is open but not focused, focuses the active terminal; if it is focused, hides the panel. |
-| <kbd>Ctrl+Shift+&#96;</kbd>, palette **New terminal** | Opens one more terminal in the panel. |
+| <kbd>Ctrl+Shift+&#96;</kbd>, palette **New terminal**        | Opens one more terminal in the panel.                                                                           |
 
 Both shortcuts use the Control key on every OS, macOS included (<kbd>⌃&#96;</kbd>, not <kbd>⌘&#96;</kbd>), and the key left of <kbd>1</kbd> whatever your keyboard layout. They are defaults: you can rebind them (see [Palette and shortcuts](../../customize/palette-and-shortcuts/)).
 
 The first time you show the panel, it starts a terminal.
 
-<Screenshot name="terminal-panel" alt="The integrated terminal panel at the bottom of a repository, with two terminal tabs and git status output" />
+<Screenshot
+  dark={terminalPanelDark}
+  light={terminalPanelLight}
+  alt="The integrated terminal panel at the bottom of a repository, with two terminal tabs and git status output"
+/>
 
 ## Work with the panel
 
@@ -50,10 +58,10 @@ The terminal follows the app theme, the code font and the font size of Preferenc
 
 The shell starts in the repository's working folder.
 
-| OS | Shell |
-|---|---|
-| macOS, Linux | Your login shell: `$SHELL`, otherwise the one of your user account. |
-| Windows | PowerShell 7 (`pwsh.exe`), otherwise Windows PowerShell (`powershell.exe`), otherwise `cmd.exe`. |
+| OS           | Shell                                                                                            |
+| ------------ | ------------------------------------------------------------------------------------------------ |
+| macOS, Linux | Your login shell: `$SHELL`, otherwise the one of your user account.                              |
+| Windows      | PowerShell 7 (`pwsh.exe`), otherwise Windows PowerShell (`powershell.exe`), otherwise `cmd.exe`. |
 
 The shell inherits yaggui's environment, with `TERM=xterm-256color` and `COLORTERM=truecolor`. Commands you type are yours: they do not appear in the [command log](../../reference/command-log/) and cannot be undone from yaggui.
 
@@ -75,28 +83,32 @@ To make the **Terminal** button open your own terminal application:
 
 In External mode, the **Terminal** button, <kbd>Ctrl+&#96;</kbd> and <kbd>Ctrl+Shift+&#96;</kbd> open the external terminal in the repository folder. Whatever the mode, the palette action **Open the external terminal in the repository** opens the external terminal.
 
-<Screenshot name="terminal-prefs-tools" alt="The Tools tab of Preferences with the Terminal setting set to Integrated and the External terminal row" />
+<Screenshot
+  dark={terminalPrefsToolsDark}
+  light={terminalPrefsToolsLight}
+  alt="The Tools tab of Preferences with the Terminal setting set to Integrated and the External terminal row"
+/>
 
 ### Terminal setting dialog
 
 Open it with **Configure…** in Preferences, the palette action **Terminal settings…**, the macOS app menu item **Terminal Setting…**, or **Choose a terminal…** on a terminal error. It has a single **Terminal** field; click **Save**. Leave it empty to use the system default.
 
-| OS | What to enter | Default (empty field) |
-|---|---|---|
-| macOS | An application name, for example `iTerm` or `Warp`. yaggui runs `open -a <app> <repo folder>`. | Terminal |
-| Windows | A program name found in the `PATH`, or a full path. Windows Terminal (`wt` or `wt.exe`) receives `-d <repo folder>`; any other program starts with the repository as its current folder. | Windows Terminal, otherwise `cmd` |
-| Linux | A program name found in the `PATH`, or a full path. It starts with the repository as its current folder, without arguments. | The first found of `$TERMINAL`, `x-terminal-emulator`, `gnome-terminal`, `konsole`, `xfce4-terminal`, `kgx`, `tilix`, `alacritty`, `kitty`, `wezterm`, `foot`, `xterm` |
+| OS      | What to enter                                                                                                                                                                            | Default (empty field)                                                                                                                                                  |
+| ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| macOS   | An application name, for example `iTerm` or `Warp`. yaggui runs `open -a <app> <repo folder>`.                                                                                           | Terminal                                                                                                                                                               |
+| Windows | A program name found in the `PATH`, or a full path. Windows Terminal (`wt` or `wt.exe`) receives `-d <repo folder>`; any other program starts with the repository as its current folder. | Windows Terminal, otherwise `cmd`                                                                                                                                      |
+| Linux   | A program name found in the `PATH`, or a full path. It starts with the repository as its current folder, without arguments.                                                              | The first found of `$TERMINAL`, `x-terminal-emulator`, `gnome-terminal`, `konsole`, `xfce4-terminal`, `kgx`, `tilix`, `alacritty`, `kitty`, `wezterm`, `foot`, `xterm` |
 
 When you set a terminal, yaggui only tries that one. There is no argument template: on Windows and Linux, the program is started in the repository folder.
 
 ## Errors
 
-| Message | What to do |
-|---|---|
-| **Could not open a terminal**: "The terminal "`<name>`" could not be started. Check its name in the terminal setting." | Click **Choose a terminal…** and fix the name or path. |
-| **Could not open a terminal**: "No terminal was found on this system. Choose the one to use in the terminal setting." | Click **Choose a terminal…** and enter a terminal you have installed. |
-| **The terminal could not start**: "The shell "`<shell>`" could not be started in the integrated terminal." | Check that your shell (`$SHELL` on macOS and Linux) exists and runs, or use an external terminal. |
-| "This terminal is closed: open a new one." | The shell has ended: open a new terminal. |
-| "The terminal must be a program or application name." | The Terminal setting is too long or invalid: enter a plain name or path. |
+| Message                                                                                                                | What to do                                                                                        |
+| ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| **Could not open a terminal**: "The terminal "`<name>`" could not be started. Check its name in the terminal setting." | Click **Choose a terminal…** and fix the name or path.                                            |
+| **Could not open a terminal**: "No terminal was found on this system. Choose the one to use in the terminal setting."  | Click **Choose a terminal…** and enter a terminal you have installed.                             |
+| **The terminal could not start**: "The shell "`<shell>`" could not be started in the integrated terminal."             | Check that your shell (`$SHELL` on macOS and Linux) exists and runs, or use an external terminal. |
+| "This terminal is closed: open a new one."                                                                             | The shell has ended: open a new terminal.                                                         |
+| "The terminal must be a program or application name."                                                                  | The Terminal setting is too long or invalid: enter a plain name or path.                          |
 
 See [Error messages](../../reference/error-messages/) for the full catalog.

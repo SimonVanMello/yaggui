@@ -156,18 +156,3 @@ test('tour-error-toast', async ({ page }, testInfo) => {
   await page.mouse.move(640, 400);
   await capture(page, testInfo, 'tour-error-toast', toast);
 });
-
-test('tour-banner-lock', async ({ page }, testInfo) => {
-  await openYaggui(page);
-  await page.evaluate(() =>
-    window.__yagguiMock?.setRepoState(1, {
-      indexLock: { path: '/Users/alex/dev/yaggui/.git/index.lock', ageSecs: 42, stale: true },
-    }),
-  );
-  const message = page.getByText('A Git process probably crashed and left index.lock');
-  await expect(page.getByRole('button', { name: 'Remove the lock…' })).toBeVisible();
-  const banner = message.locator(
-    'xpath=ancestor::*[.//button[normalize-space(.)="Remove the lock…"]][1]',
-  );
-  await capture(page, testInfo, 'tour-banner-lock', banner);
-});

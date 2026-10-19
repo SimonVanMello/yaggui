@@ -15,10 +15,17 @@ async function settle(page: Page) {
 }
 
 /**
- * Saves `<name>-<theme>.png`: the whole window, or the region of `target` plus a small margin
- * (clipped to the viewport) so dialogs and panels keep their surroundings readable.
+ * Saves `<name>-<theme>.png`: the whole window, or the region of `target` plus a margin of `pad`
+ * pixels (clipped to the viewport) so dialogs and panels keep their surroundings readable. Thin
+ * full-width targets (banners) use `pad: 0`: a margin would only show half-cut neighbouring rows.
  */
-export async function capture(page: Page, testInfo: TestInfo, name: string, target?: Locator) {
+export async function capture(
+  page: Page,
+  testInfo: TestInfo,
+  name: string,
+  target?: Locator,
+  { pad = PAD }: { pad?: number } = {},
+) {
   await settle(page);
   const path = `${SCREENS}/${name}-${testInfo.project.name}.png`;
   if (!target) {
@@ -28,13 +35,13 @@ export async function capture(page: Page, testInfo: TestInfo, name: string, targ
   const box = await target.boundingBox();
   if (!box) throw new Error(`${name}: crop target is not visible`);
   const viewport = page.viewportSize() ?? { width: 1280, height: 800 };
-  const x = Math.max(0, box.x - PAD);
-  const y = Math.max(0, box.y - PAD);
+  const x = Math.max(0, box.x - pad);
+  const y = Math.max(0, box.y - pad);
   const clip = {
     x,
     y,
-    width: Math.min(viewport.width, box.x + box.width + PAD) - x,
-    height: Math.min(viewport.height, box.y + box.height + PAD) - y,
+    width: Math.min(viewport.width, box.x + box.width + pad) - x,
+    height: Math.min(viewport.height, box.y + box.height + pad) - y,
   };
   await page.screenshot({ path, clip, animations: 'disabled' });
 }

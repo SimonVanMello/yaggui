@@ -17,7 +17,13 @@ sources:
 requirements: [F-260]
 ---
 
-import Screenshot from '../../../../components/Screenshot.astro';
+import Screenshot from '~/components/Screenshot.astro';
+import submodulesSidebarDark from '../../../../assets/screens/submodules-sidebar-dark.png';
+import submodulesSidebarLight from '../../../../assets/screens/submodules-sidebar-light.png';
+import submodulesMenuDark from '../../../../assets/screens/submodules-menu-dark.png';
+import submodulesMenuLight from '../../../../assets/screens/submodules-menu-light.png';
+import submoduleDiffDark from '../../../../assets/screens/submodule-diff-dark.png';
+import submoduleDiffLight from '../../../../assets/screens/submodule-diff-light.png';
 
 yaggui lists the submodules of a repository in the left panel, shows whether each one matches the commit the superproject records, and runs `git submodule update` for you. A submodule is another repository pinned at a given commit inside yours: see [Git Tools - Submodules](https://git-scm.com/book/en/v2/Git-Tools-Submodules).
 
@@ -27,32 +33,40 @@ The **Submodules** section of the left panel lists every submodule declared in `
 
 Chips next to a name tell you its state:
 
-| Chip | Meaning |
-|---|---|
-| **not initialized** | The submodule was never checked out in this working tree: its folder is empty. |
-| **moved** | The submodule is checked out at another commit than the one recorded by the superproject. The tooltip reads "Recorded `<sha>`, checked out `<sha>`". |
-| **modified** | The submodule has local changes (staged, modified or untracked files). Tooltip: **The submodule has local changes**. |
+| Chip                | Meaning                                                                                                                                              |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **not initialized** | The submodule was never checked out in this working tree: its folder is empty.                                                                       |
+| **moved**           | The submodule is checked out at another commit than the one recorded by the superproject. The tooltip reads "Recorded `<sha>`, checked out `<sha>`". |
+| **modified**        | The submodule has local changes (staged, modified or untracked files). Tooltip: **The submodule has local changes**.                                 |
 
 The state is read without running Git and refreshes whenever the repository's status or refs change, and after every operation.
 
 Clicking a submodule only selects it: its recorded commit belongs to the submodule's own history, so the graph does not move. Double-clicking does nothing.
 
-<Screenshot name="submodules-sidebar" alt="The Submodules and Worktrees sections of the left panel, with the moved, modified and not initialized chips" />
+<Screenshot
+  dark={submodulesSidebarDark}
+  light={submodulesSidebarLight}
+  alt="The Submodules and Worktrees sections of the left panel, with the moved, modified and not initialized chips"
+/>
 
 ## Submodule context menu
 
 Right-click a submodule to open its menu:
 
-| Item | When | What it does |
-|---|---|---|
-| **Open in a new tab** | Always shown; disabled with the hint **Initialize it first** when the submodule is not initialized | Opens the submodule as its own repository. |
-| **Update** | Initialized submodule | `git submodule update --progress -- <path>` |
-| **Initialize** | Not initialized | `git submodule update --progress --init -- <path>` |
-| **Update recursively** | Always | `git submodule update --progress --recursive -- <path>`, with `--init` added when the submodule is not initialized |
-| **Copy path** | Always | Copies the path relative to the repository root. |
-| **Copy SHA** | A commit is recorded | Copies the recorded commit SHA. |
+| Item                   | When                                                                                               | What it does                                                                                                       |
+| ---------------------- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| **Open in a new tab**  | Always shown; disabled with the hint **Initialize it first** when the submodule is not initialized | Opens the submodule as its own repository.                                                                         |
+| **Update**             | Initialized submodule                                                                              | `git submodule update --progress -- <path>`                                                                        |
+| **Initialize**         | Not initialized                                                                                    | `git submodule update --progress --init -- <path>`                                                                 |
+| **Update recursively** | Always                                                                                             | `git submodule update --progress --recursive -- <path>`, with `--init` added when the submodule is not initialized |
+| **Copy path**          | Always                                                                                             | Copies the path relative to the repository root.                                                                   |
+| **Copy SHA**           | A commit is recorded                                                                               | Copies the recorded commit SHA.                                                                                    |
 
-<Screenshot name="submodules-menu" alt="Context menu of an initialized submodule: Open in a new tab, Update, Update recursively, Copy path, Copy SHA" />
+<Screenshot
+  dark={submodulesMenuDark}
+  light={submodulesMenuLight}
+  alt="Context menu of an initialized submodule: Open in a new tab, Update, Update recursively, Copy path, Copy SHA"
+/>
 
 ## Initialize and update submodules
 
@@ -60,9 +74,9 @@ Updating checks out, in each submodule, the commit recorded by the superproject.
 
 To act on one submodule, use its context menu (see above). To act on all of them, open the [command palette](../../customize/palette-and-shortcuts/) and run:
 
-| Palette action | Command |
-|---|---|
-| **Update submodules** | `git submodule update --progress --` |
+| Palette action                                       | Command                                                 |
+| ---------------------------------------------------- | ------------------------------------------------------- |
+| **Update submodules**                                | `git submodule update --progress --`                    |
 | **Initialize and update all submodules (recursive)** | `git submodule update --progress --init --recursive --` |
 
 Both actions are available when the repository has at least one submodule. They have no default shortcut; you can assign one in Preferences.
@@ -93,4 +107,8 @@ The file row carries a **submodule** chip. Selecting it shows a **Submodule comm
 
 You stage a submodule change as a whole entry: hunk and line staging do not apply. See [Staging](../../everyday/staging/) and [Diff](../../everyday/diff/).
 
-<Screenshot name="submodule-diff" alt="Diff of a submodule: the Submodule commit changed panel with old and new SHAs" />
+<Screenshot
+  dark={submoduleDiffDark}
+  light={submoduleDiffLight}
+  alt="Diff of a submodule: the Submodule commit changed panel with old and new SHAs"
+/>

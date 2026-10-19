@@ -16,12 +16,21 @@ sources:
 requirements: [F-004, F-300, F-301, F-302, F-322]
 ---
 
-import Screenshot from '../../../../components/Screenshot.astro';
+import Screenshot from '~/components/Screenshot.astro';
+import tourWindowDark from '../../../../assets/screens/tour-window-dark.png';
+import tourWindowLight from '../../../../assets/screens/tour-window-light.png';
+import tourCommandLogDark from '../../../../assets/screens/tour-command-log-dark.png';
+import tourCommandLogLight from '../../../../assets/screens/tour-command-log-light.png';
+import tourErrorToastDark from '../../../../assets/screens/tour-error-toast-dark.png';
+import tourErrorToastLight from '../../../../assets/screens/tour-error-toast-light.png';
+import indexLockBannerDark from '../../../../assets/screens/index-lock-banner-dark.png';
+import indexLockBannerLight from '../../../../assets/screens/index-lock-banner-light.png';
 
 This page walks through the yaggui window from top to bottom, and links each area to the page that covers it in detail.
 
 <Screenshot
-  name="tour-window"
+  dark={tourWindowDark}
+  light={tourWindowLight}
   alt="The yaggui window with a repository open: tab bar, toolbar, refs panel, commit graph, changes panel and status bar"
 />
 
@@ -51,7 +60,7 @@ The toolbar sits at the top of a repository tab. Hover a button to see what it d
 | **Tag**                                        | Create a tag on the current commit                                                                        | [Tags](../../history/tags/)                            |
 | **Stash**                                      | Stash your changes                                                                                        | [Stash](../../everyday/stash/)                         |
 | **Pop**                                        | Apply and drop the latest stash                                                                           | [Stash](../../everyday/stash/)                         |
-| **Terminal**                                   | Show or hide the integrated terminal, or open your external terminal, depending on your preferences      | [Terminal](../../repository/terminal/)                 |
+| **Terminal**                                   | Show or hide the integrated terminal, or open your external terminal, depending on your preferences       | [Terminal](../../repository/terminal/)                 |
 | **Files**                                      | Open the repository folder in the file manager                                                            | —                                                      |
 | Current branch                                 | Shows the checked-out branch; click it to switch branches                                                 | [Branches](../../history/branches/)                    |
 | **Toggle left panel** / **Toggle right panel** | Hide or show the side panels                                                                              | [Resize and hide panels](#resize-and-hide-panels)      |
@@ -77,12 +86,12 @@ Press <kbd>Esc</kbd> or click **Graph** in the view's toolbar to return to the g
 
 What the right panel shows depends on what you selected:
 
-| Selection                               | Right panel                                                      | Read more                                                                    |
-| --------------------------------------- | ---------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Selection                               | Right panel                                                                                                                                                    | Read more                                                                                                           |
+| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
 | Your working tree, or nothing           | The changes panel: unstaged and staged files, and the commit box. During a merge, rebase or other operation, or with conflicts, a conflicts list sits above it | [Staging](../../everyday/staging/), [Committing](../../everyday/committing/), [Conflicts](../../history/conflicts/) |
-| A commit                                | Commit details: message, author, files                           | [Commit graph](../../history/commit-graph/)                                  |
-| A stash in the left panel               | Stash details                                                    | [Stash](../../everyday/stash/)                                               |
-| A comparison of two branches or commits | The comparison                                                   | [Compare](../../inspect/compare/)                                            |
+| A commit                                | Commit details: message, author, files                                                                                                                         | [Commit graph](../../history/commit-graph/)                                                                         |
+| A stash in the left panel               | Stash details                                                                                                                                                  | [Stash](../../everyday/stash/)                                                                                      |
+| A comparison of two branches or commits | The comparison                                                                                                                                                 | [Compare](../../inspect/compare/)                                                                                   |
 
 ## Status bar
 
@@ -98,7 +107,8 @@ The bar at the bottom of the window shows:
 The command log lists every Git command yaggui ran, newest first, with its exit status, duration and time. Open it with <kbd>⌘J</kbd> (<kbd>Ctrl+J</kbd> on Windows and Linux), the **Log** button of the status bar, or **Open command log** on an error. Click a command to see its folder and output, and to copy the command or its output.
 
 <Screenshot
-  name="tour-command-log"
+  dark={tourCommandLogDark}
+  light={tourCommandLogLight}
   alt="The command log panel open at the bottom of the window, with one command expanded to show its output"
 />
 
@@ -114,7 +124,8 @@ Notifications appear in the bottom-right corner.
 - A notification can carry one button that acts on the problem, for example **Retry**, **Open command log**, **Trust this folder…**, **Remove the lock…**, **Set your identity** or **Pull then push**.
 
 <Screenshot
-  name="tour-error-toast"
+  dark={tourErrorToastDark}
+  light={tourErrorToastLight}
   alt="An error notification with its message, a Details section and a Retry button"
 />
 
@@ -131,7 +142,8 @@ Banners appear above the graph when the repository needs your attention.
 - **Automatic refresh unavailable**: yaggui cannot watch the folder for changes, often because the system limit on watched files is reached. Changes made outside yaggui show after you click **Refresh**. See [Troubleshooting](../../help/troubleshooting/).
 
 <Screenshot
-  name="tour-banner-lock"
+  dark={indexLockBannerDark}
+  light={indexLockBannerLight}
   alt="Banner above the graph saying a Git process probably crashed and left index.lock, with a Remove the lock button"
 />
 
