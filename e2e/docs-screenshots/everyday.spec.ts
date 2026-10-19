@@ -212,7 +212,6 @@ test('stash-preview', async ({ page }, testInfo) => {
   await tree(page).getByRole('treeitem', { name: 'lanes', exact: true }).click();
   const details = page.getByRole('region', { name: 'Stash details' });
   await expect(details).toBeVisible();
-  await page.setViewportSize({ width: 1280, height: 620 });
   await page.mouse.move(0, 0);
   await capture(page, testInfo, 'stash-preview', details);
 });

@@ -217,7 +217,8 @@ test('tabs-indicators', async ({ page }, testInfo) => {
   await page.keyboard.press('Control+T');
   await openRepo(page, /^blog\b/);
   // The tooltip of the active tab; a running fetch puts a spinner on the yaggui tab.
-  await page.getByRole('tab', { name: /^linux/ }).click();
+  await page.keyboard.press('Control+2');
+  await expect(page.getByRole('tab', { selected: true })).toHaveAccessibleName(/^linux/);
   await page.evaluate(() => window.__yagguiMock?.simulateOp(1, { stepMs: 10_000 }));
   await expect(page.getByRole('tab', { name: /^yaggui/ })).toHaveAccessibleName(
     /Fetch in progress/,
