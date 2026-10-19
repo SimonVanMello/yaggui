@@ -205,10 +205,18 @@ const faq = [1, 2, 3, 4, 5] as const;
       </h2>
       <p class="sub">{l('undo.sub')}</p>
       <ul class="checks">
-        <li>{l('undo.check1')}</li>
-        <li>{l('undo.check2')}</li>
-        <li>{l('undo.check3')}</li>
-        <li>{l('undo.check4')}</li>
+        <li>
+          <span>{l('undo.check1')}</span>
+        </li>
+        <li>
+          <span>{l('undo.check2')}</span>
+        </li>
+        <li>
+          <span>{l('undo.check3')}</span>
+        </li>
+        <li>
+          <span>{l('undo.check4')}</span>
+        </li>
       </ul>
     </div>
   </div>
@@ -225,11 +233,17 @@ const faq = [1, 2, 3, 4, 5] as const;
         <Fragment set:html={l('local.sub')} />
       </p>
       <ul class="checks">
-        <li>{l('local.check1')}</li>
         <li>
-          <Fragment set:html={l('local.check2')} />
+          <span>{l('local.check1')}</span>
         </li>
-        <li>{l('local.check3')}</li>
+        <li>
+          <span>
+            <Fragment set:html={l('local.check2')} />
+          </span>
+        </li>
+        <li>
+          <span>{l('local.check3')}</span>
+        </li>
       </ul>
     </div>
     <div class="term" role="img" aria-label={l('local.log.label')}>
