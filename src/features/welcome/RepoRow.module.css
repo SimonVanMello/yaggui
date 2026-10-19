@@ -4,11 +4,14 @@
   gap: var(--space-3);
   min-height: calc(var(--row-height) + var(--space-5));
   padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
+  border: var(--border-width) solid var(--border-subtle);
   border-radius: var(--radius-md);
+  background: var(--bg-panel);
   cursor: pointer;
 }
 
 .row[aria-selected='true'] {
+  border-color: var(--border-strong);
   background: var(--bg-selected);
   box-shadow: inset var(--focus-ring-width) 0 0 var(--accent);
 }
