@@ -553,6 +553,7 @@ impl YagguiError {
             "Impossible de vérifier les mises à jour.",
         )
         .with_detail(detail)
+        .with_action(ErrorAction::Retry)
     }
 
     pub fn update_install_failed(detail: impl Into<String>) -> Self {
@@ -585,7 +586,7 @@ impl YagguiError {
 
     /// `configured` is the terminal preference, if one is set.
     pub fn editor_not_found(configured: Option<&str>) -> Self {
-        match configured {
+        let error = match configured {
             Some(name) => Self::new(
                 ErrorCode::EditorNotFound,
                 format!(
@@ -600,7 +601,8 @@ impl YagguiError {
                 "No application could open the file. Choose an editor in the preferences.",
                 "Aucune application n'a pu ouvrir le fichier. Choisis un éditeur dans les préférences.",
             ),
-        }
+        };
+        error.with_action(ErrorAction::Retry)
     }
 
     pub fn file_manager_failed() -> Self {
