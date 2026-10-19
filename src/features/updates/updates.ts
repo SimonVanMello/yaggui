@@ -99,7 +99,8 @@ function askOnce(): void {
       label: t('updates.optIn.enable'),
       onClick: () => {
         savePreferenceOrToast({ checkUpdates: true });
-        void checkAtStartup();
+        // The user asked for it just now: answer like a manual check, "up to date" included.
+        void checkForUpdatesNow();
       },
     },
     duration: Infinity,
