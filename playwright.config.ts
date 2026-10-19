@@ -6,8 +6,14 @@ const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
 export default defineConfig({
   testDir: './e2e',
   // Measurements run on a production build (`pnpm perf:*`, playwright.perf.config.ts); README
-  // screenshots have their own config (`pnpm screenshots`).
-  testIgnore: ['perf*.spec.ts', 'readme-screenshots.spec.ts'],
+  // screenshots, docs screenshots and the live demo have their own configs (`pnpm screenshots`,
+  // `pnpm screenshots:docs`, `pnpm test:demo`).
+  testIgnore: [
+    'perf*.spec.ts',
+    'readme-screenshots.spec.ts',
+    'demo.spec.ts',
+    'docs-screenshots/**',
+  ],
   outputDir: './test-results',
   fullyParallel: true,
   reporter: [['list']],

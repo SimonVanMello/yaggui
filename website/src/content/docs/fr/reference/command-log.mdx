@@ -1,0 +1,103 @@
+---
+title: Journal des commandes
+description: La liste de toutes les commandes Git que yaggui exécute, avec leur sortie, leur code de sortie et leur durée, et comment l’ouvrir, la filtrer, la copier et la vider.
+sidebar:
+  order: 4
+sources:
+  - src/features/command-log/**
+  - src-tauri/src/git/log.rs
+  - src-tauri/src/git/cli.rs
+  - src-tauri/src/commands/log.rs
+  - src/app/useBackendEvents.ts
+  - src/features/statusbar/StatusBar.tsx
+requirements: [F-300]
+---
+
+import Screenshot from '~/components/Screenshot.astro';
+import commandLogExpandedDark from '../../../../assets/screens/command-log-expanded-fr-dark.png';
+import commandLogExpandedLight from '../../../../assets/screens/command-log-expanded-fr-light.png';
+
+yaggui exécute votre propre `git` pour chaque modification qu’il effectue, et enregistre chaque commande dans le journal des commandes. Servez-vous-en pour voir exactement ce qu’une action a fait, pour lire la réponse complète de Git quand quelque chose échoue, ou pour rejouer une commande dans un terminal.
+
+<Screenshot
+  dark={commandLogExpandedDark}
+  light={commandLogExpandedLight}
+  alt="Panneau du journal des commandes en bas de la fenêtre, avec une entrée dépliée qui montre le dossier, les boutons Copier la commande et Copier la sortie, et la sortie de Git"
+/>
+
+## Ce qui est enregistré
+
+Chaque processus Git que yaggui lance est enregistré, y compris ceux que vous n’avez pas demandés directement :
+
+- les commandes que vous déclenchez (commit, checkout, fetch, push…) ;
+- les commandes d’arrière-plan, comme les fetchs automatiques et le `git commit-graph write --reachable --changed-paths --no-progress` qui accélère le graphe des gros dépôts (voir [Première ouverture lente](../../help/troubleshooting/#la-première-ouverture-dun-gros-dépôt-est-lente)) ;
+- les vérifications comme `git --version` quand vous renseignez le chemin de Git.
+
+La plupart des lectures (le graphe, le statut, les diffs) n’exécutent pas Git du tout : yaggui lit directement le dépôt, elles n’apparaissent donc pas ici.
+
+Chaque entrée contient :
+
+| Champ          | Affichage                                                                                                                         |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Commande       | `git …`, avec les arguments protégés pour un shell POSIX comme bash ou zsh                                                        |
+| Statut         | une icône : **Réussie**, **Échouée**, **Annulée** ou **Lancement impossible** (le programme `git` lui-même n’a pas pu s’exécuter) |
+| Code de sortie | « code \{code\} » quand il est différent de 0                                                                                     |
+| Durée et heure | la durée d’exécution et l’heure de début                                                                                          |
+| Dossier        | le dossier d’exécution (« dans … »), quand l’entrée est dépliée                                                                   |
+| Sortie         | la sortie standard et la sortie d’erreur de Git, quand l’entrée est dépliée                                                       |
+| Dépôt          | le nom du dépôt, quand le filtre est **Toutes**                                                                                   |
+
+## Ouvrir le journal des commandes
+
+- Appuyez sur <kbd>⌘J</kbd> (<kbd>Ctrl+J</kbd> sous Windows et Linux). Appuyez de nouveau dessus pour fermer le journal. Le raccourci peut être [reconfiguré](../../customize/palette-and-shortcuts/).
+- Cliquez sur **Journal des commandes** à droite de la barre d’état. Une fois des commandes exécutées, le bouton affiche **Journal (\{count\})**.
+- Dans la palette de commandes, lancez **Afficher/masquer le journal des commandes**.
+- Sous macOS, choisissez **Présentation → Journal des commandes** ou **Aide → Journal des commandes**.
+- Depuis une erreur, cliquez sur **Ouvrir le journal** (voir plus bas).
+
+Le journal s’ouvre sous la forme d’un panneau en bas de la fenêtre, au-dessus de la barre d’état. Faites glisser son bord supérieur pour le redimensionner. Sa taille et son filtre ne sont pas conservés quand vous redémarrez yaggui.
+
+## Filtrer par dépôt
+
+Le sélecteur **Commandes affichées** dans l’en-tête du panneau propose deux choix :
+
+- **Ce dépôt** (par défaut) : uniquement les commandes du dépôt de l’onglet actif.
+- **Toutes** : les commandes de tous les dépôts, plus celles qui ne sont liées à aucun dépôt (comme `git --version`). Chaque entrée affiche alors le nom de son dépôt.
+
+Dans l’onglet d’accueil, le journal affiche toujours **Toutes**. L’en-tête indique aussi le nombre de commandes listées.
+
+## Lire et copier une entrée
+
+Les commandes les plus récentes sont en haut. Cliquez sur une entrée pour la déplier. Une entrée dépliée indique le dossier dans lequel elle s’est exécutée, puis deux boutons :
+
+- **Copier la commande** copie la ligne de commande complète, prête à être collée dans un terminal.
+- **Copier la sortie** copie ce que Git a affiché.
+
+Viennent ensuite la sortie standard et la sortie d’erreur. Une entrée sans sortie affiche « Aucune sortie. ».
+
+:::tip
+Pour reproduire une étape vous-même, copiez la commande et exécutez-la dans un terminal, dans le dossier indiqué après « dans ». Les commandes qui lisent leur entrée depuis yaggui (par exemple `git commit -F -`, qui reçoit le message sur l’entrée standard) ont aussi besoin de cette entrée.
+:::
+
+### Sorties longues
+
+La sortie standard et la sortie d’erreur sont chacune conservées jusqu’à 64 Kio. Au-delà, le début est conservé et l’entrée affiche « Sortie tronquée. ». Pour voir une très longue sortie en entier, exécutez vous-même la commande.
+
+## Ouvrir le journal depuis une erreur
+
+Quand un toast ou un panneau d’erreur comporte un bouton **Ouvrir le journal**, un clic dessus ouvre le journal sur la dernière commande en échec : le filtre passe sur **Toutes** si nécessaire, et l’entrée est dépliée et mise en évidence. C’est le moyen le plus rapide de lire la réponse complète de Git, par exemple le message de refus d’un serveur ou la sortie d’un hook. Voir [Messages d’erreur](../../reference/error-messages/).
+
+## Vider le journal
+
+Cliquez sur **Vider le journal** (l’icône de corbeille dans l’en-tête du panneau). Cela vide le journal de tous les dépôts à la fois, sans confirmation. Vos dépôts ne sont pas affectés.
+
+## Limites
+
+- Le journal n’existe qu’en mémoire. Il n’est jamais écrit sur le disque et il est vide à chaque démarrage de yaggui.
+- yaggui conserve les 500 dernières commandes. Les plus anciennes sont supprimées. Pendant une longue session, le panneau peut en afficher davantage (jusqu’à 2 000) jusqu’à ce que vous fermiez yaggui.
+
+## Confidentialité
+
+Le journal montre les commandes exactement telles qu’elles ont été exécutées. Si vous avez saisi une URL contenant un jeton ou un mot de passe (par exemple `https://user:token@example.com/repo.git`) en clonant ou en ajoutant un remote, elle apparaît en clair dans le journal. Elle reste en mémoire et disparaît quand vous quittez, mais toute personne qui voit votre écran peut la lire. Préférez un [assistant d’identifiants](../../remotes/authentication/) aux jetons dans les URL.
+
+yaggui n’ajoute jamais lui-même d’identifiants au journal : il ne demande ni ne stocke jamais de mots de passe. Voir [Données et confidentialité](../../reference/data-and-privacy/).

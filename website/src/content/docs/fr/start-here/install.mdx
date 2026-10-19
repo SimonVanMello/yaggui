@@ -1,0 +1,188 @@
+---
+title: Installer yaggui
+description: Prérequis, installation sur macOS, Windows et Linux, avertissements au premier lancement et désinstallation.
+sidebar:
+  order: 2
+sources:
+  - README.md
+  - docs/RELEASING.md
+  - src-tauri/tauri.conf.json
+  - src-tauri/tauri.macos.conf.json
+  - scripts/homebrew.mjs
+  - scripts/aur.mjs
+  - src-tauri/src/system/git_binary.rs
+  - src-tauri/src/system/updates.rs
+  - src-tauri/src/state.rs
+requirements: [F-322]
+---
+
+Cette page décrit ce dont yaggui a besoin, comment l’installer sur chaque système, que faire face aux avertissements du premier lancement, et comment le supprimer.
+
+## Prérequis
+
+|         | Pris en charge                                                           |
+| ------- | ------------------------------------------------------------------------ |
+| macOS   | Macs Apple Silicon et Intel, avec un téléchargement distinct pour chacun |
+| Windows | Windows 10 et 11, x64                                                    |
+| Linux   | x86_64 : AppImage, `.deb`, `.rpm` et paquet AUR pour Arch Linux          |
+| Git     | 2.30 ou plus récent, installé séparément                                 |
+
+yaggui n’inclut pas Git : il lance la commande `git` de votre système. Installez-le d’abord :
+
+- **macOS** : `xcode-select --install` (le Git d’Apple) ou `brew install git`.
+- **Windows** : [Git for Windows](https://git-scm.com/download/win) ou `winget install Git.Git`.
+- **Linux** : votre gestionnaire de paquets, par exemple `sudo apt install git`. Les paquets `.deb`, `.rpm` et AUR installent Git pour vous, comme dépendance.
+
+yaggui utilise le premier `git` de votre `PATH` ou, à défaut, le premier trouvé dans les dossiers d’installation habituels (`/usr/bin`, `/usr/local/bin`, `/opt/homebrew/bin`, `C:\Program Files\Git\cmd`). La barre d’état affiche la version trouvée : une icône d’avertissement apparaît quand elle est antérieure à 2.30, et **git introuvable** quand il n’y en a aucune. Pour utiliser un autre Git, indiquez son chemin dans **Préférences** > **Git** > **Binaire Git** ; voir [Préférences](../../reference/preferences/).
+
+:::tip
+Sur macOS, une application lancée depuis le Dock ou le Finder ne voit pas le `PATH` de votre shell : elle utilise donc `/usr/bin/git` plutôt que le Git de Homebrew. Pour utiliser celui de Homebrew, réglez **Binaire Git** sur `/opt/homebrew/bin/git` (Apple Silicon) ou `/usr/local/bin/git` (Intel).
+:::
+
+## Installer sur macOS
+
+### Avec Homebrew
+
+```bash
+brew install --cask simonvanmello/yaggui/yaggui
+```
+
+La commande ajoute le tap [`SimonVanMello/homebrew-yaggui`](https://github.com/SimonVanMello/homebrew-yaggui) et installe dans `/Applications` la version adaptée à votre Mac (Apple Silicon ou Intel).
+
+### Depuis l’image disque
+
+1. Ouvrez la [dernière release](https://github.com/SimonVanMello/yaggui/releases/latest).
+2. Téléchargez le `.dmg` correspondant à votre Mac :
+   - `yaggui_<version>_aarch64.dmg` pour Apple Silicon (M1 et suivants).
+   - `yaggui_<version>_x64.dmg` pour Intel.
+
+   Pour savoir lequel vous avez, ouvrez le menu Pomme > **À propos de ce Mac** : la ligne **Puce** indique une puce Apple, la ligne **Processeur** un processeur Intel.
+
+3. Ouvrez le `.dmg` et faites glisser **yaggui** dans **Applications**.
+
+### Premier lancement : Gatekeeper
+
+Les versions macOS ne sont pas encore notarisées par Apple : Gatekeeper bloque donc le premier lancement avec un message indiquant que l’application ne peut pas être ouverte ou que son absence de logiciel malveillant ne peut pas être vérifiée. Autorisez-la une fois, de l’une de ces deux façons :
+
+- **Terminal** (valable pour les deux méthodes d’installation) : supprimez l’attribut de quarantaine, puis ouvrez yaggui normalement.
+
+  ```bash
+  xattr -dr com.apple.quarantine /Applications/yaggui.app
+  ```
+
+  Homebrew affiche cette commande après l’installation du cask.
+
+- **Réglages Système** : essayez d’ouvrir yaggui une fois, puis ouvrez **Réglages Système** > **Confidentialité et sécurité**, faites défiler jusqu’au message concernant yaggui et cliquez sur **Ouvrir quand même**. Confirmez avec votre mot de passe.
+
+Vous ne le faites qu’une fois par installation.
+
+## Installer sur Windows
+
+1. Ouvrez la [dernière release](https://github.com/SimonVanMello/yaggui/releases/latest).
+2. Téléchargez l’un des installateurs :
+   - `yaggui_<version>_x64-setup.exe` : installe pour votre compte utilisateur.
+   - `yaggui_<version>_x64_en-US.msi` : un paquet Windows Installer, par exemple pour les machines gérées.
+3. Lancez-le.
+
+### Premier lancement : SmartScreen
+
+Les installateurs ne sont pas encore signés : Microsoft Defender SmartScreen peut donc afficher « Windows a protégé votre ordinateur ». Cliquez sur **Informations complémentaires**, puis sur **Exécuter quand même**.
+
+### WebView2
+
+yaggui dessine sa fenêtre avec Microsoft Edge WebView2. Il fait partie de Windows 11 et des Windows 10 à jour. S’il manque, l’installateur le télécharge, ce qui demande une connexion à Internet.
+
+## Installer sur Linux
+
+Téléchargez le paquet adapté à votre distribution depuis la [dernière release](https://github.com/SimonVanMello/yaggui/releases/latest). Seules des versions x86_64 existent.
+
+### Debian, Ubuntu et dérivées
+
+```bash
+sudo apt install ./yaggui_<version>_amd64.deb
+```
+
+### Fedora, openSUSE et autres distributions RPM
+
+```bash
+sudo dnf install ./yaggui-<version>-1.x86_64.rpm
+# ou, sur openSUSE :
+sudo zypper install --allow-unsigned-rpm ./yaggui-<version>-1.x86_64.rpm
+```
+
+Le `.rpm` n’est pas signé avec une clé connue de zypper, d’où `--allow-unsigned-rpm`.
+
+### Arch Linux
+
+Installez [`yaggui-bin`](https://aur.archlinux.org/packages/yaggui-bin) depuis l’AUR avec votre assistant, par exemple :
+
+```bash
+yay -S yaggui-bin
+```
+
+Le paquet reconditionne le `.deb` de la release et dépend de `git`, `gtk3` et `webkit2gtk-4.1`.
+
+### AppImage
+
+```bash
+chmod +x yaggui_<version>_amd64.AppImage
+./yaggui_<version>_amd64.AppImage
+```
+
+L’AppImage nécessite que Git soit installé sur le système.
+
+## Formats et mise à jour
+
+Chaque format peut être mis à jour depuis yaggui une fois la vérification des mises à jour activée ; voir [Mises à jour](../updates/).
+
+| Format                     | Fichier                                                    | Comment yaggui le met à jour                                                                                                                                     |
+| -------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Image disque macOS         | `yaggui_<version>_aarch64.dmg`, `yaggui_<version>_x64.dmg` | **Mettre à jour et redémarrer** : télécharge, vérifie et remplace l’application, puis redémarre                                                                  |
+| Cask Homebrew macOS        | (issu du `.dmg`)                                           | **Mettre à jour et redémarrer**, comme ci-dessus. `brew upgrade --cask yaggui` fonctionne aussi                                                                  |
+| Windows `.exe`             | `yaggui_<version>_x64-setup.exe`                           | **Mettre à jour et redémarrer**                                                                                                                                  |
+| Windows `.msi`             | `yaggui_<version>_x64_en-US.msi`                           | **Mettre à jour et redémarrer**                                                                                                                                  |
+| AppImage Linux             | `yaggui_<version>_amd64.AppImage`                          | **Mettre à jour et redémarrer**                                                                                                                                  |
+| `.deb` Linux               | `yaggui_<version>_amd64.deb`                               | **Mettre à jour** : télécharge le nouveau `.deb`, le vérifie, puis l’installe avec `sudo apt install` dans un terminal intégré à yaggui                          |
+| `.rpm` Linux               | `yaggui-<version>-1.x86_64.rpm`                            | **Mettre à jour** : télécharge le nouveau `.rpm`, le vérifie, puis l’installe avec `sudo dnf install` ou `sudo zypper install` dans un terminal intégré à yaggui |
+| AUR Arch Linux             | `yaggui-bin`                                               | **Mettre à jour** : lance `yay -S yaggui-bin` (ou `paru`) dans un terminal intégré à yaggui                                                                      |
+| Compilé depuis les sources | —                                                          | **Ouvrir la page de la release**                                                                                                                                 |
+
+Le cask Homebrew déclare que l’application se met à jour elle-même : un simple `brew upgrade` l’ignore donc, sauf avec `--greedy`. En le nommant explicitement, comme dans `brew update && brew upgrade --cask yaggui`, la mise à jour passe par Homebrew.
+
+## Désinstaller
+
+La désinstallation supprime l’application. Vos dépôts ne sont jamais touchés. Les données propres à yaggui restent sur le disque tant que vous ne les supprimez pas :
+
+- le **dossier de configuration**, `dev.tropico.yaggui` dans le dossier de données d’application de votre système : dépôts récents, onglets ouverts, workspaces, préférences, raccourcis personnalisés et sauvegardes des modifications abandonnées ;
+- le **dossier de cache**, `dev.tropico.yaggui` dans le dossier de cache de votre système : avatars et paquets de mise à jour téléchargés.
+
+Les chemins exacts sont dans [Données et confidentialité](../../reference/data-and-privacy/). Les changements que yaggui a apportés à votre configuration Git à votre demande (par exemple une entrée `safe.directory` ou votre identité) restent dans votre `.gitconfig`.
+
+### macOS
+
+- **Homebrew** : `brew uninstall --cask yaggui`. Ajoutez `--zap` pour supprimer aussi les dossiers de configuration et de cache, les préférences et les données WebKit :
+
+  ```bash
+  brew uninstall --zap --cask yaggui
+  ```
+
+- **Image disque** : quittez yaggui et déplacez `/Applications/yaggui.app` dans la Corbeille. Supprimez ensuite `~/Library/Application Support/dev.tropico.yaggui` et `~/Library/Caches/dev.tropico.yaggui` si vous voulez effacer ses données.
+
+### Windows
+
+Ouvrez **Paramètres** > **Applications** > **Applications installées**, trouvez **yaggui** et choisissez **Désinstaller**. Pour effacer ses données, supprimez `%APPDATA%\dev.tropico.yaggui` et `%LOCALAPPDATA%\dev.tropico.yaggui`.
+
+### Linux
+
+| Installé avec | Désinstaller avec                                       |
+| ------------- | ------------------------------------------------------- |
+| `.deb`        | `sudo apt remove yaggui`                                |
+| `.rpm`        | `sudo dnf remove yaggui` ou `sudo zypper remove yaggui` |
+| AUR           | `sudo pacman -R yaggui-bin`                             |
+| AppImage      | supprimez le fichier `.AppImage`                        |
+
+Pour effacer ses données, supprimez `~/.config/dev.tropico.yaggui` et `~/.cache/dev.tropico.yaggui` (ou les mêmes dossiers sous `$XDG_CONFIG_HOME` et `$XDG_CACHE_HOME` si vous les avez définis).
+
+## Compiler depuis les sources
+
+Vous pouvez compiler yaggui vous-même avec Rust, Node.js et pnpm. Les prérequis et les commandes se trouvent dans le [README sur GitHub](https://github.com/SimonVanMello/yaggui#build-from-source). Une version compilée depuis les sources ne se met pas à jour toute seule : yaggui propose alors d’ouvrir la page de la release.

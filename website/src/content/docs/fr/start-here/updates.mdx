@@ -1,0 +1,126 @@
+---
+title: Mises à jour
+description: Activer la vérification des mises à jour, installer une nouvelle version depuis yaggui et lire ce qui a changé dans chaque release.
+sidebar:
+  order: 3
+sources:
+  - src/features/updates/**
+  - src/features/changelog/**
+  - src-tauri/src/system/updates.rs
+  - src-tauri/src/commands/updates.rs
+  - src-tauri/src/system/changelog.rs
+  - CHANGELOG.md
+requirements: []
+---
+
+import Screenshot from '~/components/Screenshot.astro';
+import updatesNoticeDark from '../../../../assets/screens/updates-notice-fr-dark.png';
+import updatesNoticeLight from '../../../../assets/screens/updates-notice-fr-light.png';
+import updatesUpgradeDialogDark from '../../../../assets/screens/updates-upgrade-dialog-fr-dark.png';
+import updatesUpgradeDialogLight from '../../../../assets/screens/updates-upgrade-dialog-fr-light.png';
+import updatesWhatsNewDark from '../../../../assets/screens/updates-whats-new-fr-dark.png';
+import updatesWhatsNewLight from '../../../../assets/screens/updates-whats-new-fr-light.png';
+
+yaggui ne cherche une nouvelle version que si vous l’y autorisez. Quand il en existe une, il l’installe de la façon qui correspond à la manière dont vous avez installé yaggui. Cette page présente aussi la boîte de dialogue **Nouveautés**, qui liste les changements de chaque release.
+
+## Activer la vérification des mises à jour
+
+La vérification est désactivée tant que vous ne l’activez pas. Quand elle est active, yaggui consulte la dernière release sur github.com à chaque lancement. Quand elle est désactivée, yaggui ne fait aucune requête.
+
+Au premier lancement, yaggui pose la question une seule fois, dans une notification : **Vérifier les mises à jour au démarrage ?** Elle reste affichée jusqu’à ce que vous la fermiez.
+
+- Cliquez sur **Vérifier les mises à jour** pour activer la vérification. yaggui vérifie tout de suite, puis à chaque lancement.
+- Fermez la notification ou ignorez-la pour laisser la vérification désactivée. yaggui ne redemande pas.
+
+Pour changer votre choix plus tard, ouvrez **Préférences** (<kbd>⌘,</kbd>, <kbd>Ctrl+,</kbd> sous Windows et Linux) > **Comportement** et basculez **Vérifier les mises à jour au démarrage**.
+
+La vérification au démarrage est silencieuse : quand yaggui est à jour, ou quand vous êtes hors ligne, rien ne s’affiche.
+
+## Vérifier maintenant
+
+Vous pouvez vérifier à tout moment, même avec la vérification au démarrage désactivée :
+
+- **Préférences** > **Comportement** > **Vérifier maintenant**.
+- La palette de commandes : **Rechercher les mises à jour**.
+- Le bouton **Rechercher les mises à jour** de la boîte de dialogue **Nouveautés**.
+
+Une vérification que vous lancez vous-même répond toujours : une notification pour la nouvelle version, **yaggui est à jour**, ou une erreur (voir [Quand une mise à jour échoue](#quand-une-mise-à-jour-échoue)).
+
+yaggui télécharge `latest.json` depuis la dernière release GitHub en HTTPS et compare les versions. Les brouillons et les préversions ne sont jamais proposés.
+
+## Installer une mise à jour
+
+Quand une version plus récente existe, une notification intitulée **yaggui \<version\> est disponible** reste affichée en bas à droite jusqu’à ce que vous agissiez ou la fermiez. Son bouton dépend de la manière dont yaggui a été installé.
+
+<Screenshot
+  dark={updatesNoticeDark}
+  light={updatesNoticeLight}
+  alt="Notification indiquant qu’une nouvelle version de yaggui est disponible, avec un bouton Mettre à jour et redémarrer"
+/>
+
+| Installé depuis                                                         | Bouton                           | Ce qui se passe                                                                                                                    |
+| ----------------------------------------------------------------------- | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `.dmg` ou cask Homebrew macOS, `.exe` ou `.msi` Windows, AppImage Linux | **Mettre à jour et redémarrer**  | yaggui télécharge la mise à jour, vérifie sa signature, l’installe et redémarre                                                    |
+| `.deb` Linux                                                            | **Mettre à jour**                | yaggui télécharge le nouveau `.deb`, le vérifie, puis l’installe avec `apt` dans la boîte de dialogue de mise à jour               |
+| `.rpm` Linux                                                            | **Mettre à jour**                | yaggui télécharge le nouveau `.rpm`, le vérifie, puis l’installe avec `dnf` (ou `zypper`) dans la boîte de dialogue de mise à jour |
+| AUR Arch Linux (`yaggui-bin`)                                           | **Mettre à jour**                | yaggui lance `yay` (ou `paru`) dans la boîte de dialogue de mise à jour                                                            |
+| Tout autre cas, comme une version compilée depuis les sources           | **Ouvrir la page de la release** | votre navigateur ouvre la [dernière release](https://github.com/SimonVanMello/yaggui/releases/latest)                              |
+
+### Mettre à jour et redémarrer
+
+Une notification affiche **Téléchargement de yaggui \<version\>…** avec un pourcentage. Quand le téléchargement est terminé et sa signature valide, yaggui installe la mise à jour et redémarre de lui-même ; vos onglets reviennent. Sous Windows, l’installateur s’exécute avec une fenêtre de progression et sans poser de question.
+
+### La boîte de dialogue de mise à jour (paquets Linux)
+
+Pour les paquets `.deb`, `.rpm` et AUR, **Mettre à jour** ouvre la boîte de dialogue **Mise à jour de yaggui vers la \<version\>**. Elle contient un terminal dans lequel s’exécute le gestionnaire de paquets : vous pouvez y saisir votre mot de passe et répondre à ses questions.
+
+<Screenshot
+  dark={updatesUpgradeDialogDark}
+  light={updatesUpgradeDialogLight}
+  alt="La boîte de dialogue de mise à jour de yaggui, avec un terminal où s’exécute le gestionnaire de paquets"
+/>
+
+1. Pour `.deb` et `.rpm`, yaggui télécharge `SHA256SUMS.txt` et le nouveau paquet depuis la release dans son dossier de cache, puis vérifie le SHA-256 du paquet. La boîte de dialogue affiche **Téléchargement du paquet… \<pourcentage\> %**.
+2. Le gestionnaire de paquets démarre. La boîte de dialogue affiche **Suis le gestionnaire de paquets ci-dessous : il peut te demander ton mot de passe.** La commande est l’une de celles-ci :
+
+   ```bash
+   sudo apt install /path/to/yaggui_<version>_amd64.deb
+   sudo dnf install /path/to/yaggui-<version>-1.x86_64.rpm
+   sudo zypper install --allow-unsigned-rpm /path/to/yaggui-<version>-1.x86_64.rpm   # quand dnf est absent
+   yay -S yaggui-bin                                                                   # ou paru -S yaggui-bin
+   ```
+
+3. Quand l’opération réussit, la boîte de dialogue affiche **yaggui \<version\> est installé. Redémarre pour l'utiliser.** Cliquez sur **Redémarrer yaggui**, ou sur **Fermer** pour continuer à travailler et redémarrer plus tard.
+
+Tant que le téléchargement ou le gestionnaire de paquets s’exécute, **Fermer** est désactivé et <kbd>Esc</kbd> est transmis au terminal. Seuls des paquets x86_64 sont publiés.
+
+## Quand une mise à jour échoue
+
+| Ce que vous voyez                                                                | Cause et marche à suivre                                                                                                                                                                                                                                                                                 |
+| -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Impossible de vérifier les mises à jour.** avec **Réessayer**                  | GitHub est injoignable ou a répondu par une erreur. Vérifiez votre connexion et réessayez. **Détails** indique la cause.                                                                                                                                                                                 |
+| **La mise à jour n'a pas pu être installée.** avec **Réessayer**                 | Le téléchargement, la vérification de la signature ou l’installation a échoué. **Détails** indique pourquoi. Réessayez, ou téléchargez la nouvelle version depuis la page de la release.                                                                                                                 |
+| **La mise à jour n'a pas pu démarrer.** dans la boîte de dialogue de mise à jour | Un outil manque (**Détails** indique `sudo not found`, `apt not found`, `dnf or zypper not found` ou `yay or paru not found`), le téléchargement a échoué, ou la somme de contrôle ne correspondait pas. Installez l’outil manquant ou mettez à jour depuis un terminal, puis cliquez sur **Réessayer**. |
+| **La mise à jour n'est pas allée au bout (code de sortie \<code\>).**            | Le gestionnaire de paquets a échoué : lisez sa sortie dans la boîte de dialogue, corrigez la cause, puis cliquez sur **Réessayer**.                                                                                                                                                                      |
+| **La mise à jour a été interrompue.**                                            | Le gestionnaire de paquets a été interrompu avant la fin. Cliquez sur **Réessayer** pour recommencer.                                                                                                                                                                                                    |
+
+Une mise à jour ne peut pas être annulée depuis yaggui. Pour revenir à une version plus ancienne, installez-la depuis la [page des releases](https://github.com/SimonVanMello/yaggui/releases).
+
+## Nouveautés
+
+La boîte de dialogue **Nouveautés** liste les changements de chaque version, de la plus récente à la plus ancienne. Elle est intégrée à l’application, donc elle fonctionne hors ligne. Elle ne s’ouvre jamais d’elle-même après une mise à jour.
+
+Ouvrez-la depuis :
+
+- le bouton **yaggui \<version\>** à droite de la barre d’état ;
+- la palette de commandes : **Nouveautés (journal des modifications)** ;
+- **Préférences** > **Comportement** > **Version** > **Nouveautés** ;
+- sous macOS, **Aide** > **Nouveautés de yaggui**.
+
+<Screenshot
+  dark={updatesWhatsNewDark}
+  light={updatesWhatsNewLight}
+  alt="La boîte de dialogue Nouveautés, qui liste les releases avec leurs nouvelles fonctionnalités et leurs corrections"
+/>
+
+Chaque release indique sa version, sa date et jusqu’à trois groupes : **Nouvelles fonctionnalités**, **Corrections** et **Autres changements**. La version que vous exécutez porte un badge **Installée**. Le pied de la boîte de dialogue contient **Rechercher les mises à jour** et **Fermer**.

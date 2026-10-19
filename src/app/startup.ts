@@ -1,3 +1,5 @@
+import { isDemo } from '../demo/isDemo';
+import { openSampleRepo } from '../demo/startDemo';
 import { useKeybindings } from '../features/keybindings/keybindingsStore';
 import { checkForUpdatesAtStartup } from '../features/updates/updates';
 import { openRepoPath, restoreRepoSession } from '../features/repo/repoSessions';
@@ -75,7 +77,8 @@ export function startup(): Promise<void> {
     persistTabs();
     persistRepoLayouts(SAVE_DELAY_MS);
     await openLaunchPath();
-    checkForUpdatesAtStartup();
+    if (isDemo) await openSampleRepo();
+    else checkForUpdatesAtStartup();
   })();
   return started;
 }

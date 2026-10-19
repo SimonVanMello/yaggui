@@ -1,0 +1,503 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- Reference mockup of the public website (task W-2) and the docs skin (W-1, W-3). Validated by the PO.
+     Not shipped: the site is built from website/. Open this file directly in a browser. -->
+<title>yaggui Website Look</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300..700&family=JetBrains+Mono:wght@400..600&display=swap">
+<style>
+/* Layout: centered hero and product shot, then quiet left-aligned sections on a 1120px column.
+   Colors are the app's Graphite (dark) and Paper (light) tokens; one accent, hairline borders. */
+:root {
+  color-scheme: dark;
+  --bg: #0f1115; --panel: #14161b; --elev: #1c1f26; --sunk: #0b0c10;
+  --fg: #e6e8ee; --fg2: #a3a9b6; --muted: #8c919c;
+  --line: #23262e; --line2: #2f333d;
+  --accent: #8b7cf6; --accent-2: #9d90f8; --accent-soft: rgb(139 124 246 / 0.14);
+  --btn: #e6e8ee; --btn-fg: #0f1115;
+  --l0: #8b7cf6; --l1: #22d3ee; --l2: #f59e0b; --l3: #f472b6; --l4: #34d399;
+  --add: #34d399; --del: #f87171;
+  --card: rgb(255 255 255 / 0.02);
+  --grid: rgb(255 255 255 / 0.035);
+  --shadow: 0 40px 120px -40px rgb(0 0 0 / 0.8);
+  --glow: rgb(139 124 246 / 0.18);
+  --sans: 'Inter', -apple-system, 'Segoe UI', system-ui, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+    --bg: #f6f5f2; --panel: #ffffff; --elev: #ffffff; --sunk: #efede8;
+    --fg: #1f2328; --fg2: #57606a; --muted: #666d74;
+    --line: #e6e4de; --line2: #d6d3cb;
+    --accent: #2563eb; --accent-2: #1d4ed8; --accent-soft: rgb(37 99 235 / 0.08);
+    --btn: #1f2328; --btn-fg: #ffffff;
+    --l0: #2563eb; --l1: #0891b2; --l2: #d97706; --l3: #db2777; --l4: #16a34a;
+    --add: #16a34a; --del: #dc2626;
+    --card: rgb(255 255 255 / 0.7);
+    --grid: rgb(31 35 40 / 0.045);
+    --shadow: 0 40px 100px -40px rgb(31 35 40 / 0.3);
+    --glow: rgb(37 99 235 / 0.1);
+  }
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f6f5f2; --panel: #ffffff; --elev: #ffffff; --sunk: #efede8;
+  --fg: #1f2328; --fg2: #57606a; --muted: #666d74;
+  --line: #e6e4de; --line2: #d6d3cb;
+  --accent: #2563eb; --accent-2: #1d4ed8; --accent-soft: rgb(37 99 235 / 0.08);
+  --btn: #1f2328; --btn-fg: #ffffff;
+  --l0: #2563eb; --l1: #0891b2; --l2: #d97706; --l3: #db2777; --l4: #16a34a;
+  --add: #16a34a; --del: #dc2626;
+  --card: rgb(255 255 255 / 0.7);
+  --grid: rgb(31 35 40 / 0.045);
+  --shadow: 0 40px 100px -40px rgb(31 35 40 / 0.3);
+  --glow: rgb(37 99 235 / 0.1);
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { scroll-behavior: smooth; }
+body { background: var(--bg); color: var(--fg); font-family: var(--sans); font-size: 16px; line-height: 1.6; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 60; background: var(--bg); }
+a { color: inherit; text-decoration: none; }
+img { display: block; max-width: 100%; height: auto; }
+h1, h2, h3 { margin: 0; text-wrap: balance; font-weight: 500; }
+p { margin: 0; }
+code { font-family: var(--mono); font-size: 0.88em; }
+kbd { font-family: var(--mono); font-size: 0.75em; display: inline-flex; align-items: center; justify-content: center; min-width: 1.75em; height: 1.75em; padding: 0 0.45em; border: 1px solid var(--line2); border-radius: 5px; background: var(--elev); color: var(--fg2); line-height: 1; vertical-align: 0.1em; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.gut { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 1120px; margin: 0 auto; }
+.only-light { display: none !important; }
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) .only-light { display: block !important; } :root:not([data-theme="dark"]) .only-dark { display: none !important; } }
+:root[data-theme="light"] .only-light { display: block !important; }
+:root[data-theme="light"] .only-dark { display: none !important; }
+
+/* ── Review bar (not part of the site) ── */
+.review { border-bottom: 1px dashed var(--line2); background: var(--sunk); }
+.review-in { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding-block: 8px; font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
+.seg { display: inline-flex; gap: 2px; padding: 2px; border: 1px solid var(--line2); border-radius: 8px; }
+.seg button { font: inherit; border: 0; background: none; color: var(--fg2); padding: 4px 10px; border-radius: 6px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--elev); color: var(--fg); box-shadow: 0 0 0 1px var(--line2); }
+.review .grow { flex: 1; }
+
+/* ── Nav ── */
+.nav-wrap { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); z-index: 40; padding-top: 16px; }
+.nav { display: flex; align-items: center; gap: 8px; padding: 8px 8px 8px 16px; border: 1px solid var(--line); border-radius: 14px; background: color-mix(in srgb, var(--bg) 78%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+.brand { display: flex; align-items: center; gap: 9px; font-weight: 600; font-size: 15px; letter-spacing: -0.01em; margin-right: auto; }
+.brand svg { width: 24px; height: 24px; }
+.nav-links { display: flex; gap: 2px; font-size: 14px; color: var(--fg2); }
+.nav-links a { padding: 6px 12px; border-radius: 8px; transition: color 150ms, background 150ms; }
+.nav-links a:hover { color: var(--fg); background: var(--card); }
+.stars { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--fg2); padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; }
+.stars svg { width: 15px; height: 15px; }
+
+/* ── Buttons ── */
+.btn { display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 20px; border-radius: 10px; font-size: 15px; font-weight: 500; background: var(--btn); color: var(--btn-fg); border: 0; cursor: pointer; transition: opacity 150ms; white-space: nowrap; }
+.btn:hover { opacity: 0.88; }
+.btn svg { width: 16px; height: 16px; }
+.btn.sm { height: 34px; padding: 0 14px; font-size: 13.5px; border-radius: 8px; }
+.btn.ghost { background: transparent; color: var(--fg); box-shadow: inset 0 0 0 1px var(--line2); }
+.btn.ghost:hover { background: var(--card); opacity: 1; }
+
+/* ── Hero ── */
+.hero { position: relative; text-align: center; padding-block: 112px 56px; }
+.hero::before { content: ""; position: absolute; inset: -120px 0 0; z-index: -1; background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px); background-size: 56px 56px; background-position: center top; -webkit-mask-image: radial-gradient(70% 60% at 50% 30%, #000, transparent); mask-image: radial-gradient(70% 60% at 50% 30%, #000, transparent); }
+.hero h1 { margin: 0 auto; font-size: clamp(42px, 6.6vw, 76px); line-height: 1.04; letter-spacing: -0.045em; max-width: 13ch; }
+.hero .lead { margin: 22px auto 0; max-width: 34em; font-size: 18.5px; color: var(--fg2); font-weight: 400; }
+.ctas { margin-top: 34px; display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.hero .fine { margin-top: 18px; font-size: 13px; color: var(--muted); }
+.hero .fine a { text-decoration: underline; text-decoration-color: var(--line2); text-underline-offset: 3px; }
+.hero .fine a:hover { color: var(--fg); }
+
+.shot-wrap { position: relative; padding-bottom: 24px; }
+.shot-wrap::before { content: ""; position: absolute; left: 10%; right: 10%; top: 6%; height: 60%; background: var(--glow); filter: blur(80px); z-index: -1; border-radius: 50%; }
+.frame { border-radius: 14px; padding: 6px; border: 1px solid var(--line); background: var(--card); box-shadow: var(--shadow); }
+.frame img { border-radius: 9px; }
+
+/* ── Proof strip ── */
+.proof { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; padding-block: 28px 0; }
+.proof div { display: inline-flex; align-items: baseline; gap: 10px; padding: 10px 18px; border: 1px solid var(--line); border-radius: 999px; background: var(--card); font-size: 14px; color: var(--fg2); }
+.proof b { color: var(--fg); font-weight: 600; font-size: 15.5px; font-variant-numeric: tabular-nums; }
+
+/* ── Sections ── */
+.sec { padding-block: 128px 0; }
+.kicker { font-family: var(--mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 16px; }
+.h2 { font-size: clamp(30px, 4vw, 46px); line-height: 1.1; letter-spacing: -0.035em; max-width: 20ch; }
+.sub { margin-top: 16px; font-size: 17.5px; color: var(--fg2); max-width: 36em; }
+.center { text-align: center; }
+.center .h2, .center .sub { margin-left: auto; margin-right: auto; }
+
+.grid { margin-top: 56px; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 16px; }
+.card { border: 1px solid var(--line); border-radius: 16px; background: var(--card); padding: 24px; display: grid; gap: 8px; align-content: start; min-width: 0; }
+.card h3 { font-size: 17px; letter-spacing: -0.015em; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+.card p { font-size: 15px; color: var(--fg2); }
+.card .ic { width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; border: 1px solid var(--line); color: var(--fg2); margin-bottom: 10px; }
+.card .ic svg { width: 16px; height: 16px; }
+.card.wide { grid-column: span 3; }
+.card.third { grid-column: span 2; }
+.card .vis { margin: -8px -8px 18px; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); background: var(--panel); aspect-ratio: 16 / 9; position: relative; }
+.card .vis img { width: 100%; height: 100%; object-fit: cover; object-position: 60% 30%; }
+
+/* rebase mini list */
+.rb { position: absolute; inset: 0; padding: 18px; display: grid; align-content: center; gap: 6px; font-size: 13px; }
+.rb div { display: grid; grid-template-columns: 52px 64px minmax(0, 1fr); gap: 10px; align-items: center; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--fg2); }
+.rb div.drag { transform: translateX(10px) rotate(-0.6deg); border-color: var(--accent); box-shadow: 0 10px 30px -12px rgb(0 0 0 / 0.5); color: var(--fg); }
+.rb .v { font-family: var(--mono); font-size: 11px; padding: 2px 0; border-radius: 4px; text-align: center; }
+.rb .v.p { color: var(--fg2); background: var(--elev); } .rb .v.s { color: var(--l2); background: color-mix(in srgb, var(--l2) 14%, transparent); } .rb .v.r { color: var(--l1); background: color-mix(in srgb, var(--l1) 14%, transparent); } .rb .v.d { color: var(--del); background: color-mix(in srgb, var(--del) 14%, transparent); }
+.rb .sha { font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
+.rb .m { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* split */
+.split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 72px; align-items: center; }
+.checks { list-style: none; padding: 0; margin: 28px 0 0; display: grid; gap: 12px; font-size: 15.5px; color: var(--fg2); }
+.checks li { display: flex; gap: 12px; align-items: baseline; }
+.checks li::before { content: ""; flex: none; width: 14px; height: 8px; border-left: 1.5px solid var(--add); border-bottom: 1.5px solid var(--add); transform: rotate(-45deg) translateY(-3px); }
+
+/* undo mock */
+.undo { border: 1px solid var(--line); border-radius: 16px; background: var(--card); padding: 18px; }
+.undo-bar { display: flex; align-items: center; gap: 8px; padding-bottom: 14px; border-bottom: 1px solid var(--line); margin-bottom: 8px; font-size: 13px; color: var(--fg2); }
+.undo-bar .pill { display: inline-flex; gap: 6px; align-items: center; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--line2); color: var(--fg); background: var(--elev); }
+.undo-row { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 8px; border-radius: 8px; font-size: 14px; color: var(--fg2); }
+.undo-row.on { background: var(--accent-soft); color: var(--fg); }
+.undo-row.gone { opacity: 0.45; }
+.undo-row i { width: 8px; height: 8px; border-radius: 50%; background: var(--l0); justify-self: center; }
+.undo-row time { font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
+.toast { margin-top: 14px; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 10px; border: 1px solid var(--line2); background: var(--elev); font-size: 13.5px; }
+.toast span { color: var(--fg2); }
+.toast b { font-weight: 500; color: var(--accent); }
+
+/* command log */
+.term { border: 1px solid var(--line); border-radius: 16px; overflow: hidden; background: var(--sunk); font-family: var(--mono); font-size: 12.5px; }
+.term-top { display: flex; align-items: center; gap: 6px; padding: 12px 14px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 11.5px; }
+.term-top i { width: 10px; height: 10px; border-radius: 50%; background: var(--line2); }
+.term-top span { margin-left: 8px; }
+.term-body { padding: 10px 0; overflow-x: auto; }
+.term-row { display: grid; grid-template-columns: 1fr auto auto; gap: 18px; padding: 6px 16px; white-space: nowrap; color: var(--fg); min-width: 460px; }
+.term-row .ms { color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+.term-row .ok { color: var(--add); } .term-row .ko { color: var(--del); }
+.term-row .g { color: var(--muted); }
+.term-row.err { background: color-mix(in srgb, var(--del) 7%, transparent); }
+
+/* themes */
+.themes { margin-top: 56px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+.themes figure { margin: 0; }
+.themes figcaption { margin-top: 12px; font-size: 14px; color: var(--fg2); display: flex; justify-content: space-between; gap: 12px; }
+.themes figcaption b { font-weight: 600; color: var(--fg); }
+
+/* faq */
+.faq { margin-top: 48px; max-width: 760px; margin-left: auto; margin-right: auto; border-top: 1px solid var(--line); text-align: left; }
+.faq details { border-bottom: 1px solid var(--line); }
+.faq summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; gap: 16px; padding: 20px 4px; font-size: 16.5px; font-weight: 500; }
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after { content: "+"; font-weight: 300; font-size: 22px; line-height: 1; color: var(--muted); transition: transform 150ms; }
+.faq details[open] summary::after { transform: rotate(45deg); }
+.faq details p { padding: 0 4px 22px; color: var(--fg2); font-size: 15.5px; max-width: 62ch; }
+
+/* final cta */
+.final { padding-block: 144px 120px; text-align: center; }
+.final h2 { font-size: clamp(36px, 5.4vw, 64px); letter-spacing: -0.045em; line-height: 1.05; }
+.final p { margin: 18px auto 0; color: var(--fg2); font-size: 17.5px; max-width: 32em; }
+.final .copy { margin: 26px auto 0; }
+.copy { display: inline-flex; align-items: center; gap: 12px; max-width: 100%; padding: 8px 8px 8px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); font-family: var(--mono); font-size: 13px; color: var(--fg2); }
+.copy code { overflow-x: auto; white-space: nowrap; min-width: 0; font-size: inherit; }
+.copy code::before { content: "$ "; color: var(--muted); }
+.copy button { font: inherit; font-size: 11.5px; border: 1px solid var(--line2); background: var(--elev); color: var(--fg2); border-radius: 6px; padding: 4px 9px; cursor: pointer; flex: none; }
+.copy button:hover { color: var(--fg); }
+
+footer { border-top: 1px solid var(--line); }
+.foot { padding-block: 36px 48px; display: flex; flex-wrap: wrap; gap: 12px 28px; align-items: center; font-size: 13.5px; color: var(--muted); }
+.foot .brand { font-size: 14px; color: var(--fg); margin-right: 8px; }
+.foot nav { display: flex; flex-wrap: wrap; gap: 6px 22px; }
+.foot nav a:hover { color: var(--fg); }
+.foot .r { margin-left: auto; }
+
+/* ── Lightbox for screenshots ── */
+[data-zoom] { cursor: zoom-in; }
+.lb { border: 0; padding: 0; margin: auto; background: transparent; max-width: min(1440px, 94vw); max-height: 92vh; overflow: visible; }
+.lb::backdrop { background: rgb(0 0 0 / 0.72); backdrop-filter: blur(4px); }
+.lb img { max-width: 100%; max-height: 88vh; width: auto; border-radius: 10px; box-shadow: var(--shadow); cursor: zoom-out; }
+.lb p { margin-top: 10px; text-align: center; font-size: 13px; color: #c9ccd3; }
+.lb button { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 16px); right: max(16px, env(safe-area-inset-right, 0px)); width: 36px; height: 36px; border-radius: 50%; border: 1px solid rgb(255 255 255 / 0.2); background: rgb(15 17 21 / 0.7); color: #e6e8ee; font-size: 18px; cursor: pointer; }
+.lb[open] { animation: lb-in 180ms cubic-bezier(.2,0,0,1); }
+@keyframes lb-in { from { opacity: 0; transform: scale(0.98); } }
+
+/* ── Docs preview (Starlight skin) ── */
+.docs-sec { padding-block: 32px 96px; border-top: 1px dashed var(--line2); }
+.docs-label { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-bottom: 18px; }
+.docs-label b { color: var(--fg); font-weight: 500; }
+.docs { border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: var(--bg); box-shadow: var(--shadow); font-size: 15px; }
+.d-top { display: flex; align-items: center; gap: 16px; height: 56px; padding: 0 20px; border-bottom: 1px solid var(--line); }
+.d-top .brand { margin-right: 0; font-size: 14.5px; }
+.d-top .brand em { font-style: normal; color: var(--muted); font-weight: 400; }
+.d-search { flex: 1; max-width: 320px; margin-left: 28px; display: flex; align-items: center; justify-content: space-between; height: 34px; padding: 0 6px 0 12px; border: 1px solid var(--line); border-radius: 8px; color: var(--muted); font-size: 13.5px; background: var(--card); }
+.d-right { margin-left: auto; display: flex; gap: 18px; font-size: 13.5px; color: var(--fg2); }
+.d-body { display: grid; grid-template-columns: 236px minmax(0, 1fr) 196px; }
+.d-nav { padding: 24px 14px; border-right: 1px solid var(--line); display: grid; align-content: start; gap: 1px; font-size: 14px; }
+.d-nav p { margin: 18px 10px 6px; font-size: 12.5px; font-weight: 600; color: var(--fg); }
+.d-nav p:first-child { margin-top: 0; }
+.d-nav a { padding: 5px 10px; border-radius: 7px; color: var(--fg2); }
+.d-nav a:hover { color: var(--fg); }
+.d-nav a.on { color: var(--fg); background: var(--accent-soft); font-weight: 500; }
+.d-main { padding: 36px clamp(20px, 4vw, 52px) 40px; min-width: 0; }
+.d-crumb { font-size: 13px; color: var(--muted); margin-bottom: 12px; }
+.d-main h1 { font-size: 34px; letter-spacing: -0.035em; line-height: 1.1; font-weight: 600; }
+.d-main .d-lead { margin-top: 12px; font-size: 17px; color: var(--fg2); max-width: 36em; }
+.d-main h2 { margin-top: 36px; font-size: 21px; letter-spacing: -0.02em; font-weight: 600; }
+.d-main p { margin-top: 12px; color: var(--fg2); max-width: 64ch; }
+.d-main p code, .d-main td code { padding: 1px 6px; border-radius: 5px; background: var(--elev); border: 1px solid var(--line); color: var(--fg); }
+.d-main pre { margin: 16px 0 0; padding: 14px 16px; border-radius: 10px; border: 1px solid var(--line); background: var(--sunk); overflow-x: auto; font-family: var(--mono); font-size: 13px; color: var(--fg); }
+.d-main pre .c { color: var(--muted); }
+.d-note { margin-top: 20px; padding: 14px 16px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); font-size: 14.5px; color: var(--fg2); display: grid; gap: 4px; }
+.d-note b { color: var(--fg); font-weight: 600; font-size: 13.5px; }
+.d-main table { width: 100%; margin-top: 14px; border-collapse: collapse; font-size: 14.5px; }
+.d-main td { padding: 10px 0; border-bottom: 1px solid var(--line); color: var(--fg2); }
+.d-main td:last-child { text-align: right; white-space: nowrap; }
+.d-foot { margin-top: 32px; padding-top: 16px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+.d-toc { padding: 36px 20px; border-left: 1px solid var(--line); display: grid; align-content: start; gap: 9px; font-size: 13.5px; color: var(--fg2); }
+.d-toc p { font-size: 12.5px; font-weight: 600; color: var(--fg); margin-bottom: 2px; }
+.d-toc a.on { color: var(--accent); }
+
+/* ── Motion: a single quiet fade on load ── */
+@keyframes up { from { opacity: 0.25; transform: translateY(10px); } }
+.hero > * { animation: up 700ms cubic-bezier(.2,0,0,1) both; }
+.hero > *:nth-child(2) { animation-delay: 60ms; } .hero > *:nth-child(3) { animation-delay: 120ms; } .hero > *:nth-child(4) { animation-delay: 180ms; } .hero > *:nth-child(5) { animation-delay: 240ms; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } html { scroll-behavior: auto; } }
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .card.wide, .card.third { grid-column: span 6; }
+  .split, .themes { grid-template-columns: minmax(0, 1fr); gap: 40px; }
+  .d-body { grid-template-columns: 200px minmax(0, 1fr); } .d-toc { display: none; }
+}
+@media (max-width: 640px) {
+  .nav-links, .stars, .d-right { display: none; }
+  .hero { padding-block: 64px 40px; }
+  .sec { padding-block: 96px 0; }
+  .d-body { grid-template-columns: minmax(0, 1fr); } .d-nav { display: none; }
+  .d-search { margin-left: auto; }
+  .foot .r { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="logo" viewBox="64 64 896 896">
+    <rect x="64" y="64" width="896" height="896" rx="200" fill="#14161b"/>
+    <g fill="none" stroke-linecap="round" stroke-width="56"><path d="M400 800V224" stroke="#8b7cf6"/><path d="M400 640c0-140 224-120 224-260V300" stroke="#22d3ee"/></g>
+    <circle cx="400" cy="800" r="64" fill="#8b7cf6"/><circle cx="400" cy="224" r="64" fill="#8b7cf6"/><circle cx="624" cy="300" r="64" fill="#22d3ee"/>
+  </symbol>
+  <symbol id="dl" viewBox="0 0 16 16"><path d="M8 2v8m0 0L4.8 6.8M8 10l3.2-3.2M3 13h10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="gh" viewBox="0 0 16 16"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></symbol>
+</svg>
+
+<div class="review"><div class="review-in gut wrap">
+  <span>yaggui · website mockup (validated) · screenshots open in a lightbox</span><span class="grow"></span>
+  <span>Thème</span>
+  <div class="seg" id="seg-theme"><button type="button" data-v="dark">Graphite</button><button type="button" data-v="light">Paper</button></div>
+</div></div>
+
+<div class="nav-wrap gut"><nav class="nav wrap">
+  <a class="brand" href="#top"><svg><use href="#logo"/></svg>yaggui</a>
+  <div class="nav-links"><a href="#features">Features</a><a href="#docs">Docs</a><a href="#faq">FAQ</a><a href="#faq">Changelog</a></div>
+  <a class="stars" href="#top"><svg><use href="#gh"/></svg>GitHub</a>
+  <a class="btn sm" href="#download">Download</a>
+</nav></div>
+
+<main id="top">
+  <section class="gut"><div class="wrap hero">
+    <h1>The Git client that keeps up.</h1>
+    <p class="lead">yaggui is a fast, native Git client for macOS, Windows and Linux. A smooth commit graph, staging line by line, and undo for almost everything.</p>
+    <div class="ctas"><a class="btn" href="#download" data-os><svg><use href="#dl"/></svg><span>Download for macOS</span></a><a class="btn ghost" href="#docs">Read the docs</a></div>
+    <p class="fine">Free and open source · Also on <a href="#download">Homebrew</a> and <a href="#download">AUR</a></p>
+  </div></section>
+
+  <section class="gut"><div class="wrap shot-wrap">
+    <div class="frame"><img class="only-dark" src="../assets/screenshot-graph.png" width="1440" height="900" alt="yaggui commit graph with the commit detail panel, Graphite theme"><img class="only-light" src="../assets/screenshot-graph-paper.png" width="1440" height="900" alt="yaggui commit graph, Paper theme"></div>
+    <div class="proof">
+      <div><b>60 fps</b>scrolling 1.3M commits</div>
+      <div><b>&lt; 300 ms</b>to the first graph screen</div>
+      <div><b>0</b>accounts, trackers or telemetry</div>
+    </div>
+  </div></section>
+
+  <section class="gut sec" id="features"><div class="wrap">
+    <p class="kicker">Features</p>
+    <h2 class="h2">Everything you do in Git, one gesture away.</h2>
+    <p class="sub">Checkout is a double-click. Merge is a drag. Staging is <kbd>Space</kbd>. The rest is in the palette, behind <kbd>⌘</kbd><kbd>K</kbd>.</p>
+    <div class="grid">
+      <article class="card wide">
+        <div class="vis"><img src="../assets/screenshot-staging.png" width="1440" height="900" alt="Line staging in the diff"></div>
+        <h3>Stage files, hunks or lines</h3>
+        <p>Select lines in the unified or split diff and press <kbd>Space</kbd>. Commit with <kbd>⌘</kbd><kbd>↵</kbd>.</p>
+      </article>
+      <article class="card wide">
+        <div class="vis"><div class="rb" aria-hidden="true">
+          <div><span class="v p">pick</span><span class="sha">2d449ec</span><span class="m">fix(graph): merge edges</span></div>
+          <div class="drag"><span class="v s">squash</span><span class="sha">6bfc7e0</span><span class="m">feat(graph): draw lanes</span></div>
+          <div><span class="v r">reword</span><span class="sha">024bec7</span><span class="m">perf(diff): speed up lane colors</span></div>
+          <div><span class="v d">drop</span><span class="sha">a7d811d</span><span class="m">wip: try another layout</span></div>
+        </div></div>
+        <h3>Interactive rebase you can see</h3>
+        <p>Reorder by drag or keyboard, squash, reword and drop, with a preview before anything runs.</p>
+      </article>
+      <article class="card third"><span class="ic"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="4" cy="3.5" r="1.5"/><circle cx="4" cy="12.5" r="1.5"/><circle cx="12" cy="5.5" r="1.5"/><path d="M4 5v6M12 7c0 3-8 2-8 4"/></svg></span><h3>A graph that scrolls Linux</h3><p>Drawn on canvas, paginated, with stable lane colors per branch. Drag a branch to merge or rebase.</p></article>
+      <article class="card third"><span class="ic"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="1.5" y="2.5" width="5.5" height="11" rx="1"/><rect x="9" y="2.5" width="5.5" height="11" rx="1"/></svg></span><h3>3-way merge editor</h3><p>Ours and theirs side by side, block checkboxes and an editable result.</p></article>
+      <article class="card third"><span class="ic"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="1.5" y="2.5" width="13" height="11" rx="1.5"/><path d="M4 6l2 2-2 2M8 10h4"/></svg></span><h3>Terminal and palette</h3><p>An integrated terminal per repo, rebindable shortcuts, and a palette that searches everything.</p></article>
+    </div>
+  </div></section>
+
+  <section class="gut sec"><div class="wrap split">
+    <div class="undo" aria-hidden="true">
+      <div class="undo-bar"><span class="pill">↶ Undo <kbd>⌘</kbd><kbd>Z</kbd></span><span>Session history</span></div>
+      <div class="undo-row gone"><i></i><span>Commit “fix(graph): merge edges”</span><time>10:42</time></div>
+      <div class="undo-row on"><i></i><span>Reset main to 024bec7 (hard)</span><time>10:39</time></div>
+      <div class="undo-row"><i></i><span>Delete branch feat/palette-31</span><time>10:31</time></div>
+      <div class="undo-row"><i></i><span>Checkout feat/graph-lanes</span><time>10:28</time></div>
+      <div class="toast"><span>Undone: commit “fix(graph): merge edges”</span><b>Redo</b></div>
+    </div>
+    <div>
+      <p class="kicker">Undo</p>
+      <h2 class="h2">Made a mistake? Press ⌘Z.</h2>
+      <p class="sub">yaggui records what each operation changes and puts the repository back the way it was.</p>
+      <ul class="checks"><li>Commit, amend, checkout, reset, discard</li><li>Branch creation, deletion and rename</li><li>Merge, cherry-pick, revert, stash drop</li><li>Push and fetch are flagged as not undoable</li></ul>
+    </div>
+  </div></section>
+
+  <section class="gut sec"><div class="wrap split">
+    <div>
+      <p class="kicker">Local and transparent</p>
+      <h2 class="h2">Your git, doing the work.</h2>
+      <p class="sub">Every write goes through the <code>git</code> you already have, so your config, hooks and credentials just work. Each command lands in the log with its output.</p>
+      <ul class="checks"><li>No account, no telemetry</li><li><code>--force-with-lease</code> only, refused on protected branches</li><li>Destructive actions show their effect first</li></ul>
+    </div>
+    <div class="term" aria-label="Command log example">
+      <div class="term-top"><i></i><i></i><i></i><span>Log</span></div>
+      <div class="term-body">
+        <div class="term-row"><span>git fetch --prune origin</span><span class="ms">412 ms</span><span class="ok">0</span></div>
+        <div class="term-row"><span>git apply --cached --unidiff-zero -</span><span class="ms">18 ms</span><span class="ok">0</span></div>
+        <div class="term-row"><span>git commit -F - <span class="g"># feat(graph): merge edges</span></span><span class="ms">96 ms</span><span class="ok">0</span></div>
+        <div class="term-row err"><span>git push origin main</span><span class="ms">640 ms</span><span class="ko">1</span></div>
+        <div class="term-row"><span class="g">  ! [rejected] main -&gt; main (fetch first)</span><span></span><span></span></div>
+        <div class="term-row"><span>git pull --rebase origin main</span><span class="ms">530 ms</span><span class="ok">0</span></div>
+        <div class="term-row"><span>git push origin main</span><span class="ms">588 ms</span><span class="ok">0</span></div>
+      </div>
+    </div>
+  </div></section>
+
+  <section class="gut sec"><div class="wrap center">
+    <p class="kicker">Themes</p>
+    <h2 class="h2">Graphite and Paper.</h2>
+    <p class="sub">A dark theme and a light one designed together, plus high contrast and Terminal. English and French.</p>
+    <div class="themes">
+      <figure><div class="frame"><img src="../assets/screenshot-graph.png" width="1440" height="900" alt="Graphite theme"></div><figcaption><b>Graphite</b><span>Dark</span></figcaption></figure>
+      <figure><div class="frame"><img src="../assets/screenshot-graph-paper.png" width="1440" height="900" alt="Paper theme"></div><figcaption><b>Paper</b><span>Light</span></figcaption></figure>
+    </div>
+  </div></section>
+
+  <section class="gut sec" id="faq"><div class="wrap center">
+    <p class="kicker">FAQ</p>
+    <h2 class="h2">Questions</h2>
+    <div class="faq">
+      <details open><summary>Is yaggui free?</summary><p>Yes. It is open source under the GPL-3.0-or-later license, with no paid tier and no account.</p></details>
+      <details><summary>Does it work with my existing Git setup?</summary><p>Writes go through your own <code>git</code> binary (2.30 or later), so your config, hooks, SSH keys and credential helpers apply as usual.</p></details>
+      <details><summary>Why does macOS or Windows warn me on first launch?</summary><p>The builds are not code-signed yet. On macOS, clear the quarantine flag or allow the app in Privacy &amp; Security; on Windows, confirm the SmartScreen prompt.</p></details>
+      <details><summary>Does it collect any data?</summary><p>No. There is no telemetry. Avatars from Gravatar are opt-in and off by default.</p></details>
+      <details><summary>How is it built?</summary><p>With Tauri and Rust. The code is written by Claude through Claude Code; a human sets the direction, reviews each pull request and tests the app.</p></details>
+    </div>
+  </div></section>
+
+  <section class="gut" id="download"><div class="wrap final">
+    <h2>Give your history a better view.</h2>
+    <p>Free, open source and ready in a minute. Updates install themselves.</p>
+    <div class="ctas"><a class="btn" href="#download" data-os><svg><use href="#dl"/></svg><span>Download for macOS</span></a><a class="btn ghost" href="#download">Windows · Linux · other</a></div>
+    <div class="copy"><code>brew install --cask simonvanmello/yaggui/yaggui</code><button type="button" data-copy="brew install --cask simonvanmello/yaggui/yaggui">Copy</button></div>
+  </div></section>
+</main>
+
+<footer class="gut"><div class="wrap foot">
+  <span class="brand"><svg><use href="#logo"/></svg>yaggui</span>
+  <nav><a href="#docs">Docs</a><a href="#faq">Changelog</a><a href="#download">Releases</a><a href="#top">GitHub</a></nav>
+  <span class="r">GPL-3.0-or-later</span>
+</div></footer>
+
+<dialog class="lb" id="lb" aria-label="Enlarged screenshot"><button type="button" aria-label="Close" id="lb-close">×</button><img id="lb-img" alt=""><p id="lb-cap"></p></dialog>
+
+<section class="gut docs-sec" id="docs"><div class="wrap">
+  <p class="docs-label"><b>Docs</b> · Starlight with the same skin, under /docs</p>
+  <div class="docs">
+    <div class="d-top">
+      <span class="brand"><svg><use href="#logo"/></svg>yaggui <em>docs</em></span>
+      <span class="d-search"><span>Search</span><kbd>⌘K</kbd></span>
+      <span class="d-right"><span>Guides</span><span>Reference</span><span>GitHub</span></span>
+    </div>
+    <div class="d-body">
+      <nav class="d-nav" aria-label="Docs">
+        <p>Start here</p><a href="#docs">Install</a><a href="#docs">Open a repository</a><a href="#docs">Tour of the window</a>
+        <p>Everyday Git</p><a href="#docs">Commit graph</a><a href="#docs" class="on">Staging and committing</a><a href="#docs">Branches</a><a href="#docs">Fetch, pull and push</a><a href="#docs">Stash</a>
+        <p>History</p><a href="#docs">Merge and rebase</a><a href="#docs">Interactive rebase</a><a href="#docs">Conflicts</a><a href="#docs">Undo and redo</a>
+        <p>Reference</p><a href="#docs">Keyboard shortcuts</a><a href="#docs">Preferences</a><a href="#docs">Error messages</a>
+      </nav>
+      <article class="d-main">
+        <p class="d-crumb">Everyday Git</p>
+        <h1>Staging and committing</h1>
+        <p class="d-lead">Stage whole files, single hunks or individual lines from the diff, then commit with <kbd>⌘</kbd><kbd>↵</kbd>.</p>
+        <h2>Stage part of a file</h2>
+        <p>Select lines in the diff and press <kbd>Space</kbd>. yaggui builds a patch for exactly those lines and passes it to <code>git apply --cached</code>.</p>
+        <pre><span class="c"># As shown in the command log</span>
+git apply --cached --whitespace=nowarn --unidiff-zero -</pre>
+        <div class="d-note"><b>Note</b>If the file changed on disk since the diff was shown, yaggui refuses the patch and refreshes the diff instead of staging the wrong lines.</div>
+        <h2>Shortcuts</h2>
+        <table>
+          <tr><td>Stage or unstage the selection</td><td><kbd>Space</kbd></td></tr>
+          <tr><td>Stage all</td><td><kbd>⌘</kbd><kbd>⇧</kbd><kbd>A</kbd></td></tr>
+          <tr><td>Commit</td><td><kbd>⌘</kbd><kbd>↵</kbd></td></tr>
+          <tr><td>Undo the commit</td><td><kbd>⌘</kbd><kbd>Z</kbd></td></tr>
+        </table>
+        <div class="d-foot"><span>Edit this page on GitHub</span><span>Next: Branches →</span></div>
+      </article>
+      <aside class="d-toc"><p>On this page</p><a href="#docs" class="on">Stage part of a file</a><a href="#docs">Commit and amend</a><a href="#docs">Hooks</a><a href="#docs">Shortcuts</a></aside>
+    </div>
+  </div>
+</div></section>
+
+<script>
+(() => {
+  const root = document.documentElement;
+  const mq = matchMedia('(prefers-color-scheme: light)');
+  const segT = document.getElementById('seg-theme');
+  const sync = () => { const t = root.dataset.theme || (mq.matches ? 'light' : 'dark'); segT.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === t))); };
+  segT.addEventListener('click', e => { const b = e.target.closest('button'); if (b) { root.dataset.theme = b.dataset.v; sync(); } });
+  mq.addEventListener('change', sync); sync();
+
+  const lb = document.getElementById('lb'), lbImg = document.getElementById('lb-img'), lbCap = document.getElementById('lb-cap');
+  document.querySelectorAll('.frame img, .card .vis img').forEach(img => {
+    img.setAttribute('data-zoom', ''); img.tabIndex = 0; img.setAttribute('role', 'button');
+    const open = () => { lbImg.src = img.currentSrc || img.src; lbImg.alt = img.alt; lbCap.textContent = img.alt; lb.showModal(); };
+    img.addEventListener('click', open);
+    img.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
+  });
+  lb.addEventListener('click', () => lb.close());
+
+  const ua = navigator.userAgent;
+  const os = /Win/.test(ua) ? 'Windows' : /Mac|iPhone|iPad/.test(ua) ? 'macOS' : /Linux|X11|Android/.test(ua) ? 'Linux' : 'macOS';
+  document.querySelectorAll('[data-os] span').forEach(s => { s.textContent = 'Download for ' + os; });
+
+  document.querySelectorAll('[data-copy]').forEach(b => b.addEventListener('click', () => {
+    const done = () => { b.textContent = 'Copied'; setTimeout(() => { b.textContent = 'Copy'; }, 1400); };
+    const fallback = () => { const r = document.createRange(); r.selectNodeContents(b.previousElementSibling); const s = getSelection(); s.removeAllRanges(); s.addRange(r); };
+    try { navigator.clipboard.writeText(b.dataset.copy).then(done, fallback); } catch (e) { fallback(); }
+  }));
+})();
+</script>
+
+</body>
+</html>

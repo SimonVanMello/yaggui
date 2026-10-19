@@ -1,0 +1,19 @@
+---
+title: Keyboard shortcuts
+description: Every default keyboard shortcut of yaggui, on macOS, Windows and Linux.
+sources:
+  - src/features/keybindings/**
+  - src/features/palette/builtinActions.ts
+  - src/app/shellActions.ts
+  - src/ui/platform.ts
+requirements: [F-281]
+---
+
+import ShortcutTable from '~/components/ShortcutTable.astro';
+import data from '../../_data/shortcuts.json';
+
+These are the default shortcuts. Every one can be changed in **Preferences → Shortcuts**, and **⌘K** (**Ctrl+K** on Windows and Linux) opens the command palette, which lists every command with its current shortcut.
+
+This table is generated from the application's own list of commands, so it always matches the version of the documentation you are reading.
+
+<ShortcutTable data={data} />

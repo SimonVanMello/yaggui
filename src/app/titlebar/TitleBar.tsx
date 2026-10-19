@@ -1,3 +1,4 @@
+import { isDemo } from '../../demo/isDemo';
 import { useT } from '../../i18n/useT';
 import { nativeWindow } from '../../ipc';
 import { IconButton } from '../../ui/IconButton';
@@ -29,7 +30,7 @@ export function TitleBar() {
           }}
         />
       </div>
-      {platform !== 'mac' && <WindowControls />}
+      {platform !== 'mac' && !isDemo && <WindowControls />}
     </header>
   );
 }

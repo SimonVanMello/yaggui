@@ -1,0 +1,96 @@
+---
+title: Tabs
+description: Open several repositories in tabs, switch and reorder them, read their indicators, and find them again after a restart.
+sidebar:
+  order: 1
+sources:
+  - src/app/titlebar/**
+  - src/app/tabs/**
+  - src/app/shellActions.ts
+  - src/features/keybindings/builtinBindings.ts
+  - src-tauri/src/store/tabs.rs
+  - src-tauri/src/store/repo_ui_state.rs
+requirements: [F-004]
+---
+
+import Screenshot from '~/components/Screenshot.astro';
+import tabsIndicatorsDark from '../../../../assets/screens/tabs-indicators-dark.png';
+import tabsIndicatorsLight from '../../../../assets/screens/tabs-indicators-light.png';
+
+Each repository you open gets a tab in the title bar. This page covers opening, closing, switching and reordering tabs, what their indicators mean, and what yaggui remembers between launches.
+
+## Open and close tabs
+
+- **New tab**: click **+** at the end of the tab strip, or press <kbd>⌘T</kbd> (<kbd>Ctrl+T</kbd> on Windows and Linux). A new tab shows the welcome screen, where you pick a repository (see [Open a repository](../../start-here/open-a-repository/)). Pressing it on a welcome tab focuses its search field instead of adding another empty tab.
+- **Close a tab**: click its **×**, middle-click it, press <kbd>⌘W</kbd> (<kbd>Ctrl+W</kbd> on Windows and Linux), or press <kbd>Delete</kbd> while the tab has focus. <kbd>⌘W</kbd> closes the tab, never the window. Closing the last tab leaves a new welcome tab.
+
+After a tab closes, the tab to its right becomes active (or the one to its left).
+
+Closing a tab never asks for confirmation. It cancels any yaggui command still running or waiting for that repository (a fetch, a push…) and closes its integrated terminals. Your files, changes and stashes, and a merge or rebase stopped on conflicts, stay as they are. To get the tab back, open the repository again from the welcome screen.
+
+## One tab per repository
+
+A repository opens in a single tab. Opening a repository that already has a tab switches to that tab instead of creating a second one. To work on two branches side by side, use a [worktree](../../repository/worktrees/): each worktree is a separate repository with its own tab.
+
+## Switch between tabs
+
+| Shortcut                                                                                   | Effect                                                       |
+| ------------------------------------------------------------------------------------------ | ------------------------------------------------------------ |
+| <kbd>Ctrl+Tab</kbd> / <kbd>Ctrl+Shift+Tab</kbd>                                            | Next / previous tab. This uses the Control key on macOS too. |
+| <kbd>⌘1</kbd> … <kbd>⌘8</kbd> (<kbd>Ctrl+1</kbd> … <kbd>Ctrl+8</kbd> on Windows and Linux) | Go to the tab at that position.                              |
+| <kbd>⌘9</kbd> (<kbd>Ctrl+9</kbd> on Windows and Linux)                                     | Go to the last tab, however many there are.                  |
+
+When a tab has keyboard focus, <kbd>←</kbd> / <kbd>→</kbd> move to the previous or next tab (wrapping around), and <kbd>Home</kbd> / <kbd>End</kbd> to the first or last one.
+
+The palette also offers **New tab**, **Close tab**, **Next tab** and **Previous tab**. All these shortcuts are defaults that you can change: see [Palette and shortcuts](../../customize/palette-and-shortcuts/).
+
+Switching between recently shown tabs is instant: yaggui keeps the last three repository views ready, and catches up on changes that happened while a tab was hidden.
+
+## Reorder tabs
+
+- **Drag** a tab along the strip.
+- With a tab focused, press <kbd>⌘⇧←</kbd> / <kbd>⌘⇧→</kbd> (<kbd>Ctrl+Shift+←</kbd> / <kbd>Ctrl+Shift+→</kbd> on Windows and Linux).
+- Use **Move left** / **Move right** in the tab's context menu.
+
+When tabs no longer fit, they shrink evenly, then the strip scrolls: use the mouse wheel over it.
+
+## Tab context menu
+
+Right-click a tab:
+
+| Item                           | Available when              | Effect                                                |
+| ------------------------------ | --------------------------- | ----------------------------------------------------- |
+| **Close tab**                  | Always                      | Closes this tab.                                      |
+| **Close other tabs**           | Two tabs or more            | Closes every other tab.                               |
+| **Close tabs to the right**    | The tab is not the last one | Closes the tabs to its right.                         |
+| **Move right** / **Move left** | The tab is not at that end  | Moves the tab one place.                              |
+| **Copy path**                  | Repository tabs             | Copies the repository path and shows **Path copied**. |
+
+## Tab indicators
+
+<Screenshot
+  dark={tabsIndicatorsDark}
+  light={tabsIndicatorsLight}
+  alt="Tab strip with three repositories: a spinner, a warning icon and a change count badge, and the tooltip of the active tab"
+/>
+
+A repository tab shows a colored dot (computed from the repository name, so it stays the same), the repository name, and:
+
+| Indicator          | Meaning                                                                                                                                              |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Spinner            | The repository is opening, or an operation (fetch, rebase, push…) is running.                                                                        |
+| Amber warning icon | A merge, rebase, cherry-pick, revert, bisect or patch application is in progress, or there are conflicts. See [Conflicts](../../history/conflicts/). |
+| Red error icon     | The repository could not be opened.                                                                                                                  |
+| Number badge       | Number of changed files: staged, modified, untracked and conflicted.                                                                                 |
+
+Hover a tab to see a tooltip with the name, the full path and a status line, for example "Rebase in progress · 1 conflict · 6 changes", or **Could not be opened**. Screen readers get the same text.
+
+## Restore tabs on restart
+
+yaggui saves your tabs shortly after every change: their order, the active tab, and the layout of each. On the next launch, each repository tab reopens.
+
+If a repository cannot be opened again, its tab shows the error with **Retry** and **Close tab**. When its folder no longer exists, the tab also offers **Locate…** (pick the new folder, see [Moved or deleted repositories](../../workspaces/workspaces/#moved-or-deleted-repositories)) and **Remove from recents**. See [Open a repository](../../start-here/open-a-repository/). A tab whose repository you removed from yaggui reopens as a welcome tab.
+
+## Layout remembered per repository
+
+The size and collapsed state of the panels, the sections of the left panel and the graph columns are saved per repository. When you open a repository again, in any tab, it comes back with the layout you left it with.

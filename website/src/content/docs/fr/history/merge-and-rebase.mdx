@@ -1,0 +1,175 @@
+---
+title: Merge et rebase
+description: Mergez, avancez en fast-forward ou rebasez une branche sur une autre par glisser-déposer, depuis la barre latérale ou depuis la palette de commandes.
+sidebar:
+  order: 4
+sources:
+  - src/features/history/MergeDialog.tsx
+  - src/features/history/RebaseDialog.tsx
+  - src/features/history/historyOps.ts
+  - src/features/history/mergePreference.ts
+  - src/features/history/dropActions.ts
+  - src/features/history/dnd/**
+  - src/features/sidebar/RefContextMenu.tsx
+  - src/features/palette/builtinActions.ts
+  - src-tauri/src/repo/history.rs
+  - src-tauri/src/commands/history.rs
+requirements: [F-026, F-140, F-141]
+---
+
+import Screenshot from '~/components/Screenshot.astro';
+import historyDropMenuDark from '../../../../assets/screens/history-drop-menu-fr-dark.png';
+import historyDropMenuLight from '../../../../assets/screens/history-drop-menu-fr-light.png';
+import historyMergeDialogDark from '../../../../assets/screens/history-merge-dialog-fr-dark.png';
+import historyMergeDialogLight from '../../../../assets/screens/history-merge-dialog-fr-light.png';
+
+Intégrez les commits d’une branche dans une autre : mergez-les, avancez la branche en fast-forward, ou rejouez-les par-dessus avec un rebase. Chaque action peut partir d’un glisser-déposer, du menu d’une branche dans la barre latérale ou de la palette de commandes.
+
+## Glisser une branche sur une autre
+
+1. Appuyez sur une branche dans la barre latérale ou sur une étiquette de branche (pastille) du graphe, locale ou distante, puis déplacez le pointeur. Le glissement démarre après quelques pixels et une étiquette portant le nom de la branche suit le pointeur.
+2. Relâchez-la sur une branche **locale**, dans la barre latérale ou sur une pastille du graphe. La branche sous le pointeur est mise en évidence. Les branches distantes ne sont pas des cibles de dépôt.
+3. Un menu intitulé **Déposé sur \{target\}** s’ouvre au niveau du pointeur. Choisissez une action, ou appuyez sur <kbd>Esc</kbd> pour annuler.
+
+Appuyez sur <kbd>Esc</kbd> pendant le glissement pour l’annuler.
+
+<Screenshot
+  dark={historyDropMenuDark}
+  light={historyDropMenuLight}
+  alt="Menu de dépôt après avoir glissé develop sur main, avec les entrées Merger, Rebaser et Avancer (fast-forward)"
+/>
+
+Quand vous glissez la branche `X` sur la branche `Y` :
+
+| Élément du menu                        | Ce qu’elle fait                                                                                      | Remarques                                                                                                                                                              |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Merger X dans Y…**                   | Ouvre la [boîte de dialogue de merge](#merger-une-branche)                                           | Indication **Bascule d’abord sur Y** quand `Y` n’est pas la branche courante                                                                                           |
+| **Rebaser X sur Y**                    | Demande confirmation, puis [rebase](#rebaser-sur-une-branche) `X` sur `Y`                            | Désactivée pour une branche distante : **Une branche distante ne peut pas être rebasée**. Indication **Bascule d’abord sur X** quand `X` n’est pas la branche courante |
+| **Avancer Y (fast-forward) jusqu’à X** | [Avance Y en fast-forward](#avancer-une-branche-en-fast-forward) jusqu’à `X`, sans boîte de dialogue | Indication **Bascule d’abord sur Y** quand `Y` n’est pas la branche courante                                                                                           |
+
+- Déposer une branche sur elle-même affiche une seule entrée désactivée, **Rien à faire : même branche**.
+- Glisser des commits plutôt qu’une branche propose un cherry-pick : voir [Cherry-pick, revert et reset](../../history/cherry-pick-revert-reset/#glisser-des-commits-sur-une-branche).
+- Tant qu’un merge, un rebase, un cherry-pick ou un revert est en cours, toutes les entrées sont désactivées avec l’indication **Termine ou annule d’abord l’opération en cours**.
+
+Quand la cible doit d’abord être extraite (checkout) et que des modifications locales gênent, yaggui ouvre la boîte de dialogue habituelle du checkout avec modifications locales et s’arrête là : voir [Branches](../../history/branches/).
+
+## Depuis la barre latérale
+
+Faites un clic droit sur une branche autre que celle qui est extraite. Le menu propose les mêmes trois actions, toujours par rapport à la branche courante :
+
+| Élément du menu                                         | Équivalent à                                                                  |
+| ------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| **Merger \{name\} dans \{current\}…**                   | Glisser `{name}` sur `{current}`, puis **Merger**                             |
+| **Rebaser \{name\} sur \{current\}**                    | Glisser `{name}` sur `{current}`, puis **Rebaser**                            |
+| **Avancer \{current\} (fast-forward) jusqu’à \{name\}** | Glisser `{name}` sur `{current}`, puis **Avancer … (fast-forward) jusqu’à …** |
+
+Ces entrées sont masquées quand HEAD est détaché, et désactivées pendant qu’une opération est en cours. **Rebaser** est désactivée sur les branches distantes.
+
+Ce menu est l’équivalent clavier du glisser-déposer : dans la barre latérale, appuyez sur <kbd>Shift+F10</kbd> ou sur la touche de menu contextuel, la branche étant sélectionnée.
+
+## Depuis la palette de commandes
+
+Ouvrez la palette avec <kbd>⌘K</kbd> (<kbd>Ctrl+K</kbd> sous Windows et Linux) et lancez :
+
+| Action                                           | Ce qu’elle ouvre                                                     |
+| ------------------------------------------------ | -------------------------------------------------------------------- |
+| **Merger une branche dans la branche courante…** | La boîte de dialogue de merge avec un sélecteur **Branche à merger** |
+| **Rebaser la branche courante sur…**             | La boîte de dialogue de rebase avec un sélecteur **Rebaser sur**     |
+
+Elles n’ont pas de raccourci par défaut ; vous pouvez en définir un (voir [Palette et raccourcis](../../customize/palette-and-shortcuts/)). Les deux sont indisponibles pendant qu’une opération est en cours.
+
+## Merger une branche
+
+La boîte de dialogue **Merger \{source\} dans \{target\}** affiche : « Choisis comment les commits de la branche sont intégrés. Ton choix est mémorisé. »
+
+<Screenshot
+  dark={historyMergeDialogDark}
+  light={historyMergeDialogLight}
+  alt="Boîte de dialogue de merge avec les trois modes de merge, le champ de message et l’aperçu des commandes"
+/>
+
+| Champ                 | Contenu                                                                                                                         |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| **Branche à merger**  | Uniquement quand la boîte est ouverte depuis la palette. Les branches locales sauf la cible, plus les branches distantes        |
+| **Mode de merge**     | L’un des trois modes ci-dessous                                                                                                 |
+| **Message du commit** | Uniquement pour **Toujours créer un commit de merge** et **Squash**. Laissez-le vide pour utiliser le message par défaut de Git |
+
+| Mode                                  | Texte d’aide                                                                                                | Option Git |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ---------- |
+| **Fast-forward si possible**          | Avance \{target\} sans nouveau commit si rien n’a divergé ; sinon crée un commit de merge.                  | `--ff`     |
+| **Toujours créer un commit de merge** | Garde la forme de l’historique : la branche reste visible dans le graphe.                                   | `--no-ff`  |
+| **Squash**                            | Regroupe tous les commits de la branche en un seul commit sur \{target\}. La branche n’y est pas rattachée. | `--squash` |
+
+Le dernier mode utilisé est mémorisé et présélectionné la fois suivante (il est conservé par la vue web de l’application, pas dans la base des préférences). Le mode par défaut est **Fast-forward si possible**.
+
+Quand la cible n’est pas extraite, la boîte de dialogue indique **\{target\} sera d’abord extraite (checkout).** Le bas de la boîte de dialogue affiche un aperçu des commandes, par exemple :
+
+```bash
+git checkout main
+git merge --no-ff feat/login
+```
+
+Cliquez sur **Merger** ou appuyez sur <kbd>Enter</kbd>. yaggui exécute :
+
+```bash
+git merge <--ff|--no-ff|--squash> --no-edit [-m <message>] -- <source>
+```
+
+`-m` n’est transmis que pour **Toujours créer un commit de merge**, quand vous avez saisi un message.
+
+Pour un squash, yaggui crée ensuite lui-même le commit avec `git commit -F -` (vos hooks s’exécutent). Le message est celui que vous avez saisi, sinon celui que Git a préparé, sinon `Squashed commit of <source>`.
+
+Notifications de résultat : **\{source\} mergée dans \{target\}**, **\{target\} avancée jusqu’à \{source\}**, **\{source\} squashée dans \{target\}**. Si la cible contient déjà tous les commits de la source, yaggui n’exécute rien et affiche **\{target\} contient déjà \{source\}**.
+
+Si un squash n’apporte rien de nouveau, la notification **Le squash n’apporte aucun changement** explique qu’il n’y a rien à committer et propose **Annuler le merge** pour nettoyer.
+
+Pour les stratégies de merge elles-mêmes, voir [git-merge](https://git-scm.com/docs/git-merge).
+
+## Avancer une branche en fast-forward
+
+**Avancer \{target\} (fast-forward) jusqu’à \{source\}** (menu de dépôt ou barre latérale) s’exécute sans boîte de dialogue : yaggui extrait la cible si nécessaire, puis exécute
+
+```bash
+git merge --ff-only --no-edit -- <source>
+```
+
+Si les branches ont divergé, Git refuse et vous voyez : « Les branches ont divergé : impossible d'avancer rapidement (fast-forward) vers « \{source\} ». Fais un merge avec commit de merge, ou un rebase. » La notification contient un bouton **Merger à la place…** qui ouvre la boîte de dialogue de merge pour les deux mêmes branches.
+
+## Rebaser sur une branche
+
+Un rebase rejoue les commits d’une branche au-dessus d’une autre branche ; ils reçoivent de nouveaux SHA ([git-rebase](https://git-scm.com/docs/git-rebase)). Pour réordonner, regrouper ou modifier des commits, utilisez le [rebase interactif](../../history/interactive-rebase/).
+
+- **Depuis la palette** : la boîte de dialogue **Rebaser \{branch\} sur \{onto\}** rebase la branche courante. Choisissez la branche dans **Rebaser sur** (branches locales sauf la courante, et branches distantes), vérifiez l’aperçu `git rebase <onto>`, puis cliquez sur **Rebaser**. La boîte de dialogue tient lieu de confirmation.
+- **Depuis le menu de dépôt ou la barre latérale** : une confirmation **Rebaser \{branch\} sur \{onto\} ?** explique : « Les commits de \{branch\} sont rejoués au-dessus de \{onto\} : ils reçoivent de nouveaux SHA. Si \{branch\} a déjà été poussée, il faudra un force push (avec lease). » Quand la branche rebasée n’est pas la branche courante, elle ajoute « \{branch\} est extraite (checkout) pour le rebase et le reste ensuite. » La commande affichée est `git rebase <onto> <branch>`. Cliquez sur **Rebaser**.
+
+yaggui résout `<onto>` en un commit et exécute `git rebase <onto-sha> [<branch>]`. L’étape (`Rebasing 3/7`) s’affiche dans la barre d’état. En cas de succès : **\{branch\} rebasée sur \{onto\}**, ou **\{branch\} est déjà basée sur \{onto\}** quand il n’y avait rien à rejouer.
+
+:::note
+yaggui ne vérifie pas si les commits rebasés ont été poussés. La confirmation vous rappelle seulement qu’une branche déjà poussée nécessitera ensuite un force push avec lease : voir [Fetch, pull et push](../../remotes/fetch-pull-push/).
+:::
+
+Erreurs propres au rebase :
+
+- « HEAD est détaché (aucune branche courante) : fais d'abord un checkout d'une branche. » quand vous rebasez la branche courante alors que HEAD est détaché.
+- Le rebase est désactivé pour une branche distante, qui n’a rien à réécrire en local.
+
+## Modifications locales et conflits
+
+- Le **rebase** refuse dès qu’un fichier suivi comporte des modifications, indexées ou non : « Tes modifications locales seraient écrasées par le rebase. Commite-les ou mets-les de côté (stash) d'abord. » Les fichiers non suivis ne le bloquent pas.
+- Le **merge** et le **fast-forward** s’exécutent avec des modifications locales ; Git ne refuse que si elles seraient écrasées : « Tes modifications locales seraient écrasées par le merge. Commite-les ou mets-les de côté (stash) d'abord. »
+- Dans les deux cas, la notification d’erreur liste jusqu’à trois chemins et propose **Voir les changements**. Committez ou mettez de côté ([stash](../../everyday/stash/)) les modifications, puis recommencez.
+- Une autre opération en cours bloque les trois actions : « Une autre opération (merge, rebase, cherry-pick, revert ou bisect) est en cours : continue-la ou annule-la d'abord. » Il en va de même des fichiers encore en conflit : « Des fichiers sont encore en conflit : résous-les (et stage-les) d'abord. »
+
+Quand Git s’arrête sur des conflits, le merge ou le rebase reste en cours. Une notification indique combien de fichiers sont en conflit et propose **Voir les conflits**, un bandeau apparaît au-dessus du graphe, et le travail en cours est sélectionné afin que le panneau des conflits s’affiche. Résolvez les fichiers, puis choisissez **Continuer**, **Passer** (rebase uniquement) ou le bouton d’annulation (**Annuler le merge**, **Annuler le rebase**) : voir [Résoudre les conflits](../../history/conflicts/).
+
+Chaque commande apparaît dans le [journal des commandes](../../reference/command-log/).
+
+## Annulation
+
+| Opération                                                     | Annulable                                                                                                                        |
+| ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Merge, fast-forward ou squash terminé d’un seul coup          | Oui, avec <kbd>⌘Z</kbd> (<kbd>Ctrl+Z</kbd> sous Windows et Linux) : **merge de \{source\}**                                      |
+| Merge arrêté sur des conflits puis terminé avec **Continuer** | Non                                                                                                                              |
+| Rebase                                                        | Non. Tant qu’il est en cours, **Annuler le rebase** restaure la branche ; ensuite, passez par le [reflog](../../inspect/reflog/) |
+
+Annuler un merge exécute `git reset --keep` vers le commit précédent. Quand yaggui a d’abord extrait la cible, ce checkout est une entrée distincte : annulez-le aussi pour revenir à la branche sur laquelle vous étiez. Détails et limites : [Annuler et rétablir](../../history/undo-and-redo/).

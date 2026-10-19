@@ -1,0 +1,90 @@
+/*
+ * Theme adapter: the only place where the site gets its colors. They come from the app's themes
+ * (Graphite = dark, Paper = light); astro.config.ts rewrites their selectors to the site's
+ * `data-theme='dark' | 'light'`. Never put a color value here: map an app variable instead.
+ * Used by the landing pages (layouts/SiteLayout.astro) and by Starlight (customCss).
+ */
+@import '@fontsource-variable/inter';
+@import '@fontsource-variable/jetbrains-mono';
+@import '../../../src/theme/tokens.css';
+@import '../../../src/theme/graphite.css';
+@import '../../../src/theme/paper.css';
+
+:root {
+  /* Site palette (names of docs/ui/website.html). */
+  --bg: var(--bg-app);
+  --panel: var(--bg-panel);
+  --elev: var(--bg-elevated);
+  --sunk: var(--bg-titlebar);
+  --fg: var(--fg-primary);
+  --fg2: var(--fg-secondary);
+  --muted: var(--fg-muted);
+  --line: var(--border-subtle);
+  --line2: var(--border-strong);
+  --accent-2: var(--accent-hover);
+  --btn: var(--fg-primary);
+  --btn-fg: var(--bg-app);
+  --l0: var(--lane-0);
+  --l1: var(--lane-1);
+  --l2: var(--lane-2);
+  --l3: var(--lane-3);
+  --l4: var(--lane-4);
+  --add: var(--lane-4);
+  --del: var(--danger);
+  --card: color-mix(in srgb, var(--fg-primary) 2%, transparent);
+  --grid: color-mix(in srgb, var(--fg-primary) 3.5%, transparent);
+  --shadow: 0 40px 120px -40px color-mix(in srgb, var(--bg-titlebar) 80%, transparent);
+  --glow: color-mix(in srgb, var(--accent) 18%, transparent);
+  --sans: var(--font-ui);
+  --mono: var(--font-code);
+
+  /* Starlight. Its light values are layered, so this unlayered block wins in both themes. */
+  --sl-font: var(--font-ui);
+  --sl-font-mono: var(--font-code);
+  --sl-color-white: var(--fg-primary);
+  --sl-color-gray-1: var(--fg-primary);
+  --sl-color-gray-2: var(--fg-secondary);
+  --sl-color-gray-3: var(--fg-muted);
+  --sl-color-gray-4: var(--fg-muted);
+  --sl-color-gray-5: var(--border-strong);
+  --sl-color-gray-6: var(--border-subtle);
+  --sl-color-gray-7: var(--bg-panel);
+  --sl-color-black: var(--bg-app);
+  --sl-color-accent-low: var(--accent-soft);
+  --sl-color-accent: var(--accent);
+  --sl-color-accent-high: var(--accent-hover);
+  --sl-color-text: var(--fg-secondary);
+  --sl-color-text-accent: var(--accent);
+  --sl-color-text-invert: var(--accent-fg);
+  --sl-color-bg: var(--bg-app);
+  --sl-color-bg-nav: var(--bg-app);
+  --sl-color-bg-sidebar: var(--bg-app);
+  --sl-color-bg-inline-code: var(--bg-elevated);
+  --sl-color-bg-accent: var(--accent);
+  --sl-color-hairline-light: var(--border-subtle);
+  --sl-color-hairline: var(--border-subtle);
+  --sl-color-hairline-shade: var(--border-strong);
+  --sl-color-backdrop-overlay: var(--bg-scrim);
+  --sl-color-orange-low: color-mix(in srgb, var(--warning) 14%, transparent);
+  --sl-color-orange: var(--warning);
+  --sl-color-orange-high: var(--warning);
+  --sl-color-green-low: color-mix(in srgb, var(--success) 14%, transparent);
+  --sl-color-green: var(--success);
+  --sl-color-green-high: var(--success);
+  --sl-color-blue-low: color-mix(in srgb, var(--info) 14%, transparent);
+  --sl-color-blue: var(--info);
+  --sl-color-blue-high: var(--info);
+  --sl-color-purple-low: var(--accent-soft);
+  --sl-color-purple: var(--accent);
+  --sl-color-purple-high: var(--accent-hover);
+  --sl-color-red-low: var(--danger-soft);
+  --sl-color-red: var(--danger);
+  --sl-color-red-high: var(--danger);
+}
+
+:root[data-theme='light'] {
+  --card: color-mix(in srgb, var(--bg-panel) 70%, transparent);
+  --grid: color-mix(in srgb, var(--fg-primary) 4.5%, transparent);
+  --shadow: 0 40px 100px -40px color-mix(in srgb, var(--fg-primary) 30%, transparent);
+  --glow: color-mix(in srgb, var(--accent) 10%, transparent);
+}

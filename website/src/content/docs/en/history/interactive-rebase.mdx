@@ -1,0 +1,136 @@
+---
+title: Interactive rebase
+description: Reorder, reword, squash, fix up, drop or edit the commits of the current branch in a visual editor, then run the rebase.
+sidebar:
+  order: 6
+sources:
+  - src/features/rebase/**
+  - src/features/graph/CommitContextMenu.tsx
+  - src/features/palette/builtinActions.ts
+  - src-tauri/src/repo/interactive.rs
+  - src-tauri/src/git/ops/rebase_todo.rs
+  - src-tauri/src/commands/history.rs
+requirements: [F-142]
+---
+
+import Screenshot from '~/components/Screenshot.astro';
+import rebaseTodoDark from '../../../../assets/screens/rebase-todo-dark.png';
+import rebaseTodoLight from '../../../../assets/screens/rebase-todo-light.png';
+
+The interactive rebase editor rewrites the recent commits of the current branch: you arrange them in a list, check the result, and yaggui runs `git rebase --interactive` for you without opening a text editor. For the Git side, see [Rewriting history](https://git-scm.com/book/en/v2/Git-Tools-Rewriting-History).
+
+## Start an interactive rebase
+
+You choose a **base**: the commit the rewritten commits are placed on. The base itself is not changed; every commit above it, up to the tip of the current branch, is listed (like `git rebase -i <base>`).
+
+- **From a commit**: right-click a commit of the current branch in the graph and choose **Interactive rebase from here…**. That commit is the base.
+- **From the palette**: run **Interactive rebase from…** (<kbd>⌘K</kbd>, or <kbd>Ctrl+K</kbd> on Windows and Linux). If a commit other than HEAD is selected in the graph, it is the base. Otherwise a picker asks "Rebase on top of which commit? The commits above it will be listed." and lists the 30 latest commits of the branch (first parents only), each with **\{count\} commits above**. Use <kbd>↑</kbd>/<kbd>↓</kbd> and <kbd>Enter</kbd>, or click one.
+
+The editor replaces the graph. Both entry points are disabled while another operation is in progress.
+
+The editor refuses to start, with a message, when:
+
+| Message                                                                                                                    | Cause                                                             |
+| -------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| "HEAD is detached (no current branch): check out a branch first."                                                          | No branch is checked out                                          |
+| "\{short\} is not an ancestor of the current branch."                                                                      | The base is not in the history of the current branch              |
+| "More than 200 commits to rebase: choose a more recent base."                                                              | The range is too long                                             |
+| **There is no commit after this base: nothing to rebase.**                                                                 | The base is the tip of the branch                                 |
+| **This range contains merge commits. yaggui does not rebuild merges in an interactive rebase: choose a more recent base.** | A merge commit is above the base; **Start rebase** stays disabled |
+
+Your edits live only in the open editor: leaving it (**Cancel**, <kbd>Esc</kbd>) discards them, and choosing another base starts over.
+
+## Edit the list
+
+<Screenshot
+  dark={rebaseTodoDark}
+  light={rebaseTodoLight}
+  alt="Interactive rebase editor with commits set to reword, squash, fixup, drop and edit, and the Result panel"
+/>
+
+The header shows the branch, **onto \{sha\} \{summary\}** and the number of commits. The list **Commits to rebase, newest first** has the newest commit on top, like the graph, so "below" means older. Each row shows a drag grip, the SHA, summary, author and date, a **Pushed** badge when the commit is already on the upstream (**Already on \{target\}**), and the action buttons.
+
+### Actions
+
+Click a button on the row, or focus the row and press its key (no modifier):
+
+| Action     | Key          | Effect                                             |
+| ---------- | ------------ | -------------------------------------------------- |
+| **Pick**   | <kbd>P</kbd> | Keep the commit as it is                           |
+| **Reword** | <kbd>R</kbd> | Keep the changes, write a new message              |
+| **Squash** | <kbd>S</kbd> | Meld into the commit below, combining the messages |
+| **Fixup**  | <kbd>F</kbd> | Meld into the commit below, keeping its message    |
+| **Drop**   | <kbd>D</kbd> | Remove the commit                                  |
+| **Edit**   | <kbd>E</kbd> | Stop after this commit to amend it or add commits  |
+
+Rows that are melded show **Melded into "\{summary\}"**; an **Edit** row shows **The rebase stops here**.
+
+### Reorder
+
+- Drag a row by its grip and drop it above or below another row. The list scrolls when you approach its edges.
+- Or focus a row and press <kbd>⌥↑</kbd>/<kbd>⌥↓</kbd> (<kbd>Alt+↑</kbd>/<kbd>Alt+↓</kbd> on Windows and Linux) to move it up or down.
+
+Other keys in the list: <kbd>↑</kbd>/<kbd>↓</kbd> move the focus, <kbd>Home</kbd>/<kbd>End</kbd> go to the newest/oldest commit, <kbd>Esc</kbd> cancels a drag or leaves the editor. The footer recalls these keys.
+
+### Edit a message
+
+A reworded commit, or the last squashed commit of a group, carries the new message. Click **Edit message** on that row, or focus it and press <kbd>Enter</kbd>. An inline editor opens with a summary field (with a `n/72` counter) and a description field.
+
+- The default message is the original message for a reword, and the head message followed by each squashed message for a squash group. A fixup keeps the message of the commit it melds into.
+- **Lines starting with # are kept.**
+- **Use the default message** restores the default; **Done**, <kbd>Esc</kbd> or <kbd>⌘Enter</kbd> (<kbd>Ctrl+Enter</kbd> on Windows and Linux) closes the editor.
+
+### Validation
+
+Rows with a problem are highlighted and **Start rebase** is disabled with **Fix the highlighted commits to start**:
+
+- **Nothing below to meld into: keep a commit below it**: a squash or fixup has no kept commit below it.
+- **The message needs a summary**: a reword or squash message is empty.
+- **Every commit is dropped: reset the branch instead.** (see [Reset](../../history/cherry-pick-revert-reset/#reset-the-current-branch)).
+
+When nothing changed, the hint is **Change at least one commit to start**.
+
+### Result preview
+
+The **Result** panel shows the commits as they will be after the rebase: **\{count\} commits**, **\{count\} commits dropped**, and for each commit chips such as **\{count\} melded**, **edited message** or **stops for editing**. Its footer recalls the base: **on top of \{sha\} \{summary\}**.
+
+To leave without doing anything, click **Cancel** or press <kbd>Esc</kbd>.
+
+## Confirm and run
+
+Click **Start rebase**. The confirmation **Rewrite \{count\} commits of \{branch\}?** counts the commits from the first changed one to the tip, says they "will be rewritten and get new SHAs", and shows `git rebase -i <base>`.
+
+If some rewritten commits are already on the upstream, the confirmation turns into a warning: "\{count\} of the rewritten commits of \{branch\} are already on \{target\}. Once rebased, \{branch\} diverges from \{target\} and only a force push (--force-with-lease) can update it." It lists each of those commits as **pushed to \{target\}**. See [Force push](../../remotes/fetch-pull-push/).
+
+Confirm with **Start rebase**. yaggui:
+
+1. Checks that no operation is in progress and no tracked file has local changes ("Your local changes would be overwritten by the rebase. Commit or stash them first.").
+2. Creates the commits that carry a new message (rewords and squash groups) with `git commit-tree`, keeping the original author and date.
+3. Writes the todo list itself (`pick`, `fixup`, `edit`, `drop` lines) to a private temporary folder, deleted afterwards.
+4. Runs `git rebase --interactive <base>` with Git's editors replaced, so no editor ever opens.
+
+Progress shows in the status bar. When it completes: **Rebase of \{branch\} completed**, and the graph comes back.
+
+If the branch changed since the list was loaded, the rebase does not start ("The list of commits no longer matches the branch (it changed meanwhile): reload it.") and the editor shows **The rebase did not start** with **Reload the commits**.
+
+## When the rebase stops
+
+### On an Edit commit
+
+A **Rebase stopped** panel shows **Rebase stopped at step \{step\}/\{total\} on \{sha\} \{summary\}** and "Amend this commit or add commits on top of it, then continue." HEAD is detached while the rebase runs. Amend the commit or add new ones from the commit panel (see [Committing](../../everyday/committing/)), then click **Continue**.
+
+The panel has **Continue**, **Abort rebase** and **Close (the rebase stays in progress)**. There is no **Skip** on an edit stop.
+
+### On conflicts
+
+The panel shows **Conflicts at step \{step\}/\{total\}**, "Resolve the conflicts in the changes panel, then continue." and **\{count\} files still in conflict**. The merge editor opens on the first conflicted file; **Graph** in its toolbar goes back to the panel. When every file is resolved, the panel says **All conflicts are resolved.** and **Continue** becomes available. **Skip** drops the current commit. See [Resolve conflicts](../../history/conflicts/).
+
+After **Continue** or **Skip**, the panel follows the next stop, or closes when the rebase is done. You can also continue or abort from the [operation banner](../../history/conflicts/#the-operation-in-progress-banner) above the graph; the editor closes by itself once the rebase is no longer in progress.
+
+:::caution
+**Abort rebase** in this panel runs `git rebase --abort` without asking for confirmation (the banner's **Abort rebase** asks). The branch goes back to how it was before the rebase. Toast: **Rebase of \{branch\} aborted**.
+:::
+
+## Undo
+
+An interactive rebase is not recorded in the undo history: <kbd>⌘Z</kbd> does not revert it. While it is in progress, **Abort rebase** restores the branch. After it completes, find the previous tip in the [reflog](../../inspect/reflog/) and reset the branch to it. See [Undo and redo](../../history/undo-and-redo/).

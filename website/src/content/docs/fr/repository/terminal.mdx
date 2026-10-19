@@ -1,0 +1,114 @@
+---
+title: Terminal
+description: Utiliser le panneau de terminal intégré d’un dépôt, ou ouvrir un terminal externe dans son dossier.
+sidebar:
+  order: 4
+sources:
+  - src/features/terminal/**
+  - src/features/toolbar/Toolbar.tsx
+  - src/features/preferences/ToolsTab.tsx
+  - src/app/RepoView.tsx
+  - src-tauri/src/system/pty.rs
+  - src-tauri/src/system/terminal.rs
+  - src-tauri/src/commands/pty.rs
+  - src-tauri/src/commands/system.rs
+requirements: [F-266, F-267]
+---
+
+import Screenshot from '~/components/Screenshot.astro';
+import terminalPanelDark from '../../../../assets/screens/terminal-panel-fr-dark.png';
+import terminalPanelLight from '../../../../assets/screens/terminal-panel-fr-light.png';
+import terminalPrefsToolsDark from '../../../../assets/screens/terminal-prefs-tools-fr-dark.png';
+import terminalPrefsToolsLight from '../../../../assets/screens/terminal-prefs-tools-fr-light.png';
+
+yaggui donne à chaque dépôt un panneau de terminal en bas de sa vue, qui exécute votre shell dans le dossier du dépôt. Si vous préférez votre propre application de terminal, faites en sorte que le bouton **Terminal** ouvre celle-ci à la place.
+
+## Ouvrir le terminal intégré
+
+Quand un dépôt est ouvert, utilisez l’un de ces points d’entrée :
+
+| Point d’entrée                                                                  | Effet                                                                                                                         |
+| ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| Bouton **Terminal** de la barre d’outils                                        | Affiche ou masque le panneau.                                                                                                 |
+| <kbd>Ctrl+&#96;</kbd>, action de la palette **Afficher ou masquer le terminal** | Ouvre le panneau ; s’il est ouvert mais sans le focus, donne le focus au terminal actif ; s’il a le focus, masque le panneau. |
+| <kbd>Ctrl+Shift+&#96;</kbd>, action de la palette **Nouveau terminal**          | Ouvre un terminal supplémentaire dans le panneau.                                                                             |
+
+Les deux raccourcis utilisent la touche Contrôle sur tous les systèmes, macOS compris (<kbd>⌃&#96;</kbd>, et non <kbd>⌘&#96;</kbd>), et la touche à gauche de <kbd>1</kbd> quelle que soit votre disposition de clavier. Ce sont des valeurs par défaut : vous pouvez les réattribuer (voir [Palette et raccourcis](../../customize/palette-and-shortcuts/)).
+
+La première fois que vous affichez le panneau, il démarre un terminal.
+
+<Screenshot
+  dark={terminalPanelDark}
+  light={terminalPanelLight}
+  alt="Le panneau de terminal intégré en bas d’un dépôt, avec deux onglets de terminal et la sortie de git status"
+/>
+
+## Utiliser le panneau
+
+- **Plusieurs terminaux.** L’en-tête liste les terminaux sous forme d’onglets, nommés d’après le shell (par exemple `zsh` ou `pwsh`). Cliquez sur **+** (**Nouveau terminal**) pour en ajouter un.
+- **Fermer un terminal.** Cliquez sur la croix de son onglet. Cela met fin à son shell. Fermer le dernier terminal ferme le panneau.
+- **Masquer le panneau.** Cliquez sur **Masquer le terminal** à droite de l’en-tête, ou appuyez sur <kbd>Ctrl+&#96;</kbd> quand un terminal a le focus. Les shells continuent de tourner.
+- **Redimensionner.** Faites glisser le bord supérieur du panneau, ou donnez-lui le focus et appuyez sur <kbd>↑</kbd> / <kbd>↓</kbd> (16 px par pas). Le shell reçoit la nouvelle taille. La hauteur est partagée par tous les dépôts et revient à sa valeur par défaut au redémarrage de yaggui.
+
+Tant qu’un terminal a le focus, toutes les touches vont au shell, <kbd>Ctrl+C</kbd> compris, sauf la palette de commandes (<kbd>⌘K</kbd>, <kbd>Ctrl+K</kbd> sous Windows et Linux) et les deux raccourcis du terminal. Pour copier une sélection, appuyez sur <kbd>⌘C</kbd> (<kbd>Ctrl+Shift+C</kbd> sous Windows et Linux) ; pour coller, sur <kbd>⌘V</kbd> (<kbd>Ctrl+Shift+V</kbd> sous Windows et Linux).
+
+Le terminal suit le thème de l’application, la police de code et la taille de police des Préférences. Le style **Terminal** de l’onglet Apparence lui donne un fond presque noir. Voir [Apparence](../../customize/appearance/).
+
+## Quel shell est lancé
+
+Le shell démarre dans le dossier de travail du dépôt.
+
+| Système      | Shell                                                                                    |
+| ------------ | ---------------------------------------------------------------------------------------- |
+| macOS, Linux | Votre shell de connexion : `$SHELL`, sinon celui de votre compte utilisateur.            |
+| Windows      | PowerShell 7 (`pwsh.exe`), sinon Windows PowerShell (`powershell.exe`), sinon `cmd.exe`. |
+
+Le shell hérite de l’environnement de yaggui, avec `TERM=xterm-256color` et `COLORTERM=truecolor`. Les commandes que vous tapez vous appartiennent : elles n’apparaissent pas dans le [journal des commandes](../../reference/command-log/) et yaggui ne peut pas les annuler.
+
+Quand le shell se termine (par exemple après `exit`), le terminal conserve sa sortie et ajoute `[processus terminé]` (ou `[processus terminé avec le code N]`). Fermez son onglet, ou ouvrez un nouveau terminal.
+
+## Durée de vie des terminaux
+
+- Chaque dépôt a son propre panneau et ses propres terminaux.
+- Passer à un autre onglet puis revenir laisse les terminaux en marche, avec leur sortie (jusqu’à 5000 lignes d’historique de défilement).
+- Les terminaux d’un dépôt se terminent quand vous fermez son dernier onglet, quand vous retirez le dépôt de yaggui et quand vous quittez yaggui. Ils ne sont pas restaurés au lancement suivant.
+
+## Utiliser un terminal externe
+
+Pour que le bouton **Terminal** ouvre votre propre application de terminal :
+
+1. Ouvrez les Préférences (<kbd>⌘,</kbd>, <kbd>Ctrl+,</kbd> sous Windows et Linux) et allez dans **Outils**.
+2. Réglez **Terminal** sur **Externe**.
+3. Si vous le souhaitez, cliquez sur **Configurer…** à côté de **Terminal externe** pour choisir lequel. **Tester** le lance.
+
+En mode Externe, le bouton **Terminal**, <kbd>Ctrl+&#96;</kbd> et <kbd>Ctrl+Shift+&#96;</kbd> ouvrent le terminal externe dans le dossier du dépôt. Quel que soit le mode, l’action de la palette **Ouvrir le terminal externe dans le dépôt** ouvre le terminal externe.
+
+<Screenshot
+  dark={terminalPrefsToolsDark}
+  light={terminalPrefsToolsLight}
+  alt="L’onglet Outils des Préférences, avec le réglage Terminal sur Intégré et la ligne Terminal externe"
+/>
+
+### Boîte de dialogue du réglage du terminal
+
+Ouvrez-la avec **Configurer…** dans les Préférences, l’action de la palette **Réglage du terminal…**, l’entrée **Réglage du terminal…** du menu de l’application sous macOS, ou **Choisir un terminal…** à la suite d’une erreur de terminal. Elle ne comporte qu’un champ **Terminal** ; cliquez sur **Enregistrer**. Laissez-le vide pour utiliser la valeur par défaut du système.
+
+| Système | Quoi saisir                                                                                                                                                                                         | Valeur par défaut (champ vide)                                                                                                                                              |
+| ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| macOS   | Un nom d’application, par exemple `iTerm` ou `Warp`. yaggui lance `open -a <app> <repo folder>`.                                                                                                    | Terminal                                                                                                                                                                    |
+| Windows | Un nom de programme présent dans le `PATH`, ou un chemin complet. Windows Terminal (`wt` ou `wt.exe`) reçoit `-d <repo folder>` ; tout autre programme démarre avec le dépôt comme dossier courant. | Windows Terminal, sinon `cmd`                                                                                                                                               |
+| Linux   | Un nom de programme présent dans le `PATH`, ou un chemin complet. Il démarre avec le dépôt comme dossier courant, sans argument.                                                                    | Le premier trouvé parmi `$TERMINAL`, `x-terminal-emulator`, `gnome-terminal`, `konsole`, `xfce4-terminal`, `kgx`, `tilix`, `alacritty`, `kitty`, `wezterm`, `foot`, `xterm` |
+
+Quand vous définissez un terminal, yaggui n’essaie que celui-là. Il n’existe pas de modèle d’arguments : sous Windows et Linux, le programme est lancé dans le dossier du dépôt.
+
+## Erreurs
+
+| Message                                                                                                                                       | Que faire                                                                                                      |
+| --------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| **Impossible d’ouvrir un terminal** : « Le terminal « `<name>` » n’a pas pu être lancé. Vérifie son nom dans le réglage du terminal. »        | Cliquez sur **Choisir un terminal…** et corrigez le nom ou le chemin.                                          |
+| **Impossible d’ouvrir un terminal** : « Aucun terminal n’a été trouvé sur ce système. Choisis celui à utiliser dans le réglage du terminal. » | Cliquez sur **Choisir un terminal…** et saisissez un terminal que vous avez installé.                          |
+| **Le terminal n’a pas pu démarrer** : « Le shell « `<shell>` » n’a pas pu être lancé dans le terminal intégré. »                              | Vérifiez que votre shell (`$SHELL` sous macOS et Linux) existe et fonctionne, ou utilisez un terminal externe. |
+| « Ce terminal est fermé : ouvres-en un nouveau. »                                                                                             | Le shell s’est terminé : ouvrez un nouveau terminal.                                                           |
+| « Le terminal doit être un nom de programme ou d’application. »                                                                               | Le réglage Terminal est trop long ou invalide : saisissez un simple nom ou chemin.                             |
+
+Voir [Messages d’erreur](../../reference/error-messages/) pour le catalogue complet.

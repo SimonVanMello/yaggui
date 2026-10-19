@@ -1,0 +1,135 @@
+---
+title: Worktrees
+description: Lister, créer, ouvrir, supprimer et nettoyer les worktrees Git depuis yaggui.
+sidebar:
+  order: 2
+sources:
+  - src/features/worktrees/**
+  - src/features/sidebar/RefTreeRow.tsx
+  - src/features/sidebar/RefContextMenu.tsx
+  - src-tauri/src/repo/modules.rs
+  - src-tauri/src/git/read/refs.rs
+  - src-tauri/src/repo/journal.rs
+requirements: [F-261]
+---
+
+import Screenshot from '~/components/Screenshot.astro';
+import worktreeCreateDark from '../../../../assets/screens/worktree-create-fr-dark.png';
+import worktreeCreateLight from '../../../../assets/screens/worktree-create-fr-light.png';
+import worktreeRemoveDark from '../../../../assets/screens/worktree-remove-fr-dark.png';
+import worktreeRemoveLight from '../../../../assets/screens/worktree-remove-fr-light.png';
+
+Un worktree est un second dossier de travail rattaché au même dépôt, avec sa propre branche extraite (voir [git worktree](https://git-scm.com/docs/git-worktree)). yaggui les liste, les crée et les supprime, et ouvre chacun dans son propre onglet.
+
+## Voir les worktrees
+
+La section **Worktrees** du panneau gauche liste, par nom de dossier, le worktree principal et chaque worktree lié, y compris celui qu’affiche l’onglet courant. Elle est repliée par défaut et indique **Aucun autre worktree** quand il n’y en a pas.
+
+- Le worktree affiché par l’onglet courant est mis en évidence comme courant.
+- Une icône de cadenas marque un worktree verrouillé (`git worktree lock`).
+- Une pastille **disparu** marque un worktree dont le dossier n’existe plus. Infobulle : **Le dossier n’existe plus : nettoie (prune) pour l’oublier**.
+
+Un clic sur un worktree sélectionne son commit HEAD dans le graphe.
+
+Une branche locale extraite dans un autre worktree porte une marque en forme de dossier, avec l’infobulle « Extraite dans le worktree `<path>` ». Vous ne pouvez pas l’extraire ici : un double-clic affiche ce message, et **Basculer sur `<name>`** dans son menu est désactivé avec l’indication **Extraite dans un autre worktree**.
+
+## Menu contextuel d’un worktree
+
+Faites un clic droit sur un worktree. Pour le worktree courant, le menu ne propose que **Nouveau worktree…** et les entrées de copie. Pour les autres :
+
+| Élément                             | Quand                                                                 | Effet                                               |
+| ----------------------------------- | --------------------------------------------------------------------- | --------------------------------------------------- |
+| **Ouvrir dans un nouvel onglet**    | Désactivée avec **Le dossier n’existe plus** pour un worktree disparu | Ouvre le dossier du worktree comme onglet de dépôt. |
+| **Nouveau worktree…**               | Toujours                                                              | Ouvre la boîte de dialogue de création.             |
+| **Nettoyer les worktrees disparus** | Le worktree a disparu                                                 | Lance `git worktree prune`.                         |
+| **Supprimer le worktree…**          | Ce n’est pas le worktree principal                                    | Ouvre la boîte de dialogue de suppression.          |
+| **Copier le chemin**                | Toujours                                                              | Copie le chemin du dossier du worktree.             |
+| **Copier le SHA**                   | Toujours                                                              | Copie le SHA de son HEAD.                           |
+
+La palette propose **Nouveau worktree…** (quand un dépôt est ouvert) et **Nettoyer les worktrees disparus (prune)** (quand un worktree a disparu). Aucune des deux n’a de raccourci par défaut.
+
+## Créer un worktree
+
+1. Partez de l’un de ces points d’entrée :
+   - **Nouveau worktree…** dans le menu contextuel d’un worktree ou dans la [palette de commandes](../../customize/palette-and-shortcuts/).
+   - **Extraire dans un nouveau worktree…** dans le menu contextuel d’une branche locale. La boîte de dialogue s’ouvre en mode **Branche existante**, avec cette branche sélectionnée. L’entrée est désactivée quand la branche est déjà extraite ici ou dans un autre worktree.
+2. Choisissez le mode :
+   - **Nouvelle branche** (par défaut) : saisissez le **Nom de la nouvelle branche** (vérifié au fil de la saisie, comme dans la boîte de dialogue des branches) et le **Point de départ** : n’importe quelle branche, tag ou SHA. Par défaut, c’est la branche courante, ou `HEAD` en HEAD détaché.
+   - **Branche existante** : choisissez la **Branche à extraire** parmi les branches locales qui ne sont extraites dans aucun worktree. S’il n’y en a aucune, la boîte de dialogue indique **Toutes les branches locales sont déjà extraites dans un worktree.**
+3. Vérifiez le **Dossier**. Il doit être nouveau ou vide. Par défaut, yaggui propose un dossier voisin du dépôt, nommé d’après la branche : pour `hotfix/login` dans `/Users/alex/dev/yaggui`, il propose `/Users/alex/dev/yaggui-hotfix-login`. La suggestion suit le nom de la branche tant que vous ne modifiez pas le champ. **Choisir…** ouvre un sélecteur de dossier.
+4. Laissez **L’ouvrir dans un nouvel onglet** coché pour ouvrir aussitôt le nouveau worktree (c’est le comportement par défaut).
+5. Vérifiez la commande affichée en bas, puis cliquez sur **Créer le worktree**.
+
+La boîte de dialogue affiche la commande qu’elle va lancer :
+
+```bash
+# New branch (the starting point is resolved to a full SHA)
+git worktree add -b <branch> -- <folder> <start>
+# Existing branch
+git worktree add -- <folder> <branch>
+```
+
+La barre d’état affiche l’opération sous le nom **Worktree**. Une fois terminée, yaggui affiche **Worktree créé** et, si vous l’avez demandé, ouvre le nouveau worktree dans un onglet. Le nouveau dossier devient alors un dépôt connu comme les autres.
+
+<Screenshot
+  dark={worktreeCreateDark}
+  light={worktreeCreateLight}
+  alt="La boîte de dialogue Nouveau worktree en mode Nouvelle branche, avec le nom de la branche, le point de départ, le dossier et la commande git worktree add"
+/>
+
+### Erreurs à la création
+
+Les erreurs s’affichent dans la boîte de dialogue : vous pouvez corriger le champ et réessayer.
+
+| Message                                                                                                                     | Que faire                                                    |
+| --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| « Le dossier `<path>` existe déjà et n’est pas vide. Choisis un autre dossier, ou un dossier vide. »                        | Choisir un autre dossier.                                    |
+| « La branche « `<branch>` » est extraite dans le worktree `<path>` : ouvre ce worktree, ou extrais une autre branche ici. » | Choisir une branche libre, ou ouvrir ce worktree.            |
+| « Une branche « `<name>` » existe déjà. »                                                                                   | Choisir un autre nom, ou utiliser **Branche existante**.     |
+| « « `<name>` » n’est pas un nom de branche valide : … »                                                                     | Corriger le nom (pas d’espace, ni `~ ^ : ? * [ \`, ni `..`). |
+| « Aucun commit ne correspond à « `<rev>` ». »                                                                               | Corriger le point de départ.                                 |
+| « Chemin de dossier absolu attendu, reçu « `<path>` ». »                                                                    | Saisir un chemin complet.                                    |
+
+## Ouvrir un worktree dans un onglet
+
+Choisissez **Ouvrir dans un nouvel onglet** dans le menu contextuel du worktree. Chaque worktree est un onglet de dépôt distinct, avec ses propres changements, son propre statut et sa propre branche extraite. Voir [Onglets](../../workspaces/tabs/).
+
+## Supprimer un worktree
+
+1. Faites un clic droit sur un worktree lié (ni le principal, ni celui qu’affiche cet onglet) et choisissez **Supprimer le worktree…**.
+2. yaggui vérifie le worktree (**Vérification du worktree…**), puis la boîte de dialogue **Supprimer le worktree `<name>` ?** indique l’effet :
+   - sur une branche : « Le dossier `<path>` est supprimé. La branche `<branch>` reste dans le dépôt. »
+   - en HEAD détaché : « Le dossier `<path>` est supprimé. Ses commits restent dans le dépôt. »
+   - dossier déjà disparu : « Le dossier `<path>` n’existe plus : seule l’entrée du worktree est oubliée. »
+3. Cliquez sur **Supprimer le worktree**.
+
+yaggui lance `git worktree remove -- <path>`, affiché dans la boîte de dialogue, puis affiche **Worktree supprimé**. La branche n’est jamais supprimée.
+
+**Worktree verrouillé.** La boîte de dialogue affiche **Ce worktree est verrouillé (git worktree lock). Déverrouille-le avant de le supprimer.** et le bouton de suppression reste désactivé. yaggui n’a pas d’action de déverrouillage : lancez `git worktree unlock <path>` dans le [terminal](../../repository/terminal/).
+
+**Modifications locales.** Si le worktree contient des fichiers indexés, modifiés, non suivis ou en conflit, la boîte de dialogue affiche **Ce worktree a des modifications locales** avec leur nombre, et le bouton de suppression reste désactivé tant que vous n’avez pas coché **Supprimer quand même et perdre ces modifications**. La commande devient alors `git worktree remove --force -- <path>`.
+
+:::caution
+Une suppression forcée détruit définitivement les modifications non commitées du worktree. Commitez-les ou mettez-les de côté (stash) dans ce worktree au préalable si vous en avez besoin.
+:::
+
+<Screenshot
+  dark={worktreeRemoveDark}
+  light={worktreeRemoveLight}
+  alt="La boîte de dialogue Supprimer le worktree, qui avertit de modifications locales, avec la case Supprimer quand même et perdre ces modifications"
+/>
+
+## Nettoyer les worktrees disparus
+
+Quand vous supprimez le dossier d’un worktree en dehors de yaggui, Git conserve son entrée et yaggui le marque **disparu**. Choisissez **Nettoyer les worktrees disparus** dans son menu contextuel, ou **Nettoyer les worktrees disparus (prune)** dans la palette, pour lancer `git worktree prune`. yaggui affiche **Worktrees disparus nettoyés**.
+
+## Annuler
+
+| Opération                               | Annulation                                                                                                                                                                                                                                                                                           |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Créer un worktree                       | Annulable (« création du worktree `<name>` »). L’annulation lance `git worktree remove` et supprime la branche créée avec lui. Elle est refusée tant que le worktree a des modifications locales : « Tes modifications locales seraient écrasées. Commite-les ou mets-les de côté (stash) d’abord. » |
+| Supprimer un worktree sans modification | Annulable (« suppression du worktree `<name>` ») : l’annulation rajoute le worktree dans le même dossier, qui doit être absent ou vide.                                                                                                                                                              |
+| Supprimer avec **Supprimer quand même** | Non annulable : les modifications locales du worktree ont été supprimées avec lui.                                                                                                                                                                                                                   |
+| Supprimer un worktree disparu, nettoyer | Pas d’entrée d’annulation.                                                                                                                                                                                                                                                                           |
+
+Voir [Annuler et rétablir](../../history/undo-and-redo/).

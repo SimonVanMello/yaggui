@@ -1,0 +1,103 @@
+---
+title: Command log
+description: The list of every Git command yaggui runs, with its output, exit code and duration, and how to open, filter, copy and clear it.
+sidebar:
+  order: 4
+sources:
+  - src/features/command-log/**
+  - src-tauri/src/git/log.rs
+  - src-tauri/src/git/cli.rs
+  - src-tauri/src/commands/log.rs
+  - src/app/useBackendEvents.ts
+  - src/features/statusbar/StatusBar.tsx
+requirements: [F-300]
+---
+
+import Screenshot from '~/components/Screenshot.astro';
+import commandLogExpandedDark from '../../../../assets/screens/command-log-expanded-dark.png';
+import commandLogExpandedLight from '../../../../assets/screens/command-log-expanded-light.png';
+
+yaggui runs your own `git` for every change it makes, and records each command in the command log. Use it to see exactly what an action did, to read Git's full answer when something fails, or to repeat a command in a terminal.
+
+<Screenshot
+  dark={commandLogExpandedDark}
+  light={commandLogExpandedLight}
+  alt="Command log panel at the bottom of the window, with one entry expanded showing the folder, Copy command and Copy output buttons, and Git's output"
+/>
+
+## What is recorded
+
+Every Git process yaggui starts is recorded, including the ones you did not ask for directly:
+
+- commands you trigger (commit, checkout, fetch, push…);
+- background commands, such as automatic fetches and the `git commit-graph write --reachable --changed-paths --no-progress` that speeds up the graph of large repositories (see [Slow first open](../../help/troubleshooting/#the-first-open-of-a-big-repository-is-slow));
+- checks such as `git --version` when you set the Git path.
+
+Most reads (the graph, the status, diffs) do not run Git at all: yaggui reads the repository directly, so they do not appear here.
+
+Each entry holds:
+
+| Field             | Shown as                                                                                                           |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Command           | `git …`, with arguments quoted for a POSIX shell such as bash or zsh                                               |
+| Status            | an icon: **Succeeded**, **Failed**, **Cancelled**, or **Could not start** (the `git` program itself could not run) |
+| Exit code         | "exit \{code\}" when it is not 0                                                                                   |
+| Duration and time | how long it ran, and when it started                                                                               |
+| Folder            | the folder it ran in ("in …"), when expanded                                                                       |
+| Output            | Git's standard output and standard error, when expanded                                                            |
+| Repository        | the repository name, when the filter is **All**                                                                    |
+
+## Open the command log
+
+- Press <kbd>⌘J</kbd> (<kbd>Ctrl+J</kbd> on Windows and Linux). Press it again to close the log. The shortcut can be [rebound](../../customize/palette-and-shortcuts/).
+- Click **Command log** at the right of the status bar. Once commands have run it reads **Log (\{count\})**.
+- In the command palette, run **Toggle the command log**.
+- On macOS, choose **View → Command Log** or **Help → Command Log**.
+- From an error, click **Open command log** (see below).
+
+The log opens as a panel at the bottom of the window, above the status bar. Drag its top edge to resize it. Its size and filter are not kept after you restart yaggui.
+
+## Filter by repository
+
+The **Commands to show** switch in the panel header has two choices:
+
+- **This repository** (default): only the commands of the repository in the active tab.
+- **All**: the commands of every repository, plus commands not tied to one (such as `git --version`). Each entry then shows its repository name.
+
+On the welcome tab, the log always shows **All**. The header also shows the number of commands listed.
+
+## Read and copy an entry
+
+The newest commands are at the top. Click an entry to expand it. An expanded entry shows the folder it ran in, then two buttons:
+
+- **Copy command** copies the full command line, ready to paste into a terminal.
+- **Copy output** copies what Git printed.
+
+Then come the standard output and the standard error. An entry with no output shows "No output.".
+
+:::tip
+To reproduce a step yourself, copy the command and run it in a terminal in the folder shown after "in". Commands that read their input from yaggui (for example `git commit -F -`, which receives the message on standard input) need that input too.
+:::
+
+### Long output
+
+Each of the standard output and standard error is kept up to 64 KiB. Beyond that, the beginning is kept and the entry shows "Output truncated.". To see a very long output in full, run the command yourself.
+
+## Open the log from an error
+
+When an error toast or panel has an **Open command log** button, clicking it opens the log on the last failed command: the filter switches to **All** if needed, and the entry is expanded and highlighted. This is the fastest way to read Git's complete answer, for example a server's refusal message or a hook's output. See [Error messages](../../reference/error-messages/).
+
+## Clear the log
+
+Click **Clear the log** (the trash icon in the panel header). It empties the log for every repository at once, without confirmation. It has no effect on your repositories.
+
+## Limits
+
+- The log lives in memory only. It is never written to disk and is empty each time yaggui starts.
+- yaggui keeps the last 500 commands. Older ones are dropped. During a long session, the panel can show more (up to 2000) until you close yaggui.
+
+## Privacy
+
+The log shows commands exactly as they ran. If you typed a URL with a token or password in it (for example `https://user:token@example.com/repo.git`) when cloning or adding a remote, it appears in clear in the log. It stays in memory and disappears when you quit, but anyone who can see your screen can read it. Prefer a [credential helper](../../remotes/authentication/) to tokens in URLs.
+
+yaggui never adds credentials to the log itself: it never asks for or stores passwords. See [Data and privacy](../../reference/data-and-privacy/).

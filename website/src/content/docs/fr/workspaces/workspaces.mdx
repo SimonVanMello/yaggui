@@ -1,0 +1,157 @@
+---
+title: Workspaces
+description: Regrouper des dépôts dans des workspaces nommés, les ouvrir tous d’un coup, vérifier leur état d’un coup d’œil, les fetcher ensemble et importer des dépôts en scannant un dossier.
+sidebar:
+  order: 2
+sources:
+  - src/features/workspaces/**
+  - src/features/welcome/WelcomeScreen.tsx
+  - src/features/welcome/RepoRow.tsx
+  - src-tauri/src/commands/workspaces.rs
+  - src-tauri/src/repo/workspace.rs
+  - src-tauri/src/repo/scan.rs
+  - src-tauri/src/store/workspaces.rs
+requirements: [F-006, F-007, F-008, F-009]
+---
+
+import Screenshot from '~/components/Screenshot.astro';
+import workspacesWelcomeDark from '../../../../assets/screens/workspaces-welcome-fr-dark.png';
+import workspacesWelcomeLight from '../../../../assets/screens/workspaces-welcome-fr-light.png';
+import workspaceOverviewDark from '../../../../assets/screens/workspace-overview-fr-dark.png';
+import workspaceOverviewLight from '../../../../assets/screens/workspace-overview-fr-light.png';
+import workspaceScanResultsDark from '../../../../assets/screens/workspace-scan-results-fr-dark.png';
+import workspaceScanResultsLight from '../../../../assets/screens/workspace-scan-results-fr-light.png';
+
+Un workspace est un groupe nommé de dépôts, par exemple « Client X » ou « Perso ». Vous ouvrez tous ses dépôts dans des onglets en un clic, voyez leur état dans une vue d’ensemble et les fetchez ensemble.
+
+## Ce qu’est un workspace
+
+Un workspace est un nom et une liste ordonnée de dépôts que yaggui connaît déjà : la même liste que les favoris et les dépôts récents de l’écran d’accueil. Un dépôt peut appartenir à plusieurs workspaces. Les workspaces sont stockés dans la base de données de yaggui (voir [Données et confidentialité](../../reference/data-and-privacy/)). En créer, en modifier ou en supprimer un n’écrit rien dans vos dépôts, ne lance aucune commande Git et ne peut pas être annulé.
+
+Vous accédez aux workspaces depuis :
+
+- la section **Workspaces** de l’écran d’accueil : une carte par workspace, avec les liens **Scanner un dossier…** et **Gérer** ;
+- la palette de commandes : **Workspaces…** et **Scanner un dossier à la recherche de dépôts…** (sans raccourci par défaut).
+
+<Screenshot
+  dark={workspacesWelcomeDark}
+  light={workspacesWelcomeLight}
+  alt="La section Workspaces de l’écran d’accueil, avec les cartes Kernel et Perso"
+/>
+
+## Créer, renommer et supprimer un workspace
+
+**Créer.** Ouvrez la boîte de dialogue **Workspaces** (**Gérer** ou **Workspaces…**), cliquez sur **Nouveau workspace**, saisissez un nom et cliquez sur **Créer**. <kbd>Esc</kbd> annule le formulaire sans fermer la boîte de dialogue. Vous pouvez aussi en créer un pendant l’import d’un scan (voir plus bas).
+
+**Renommer.** Dans la vue d’ensemble du workspace, cliquez sur **Renommer** (icône d’engrenage), modifiez le nom et cliquez sur **Renommer**.
+
+Un nom doit :
+
+- ne pas être vide : « Le workspace doit avoir un nom. » ;
+- compter au plus 100 caractères, sans caractère de contrôle ;
+- différer des noms des autres workspaces, sans tenir compte de la casse : « Un workspace nommé « Perso » existe déjà. »
+
+**Supprimer.** Cliquez sur **Supprimer le workspace** (icône de corbeille). La confirmation **Supprimer le workspace `<name>` ?** vous rappelle que ses dépôts restent dans votre liste et sur le disque. Cliquez sur **Supprimer le workspace**. Seul le groupe est supprimé.
+
+## Ajouter et retirer des dépôts
+
+Dans la vue d’ensemble, cliquez sur **Ajouter** pour ouvrir la liste des dépôts connus qui ne sont pas encore dans le workspace. Filtrez-la avec **Chercher dans les dépôts connus** (nom ou chemin) et cliquez sur **Ajouter** sur une ligne : le dépôt est ajouté à la fin du workspace. Pour y faire entrer des dépôts que yaggui ne connaît pas encore, cliquez sur **Scanner un dossier…** à cet endroit (voir [Scanner un dossier à la recherche de dépôts](#scanner-un-dossier-à-la-recherche-de-dépôts)) ou ouvrez-les une première fois.
+
+Pour retirer un dépôt du workspace, cliquez sur le bouton moins à la fin de sa ligne. Il n’y a pas de confirmation : le dépôt reste connu et reste sur le disque.
+
+Les dépôts gardent l’ordre dans lequel vous les avez ajoutés ; vous ne pouvez pas les réordonner.
+
+## Ouvrir tous les dépôts d’un workspace
+
+Cliquez sur la carte d’un workspace dans l’écran d’accueil, ou sur **Tout ouvrir** dans sa vue d’ensemble. yaggui ouvre les dépôts l’un après l’autre, dans l’ordre du workspace, chacun dans son propre onglet :
+
+- Un dépôt qui a déjà un onglet n’est pas ouvert deux fois : son onglet est réutilisé.
+- Depuis une carte de l’écran d’accueil, le premier dépôt s’ouvre dans l’onglet d’accueil d’où vous avez cliqué.
+- À la fin, l’onglet du premier dépôt est actif.
+- Les dossiers introuvables sont ignorés. Un toast indique « 1 dépôt est introuvable » avec les noms, et un bouton **Voir** qui ouvre la vue d’ensemble.
+- Les dépôts dont l’ouverture échoue sont signalés dans un toast d’erreur.
+
+## La vue d’ensemble du workspace
+
+Cliquez sur l’icône de liste d’une carte de workspace (**Vue d’ensemble de `<name>`**), ou sélectionnez le workspace dans la boîte de dialogue **Workspaces**. Le tableau affiche une ligne par dépôt :
+
+| Colonne           | Contenu                                                                                                                                                                             |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Dépôt**         | Point coloré, nom et chemin.                                                                                                                                                        |
+| **Branche**       | Branche courante, ou « détaché sur `<sha>` », plus un badge tel que **Rebase en cours** quand une opération est en cours.                                                           |
+| **Synchro**       | Commits en avance (↑) et en retard (↓) sur l’upstream, **À jour**, **Pas d’upstream** ou **Upstream disparu**. Calculé à partir des références locales : fetchez pour l’actualiser. |
+| **Changements**   | **Propre**, « 6 changements » ou « 1 conflit » en rouge.                                                                                                                            |
+| **Dernier fetch** | Heure du dernier fetch (d’après `FETCH_HEAD`), **Jamais**, **Fetch…** pendant un fetch, ou **Échec** avec l’erreur dans son infobulle.                                              |
+
+Chaque ligne a aussi un bouton d’ouverture et un bouton de retrait. Une ligne indique **Lecture…** pendant le chargement, et affiche l’erreur si le dépôt ne peut pas être lu. La vue d’ensemble lit les dépôts sans lancer Git. Les lignes des dépôts ouverts dans des onglets se mettent à jour en direct ; les autres sont relues quand vous rouvrez la boîte de dialogue, au plus toutes les 15 secondes.
+
+<Screenshot
+  dark={workspaceOverviewDark}
+  light={workspaceOverviewLight}
+  alt="Vue d’ensemble du workspace Perso : branche, synchro, changements et dernier fetch pour chaque dépôt, et une ligne Dossier introuvable"
+/>
+
+## Tout fetcher
+
+Cliquez sur **Tout fetcher** dans la vue d’ensemble. Pour chaque dépôt dont le dossier existe, yaggui lance :
+
+```bash
+git fetch --progress --prune --all
+```
+
+`--prune` n’est ajouté que si **Nettoyer au fetch** est activé dans les Préférences (c’est le cas par défaut ; voir [Préférences](../../reference/preferences/)). Au plus quatre dépôts sont fetchés en même temps. Chaque ligne affiche sa propre progression et son résultat, et chaque fetch apparaît dans la barre d’état d’un dépôt ouvert, où vous pouvez l’annuler.
+
+À la fin, yaggui affiche « 3 dépôts de Perso fetchés », ou « Échec du fetch pour 1 dépôt sur 3 ». Survolez **Échec** dans une ligne pour lire l’erreur ; les erreurs réseau et d’authentification sont expliquées dans [Authentification](../../remotes/authentication/) et [Messages d’erreur](../../reference/error-messages/).
+
+Un fetch avec prune ne peut pas être annulé dans un dépôt ouvert : voir [Fetch, pull et push](../../remotes/fetch-pull-push/).
+
+## Scanner un dossier à la recherche de dépôts
+
+Utilisez **Scanner un dossier…** sur l’écran d’accueil, dans la boîte de dialogue **Workspaces** ou son panneau **Ajouter**, ou l’action de la palette **Scanner un dossier à la recherche de dépôts…**.
+
+1. Saisissez le **Dossier** à scanner sous forme de chemin complet, ou cliquez sur **Parcourir…**.
+2. Réglez la **Profondeur** : le nombre de niveaux de dossiers explorés, de 1 (sous-dossiers directs) à 8. La valeur par défaut est 3.
+3. Cliquez sur **Scanner**. La boîte de dialogue affiche les dépôts trouvés et les dossiers explorés. **Arrêter le scan** l’interrompt.
+4. Passez les résultats en revue. Tous les dépôts trouvés sont cochés ; ceux que yaggui connaît déjà portent **Déjà connu**. Utilisez **Tout sélectionner** / **Tout désélectionner** pour modifier la sélection.
+5. Choisissez où **Ajouter à** : **Aucun workspace**, un workspace existant, ou **Nouveau workspace…** (saisissez alors son nom).
+6. Cliquez sur **Importer**. Le bouton indique le nombre de dépôts sélectionnés, comme dans **Importer 4 dépôts**.
+
+Le scan ne lit que le système de fichiers : il ignore les dossiers `.git` et `node_modules`, ne suit pas les liens symboliques, ne cherche pas de dépôts imbriqués à l’intérieur d’un autre dépôt et ignore les dépôts nus. Il s’arrête à 2000 dépôts ; s’il atteint cette limite, choisissez un dossier ou une profondeur plus petits.
+
+Les dépôts importés rejoignent vos dépôts connus (affichés comme **Jamais ouvert** dans les récents) et, si vous en avez choisi un, le workspace, dans l’ordre des chemins. Un dossier qui n’est plus un dépôt au moment de l’import est ignoré, avec un avertissement. Quand vous importez dans un workspace, sa vue d’ensemble s’ouvre.
+
+Erreurs de scan :
+
+| Message                                                  | Que faire                                                                         |
+| -------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| « Chemin de dossier absolu attendu, reçu « `<path>` ». » | Saisissez un chemin complet.                                                      |
+| « Le dossier `<path>` n’existe pas. »                    | Vérifiez le chemin.                                                               |
+| « Aucun dépôt trouvé dans N dossiers. »                  | Choisissez un autre dossier ou une profondeur plus grande, puis **Nouveau scan**. |
+
+<Screenshot
+  dark={workspaceScanResultsDark}
+  light={workspaceScanResultsLight}
+  alt="Résultats du scan d’un dossier : dépôts trouvés avec leurs cases à cocher, pastilles Déjà connu et sélecteur Ajouter à"
+/>
+
+## Dépôts déplacés ou supprimés
+
+Quand le dossier d’un dépôt n’existe plus, yaggui le marque **Dossier introuvable** sur l’écran d’accueil et dans les vues d’ensemble des workspaces, et **Tout ouvrir** l’ignore. Dans une vue d’ensemble, un dossier qui existe toujours mais ne contient plus de dépôt est marqué de la même façon ; **Tout ouvrir** tente de l’ouvrir et le signale dans son toast d’erreur.
+
+Cliquez sur le dépôt dans l’écran d’accueil, ou sur **Localiser…** dans sa ligne de la vue d’ensemble. La boîte de dialogue **`<name>` a été déplacé ou supprimé** propose :
+
+- **Localiser…** : indiquez le nouveau dossier du dépôt. Ce doit être la racine du dépôt, pas un sous-dossier. yaggui met à jour le chemin et le nom, rouvre ses onglets et affiche « `<name>` localisé ». Si ce dossier est déjà connu, les deux entrées fusionnent, en conservant les favoris et les appartenances aux workspaces.
+- **Retirer de `<workspace>`** (quand la boîte de dialogue a été ouverte depuis un workspace) : le retire de ce workspace uniquement.
+- **Retirer de yaggui** : oublie le dépôt partout (récents, favoris, tous les workspaces) et ferme ses terminaux intégrés.
+
+Retirer ne supprime jamais de fichier : seule la liste de yaggui change. Aucune de ces deux actions ne peut être annulée.
+
+Si la localisation échoue, le toast **Impossible de localiser le dépôt** en explique la raison : le dossier n’existe pas, n’est pas un dépôt Git (« `<path>` n’est pas un dépôt Git. »), ou est un dépôt nu (« Les dépôts nus ne sont pas encore pris en charge. »).
+
+## Workspaces, favoris et récents
+
+Les workspaces, les favoris et les récents pointent tous vers les mêmes dépôts connus :
+
+- Ajouter un dépôt à un workspace n’en fait pas un favori ; supprimer un workspace ne modifie jamais les favoris ni les récents.
+- Ouvrir un dépôt depuis un workspace met à jour sa date de dernière ouverture, comme n’importe quelle autre ouverture, donc il remonte dans les récents.
+- Retirer un dépôt de yaggui le retire aussi de tous les workspaces.

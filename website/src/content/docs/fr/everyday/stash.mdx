@@ -1,0 +1,183 @@
+---
+title: Mettre de côté avec le stash
+description: Mettez vos changements locaux de côté avec un stash rapide ou partiel, prévisualisez les stashes, puis appliquez-les, faites-en un pop, supprimez-les, renommez-les ou créez une branche à partir d’eux.
+sidebar:
+  order: 3
+sources:
+  - src/features/toolbar/StashButton.tsx
+  - src/features/toolbar/Toolbar.tsx
+  - src/app/shellActions.ts
+  - src/features/staging/StashFilesDialog.tsx
+  - src/features/staging/WorktreeFileMenu.tsx
+  - src/features/sidebar/RefTree.tsx
+  - src/features/sidebar/RefContextMenu.tsx
+  - src/features/refs/StashPreviewPanel.tsx
+  - src/features/refs/stashPreview.ts
+  - src/features/refs/refOps.ts
+  - src/features/refs/StashRenameDialog.tsx
+  - src/features/refs/StashConflictDialog.tsx
+  - src/features/refs/CreateBranchDialog.tsx
+  - src-tauri/src/repo/ref_ops.rs
+  - src-tauri/src/repo/commit_tools.rs
+  - src-tauri/src/git/read/refs.rs
+requirements: [F-180, F-181, F-182, F-183, F-184]
+---
+
+import Screenshot from '~/components/Screenshot.astro';
+import stashPopoverDark from '../../../../assets/screens/stash-popover-fr-dark.png';
+import stashPopoverLight from '../../../../assets/screens/stash-popover-fr-light.png';
+import stashFilesDialogDark from '../../../../assets/screens/stash-files-dialog-fr-dark.png';
+import stashFilesDialogLight from '../../../../assets/screens/stash-files-dialog-fr-light.png';
+import stashPreviewDark from '../../../../assets/screens/stash-preview-fr-dark.png';
+import stashPreviewLight from '../../../../assets/screens/stash-preview-fr-light.png';
+import stashConflictDark from '../../../../assets/screens/stash-conflict-fr-dark.png';
+import stashConflictLight from '../../../../assets/screens/stash-conflict-fr-light.png';
+
+Un stash sauvegarde vos changements non commités et vous rend un arbre de travail propre : vous pouvez passer à autre chose et les récupérer plus tard ([git stash](https://git-scm.com/docs/git-stash)). Cette page explique comment mettre de côté tous les changements ou seulement certains fichiers, retrouver vos stashes, puis les appliquer ou les supprimer.
+
+## Mettre de côté tous vos changements
+
+Ouvrez le formulaire de stash par l’un de ces moyens :
+
+- Le bouton **Stash** de la barre d’outils.
+- <kbd>⌘⇧S</kbd> (<kbd>Ctrl+Shift+S</kbd> sous Windows et Linux).
+- L’action de la palette **Mettre les changements de côté (stash)**.
+
+Le formulaire propose :
+
+| Champ                                              | Par défaut | Effet                                                                          |
+| -------------------------------------------------- | ---------- | ------------------------------------------------------------------------------ |
+| **Message (facultatif)**                           | Vide       | Le nom du stash. Sans message, Git le nomme `WIP on <branch>: <sha> <summary>` |
+| **Inclure les fichiers non suivis**                | Désactivé  | Met aussi de côté les fichiers non suivis (`--include-untracked`)              |
+| **Garder les modifications indexées dans l'index** | Désactivé  | Met tout de côté mais laisse en place les changements indexés (`--keep-index`) |
+
+Le message est vide à chaque ouverture du formulaire. Cliquez sur **Mettre de côté** (ou sur **Annuler**). Quand l’arbre de travail est propre, le formulaire affiche « Aucune modification locale à mettre de côté. » et **Mettre de côté** est désactivé.
+
+<Screenshot
+  dark={stashPopoverDark}
+  light={stashPopoverLight}
+  alt="Le formulaire de stash sous le bouton Stash de la barre d’outils, avec le champ de message et les cases Inclure les fichiers non suivis et Garder les modifications indexées dans l'index"
+/>
+
+yaggui exécute :
+
+```bash
+git stash push -q [--include-untracked] [--keep-index] [--message=<message>]
+```
+
+Le toast indique « Modifications mises de côté ». Si Git n’a rien trouvé à mettre de côté, le formulaire se ferme et le toast indique « Rien à mettre de côté : aucune modification locale ». Un stash rapide n’est pas enregistré dans l’historique d’annulation : pour récupérer les changements, faites un pop du stash.
+
+## Mettre de côté seulement certains fichiers
+
+1. Dans le panneau **Changements locaux**, sélectionnez les fichiers (<kbd>⌘</kbd>+clic ou <kbd>Shift</kbd>+clic ; <kbd>Ctrl</kbd>+clic sous Windows et Linux).
+2. Faites un clic droit sur l’un d’eux et choisissez **Mettre ce fichier de côté…** ou **Mettre \{count\} fichiers de côté…**. Les fichiers en conflit sont écartés.
+3. La boîte de dialogue **Mettre \{count\} fichiers de côté** liste les fichiers. Ajoutez un **Message (facultatif)**. Si la sélection contient des fichiers non suivis, **Inclure les fichiers non suivis** s’affiche, cochée ; décochez-la pour les laisser en place (ils sont alors marqués « non suivi, laissé tel quel »).
+4. Cliquez sur **Mettre de côté \{count\} fichiers**.
+
+Les changements indexés et non indexés de ces fichiers partent dans le stash ; tous les autres changements restent où ils sont. yaggui sauvegarde d’abord les fichiers, puis exécute :
+
+```bash
+git --literal-pathspecs stash push -q [--include-untracked] [--message=<message>] --pathspec-from-file=- --pathspec-file-nul
+```
+
+Le toast indique « \{count\} fichiers mis de côté ». Un stash partiel peut être défait (« stash de \{count\} fichiers ») : l’annulation réécrit les fichiers et retire l’entrée de stash. Voir [Annuler et rétablir](../../history/undo-and-redo/).
+
+<Screenshot
+  dark={stashFilesDialogDark}
+  light={stashFilesDialogLight}
+  alt="La boîte de dialogue Mettre 2 fichiers de côté, qui liste les fichiers sélectionnés, avec un champ de message et le bouton Mettre de côté 2 fichiers"
+/>
+
+## Retrouver vos stashes
+
+- **Barre latérale** : la section **Stashes** liste chaque stash avec son nombre, du plus récent au plus ancien, nommé d’après son message (**Aucun stash** quand elle est vide). Le filtre de refs en haut de la barre latérale trouve aussi les messages de stash.
+- **Graphe** : chaque stash apparaît sous la forme d’une étiquette `stash@{n}` sur le commit à partir duquel il a été créé, et non comme une ligne séparée. Pour masquer ces étiquettes, utilisez **Masquer les stashes** dans le menu de filtre du graphe ou l’action de la palette **Graphe : masquer ou afficher les stashes** (voir [Le graphe des commits](../../history/commit-graph/)).
+
+## Prévisualiser un stash
+
+Cliquez sur un stash dans la barre latérale. Le graphe sélectionne le commit de base du stash et y défile, et le panneau de droite affiche **Détails du stash** :
+
+- Le message, `stash@{n}` et **sur \{sha\}** (le commit de base).
+- Les boutons **Appliquer**, **Pop** et **Supprimer…**.
+- **Fichiers du stash** : les changements par rapport au commit de base, et **Fichiers non suivis** si le stash en contient.
+
+Cliquez sur un fichier pour ouvrir son diff à la place du graphe. Le diff est en lecture seule : aucune action sur les blocs ou les lignes. Sélectionner un commit dans le graphe ferme l’aperçu. Cliquer sur l’étiquette `stash@{n}` dans le graphe n’ouvre pas l’aperçu.
+
+<Screenshot
+  dark={stashPreviewDark}
+  light={stashPreviewLight}
+  alt="Le panneau Détails du stash avec le message du stash, son commit de base, les boutons Appliquer, Pop et Supprimer, et la liste des fichiers du stash"
+/>
+
+## Appliquer, pop, supprimer, renommer
+
+Faites un clic droit sur un stash dans la barre latérale. Éléments, dans l’ordre :
+
+| Élément                              | Effet                                                                                | Git                                 | Annulable |
+| ------------------------------------ | ------------------------------------------------------------------------------------ | ----------------------------------- | --------- |
+| **Appliquer**                        | Applique les changements, conserve le stash                                          | `git stash apply stash@{n}`         | Non       |
+| **Pop**                              | Applique les changements et supprime le stash                                        | `git stash pop stash@{n}`           | Non       |
+| **Créer une branche ici…**           | Crée une branche sur le commit de base, la bascule, applique le stash et le supprime | `git stash branch <name> stash@{n}` | Non       |
+| **Renommer…**                        | Change le message du stash                                                           | voir ci-dessous                     | Non       |
+| **Supprimer…**                       | Supprime le stash                                                                    | `git stash drop -q stash@{n}`       | Oui       |
+| **Copier le nom**, **Copier le SHA** | Copie dans le presse-papiers                                                         |                                     |           |
+
+**Appliquer**, **Pop** et **Supprimer…** figurent aussi dans le panneau Détails du stash.
+
+Appliquer et faire un pop ne passent pas `--index` : les changements qui étaient indexés au moment de la mise de côté reviennent donc comme des changements non indexés.
+
+Avant chacune de ces actions, yaggui vérifie que le stash est toujours à la même position. Si la liste a changé entre-temps (par exemple parce que vous avez mis des changements de côté depuis un terminal), rien ne se passe et un avertissement indique **La liste a changé** : vérifiez la liste rafraîchie et réessayez.
+
+### Faire un pop du dernier stash
+
+Utilisez le bouton **Pop** de la barre d’outils, <kbd>⌘⇧⌥S</kbd> (<kbd>Ctrl+Shift+Alt+S</kbd> sous Windows et Linux), ou l’action de la palette **Restaurer le dernier stash (pop)**. Ils font un pop de `stash@{0}`. Le bouton de la barre d’outils est désactivé quand il n’y a aucun stash ; le raccourci affiche alors « Aucun stash à restaurer ».
+
+### Supprimer un stash
+
+**Supprimer…** demande une confirmation : **Supprimer ce stash ?**, « Le stash quitte la liste et ses modifications ne sont plus applicables depuis yaggui. », le message du stash et `stash@{n}`, la commande `git stash drop stash@{n}`, et **Supprimer le stash**. Vous pouvez désactiver cette confirmation dans **Préférences › Comportement › Confirmations** (**Supprimer un stash**).
+
+Le toast indique « Stash supprimé » et donne le SHA du commit du stash. Pour récupérer le stash, défaites l’opération (entrée suppression du stash « \{message\} » de l’historique) : yaggui exécute `git stash store`, qui le remet en haut de la liste.
+
+### Renommer un stash
+
+Git ne sait pas renommer un stash : **Renommer…** le recrée donc avec le nouveau **Message**, en haut de la liste :
+
+```bash
+git stash store -q --message=<message> <sha>
+git stash drop -q stash@{n+1}
+```
+
+Le message doit être non vide et différent du message actuel.
+
+### Créer une branche depuis un stash
+
+**Créer une branche ici…** ouvre **Créer une branche** avec **Basculer dessus après la création** forcée à l’état activé. Saisissez un **Nom de la branche** (vérifié avec `git check-ref-format`) et confirmez. Voir [Branches](../../history/branches/).
+
+## Quand le stash est en conflit
+
+Si appliquer un stash, en faire un pop ou créer une branche depuis un stash laisse des conflits, ou si un fichier non suivi du stash existe déjà dans l’arbre de travail, la boîte de dialogue **Le stash est en conflit** s’ouvre :
+
+- « L'application du stash a laissé des conflits dans tes fichiers. Le stash est conservé : rien n'est perdu. »
+- **Fichiers en conflit** : la liste.
+- **Que faire** : résoudre les marqueurs de conflit dans le panneau des changements, indexer les fichiers résolus, puis supprimer le stash depuis la barre latérale. yaggui ne le supprime pas à votre place, même après un pop.
+
+Cliquez sur **Compris**, puis résolvez comme décrit dans [Conflits](../../history/conflicts/).
+
+Si le stash écraserait des changements locaux, rien n’est appliqué et le toast indique « Tes modifications locales seraient écrasées par le checkout. Mets-les d'abord de côté (stash, checkout puis pop). » Commitez ou mettez de côté vos changements actuels, puis réessayez.
+
+<Screenshot
+  dark={stashConflictDark}
+  light={stashConflictLight}
+  alt="La boîte de dialogue Le stash est en conflit, qui liste les fichiers en conflit et les trois étapes à suivre"
+/>
+
+## Ce qui peut être défait
+
+| Action                                      | Annulable                           |
+| ------------------------------------------- | ----------------------------------- |
+| Stash rapide                                | Non (faites plutôt un pop du stash) |
+| Stash partiel                               | Oui                                 |
+| Appliquer, pop, renommer, créer une branche | Non                                 |
+| Supprimer                                   | Oui                                 |
+
+Voir [Annuler et rétablir](../../history/undo-and-redo/).

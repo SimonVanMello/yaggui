@@ -1,0 +1,122 @@
+---
+title: Annuler et rétablir
+description: Annulez et rétablissez les opérations de yaggui avec un raccourci ou la barre d’outils, consultez l’historique de la session et sachez quelles opérations peuvent être annulées, et pourquoi d’autres ne le peuvent pas.
+sidebar:
+  order: 8
+sources:
+  - src/features/undo/**
+  - src/features/toolbar/Toolbar.tsx
+  - src-tauri/src/repo/journal.rs
+  - src-tauri/src/commands/undo.rs
+requirements: [F-240, F-241, F-242, F-243]
+---
+
+import Screenshot from '~/components/Screenshot.astro';
+import undoHistoryDark from '../../../../assets/screens/undo-history-fr-dark.png';
+import undoHistoryLight from '../../../../assets/screens/undo-history-fr-light.png';
+
+yaggui enregistre les opérations que vous lancez depuis l’application et peut les annuler une à une, de la plus récente à la plus ancienne, puis les rétablir. Cette page indique ce que restaure chaque annulation, ce qui ne peut pas être annulé et les limites de l’historique.
+
+## Annuler et rétablir
+
+| Action                | Raccourci                                                                           | Barre d’outils                                                | Palette                                    |
+| --------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------ |
+| Annuler               | <kbd>⌘Z</kbd> (<kbd>Ctrl+Z</kbd> sous Windows et Linux)                             | **Annuler**                                                   | **Annuler la dernière opération**          |
+| Rétablir              | <kbd>⌘⇧Z</kbd> (<kbd>Ctrl+Shift+Z</kbd> ou <kbd>Ctrl+Y</kbd> sous Windows et Linux) | **Rétablir**                                                  | **Rétablir la dernière opération annulée** |
+| Afficher l’historique | aucun par défaut                                                                    | **Historique des opérations** (flèche à côté de **Rétablir**) | **Afficher l'historique des opérations**   |
+
+Sous macOS, le menu **Édition** propose aussi **Annuler** et **Rétablir**. Les raccourcis peuvent être modifiés : voir [Palette et raccourcis](../../customize/palette-and-shortcuts/).
+
+- Quand le focus est dans un champ de texte (message de commit, recherche, éditeur de merge…), ces raccourcis annulent votre saisie dans ce champ, pas une opération Git.
+- Ils sont ignorés tant qu’une boîte de dialogue est ouverte.
+- Une seule annulation ou un seul rétablissement s’exécute à la fois par dépôt ; appuyer de nouveau sur le raccourci pendant qu’un autre est en cours ne fait rien.
+
+Les boutons **Annuler** et **Rétablir** se trouvent à gauche de la barre d’outils. Leur info-bulle nomme l’opération : **Annuler : \{op\}** / **Rétablir : \{op\}**. Quand il n’y a rien à annuler, le bouton est désactivé avec **Rien à annuler dans cette session** (**Rien à rétablir**). Quand la dernière opération ne peut pas être annulée, le bouton a l’apparence d’un bouton désactivé avec **Impossible d'annuler \{op\} : \{reason\}** ; le raccourci affiche alors une notification **Annulation impossible** avec la raison.
+
+Après une annulation ou un rétablissement, une notification le confirme : **Annulé : \{op\}** ou **Rétabli : \{op\}**, par exemple « Annulé : création de la branche qa-undo ». L’annulation et le rétablissement ne sont eux-mêmes pas enregistrés comme des opérations.
+
+## L’historique de la session
+
+Cliquez sur la flèche à côté de **Rétablir** pour ouvrir **Historique de la session**.
+
+<Screenshot
+  dark={undoHistoryDark}
+  light={undoHistoryLight}
+  alt="Panneau flottant Historique de la session listant les opérations de la plus récente à la plus ancienne, l’une barrée et marquée annulée, avec leur heure"
+/>
+
+- Les opérations sont listées de la plus récente à la plus ancienne, chacune avec son heure (heures, minutes, secondes).
+- Les opérations annulées sont barrées et marquées **annulée**.
+- Les opérations qui ne peuvent pas être annulées sont marquées **non annulable** ; survolez le badge pour en voir la raison.
+- La liste est en lecture seule : l’annulation et le rétablissement agissent toujours sur les entrées les plus récentes.
+
+Tant que rien n’a été enregistré : **Aucune opération pour l'instant dans cette session.**
+
+## Ce qui peut être annulé
+
+L’annulation cible toujours l’opération la plus récente qui n’est pas déjà annulée ; appuyez de nouveau pour remonter plus loin.
+
+| Opération                                                     | Libellé dans l’historique                                                                                                                 | Ce que restaure l’annulation                                                                                               |
+| ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Commit, amend                                                 | commit « \{summary\} », amend « \{summary\} »                                                                                             | La branche revient au commit précédent. Vos changements restent indexés                                                    |
+| Checkout d’une branche ou d’un commit                         | checkout de \{branch\}, checkout de \{sha\} (HEAD détaché)                                                                                | Rebascule sur la branche ou le commit précédent, en emportant les modifications locales                                    |
+| Création d’une branche                                        | création de la branche \{name\}                                                                                                           | Supprime la branche (rebascule d’abord si elle était extraite)                                                             |
+| Suppression d’une branche locale                              | suppression de la branche \{name\}                                                                                                        | La recrée au même commit, avec son upstream                                                                                |
+| Nettoyage de branches                                         | suppression de \{count\} branches                                                                                                         | Les recrée toutes                                                                                                          |
+| Renommage d’une branche                                       | renommage de \{from\} en \{to\}                                                                                                           | La renomme à l’identique (`git branch -m`)                                                                                 |
+| Création ou suppression d’un tag                              | création du tag \{name\}, suppression du tag \{name\}                                                                                     | Supprime ou recrée le tag                                                                                                  |
+| Merge, fast-forward, merge squash                             | merge de \{source\}                                                                                                                       | `git reset --keep` vers le commit précédent                                                                                |
+| Cherry-pick                                                   | cherry-pick de \{count\} commits                                                                                                          | `git reset --keep` vers le commit précédent                                                                                |
+| Revert                                                        | revert de \{sha\}                                                                                                                         | `git reset --keep` vers le commit précédent                                                                                |
+| Reset soft ou mixed                                           | reset \{mode\} vers \{target\}                                                                                                            | La branche revient en arrière ; un reset mixed restaure aussi l’index                                                      |
+| Reset hard                                                    | reset hard vers \{target\}                                                                                                                | La branche revient en arrière et les fichiers écrasés sont réécrits depuis la sauvegarde                                   |
+| Abandon de modifications (fichiers ou blocs)                  | abandon des modifications de \{path\}, abandon des modifications de \{count\} fichiers                                                    | Le contenu abandonné revient dans le répertoire de travail et dans l’index                                                 |
+| Stash de fichiers sélectionnés                                | stash de \{path\}, stash de \{count\} fichiers                                                                                            | Les fichiers reviennent et l’entrée de stash est supprimée                                                                 |
+| Suppression d’un stash                                        | suppression du stash « \{message\} »                                                                                                      | Le stash revient, en haut de la liste                                                                                      |
+| Ajout à `.gitignore`                                          | ajout de \{rule\} au .gitignore                                                                                                           | `.gitignore` est restauré                                                                                                  |
+| Suivi d’un motif avec Git LFS                                 | suivi LFS de \{pattern\}                                                                                                                  | `.gitattributes` est restauré                                                                                              |
+| Création d’un worktree, suppression d’un worktree propre      | création du worktree \{name\}, suppression du worktree \{name\}                                                                           | Supprime ou recrée le worktree (le dossier doit être vide ou absent)                                                       |
+| Ajout, renommage, changement d’URL ou suppression d’un remote | ajout du remote \{name\}, renommage du remote \{from\} en \{to\}, modification des URL du remote \{name\}, suppression du remote \{name\} | Restaure la configuration du remote (et, après une suppression, ses branches distantes et les upstreams qui l’utilisaient) |
+
+Le rétablissement applique de nouveau l’opération, à l’identique.
+
+## Ce qui ne peut pas être annulé
+
+Certaines opérations sont enregistrées mais marquées **non annulable**. Comme l’annulation part toujours de l’entrée la plus récente, une telle opération est une **barrière** : dès qu’elle est l’opération la plus récente, plus rien de plus ancien ne peut être annulé pour le reste de la session.
+
+| Opération                                                                                                                                                      | Pourquoi                                                                      |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Push d’une branche ou d’un tag, push de tous les tags, suppression d’une branche ou d’un tag sur le remote, suppression d’une branche avec sa branche distante | Elle a modifié un remote, qu’une annulation ici ne modifierait pas            |
+| Fetch avec prune                                                                                                                                               | Les branches distantes supprimées reviennent au prochain fetch                |
+| Pull                                                                                                                                                           | Ce qu’il a récupéré reste. Faites plutôt un reset de la branche si nécessaire |
+| `git lfs pull`, mise à jour des submodules                                                                                                                     | Elle a téléchargé et extrait du contenu (fichiers LFS, commits de submodules) |
+| Suppression d’un worktree qui avait des modifications locales                                                                                                  | Les modifications locales du worktree ont été supprimées avec lui             |
+| Toute opération dont l’état précédent n’a pas pu être enregistré                                                                                               | Son état précédent n’a pas pu être enregistré                                 |
+
+Par exemple, après un commit puis un push dans yaggui, le commit ne peut plus être annulé durant cette session.
+
+D’autres actions ne sont pas enregistrées du tout : elles n’apparaissent jamais dans l’historique, ne sont pas des barrières, et <kbd>⌘Z</kbd> les saute. Il s’agit de l’indexation et de la désindexation, de l’enregistrement d’un fichier, d’un stash complet, de l’application, du pop et du renommage d’un stash, de la création d’une branche depuis un stash, de la définition d’un upstream, des rebases (y compris [interactifs](../../history/interactive-rebase/)), de **Continuer**, **Passer** et de l’annulation d’une opération, des résolutions de [conflits](../../history/conflicts/), des fetchs sans prune, des changements de configuration, du clone et de l’init, ainsi que des opérations qui ont échoué ou se sont arrêtées sur des conflits. Un merge, un cherry-pick ou un revert terminé avec **Continuer** après des conflits n’est pas annulable. Pour revenir en arrière après l’une de ces actions, passez par le [reflog](../../inspect/reflog/).
+
+## Rétablir
+
+Le rétablissement réapplique l’opération que vous venez d’annuler. Annulez plusieurs opérations, puis rétablissez-les dans l’ordre inverse. Dès que vous lancez une nouvelle opération enregistrée, les opérations annulées ne peuvent plus être rétablies ; elles restent dans l’historique, barrées.
+
+## Limites de l’historique
+
+- L’historique est conservé en mémoire pour le dépôt, pour cette session uniquement. Il est perdu quand vous fermez le dernier onglet de ce dépôt ou quittez yaggui.
+- Il contient les 100 dernières opérations ; les plus anciennes sont supprimées.
+- L’annulation exige un dépôt au calme : tant qu’un merge, un rebase, un cherry-pick, un revert ou un bisect est en cours, l’annulation et le rétablissement sont refusés (« Une autre opération (merge, rebase, cherry-pick, revert ou bisect) est en cours : continue-la ou annule-la d'abord. »), de même quand des fichiers sont en conflit (« Des fichiers sont encore en conflit : résous-les (et stage-les) d'abord. »). Les abandons de modifications, les stashs de fichiers sélectionnés, les modifications de `.gitignore` et du suivi LFS, les suppressions de stash et les changements de remote peuvent en revanche toujours être annulés.
+- yaggui ne détecte pas un push fait depuis un terminal : si vous poussez depuis un terminal puis annulez un commit, seule votre branche locale bouge.
+
+## Quand le dépôt a changé en dehors de yaggui
+
+Avant d’annuler quoi que ce soit, yaggui vérifie que chaque branche que l’annulation déplacerait est toujours exactement là où l’opération l’a laissée.
+
+- Si une branche a bougé depuis (un commit fait dans un terminal, par exemple), le bouton affiche **Impossible d'annuler \{op\} : \{refs\} a bougé depuis, hors de yaggui**, et le raccourci ouvre **Annulation impossible : le dépôt a changé depuis** : « Des branches ou des fichiers ont changé après cette opération, dans un terminal ou par une action que yaggui n'enregistre pas. L'annuler ferait perdre ces changements : rien n'a été touché. » La boîte liste ce qui a bougé ou changé. Rien n’est modifié.
+- Si vos modifications locales gênent (vous avez modifié un fichier après l’avoir abandonné ou après un reset hard, ou les fichiers que l’annulation d’un merge toucherait), yaggui demande **Des modifications locales gênent** : « Tes modifications locales des fichiers ci-dessous seraient écrasées. Mets-les de côté (stash) et l'annulation est relancée aussitôt ; fais un pop du stash ensuite pour les récupérer. » **Mettre de côté et réessayer** exécute `git stash push --include-untracked`, puis annule. Faites ensuite un pop du stash (voir [Stash](../../everyday/stash/)).
+
+## Sauvegardes avant abandon de modifications
+
+Avant d’abandonner des modifications, avant un reset hard, et avant de mettre de côté des fichiers sélectionnés, d’ajouter à `.gitignore` ou de suivre un motif avec LFS, yaggui copie les fichiers concernés dans un dossier de sauvegarde (`backups/` dans le dossier de configuration de yaggui). L’annulation utilise ces copies pour réécrire les fichiers.
+
+Les sauvegardes restent sur le disque après la fin de la session, alors que l’historique d’annulation, lui, disparaît ; yaggui ne les supprime pas. Vous pouvez récupérer un fichier à la main depuis ce dossier, ou le supprimer pour libérer de l’espace. Son emplacement est indiqué dans [Données et confidentialité](../../reference/data-and-privacy/).

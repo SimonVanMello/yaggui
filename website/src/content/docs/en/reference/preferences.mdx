@@ -1,0 +1,148 @@
+---
+title: Preferences
+description: Every yaggui preference, tab by tab, with its exact label, values, default and effect, and where preferences are stored.
+sidebar:
+  order: 2
+sources:
+  - src/features/preferences/**
+  - src/features/keybindings/KeybindingsTab.tsx
+  - src/app/preferences.ts
+  - src/app/appearance.ts
+  - src/app/errors/confirmStore.ts
+  - src-tauri/src/store/types.rs
+  - src-tauri/src/store/mod.rs
+  - src-tauri/src/store/keybindings.rs
+  - src-tauri/src/commands/store.rs
+  - src-tauri/src/commands/settings.rs
+  - src-tauri/src/state.rs
+requirements: [F-320, F-321, F-322, F-323, F-324, F-325, F-033, F-266, F-267, F-281]
+---
+
+This page lists every setting of the **Preferences** dialog, tab by tab. Each row links to the page that explains the feature.
+
+## Open the preferences
+
+- The gear button (**Preferences**) in the title bar.
+- <kbd>⌘,</kbd> (<kbd>Ctrl+,</kbd> on Windows and Linux), rebindable.
+- **Open preferences** in the [command palette](../../customize/palette-and-shortcuts/).
+- On macOS, **yaggui › Preferences…**.
+- **Edit shortcuts…** in the keyboard shortcuts sheet opens it on the **Shortcuts** tab.
+
+Changes apply immediately: there is no Save or Cancel button, only **Close**. Text fields save when you press <kbd>Enter</kbd> or leave the field. If yaggui refuses a value, the setting goes back to its previous value and a toast "Could not save the preference" explains why. <kbd>Esc</kbd> closes the dialog, except during a shortcut capture, where it only cancels the capture.
+
+## Appearance
+
+See [Appearance](../../customize/appearance/).
+
+| Label                      | Values                                | Default                | Effect                                                                                                          |
+| -------------------------- | ------------------------------------- | ---------------------- | --------------------------------------------------------------------------------------------------------------- |
+| **Theme**                  | **System**, **Light**, **Dark**       | **System**             | Light is Paper, dark is Graphite. System follows the OS live. No effect with the Terminal style                 |
+| **Style**                  | **Graphite / Paper**, **Terminal**    | **Graphite / Paper**   | Terminal is a dense, monospace, always-dark style                                                               |
+| **High contrast**          | On, off                               | Off                    | Stronger text and borders, with any style                                                                       |
+| **Gravatar avatars**       | On, off                               | Off                    | Shows authors' Gravatar pictures. Sends the SHA-256 hash of each author e-mail to gravatar.com. Off: no request |
+| **Clear the avatar cache** | Button                                |                        | Deletes downloaded pictures ("Avatar cache cleared")                                                            |
+| **Density**                | **Comfortable**, **Compact**          | **Comfortable**        | Row height 28 px or 22 px                                                                                       |
+| **Language**               | **System**, **English**, **Français** | **System**             | Interface language, applied without restart. System uses the OS language if supported, otherwise English        |
+| **Interface font**         | Name of an installed font             | Empty (Inter)          | Font of the interface                                                                                           |
+| **Code font**              | Name of an installed font             | Empty (JetBrains Mono) | Font of diffs, code, SHAs and the terminal                                                                      |
+| **Text size**              | 11 to 18 px                           | 13 px                  | Scales all text                                                                                                 |
+
+## Shortcuts
+
+See [Command palette and shortcuts](../../customize/palette-and-shortcuts/#rebind-a-shortcut). This tab edits `keybindings.json`, not the preferences database.
+
+| Control                          | Effect                                                             |
+| -------------------------------- | ------------------------------------------------------------------ |
+| **Filter commands or shortcuts** | Filters by label, action id or shortcut                            |
+| **Reset all to defaults**        | Removes every change                                               |
+| **Edit** (per command)           | Captures a new shortcut; on a conflict, **Reassign** or **Cancel** |
+| **Remove** (per command)         | Leaves the command without a shortcut                              |
+| **Default** (per command)        | Restores the default shortcut                                      |
+| **Stored in**                    | Path of `keybindings.json`                                         |
+
+## Tools
+
+See [External tools](../../customize/external-tools/). Each row except **Terminal** has a **Test** button.
+
+| Label                 | Values                                       | Default                                  | Effect                                                                                                                           |
+| --------------------- | -------------------------------------------- | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| **Editor**            | Program or application name, or a path       | Empty (system default application)       | Opens the repository or a file                                                                                                   |
+| **Terminal**          | **Integrated**, **External**                 | **Integrated**                           | What the toolbar **Terminal** button opens: the [integrated terminal](../../repository/terminal/) panel or the external terminal |
+| **External terminal** | **Configure…** opens the **Terminal** dialog | System default                           | Terminal application or program used for external terminals                                                                      |
+| **Diff tool**         | A tool name Git knows                        | Empty (`diff.tool`, then `diff.guitool`) | Tool run by `git difftool`                                                                                                       |
+| **Merge tool**        | A tool name Git knows                        | Empty (`merge.tool`)                     | Tool run by `git mergetool`                                                                                                      |
+
+## Git
+
+See [Git binary and configuration](../../customize/git-configuration/#choose-the-git-binary).
+
+| Label          | Values                                         | Default                                               | Effect                                                                                                                                            |
+| -------------- | ---------------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Git binary** | Path of a Git executable, saved with **Apply** | Empty ("Detected automatically": `git` on the `PATH`) | The Git yaggui runs. **Auto-detect** clears it. A version older than 2.30 is accepted with a warning; a path that is not a working Git is refused |
+
+## Configuration
+
+Not yaggui preferences: this tab edits Git's own configuration files with `git config`. See [Git binary and configuration](../../customize/git-configuration/#edit-the-git-configuration).
+
+| Control                | Values                                                                                                                                                                                                                                                            | Default                             |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| **Configuration file** | **Global** (`~/.gitconfig`), **This repository** (`.git/config`, only from a repository tab)                                                                                                                                                                      | **Global**, each time the tab opens |
+| **Common settings**    | **Name (user.name)**, **Email (user.email)**, **Pull strategy (pull.rebase)**, **Line endings (core.autocrlf)**, **Default branch (init.defaultBranch)**, **Sign commits (commit.gpgsign)**, **Signature format (gpg.format)**, **Signing key (user.signingkey)** | Whatever the file contains          |
+| **All entries**        | Every key of the file: add, edit, remove                                                                                                                                                                                                                          |                                     |
+
+## Behavior
+
+| Label                            | Values                                                              | Default                                  | Effect                                                                                                                                                                                                                 |
+| -------------------------------- | ------------------------------------------------------------------- | ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Fetch automatically**          | On, off                                                             | On                                       | Fetches all remotes of the visible tab's repository in the background; tabs in the background pause. Skipped while an operation runs, and silent: no toast. See [Fetch, pull and push](../../remotes/fetch-pull-push/) |
+| **Every (minutes)**              | 1 to 240                                                            | 10                                       | Interval of the automatic fetch. Disabled when automatic fetch is off. Out-of-range values are clamped                                                                                                                 |
+| **Prune on fetch**               | On, off                                                             | On                                       | Adds `--prune` to every fetch: remote-tracking branches deleted on the remote are removed                                                                                                                              |
+| **Default pull strategy**        | **Git configuration**, **Fast-forward only**, **Merge**, **Rebase** | **Git configuration**                    | Used when you pull without choosing. **Git configuration** follows `branch.<name>.rebase`, `pull.rebase` and `pull.ff`, and falls back to fast-forward only                                                            |
+| **Protected branches**           | Branch names or patterns such as `release/*`                        | `main`, `master`, `develop`, `release/*` | Force push to them is refused, and branch cleanup never lists them. **Restore defaults** brings the default list back. An empty list protects nothing. See [Branches](../../history/branches/)                         |
+| **Confirmations**                | One switch per confirmation                                         | All on                                   | See [below](#confirmations-you-can-turn-off)                                                                                                                                                                           |
+| **Check for updates at startup** | On, off                                                             | Asked at first launch                    | Reads the latest release on github.com at each launch. Off: no request. See [Updates](../../start-here/updates/)                                                                                                       |
+| **Check now**                    | Button                                                              |                                          | Checks for an update immediately                                                                                                                                                                                       |
+| **Version**                      | **What's new** button                                               |                                          | Shows the running version and opens the changelog                                                                                                                                                                      |
+
+Only a trailing `/*` is a wildcard: `release/*` matches `release/1.0` and `release/a/b`, but not `release` itself. Any other entry must match the branch name exactly. Entries cannot contain spaces, and up to 100 are allowed.
+
+## Confirmations you can turn off
+
+The **Confirmations** group of the **Behavior** tab ("Ask before these actions. The dialog always shows what will happen.") has four switches:
+
+| Switch              | Confirmation it controls                                                   | Can be turned off                                   |
+| ------------------- | -------------------------------------------------------------------------- | --------------------------------------------------- |
+| **Discard changes** | "Discard all unstaged changes?", discarding selected files, hunks or lines | Yes                                                 |
+| **Delete a tag**    | "Delete the tag _name_?"                                                   | Yes                                                 |
+| **Drop a stash**    | "Drop this stash?"                                                         | Yes                                                 |
+| **Force push**      | "Overwrite _branch_?"                                                      | No: "Always asked: it rewrites the remote history." |
+
+A turned-off confirmation runs the action at once. Other confirmations are always shown and have no switch, for example: rebase ("Rebase _branch_ onto _target_?"), rewriting commits in an interactive rebase, aborting an operation, deleting a remote branch or tag, removing a remote, publishing a branch, deleting a workspace, undo when local changes are in the way, trusting a folder (`safe.directory`) and removing an index lock. Reset and branch deletion use their own dialogs.
+
+## Preferences not in the dialog
+
+| Setting                                                                                  | Where you change it                                                                           | Default                 |
+| ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | ----------------------- |
+| Split or unified diff                                                                    | The [diff view](../../everyday/diff/) toolbar, or <kbd>⌘D</kbd> (<kbd>Ctrl+D</kbd>) in a diff | Split                   |
+| Diff options (wrap lines, ignore whitespace, context lines, full file, Markdown preview) | The diff view toolbar                                                                         | Off, 3 lines of context |
+
+The palette commands **Theme: follow the system**, **Theme: light** and **Theme: dark** change the same **Theme** setting as the dialog.
+
+## Where preferences are stored
+
+Preferences are not in a `settings.json` file. They are stored in the SQLite database `yaggui.db`, in the `preferences` table (one row per setting, JSON values), in yaggui's configuration folder:
+
+| OS      | Configuration folder                                                      |
+| ------- | ------------------------------------------------------------------------- |
+| Linux   | `~/.config/dev.tropico.yaggui` (or `$XDG_CONFIG_HOME/dev.tropico.yaggui`) |
+| macOS   | `~/Library/Application Support/dev.tropico.yaggui`                        |
+| Windows | `%APPDATA%\dev.tropico.yaggui`                                            |
+
+The `YAGGUI_CONFIG_DIR` environment variable replaces this folder.
+
+- Shortcuts are stored separately in `keybindings.json`, in the same folder, which you can edit by hand. See [Edit keybindings.json](../../customize/palette-and-shortcuts/#edit-keybindingsjson).
+- Avatars are cached in the OS cache folder, not with the preferences.
+- An unreadable or out-of-range value falls back to its default. If the database cannot be opened, yaggui starts with the defaults and keeps changes in memory only: they are lost when you quit.
+- To reset every preference, quit yaggui and delete `yaggui.db`. This also forgets your repositories, tabs and workspaces. See [Data and privacy](../../reference/data-and-privacy/).
+
+There is no import or export of preferences yet.

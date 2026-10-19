@@ -1,0 +1,202 @@
+---
+title: Viewing diffs
+description: Read file diffs in yaggui, switch between unified and side-by-side layouts, set diff options, navigate with the keyboard, compare images and Markdown, and edit or open files outside yaggui.
+sidebar:
+  order: 4
+sources:
+  - src/features/diff/**
+  - src-tauri/src/git/read/diff/**
+  - src-tauri/src/git/read/image.rs
+  - src-tauri/src/commands/diff.rs
+  - src-tauri/src/repo/graph_tools.rs
+  - src-tauri/src/commands/graph_tools.rs
+  - src-tauri/src/system/editor.rs
+  - src-tauri/src/repo/write.rs
+requirements: [F-080, F-081, F-082, F-083, F-084, F-085, F-086, F-087, F-088, F-089]
+---
+
+import Screenshot from '~/components/Screenshot.astro';
+import diffSplitDark from '../../../../assets/screens/diff-split-dark.png';
+import diffSplitLight from '../../../../assets/screens/diff-split-light.png';
+import diffImageOnionDark from '../../../../assets/screens/diff-image-onion-dark.png';
+import diffImageOnionLight from '../../../../assets/screens/diff-image-onion-light.png';
+import diffMarkdownPreviewDark from '../../../../assets/screens/diff-markdown-preview-dark.png';
+import diffMarkdownPreviewLight from '../../../../assets/screens/diff-markdown-preview-light.png';
+
+The diff viewer shows the changes of one file: in your working tree, in the index, in a commit, in a stash or between two compared revisions. This page covers how to open and read it, its options and keyboard navigation, and the special cases (binary files, images, Markdown, large files). Staging hunks and lines from the diff is covered in [Staging changes](../../everyday/staging/#stage-part-of-a-file).
+
+## Open and close a diff
+
+Click a file in any file list to open its diff in place of the graph; the right panel stays as it is. File lists appear in:
+
+- The **Unstaged** and **Staged** lists of the [changes panel](../../everyday/staging/).
+- The commit details panel, when a commit is selected (see [The commit graph](../../history/commit-graph/)). A merge commit is compared with its first parent.
+- The **Stash details** panel (see [Stash](../../everyday/stash/#preview-a-stash)).
+- The **Changes** tab of a [comparison](../../inspect/compare/).
+- The [file history](../../inspect/file-history-and-blame/).
+
+To go back to the graph, click **Graph** at the left of the diff toolbar, press <kbd>Esc</kbd>, or click the open file again in its list. In a working-tree diff with selected lines, the first <kbd>Esc</kbd> clears the selection and the second closes the diff. A working-tree diff closes by itself when its file leaves the list (for example, once staged or discarded).
+
+## The diff toolbar
+
+From left to right:
+
+| Element                           | Description                                                                                                                      |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| **Graph**                         | Back to the graph (<kbd>Esc</kbd>)                                                                                               |
+| Status letter                     | Same letters and colors as in the file lists                                                                                     |
+| Path                              | The file path, `old → new` for a rename                                                                                          |
+| Line counts                       | `+added −removed`                                                                                                                |
+| Position                          | `{index} / {total}` in the file list (hidden when the diff area is narrower than 760 px)                                         |
+| **Previous file** / **Next file** | Move in the file list (<kbd>K</kbd> / <kbd>J</kbd>); disabled at either end                                                      |
+| **Edit**                          | Edit the file in place (unstaged diffs only, see [Edit a file in the diff](#edit-a-file-in-the-diff))                            |
+| **Open outside yaggui**           | Menu: diff tool, editor, file manager                                                                                            |
+| **File history**, **Blame**       | Open the [file history or blame](../../inspect/file-history-and-blame/) of the file (**Blame at this commit** for a commit diff) |
+| **Diff layout**                   | **Unified**, **Side by side**, plus **Preview** for Markdown files                                                               |
+| **Diff options**                  | The options menu (gear icon)                                                                                                     |
+
+<Screenshot
+  dark={diffSplitDark}
+  light={diffSplitLight}
+  alt="A side-by-side diff with the diff toolbar, syntax highlighting and changed words highlighted inside modified lines"
+/>
+
+## Unified or side by side
+
+**Side by side** (the default) shows the old version on the left and the new one on the right, scrolled together. **Unified** shows both in one column. Switch with the **Diff layout** control or <kbd>⌘D</kbd> (<kbd>Ctrl+D</kbd> on Windows and Linux). The choice is saved and applies to every repository. <kbd>⌘D</kbd> is fixed and cannot be rebound.
+
+## Diff options
+
+The **Diff options** menu holds:
+
+| Option                  | Default | Effect                                                                                                                    |
+| ----------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------- |
+| **Wrap lines**          | Off     | Wraps long lines instead of scrolling horizontally. Side-by-side rows stay aligned                                        |
+| **Ignore whitespace**   | Off     | Hides whitespace-only changes, like `git diff -w`, including line-ending changes. Disables hunk and line staging while on |
+| **Show the whole file** | Off     | Shows the whole file as one hunk                                                                                          |
+| **Context lines**       | 3 lines | Unchanged lines around each change: 0, 3, 10 or 25                                                                        |
+
+These options are saved and apply to every diff in every repository. They are not in the Preferences dialog; see [Preferences](../../reference/preferences/) for where they are stored.
+
+If **Ignore whitespace** hides everything that changed, the diff says **Only whitespace changed** or **Only the line endings changed** and offers **Show whitespace changes**, which turns the option off.
+
+## Read the diff
+
+- **Syntax highlighting** follows the file name's language and appears a moment after the diff.
+- **Changed words** are highlighted inside modified lines. Very long lines, and lines that changed almost entirely, are shown as wholly changed.
+- **Hunk headers** show `@@ -a,b +c,d @@` followed by the nearest enclosing function or section line.
+- **No newline at end of file** is marked when a file's last line has no line break.
+
+yaggui computes diffs itself (no `git diff` process). It honors `diff.algorithm` and the `binary` and `-diff` attributes of `.gitattributes`, but does not run external diff drivers (`diff.<driver>.command`) or text conversions (`textconv`).
+
+## Navigate with the keyboard
+
+These keys work when focus is not in a text field:
+
+| Key                                                    | Action                                                                                                                                      |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| <kbd>N</kbd> / <kbd>P</kbd>                            | Next / previous change. Each run of changed lines is a stop; the current one is highlighted                                                 |
+| <kbd>J</kbd> / <kbd>K</kbd>                            | Next / previous file of the same list (in file history: older / newer commit)                                                               |
+| <kbd>⌘D</kbd> (<kbd>Ctrl+D</kbd> on Windows and Linux) | Toggle unified and side by side                                                                                                             |
+| <kbd>Esc</kbd>                                         | Clear the line selection, otherwise back to the graph                                                                                       |
+| <kbd>↑</kbd> / <kbd>↓</kbd>                            | In the file list: previous / next file. In a working-tree diff: move the line cursor (see [Staging changes](../../everyday/staging/#lines)) |
+
+All shortcuts are listed in [Keyboard shortcuts](../../reference/keyboard-shortcuts/).
+
+## Notices
+
+A notice bar above the code reports changes that are not visible as lines:
+
+| Notice                                                                      | Meaning                                                                |
+| --------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| **Renamed from \{from\} (\{similarity\}% similar)**                         | Rename or copy detected; similarity is 100% for an identical file      |
+| **File mode changed: 100644 → 100755**                                      | The executable bit (or another mode) changed                           |
+| **Line endings changed: LF → CRLF. Ignore whitespace to hide these lines.** | Every line changed only by its ending; `CRLF + LF` means mixed endings |
+| **Mixed line endings (CRLF and LF)**                                        | The new version mixes both endings                                     |
+| **Not UTF-8: shown as Windows-1252 (guessed encoding)**                     | The file is not valid UTF-8                                            |
+
+Renames and copies are detected like `git diff -M -C`. Without any content change, a mode-only change says **Only the file mode changed**.
+
+Some files show a placeholder instead of code:
+
+- **Submodule commit changed**: the old and new commit of a [submodule](../../repository/submodules/).
+- **File stored with Git LFS**: "Only a pointer is versioned: no text diff.", with sizes and object ids (see [Git LFS](../../repository/git-lfs/)).
+- **Merge conflict**: resolve it in the conflict editor (see [Conflicts](../../history/conflicts/)).
+- **No content change**.
+
+## Large files
+
+To stay fast, yaggui does not render diffs over 5,000 lines or files over 1 MB. It shows **Large diff not shown** with the line count ("This diff has \{lines\} lines. Showing it may slow yaggui down.") or the size ("This file weighs \{size\}. It was not loaded, to keep yaggui fast."). Click **Show anyway** to render it; yaggui remembers this for that file until you quit.
+
+## Binary files
+
+A binary file that is not an image shows **Binary file** with its size **Before** and **After** (a dash for a missing side).
+
+## Images
+
+PNG, JPEG, GIF, WebP, BMP, ICO, SVG and AVIF files are shown as pictures, titled **Image changed**, **Image added** or **Image deleted**, with each side's dimensions and size in the **Side by side** mode. When both versions exist, **Image comparison** offers:
+
+| Mode                       | Use                                                                                            |
+| -------------------------- | ---------------------------------------------------------------------------------------------- |
+| **Side by side** (default) | Both versions next to each other                                                               |
+| **Onion skin**             | The new version over the old one; the **Opacity of the new version** slider fades between them |
+| **Swipe**                  | One image split by a divider; the **Position of the divider** slider moves it                  |
+
+The mode stays selected for other images until you quit. Images over 8 MB are not previewed ("This image is too large to preview (8 MB at most)."). For an SVG, **Show the SVG source** switches to a text diff, and **Show as image** in the toolbar switches back. SVGs are displayed as images, so their scripts never run.
+
+<Screenshot
+  dark={diffImageOnionDark}
+  light={diffImageOnionLight}
+  alt="An image diff in Onion skin mode with the opacity slider"
+/>
+
+## Markdown preview
+
+For Markdown files (`.md`, `.markdown`, `.mdx` and similar), the **Diff layout** control has a third choice, **Preview**. It renders the new version of the document and marks the changes:
+
+- Changed, added and removed blocks are marked in the margin; inserted words are highlighted and removed words struck through in place.
+- A strip counts **\{count\} blocks added**, **removed** and **changed**. <kbd>N</kbd> and <kbd>P</kbd>, or **Next change** and **Previous change**, move between changes (**Change \{index\} / \{total\}**).
+- **Show removed text** (on by default) hides or shows removed text.
+- Renumbering an ordered list is not counted as a change. If only spaces or line breaks changed: "No change in the rendered text (spaces or line breaks only)".
+
+The preview is a saved setting for all Markdown files; choosing **Unified** or **Side by side**, or pressing <kbd>⌘D</kbd>, leaves it. Raw HTML is shown as code, links do not navigate, and images are shown as their alt text. A very large document says "This document is too large to be rendered." with **Render anyway**.
+
+<Screenshot
+  dark={diffMarkdownPreviewDark}
+  light={diffMarkdownPreviewLight}
+  alt="The Markdown preview of a document with inserted words highlighted and removed words struck through"
+/>
+
+## Edit a file in the diff
+
+In an unstaged diff of a text file, **Edit** turns the diff into an editor of the working-tree file, with the lines that differ from the index marked.
+
+1. Make your changes. The toolbar shows **Unsaved changes**.
+2. Click **Save** or press <kbd>⌘S</kbd> (<kbd>Ctrl+S</kbd> on Windows and Linux). The toolbar shows **Saved**.
+3. Click **Done** to go back to the diff. With unsaved changes, **Discard your changes?** asks first.
+
+If you leave the file without saving, your edits are kept until you quit and come back when you reopen it. If the file changes on disk while you have unsaved edits, yaggui says "\{path\} changed on disk while you were editing it." and offers **Reload from disk** or **Keep my version**.
+
+Editing is not offered for staged or commit diffs, and is refused for LFS files, files over 1 MB, non-UTF-8 or binary files and files mixing LF and CRLF endings ("This file cannot be edited").
+
+:::caution
+Saving writes the file directly. It is not recorded in the undo history: use the editor's own undo before you save.
+:::
+
+## Open outside yaggui
+
+The **Open outside yaggui** menu in the diff toolbar offers:
+
+| Item                               | Effect                                                                                                                                                                                                                                |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Open in the external diff tool** | Runs `git difftool --no-prompt --tool=<tool>` (`--gui` when only `diff.guitool` is set) on this file and waits until the tool closes. Staged diffs add `--cached`; commit diffs pass the two commits. Disabled while the tool is open |
+| **Open in the editor**             | Opens the working-tree file in your editor (preference **Editor**, otherwise the system default)                                                                                                                                      |
+| **Show in the file manager**       | Reveals the file in Finder or Explorer; on Linux, opens its folder                                                                                                                                                                    |
+
+The editor and file-manager items always act on the working-tree file, even from a commit diff, and are disabled when the file no longer exists there. The diff tool is the **Diff tool** preference, otherwise Git's `diff.tool`, otherwise `diff.guitool`. The palette action **Open the current file in the external diff tool** does the same as the first item. Set these tools in [External tools](../../customize/external-tools/).
+
+Errors:
+
+- "No external diff tool is configured: choose one in the preferences (Tools) or set diff.tool in your Git configuration."
+- "The diff tool \"\{tool\}\" could not be started. Check that it is installed and configured (difftool.\{tool\}.cmd)." The [command log](../../reference/command-log/) shows Git's output.
+- "The editor \"\{name\}\" could not be started. Check its name in the preferences."

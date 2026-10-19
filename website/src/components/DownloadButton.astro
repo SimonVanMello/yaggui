@@ -1,0 +1,67 @@
+---
+// Primary download button: links to the latest release's asset for the visitor's OS (detected in
+// the browser), or to the release page when the OS is unknown or JavaScript is off.
+import { localeOf, t } from '../i18n/ui';
+import { getLatestRelease } from '../lib/release';
+
+interface Props {
+  size?: 'md' | 'sm';
+  class?: string;
+}
+
+const { size = 'md', class: className } = Astro.props;
+const locale = localeOf(Astro.url);
+const release = await getLatestRelease();
+---
+
+<a
+  class:list={['btn', 'yaggui-download', { sm: size === 'sm' }, className]}
+  href={release.url}
+  data-version={release.version}
+  data-mac={release.assets['macos-arm64']}
+  data-windows={release.assets['windows-exe']}
+  data-linux={release.assets['linux-appimage']}
+  data-label={t(locale, 'download.for')}
+>
+  {size === 'md' && (
+    <svg viewBox="0 0 16 16" aria-hidden="true">
+      <path
+        d="M8 2v8m0 0L4.8 6.8M8 10l3.2-3.2M3 13h10"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+    </svg>
+  )}
+  <span>{size === 'md' ? t(locale, 'download.generic') : t(locale, 'nav.download')}</span>
+</a>
+
+<script>
+  type Os = 'macOS' | 'Windows' | 'Linux';
+
+  function detectOs(): Os | undefined {
+    const ua = navigator.userAgent;
+    // Phones and tablets get the release page: there is nothing to install there.
+    if (/Android|iPhone|iPad|iPod/.test(ua)) return undefined;
+    if (/Windows/.test(ua)) return 'Windows';
+    if (/Macintosh|Mac OS X/.test(ua)) return 'macOS';
+    if (/Linux|X11|CrOS/.test(ua)) return 'Linux';
+    return undefined;
+  }
+
+  const os = detectOs();
+  if (os) {
+    const key = ({ macOS: 'mac', Windows: 'windows', Linux: 'linux' } as const)[os];
+    for (const link of document.querySelectorAll<HTMLAnchorElement>('a.yaggui-download')) {
+      const href = link.dataset[key];
+      if (href) link.href = href;
+      const label = link.querySelector('span');
+      // The small variant (navigation bar) keeps its short label.
+      if (label && !link.classList.contains('sm') && link.dataset.label) {
+        label.textContent = link.dataset.label.replace('{os}', os);
+      }
+    }
+  }
+</script>

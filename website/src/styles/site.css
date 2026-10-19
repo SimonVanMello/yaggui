@@ -1,0 +1,247 @@
+/* Site pages outside the docs (landing, demo): base, navigation, buttons, footer. From docs/ui/website.html. */
+* {
+  box-sizing: border-box;
+}
+[hidden] {
+  display: none !important;
+}
+html {
+  scroll-behavior: smooth;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+a {
+  color: inherit;
+  text-decoration: none;
+}
+img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+h1,
+h2,
+h3 {
+  margin: 0;
+  text-wrap: balance;
+  font-weight: 500;
+}
+p {
+  margin: 0;
+}
+code {
+  font-family: var(--mono);
+  font-size: 0.88em;
+}
+kbd {
+  font-family: var(--mono);
+  font-size: 0.75em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.75em;
+  height: 1.75em;
+  padding: 0 0.45em;
+  border: 1px solid var(--line2);
+  border-radius: 5px;
+  background: var(--elev);
+  color: var(--fg2);
+  line-height: 1;
+  vertical-align: 0.1em;
+}
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.gut {
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap {
+  max-width: 1120px;
+  margin: 0 auto;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Navigation */
+.nav-wrap {
+  position: sticky;
+  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  z-index: 40;
+  padding-top: 16px;
+}
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 8px 8px 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--bg) 78%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: -0.01em;
+}
+.nav .brand {
+  margin-right: auto;
+}
+.brand img {
+  width: 24px;
+  height: 24px;
+}
+.nav-links {
+  display: flex;
+  gap: 2px;
+  font-size: 14px;
+  color: var(--fg2);
+}
+.nav-links a {
+  padding: 6px 12px;
+  border-radius: 8px;
+  transition:
+    color 150ms,
+    background 150ms;
+}
+.nav-links a:hover {
+  color: var(--fg);
+  background: var(--card);
+}
+.nav-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 34px;
+  min-width: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: none;
+  color: var(--fg2);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.nav-icon:hover {
+  color: var(--fg);
+}
+.nav-icon svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 20px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 500;
+  background: var(--btn);
+  color: var(--btn-fg);
+  border: 0;
+  cursor: pointer;
+  transition: opacity 150ms;
+  white-space: nowrap;
+}
+.btn:hover {
+  opacity: 0.88;
+}
+.btn svg {
+  width: 16px;
+  height: 16px;
+}
+.btn.sm {
+  height: 34px;
+  padding: 0 14px;
+  font-size: 13.5px;
+  border-radius: 8px;
+}
+.btn.ghost {
+  background: transparent;
+  color: var(--fg);
+  box-shadow: inset 0 0 0 1px var(--line2);
+}
+.btn.ghost:hover {
+  background: var(--card);
+  opacity: 1;
+}
+
+/* Footer */
+footer {
+  border-top: 1px solid var(--line);
+}
+.foot {
+  padding-block: 36px 48px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 28px;
+  align-items: center;
+  font-size: 13.5px;
+  color: var(--muted);
+}
+.foot .brand {
+  font-size: 14px;
+  color: var(--fg);
+  margin-right: 8px;
+}
+.foot nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 22px;
+}
+.foot nav a:hover {
+  color: var(--fg);
+}
+.foot .r {
+  margin-left: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  html {
+    scroll-behavior: auto;
+  }
+}
+@media (max-width: 640px) {
+  .nav-links,
+  .nav .github {
+    display: none;
+  }
+  .foot .r {
+    margin-left: 0;
+  }
+}

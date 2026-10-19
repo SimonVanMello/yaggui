@@ -1,0 +1,55 @@
+---
+// Layout of the pages outside the docs: landing (W-2) and demo (W-5). Shares the theme preference
+// with Starlight (`starlight-theme` in localStorage), so a choice made on one side holds on the other.
+import '../styles/theme.css';
+import '../styles/site.css';
+
+import SiteFooter from '../components/SiteFooter.astro';
+import SiteNav from '../components/SiteNav.astro';
+import { alternatePath, localeOf, t } from '../i18n/ui';
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const locale = localeOf(Astro.url);
+const { title, description = t(locale, 'site.description') } = Astro.props;
+const other = locale === 'en' ? 'fr' : 'en';
+const canonical = new URL(Astro.url.pathname, Astro.site);
+---
+
+<!doctype html>
+<html lang={locale}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="canonical" href={canonical} />
+    <link rel="alternate" hreflang={other} href={new URL(alternatePath(Astro.url), Astro.site)} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    {/* Inline and first, so the page never paints in the wrong theme. */}
+    <script is:inline>
+      (() => {
+        let stored = '';
+        try {
+          stored = localStorage.getItem('starlight-theme') || '';
+        } catch {}
+        const light = stored
+          ? stored === 'light'
+          : matchMedia('(prefers-color-scheme: light)').matches;
+        document.documentElement.dataset.theme = light ? 'light' : 'dark';
+      })();
+    </script>
+  </head>
+  <body>
+    <SiteNav />
+    <main id="top">
+      <slot />
+    </main>
+    <SiteFooter />
+  </body>
+</html>

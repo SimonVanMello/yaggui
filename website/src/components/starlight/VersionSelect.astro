@@ -1,0 +1,63 @@
+---
+// Docs version switcher. Each option links to the same page in that version when it exists there,
+// otherwise to that version's docs home; computed at build time, so the script only navigates.
+import { getCollection } from 'astro:content';
+import Select from '@astrojs/starlight/components/Select.astro';
+
+import { contentId, docsHref, parseId, versions } from '../../lib/docs-versions';
+import { t } from '../../i18n/ui';
+
+const parsed = parseId(Astro.locals.starlightRoute.id);
+const ids = new Set((await getCollection('docs')).map((e) => e.id));
+
+const options = parsed
+  ? versions.map((v) => {
+      // French pages missing in a version fall back to English: the English page decides.
+      const exists = ids.has(contentId('en', v, parsed.page));
+      const label = v.isLatest
+        ? t(parsed.locale, 'versions.latest', { version: v.id })
+        : (v.version ?? t(parsed.locale, 'versions.next'));
+      return {
+        label,
+        value: docsHref(parsed.locale, v, exists ? parsed.page : ''),
+        selected: v === parsed.version,
+      };
+    })
+  : [];
+---
+
+{options.length > 1 && (
+  <yaggui-version-select>
+    <Select
+      icon="seti:clock"
+      label={t(parsed?.locale ?? 'en', 'versions.label')}
+      options={options}
+      width="15.5em"
+    />
+  </yaggui-version-select>
+)}
+{options.length === 1 && (
+  <span class="version-only" title={t(parsed?.locale ?? 'en', 'versions.label')}>
+    {options[0]?.label}
+  </span>
+)}
+
+<script>
+  class VersionSelect extends HTMLElement {
+    connectedCallback() {
+      this.querySelector('select')?.addEventListener('change', (e) => {
+        if (e.currentTarget instanceof HTMLSelectElement)
+          window.location.href = e.currentTarget.value;
+      });
+    }
+  }
+  customElements.define('yaggui-version-select', VersionSelect);
+</script>
+
+<style>
+  .version-only {
+    font-size: var(--sl-text-xs);
+    color: var(--sl-color-gray-3);
+    white-space: nowrap;
+  }
+</style>

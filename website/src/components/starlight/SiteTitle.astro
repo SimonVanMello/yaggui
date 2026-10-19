@@ -1,0 +1,42 @@
+---
+// Mockup header: "yaggui docs" brand linking to the docs home, then the version switcher.
+import { defaultVersion, docsHref, parseId } from '../../lib/docs-versions';
+import VersionSelect from './VersionSelect.astro';
+
+const parsed = parseId(Astro.locals.starlightRoute.id);
+const locale = parsed?.locale ?? (Astro.locals.starlightRoute.locale === 'fr' ? 'fr' : 'en');
+const home = docsHref(locale, parsed?.version ?? defaultVersion);
+---
+
+<div class="title sl-flex">
+  <a href={home} class="brand sl-flex">
+    <img src="/favicon.svg" alt="" width="24" height="24" />
+    <span translate="no">
+      yaggui <em>docs</em>
+    </span>
+  </a>
+  <VersionSelect />
+</div>
+
+<style>
+  .title {
+    align-items: center;
+    gap: 1rem;
+    min-width: 0;
+  }
+  .brand {
+    align-items: center;
+    gap: 0.5625rem;
+    font-weight: 600;
+    font-size: 0.90625rem;
+    letter-spacing: -0.01em;
+    color: var(--sl-color-white);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .brand em {
+    font-style: normal;
+    font-weight: 400;
+    color: var(--sl-color-gray-3);
+  }
+</style>

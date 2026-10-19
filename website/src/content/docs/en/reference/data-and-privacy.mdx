@@ -1,0 +1,127 @@
+---
+title: Data and privacy
+description: Which network requests yaggui makes, where it stores its data on each OS, what it writes to your repositories, and how to reset it.
+sidebar:
+  order: 5
+sources:
+  - src-tauri/src/state.rs
+  - src-tauri/src/lib.rs
+  - src-tauri/src/main.rs
+  - src-tauri/src/store/**
+  - src-tauri/src/system/avatars.rs
+  - src-tauri/src/system/updates.rs
+  - src-tauri/src/repo/journal.rs
+  - src-tauri/src/git/ops/commit_graph.rs
+  - src-tauri/tauri.conf.json
+requirements: [F-033]
+---
+
+yaggui has no account, no telemetry and no server of its own. This page lists every network request it can make, every file it keeps on your computer, and what it writes to your repositories.
+
+## Network requests
+
+yaggui makes only these requests:
+
+| Request           | When                                                                                                                                                                                                    | Where to                                               | How to turn it off                                                |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ | ----------------------------------------------------------------- |
+| Git operations    | Fetch, pull, push, clone, and anything else that talks to a remote (submodules, Git LFS). Run by your `git`, with your own Git and SSH configuration.                                                   | Your remotes                                           | Do not run them.                                                  |
+| Automatic fetch   | Every 10 minutes by default, for the repository of the visible tab only. It runs `git fetch --all` (with `--prune` unless you turned **Prune on fetch** off), like the **Fetch** button.                | Your remotes                                           | **Preferences → Behavior → Fetch automatically**.                 |
+| Update check      | At each launch, only if you accepted it. On first launch yaggui asks with a "Check for updates at startup?" notice; ignoring it leaves the check off. A manual **Check for updates** makes one request. | `github.com` (the latest release's `latest.json` file) | **Preferences → Behavior → Check for updates at startup**.        |
+| Update download   | Only when you click **Update and restart** or **Update** in an update notice.                                                                                                                           | `github.com` (release files)                           | Do not click it. See [Updates](../../start-here/updates/).        |
+| Gravatar pictures | Only if you turn on **Gravatar avatars**. yaggui sends a SHA-256 hash of each author's email address, over HTTPS, never the address itself.                                                             | `www.gravatar.com`                                     | **Preferences → Appearance → Gravatar avatars** (off by default). |
+
+Nothing else leaves your computer: no usage statistics, no crash reports, no analytics. Opening links such as the release page hands them to your web browser.
+
+## Credentials
+
+yaggui never asks for, sees or stores a password, token or passphrase. Git runs without a terminal and with `GIT_TERMINAL_PROMPT=0`, so credentials come only from your Git credential helper or your SSH agent. See [Authentication](../../remotes/authentication/).
+
+One exception to keep in mind: a URL typed with a token inside it (`https://user:token@host/…`) is shown as typed in the [command log](../../reference/command-log/#privacy), which lives in memory only.
+
+## Where yaggui stores its data
+
+yaggui uses two folders: a config folder for what must be kept, and a cache folder for what can be rebuilt.
+
+| OS      | Config folder                                                             | Cache folder                          |
+| ------- | ------------------------------------------------------------------------- | ------------------------------------- |
+| macOS   | `~/Library/Application Support/dev.tropico.yaggui`                        | `~/Library/Caches/dev.tropico.yaggui` |
+| Windows | `%APPDATA%\dev.tropico.yaggui`                                            | `%LOCALAPPDATA%\dev.tropico.yaggui`   |
+| Linux   | `~/.config/dev.tropico.yaggui` (or `$XDG_CONFIG_HOME/dev.tropico.yaggui`) | `~/.cache/dev.tropico.yaggui`         |
+
+### Config folder
+
+| Item               | Contents                                                                                                                                                                                                                                                                |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `yaggui.db`        | A SQLite database with your settings and lists (see below).                                                                                                                                                                                                             |
+| `keybindings.json` | The shortcuts you changed, as `{ "<action id>": "Mod+Shift+K" }`. Only present once you rebind something. See [Palette and shortcuts](../../customize/palette-and-shortcuts/).                                                                                          |
+| `backups/`         | One sub-folder per backup: copies of the files that a discard, a hard reset, a stash of selected files, a `.gitignore` change or an LFS track was about to overwrite. They let you [undo](../../history/undo-and-redo/) these operations and recover the files by hand. |
+
+:::note
+yaggui never cleans `backups/` on its own. It grows with each discard or hard reset. Delete old sub-folders when you no longer need them, preferably while yaggui is closed.
+:::
+
+### What is in yaggui.db
+
+- **Preferences**: every setting of the Preferences window, including the Git path, theme, language, tools, terminal, auto-fetch, protected branches and the update and Gravatar choices. There is no `settings.json`: the database is the only place.
+- **Repositories**: the path, name, favorite flag and last opening time of each repository you opened (the welcome screen's recents and favorites).
+- **Tabs**: the open tabs and their layout, restored at the next launch, and each repository's layout (panel sizes, sidebar sections, graph columns).
+- **Workspaces** and their repositories.
+- **Commit helpers**: identity profiles (label, name, email), commit message templates, and the recent commit messages of each repository.
+- **Graph filters**: the branches hidden or soloed in each graph.
+- **Recent folders** used by the clone and initialize dialogs.
+
+If `yaggui.db` cannot be opened (corrupted file, no write permission), yaggui still starts with an empty database kept in memory: your preferences and recents are missing for that session and nothing is saved. See [Preferences or data lost](../../help/troubleshooting/#preferences-recents-or-tabs-are-gone).
+
+### Cache folder
+
+| Item          | Contents                                                                                                                                                               |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `avatars-v1/` | Downloaded Gravatar pictures (refreshed after a few days) and markers for addresses with no picture. **Preferences → Appearance → Clear the avatar cache** empties it. |
+| `update/`     | The package downloaded by the `.deb` or `.rpm` update, emptied before each download.                                                                                   |
+
+Everything in the cache folder can be deleted at any time: yaggui downloads it again when needed. On Linux, the system web view also keeps its own cache there.
+
+### Not stored
+
+- The [command log](../../reference/command-log/): in memory only, empty at each launch.
+- The undo history: in memory, per repository, lost when you close the repository.
+- yaggui writes no log file. Diagnostic messages go to the terminal yaggui was started from (see `RUST_LOG` below).
+
+## What yaggui writes to your repositories
+
+yaggui changes a repository only by running Git commands, all of them listed in the command log. Besides the operations you ask for, it can write:
+
+- **The commit-graph file** (`.git/objects/info/commit-graph`): when it is missing or lacks 1,000 or more reachable commits (shallow clones excepted), yaggui runs `git commit-graph write --reachable --changed-paths --no-progress` in the background. It only speeds up history reads. Set `core.commitGraph` to `false` in the repository to prevent it.
+- **Git objects for undo**: before an operation that overwrites files (discard, hard reset…), yaggui stores their content with `git hash-object -w`. These objects are referenced by nothing; Git removes them during its usual garbage collection.
+
+yaggui adds no file or folder of its own to your repositories (no `.yaggui` folder, no hidden settings file).
+
+Your **global Git configuration** (`~/.gitconfig`) changes only when you ask:
+
+- **Trust this folder…** adds the repository to `safe.directory`, after a confirmation that shows the command. yaggui never does it automatically.
+- Saving your identity in the commit box without **Only for this repository** sets the global `user.name` and `user.email`.
+- Edits you make in the [Git configuration](../../customize/git-configuration/) editor with the global scope.
+
+## Environment variables
+
+| Variable                         | Effect                                                                                                                                                                 |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `YAGGUI_CONFIG_DIR`              | Use this folder instead of the config folder (database, `keybindings.json`, `backups/`). Useful for a clean test session: `YAGGUI_CONFIG_DIR=/tmp/yaggui-test yaggui`. |
+| `YAGGUI_CACHE_DIR`               | Use this folder instead of the cache folder.                                                                                                                           |
+| `RUST_LOG`                       | Level of the diagnostic messages yaggui prints on standard error: `RUST_LOG=debug yaggui`. Default `info`.                                                             |
+| `WEBKIT_DISABLE_DMABUF_RENDERER` | Linux only. yaggui sets it to `1` on Wayland to avoid a rendering crash; a value you set yourself wins.                                                                |
+
+yaggui also removes Git variables such as `GIT_DIR`, `GIT_WORK_TREE` and `GIT_CONFIG_*` from the environment of the commands it runs, so starting it from a Git hook or a rebase does not confuse it.
+
+## Reset yaggui
+
+Quit yaggui first, then delete what you want to reset in the config folder:
+
+| To reset                                                                  | Delete                                                                              |
+| ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Preferences, recents, favorites, tabs, workspaces, templates and profiles | `yaggui.db`                                                                         |
+| Shortcuts                                                                 | `keybindings.json`, or use **Reset all to defaults** in **Preferences → Shortcuts** |
+| Undo backups                                                              | the sub-folders of `backups/`                                                       |
+| Avatars and downloaded updates                                            | the cache folder                                                                    |
+
+Deleting these files never touches your repositories. With Homebrew on macOS, `brew uninstall --zap --cask yaggui` removes the app together with its settings and caches.
