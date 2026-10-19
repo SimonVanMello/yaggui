@@ -1,0 +1,114 @@
+---
+title: Submodules
+description: Consulter l'état de chaque submodule, les initialiser et les mettre à jour, en ouvrir un dans son propre onglet et lire leurs changements dans le diff.
+sidebar:
+  order: 1
+sources:
+  - src/features/submodules/**
+  - src/features/worktrees/moduleMenus.ts
+  - src/features/worktrees/moduleActions.ts
+  - src/features/sidebar/RefTreeRow.tsx
+  - src/features/sidebar/RefContextMenu.tsx
+  - src/features/diff/DiffPlaceholder.tsx
+  - src/features/diff/ChangedFileRow.tsx
+  - src-tauri/src/commands/modules.rs
+  - src-tauri/src/repo/modules.rs
+  - src-tauri/src/git/read/submodules.rs
+requirements: [F-260]
+---
+
+import Screenshot from '~/components/Screenshot.astro';
+import submodulesSidebarDark from '../../../../assets/screens/submodules-sidebar-dark.png';
+import submodulesSidebarLight from '../../../../assets/screens/submodules-sidebar-light.png';
+import submodulesMenuDark from '../../../../assets/screens/submodules-menu-dark.png';
+import submodulesMenuLight from '../../../../assets/screens/submodules-menu-light.png';
+import submoduleDiffDark from '../../../../assets/screens/submodule-diff-dark.png';
+import submoduleDiffLight from '../../../../assets/screens/submodule-diff-light.png';
+
+yaggui liste les submodules d'un dépôt dans le panneau gauche, indique si chacun correspond au commit enregistré par le dépôt parent, et lance `git submodule update` à votre place. Un submodule est un autre dépôt épinglé à un commit précis à l'intérieur du vôtre : voir [Git Tools - Submodules](https://git-scm.com/book/en/v2/Git-Tools-Submodules).
+
+## Voir les submodules et leur état
+
+La section **Submodules** du panneau gauche liste, par nom, tous les submodules déclarés dans `.gitmodules`. Elle est repliée par défaut et son en-tête affiche un compteur ; elle indique **Aucun sous-module** quand il n'y en a pas. Le filtre en haut du panneau porte sur les noms et les chemins des submodules.
+
+Des pastilles à côté du nom indiquent son état :
+
+| Pastille            | Signification                                                                                                                                                                  |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **non initialisé**  | Le submodule n'a jamais été extrait dans cet arbre de travail : son dossier est vide.                                                                                          |
+| **déplacé**         | Le submodule est extrait à un autre commit que celui enregistré par le dépôt parent. L'infobulle indique « Enregistré `<sha>`, extrait `<sha>` ».                              |
+| **modifié**         | Le submodule a des modifications locales (fichiers indexés, modifiés ou non suivis). Infobulle : **Le submodule a des modifications locales**.                                 |
+
+L'état est lu sans lancer Git ; il est actualisé à chaque changement du statut ou des références du dépôt, et après chaque opération.
+
+Un clic sur un submodule ne fait que le sélectionner : son commit enregistré appartient à l'historique du submodule, donc le graphe ne bouge pas. Un double-clic ne fait rien.
+
+<Screenshot
+  dark={submodulesSidebarDark}
+  light={submodulesSidebarLight}
+  alt="Les sections Submodules et Worktrees du panneau gauche, avec les pastilles déplacé, modifié et non initialisé"
+/>
+
+## Menu contextuel d'un submodule
+
+Faites un clic droit sur un submodule pour ouvrir son menu :
+
+| Entrée                       | Quand                                                                                                                      | Effet                                                                                                                  |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| **Ouvrir dans un nouvel onglet** | Toujours affichée ; désactivée avec l'indication **Initialise-le d'abord** quand le submodule n'est pas initialisé       | Ouvre le submodule comme un dépôt à part entière.                                                                      |
+| **Mettre à jour**            | Submodule initialisé                                                                                                       | `git submodule update --progress -- <path>`                                                                            |
+| **Initialiser**              | Submodule non initialisé                                                                                                   | `git submodule update --progress --init -- <path>`                                                                     |
+| **Mettre à jour (récursif)** | Toujours                                                                                                                   | `git submodule update --progress --recursive -- <path>`, avec `--init` en plus quand le submodule n'est pas initialisé |
+| **Copier le chemin**         | Toujours                                                                                                                   | Copie le chemin relatif à la racine du dépôt.                                                                          |
+| **Copier le SHA**            | Un commit est enregistré                                                                                                   | Copie le SHA du commit enregistré.                                                                                     |
+
+<Screenshot
+  dark={submodulesMenuDark}
+  light={submodulesMenuLight}
+  alt="Menu contextuel d'un submodule initialisé : Ouvrir dans un nouvel onglet, Mettre à jour, Mettre à jour (récursif), Copier le chemin, Copier le SHA"
+/>
+
+## Initialiser et mettre à jour les submodules
+
+La mise à jour extrait, dans chaque submodule, le commit enregistré par le dépôt parent. L'initialisation fait de même pour un submodule qui n'a jamais été extrait, après l'avoir enregistré. Les deux peuvent télécharger des commits depuis le remote du submodule.
+
+Pour agir sur un seul submodule, utilisez son menu contextuel (voir ci-dessus). Pour agir sur tous, ouvrez la [palette de commandes](../../customize/palette-and-shortcuts/) et lancez :
+
+| Action de la palette                                              | Commande                                                |
+| ----------------------------------------------------------------- | ------------------------------------------------------- |
+| **Mettre à jour les submodules**                                  | `git submodule update --progress --`                    |
+| **Initialiser et mettre à jour tous les submodules (récursif)**   | `git submodule update --progress --init --recursive --` |
+
+Ces deux actions sont disponibles dès que le dépôt a au moins un submodule. Elles n'ont pas de raccourci par défaut ; vous pouvez en attribuer un dans les Préférences.
+
+La mise à jour s'exécute en arrière-plan : la barre d'état l'affiche sous le nom **Submodules** avec sa progression, et vous pouvez l'y annuler. Une fois terminée, yaggui affiche **Submodules mis à jour**, la pastille **déplacé** disparaît, et la pastille **modifié** reste si le submodule avait des modifications locales : une mise à jour n'y touche jamais. En cas d'échec, le toast reprend l'erreur du [catalogue d'erreurs](../../reference/error-messages/), par exemple une erreur réseau ou d'authentification (voir [Authentification](../../remotes/authentication/)).
+
+Pour cloner un dépôt avec ses submodules, cochez **Cloner les sous-modules** dans la boîte de dialogue de clonage (voir [Ouvrir un dépôt](../../start-here/open-a-repository/)).
+
+yaggui n'ajoute, ne retire (deinit), ne synchronise ni ne reconfigure les submodules. Utilisez pour cela le [terminal intégré](../../repository/terminal/).
+
+:::note
+Une mise à jour de submodule ne peut pas être annulée : elle a téléchargé et extrait du contenu. Elle apparaît dans l'historique d'annulation sous le nom « mise à jour des submodules » et empêche d'annuler au-delà de ce point. Voir [Annuler et rétablir](../../history/undo-and-redo/).
+:::
+
+## Ouvrir un submodule dans un onglet
+
+Choisissez **Ouvrir dans un nouvel onglet** dans le menu contextuel du submodule, ou **Ouvrir le submodule** sous son diff. yaggui ouvre le dossier du submodule comme un dépôt dans un nouvel onglet (ou bascule vers l'onglet qui l'affiche déjà) et l'ajoute à vos dépôts récents. Seuls les submodules initialisés peuvent être ouverts.
+
+## Changements de submodule dans le panneau des changements et le diff
+
+Les changements faits à l'intérieur d'un submodule n'apparaissent pas dans le panneau des changements du dépôt parent. Un submodule n'y figure que si son commit extrait diffère de celui de l'index (le gitlink a bougé), ou si un commit ou l'index modifie le commit enregistré.
+
+La ligne du fichier porte une pastille **submodule**. La sélectionner affiche un panneau **Commit du submodule modifié** avec les SHA courts ancien et nouveau, à la place d'un diff texte. En dessous :
+
+- **Le submodule a aussi des modifications locales.** apparaît quand le submodule est modifié.
+- **Ouvrir le submodule** l'ouvre dans un onglet (submodules initialisés uniquement).
+- **Extraire le commit enregistré** apparaît dans le diff de l'arbre de travail quand le commit extrait diffère du commit enregistré. Il lance `git submodule update --progress -- <path>`.
+
+Un changement de submodule s'indexe comme une entrée entière : l'indexation par hunk ou par ligne ne s'applique pas. Voir [Staging](../../everyday/staging/) et [Diff](../../everyday/diff/).
+
+<Screenshot
+  dark={submoduleDiffDark}
+  light={submoduleDiffLight}
+  alt="Diff d'un submodule : le panneau Commit du submodule modifié avec les SHA ancien et nouveau"
+/>
