@@ -1,0 +1,5 @@
+node_modules/
+dist/
+.astro/
+# Docs of released versions, extracted from git at build time (scripts/versions.ts).
+.cache/

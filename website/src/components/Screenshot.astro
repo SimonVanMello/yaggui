@@ -1,0 +1,199 @@
+---
+// A screenshot in both themes: the image matching the page theme is shown, and clicking it (or
+// Enter / Space) opens it enlarged in a lightbox that `Esc`, a click or the close button closes.
+// Usable from MDX and from the pages; import images relatively so versioned docs keep theirs.
+import type { ImageMetadata } from 'astro';
+import { Image } from 'astro:assets';
+
+import { localeOf, t } from '../i18n/ui';
+
+interface Props {
+  /** Graphite capture. */
+  dark: ImageMetadata;
+  /** Paper capture. */
+  light: ImageMetadata;
+  /** What the screenshot shows; also the lightbox caption. */
+  alt: string;
+  /** Visible caption under the image, if any. */
+  caption?: string;
+  /** Rendered width in CSS pixels; the image never exceeds its container. */
+  width?: number;
+  /** Hairline frame around the image (default), as on the landing page. */
+  frame?: boolean;
+  /** For the hero image: load eagerly. */
+  eager?: boolean;
+  class?: string;
+}
+
+const {
+  dark,
+  light,
+  alt,
+  caption,
+  width,
+  frame = true,
+  eager = false,
+  class: className,
+} = Astro.props;
+const locale = localeOf(Astro.url);
+const imageProps = {
+  loading: eager ? ('eager' as const) : ('lazy' as const),
+  ...(width ? { width } : {}),
+};
+---
+
+<figure class:list={['yaggui-shot', { framed: frame }, className]}>
+  <button
+    type="button"
+    class="zoom"
+    aria-label={t(locale, 'screenshot.open', { alt })}
+    data-close-label={t(locale, 'screenshot.close')}
+    data-dialog-label={t(locale, 'screenshot.dialog')}
+  >
+    <Image class="only-dark" src={dark} alt={alt} {...imageProps} />
+    <Image class="only-light" src={light} alt={alt} {...imageProps} />
+  </button>
+  {caption && <figcaption>{caption}</figcaption>}
+</figure>
+
+<script>
+  let dialog: HTMLDialogElement | undefined;
+
+  function lightbox(trigger: HTMLElement): HTMLDialogElement {
+    if (dialog) return dialog;
+    dialog = document.createElement('dialog');
+    dialog.className = 'yaggui-lightbox';
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'close';
+    close.textContent = '×';
+    close.setAttribute('aria-label', trigger.dataset.closeLabel ?? 'Close');
+    dialog.setAttribute('aria-label', trigger.dataset.dialogLabel ?? '');
+    dialog.append(close, document.createElement('img'), document.createElement('p'));
+    // Any click closes it: on the image, the caption, the backdrop or the button.
+    dialog.addEventListener('click', () => dialog?.close());
+    document.body.append(dialog);
+    return dialog;
+  }
+
+  document.addEventListener('click', (event) => {
+    if (!(event.target instanceof Element)) return;
+    const trigger = event.target.closest<HTMLButtonElement>('.yaggui-shot .zoom');
+    if (!trigger) return;
+    // The variant of the current theme is the one with a layout box.
+    const shown = [...trigger.querySelectorAll('img')].find((img) => img.offsetParent !== null);
+    if (!shown) return;
+    const box = lightbox(trigger);
+    const img = box.querySelector('img');
+    const text = box.querySelector('p');
+    if (!img || !text) return;
+    img.src = shown.currentSrc || shown.src;
+    img.alt = shown.alt;
+    text.textContent = shown.alt;
+    box.showModal();
+  });
+</script>
+
+<style is:global>
+  .only-light {
+    display: none !important;
+  }
+  :root[data-theme='light'] .only-light {
+    display: block !important;
+  }
+  :root[data-theme='light'] .only-dark {
+    display: none !important;
+  }
+
+  .yaggui-shot {
+    margin: 1.5rem 0 0;
+  }
+  .yaggui-shot .zoom {
+    display: block;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: zoom-in;
+    border-radius: 10px;
+  }
+  .yaggui-shot img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    border-radius: 9px;
+  }
+  .yaggui-shot.framed .zoom {
+    padding: 6px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: var(--card);
+  }
+  .yaggui-shot .zoom:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .yaggui-shot figcaption {
+    margin-top: 0.625rem;
+    font-size: 0.875rem;
+    color: var(--fg2);
+    text-align: center;
+  }
+
+  .yaggui-lightbox {
+    border: 0;
+    padding: 0;
+    margin: auto;
+    background: transparent;
+    max-width: min(1440px, 94vw);
+    max-height: 92vh;
+    overflow: visible;
+  }
+  .yaggui-lightbox::backdrop {
+    background: color-mix(in srgb, var(--bg-titlebar) 82%, transparent);
+    backdrop-filter: blur(4px);
+  }
+  .yaggui-lightbox img {
+    display: block;
+    max-width: 100%;
+    max-height: 88vh;
+    width: auto;
+    margin: 0 auto;
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    cursor: zoom-out;
+  }
+  .yaggui-lightbox p {
+    margin-top: 10px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--fg2);
+  }
+  .yaggui-lightbox .close {
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 16px);
+    right: max(16px, env(safe-area-inset-right, 0px));
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid var(--line2);
+    background: var(--elev);
+    color: var(--fg);
+    font-size: 18px;
+    cursor: pointer;
+  }
+  .yaggui-lightbox[open] {
+    animation: yaggui-lightbox-in 180ms cubic-bezier(0.2, 0, 0, 1);
+  }
+  @keyframes yaggui-lightbox-in {
+    from {
+      opacity: 0;
+      transform: scale(0.98);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .yaggui-lightbox[open] {
+      animation: none;
+    }
+  }
+</style>
