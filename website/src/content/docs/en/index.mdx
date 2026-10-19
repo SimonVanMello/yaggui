@@ -1,20 +1,34 @@
 ---
 title: yaggui documentation
-description: How to use yaggui, the fast, native Git client.
+description: How to install and use yaggui, a fast, local Git client for macOS, Windows and Linux.
 sources: []
 requirements: []
 ---
 
-import Screenshot from '~/components/Screenshot.astro';
-import graphDark from '../../../../../docs/assets/screenshot-graph.png';
-import graphLight from '../../../../../docs/assets/screenshot-graph-paper.png';
+import { CardGrid, LinkCard } from '@astrojs/starlight/components';
 
-This page is a placeholder. The documentation is being written.
+These pages explain how yaggui works: where each action starts, what it shows before it runs, which Git command it runs, what can go wrong and what can be undone. Git itself is explained by the [Git documentation](https://git-scm.com/doc); these pages link to it when a concept matters.
 
-<Screenshot
-  dark={graphDark}
-  light={graphLight}
-  alt="The commit graph with the commit detail panel"
-/>
+New to yaggui? Read the [Introduction](start-here/introduction/), [install it](start-here/install/), then take the [tour of the window](start-here/tour/).
 
-Press <kbd>⌘</kbd> <kbd>K</kbd> in the app to open the palette.
+## Common tasks
+
+<CardGrid>
+  <LinkCard title="Open, clone or create a repository" href="start-here/open-a-repository/" />
+  <LinkCard title="Stage files, hunks or lines" href="everyday/staging/" />
+  <LinkCard title="Commit and amend" href="everyday/committing/" />
+  <LinkCard title="Switch and manage branches" href="history/branches/" />
+  <LinkCard title="Fetch, pull and push" href="remotes/fetch-pull-push/" />
+  <LinkCard title="Merge and rebase" href="history/merge-and-rebase/" />
+  <LinkCard title="Resolve conflicts" href="history/conflicts/" />
+  <LinkCard title="Undo an operation" href="history/undo-and-redo/" />
+</CardGrid>
+
+## When something goes wrong
+
+<CardGrid>
+  <LinkCard title="Troubleshooting" href="help/troubleshooting/" />
+  <LinkCard title="Error messages" href="reference/error-messages/" />
+  <LinkCard title="Authentication (HTTPS and SSH)" href="remotes/authentication/" />
+  <LinkCard title="FAQ" href="help/faq/" />
+</CardGrid>

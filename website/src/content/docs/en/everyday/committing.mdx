@@ -1,0 +1,196 @@
+---
+title: Committing
+description: Write a commit message, commit or amend, run hooks, set your identity, sign commits and reuse templates and recent messages.
+sidebar:
+  order: 2
+sources:
+  - src/features/staging/CommitBox.tsx
+  - src/features/staging/commitDraft.ts
+  - src/features/staging/commitUi.ts
+  - src/features/staging/HookFailurePanel.tsx
+  - src/features/staging/IdentityForm.tsx
+  - src/features/staging/CommitIdentity.tsx
+  - src/features/staging/ProfilesDialog.tsx
+  - src/features/staging/MessageTools.tsx
+  - src/features/staging/ConventionalFields.tsx
+  - src/features/staging/TemplatesDialog.tsx
+  - src/features/staging/conventional.ts
+  - src/features/staging/commitToolsOps.ts
+  - src-tauri/src/repo/write.rs
+  - src-tauri/src/repo/commit_tools.rs
+  - src-tauri/src/store/commit_prefs.rs
+  - src-tauri/src/commands/commit_tools.rs
+  - src-tauri/src/git/errors.rs
+requirements: [F-064, F-065, F-066, F-067, F-068, F-070]
+---
+
+import Screenshot from '~/components/Screenshot.astro';
+import commitAreaDark from '../../../../assets/screens/commit-area-dark.png';
+import commitAreaLight from '../../../../assets/screens/commit-area-light.png';
+import commitHookFailedDark from '../../../../assets/screens/commit-hook-failed-dark.png';
+import commitHookFailedLight from '../../../../assets/screens/commit-hook-failed-light.png';
+import commitConventionalDark from '../../../../assets/screens/commit-conventional-dark.png';
+import commitConventionalLight from '../../../../assets/screens/commit-conventional-light.png';
+
+The commit area sits at the bottom of the **Local changes** panel. It records your staged changes as a new commit, or amends the last one, using your Git configuration (identity, hooks, signing) as `git commit` would in a terminal. To prepare what goes into the commit, see [Staging changes](../../everyday/staging/).
+
+## Write the message
+
+From top to bottom, the commit area contains:
+
+1. The message tools row: **Conventional**, **Template** and **Recent** (see [Reuse messages](#reuse-messages)).
+2. The **Commit summary** field, with a `{length}/72` counter.
+3. The **Description (optional)** field, for the commit body.
+4. The **Amend previous commit** and **Push after commit** checkboxes.
+5. Your commit identity and, when commits are signed, the signing chip.
+6. The commit button and, when it is disabled, a hint.
+
+Past 72 characters it turns to the warning color and a note says "Summaries over 72 characters get cut off in many tools." This is only a warning: you can still commit.
+
+Your draft (summary, description, amend) is kept per repository while yaggui runs, including when you switch tabs. It is lost when you quit and cleared after a successful commit.
+
+<Screenshot
+  dark={commitAreaDark}
+  light={commitAreaLight}
+  alt="The commit area with a summary, a description, the Amend previous commit and Push after commit checkboxes, the identity picker, the Signed · SSH chip and the Commit on button"
+/>
+
+## Commit
+
+Click the commit button, or press <kbd>⌘↵</kbd> (<kbd>Ctrl+Enter</kbd> on Windows and Linux). The shortcut also works while you type in the summary or description, and can be rebound (see [Palette and shortcuts](../../customize/palette-and-shortcuts/)).
+
+The button label tells you what will happen:
+
+| Label                    | When                                 |
+| ------------------------ | ------------------------------------ |
+| **Commit on \{branch\}** | Normal commit on the current branch  |
+| **Commit**               | `HEAD` is detached                   |
+| **Amend commit**         | **Amend previous commit** is checked |
+| **Committing…**          | The commit is running                |
+
+The button is disabled, with a hint below it, when the summary is empty ("Write a summary to commit.") or nothing is staged ("Stage changes to commit."; not shown when amending).
+
+yaggui runs:
+
+```bash
+git commit -F -    # the message is passed on stdin
+```
+
+The message is the trimmed summary, a blank line and the description. yaggui does not strip lines starting with `#`. On success a toast shows "Commit \{sha\} created", the draft is cleared and focus returns to the summary.
+
+While the commit runs (for example, while a slow hook works), the status bar shows it with a **Cancel** link. Cancelling stops Git and its hooks; if Git left an `index.lock` behind, yaggui removes it.
+
+### Amend the last commit
+
+Check **Amend previous commit** to replace the last commit instead of creating a new one ([git commit --amend](https://git-scm.com/docs/git-commit#Documentation/git-commit.txt---amend)).
+
+- If the summary and description are empty, they are filled with the last commit's message. Unchecking the box removes that prefill if you did not edit it.
+- You can amend with nothing staged to change only the message.
+- The toast says "Commit amended (\{sha\})".
+- yaggui does not warn you if the commit was already pushed; pushing it afterwards needs a force push (see [Fetch, pull and push](../../remotes/fetch-pull-push/)).
+- Amending is impossible before the first commit: "There is no commit to amend yet."
+
+### Push after commit
+
+Check **Push after commit** to push right after a successful commit, exactly as the toolbar **Push** does (see [Fetch, pull and push](../../remotes/fetch-pull-push/)). The box is unchecked by default and resets whenever the **Local changes** panel is replaced, for example when you select a commit.
+
+## Hooks
+
+Git runs your hooks (`pre-commit`, `prepare-commit-msg`, `commit-msg` and the others) as in a terminal. yaggui never passes `--no-verify` and offers no option to skip hooks. See [Git hooks](https://git-scm.com/docs/githooks).
+
+When a hook rejects the commit, a panel opens at the top of the commit area instead of a toast:
+
+- Title **The \{hook\} hook rejected the commit** (the hook name appears only when exactly one commit hook is installed; otherwise **A Git hook rejected the commit**) and the exit code.
+- "Nothing was committed. Fix what the hook reports, then commit again."
+- The hook output: standard output, then `--- stderr ---` and standard error. Up to 2 MB per stream is kept; beyond that the middle is cut and marked `[...]`. If the hook printed nothing, the panel says so.
+- **Copy output** and **Dismiss**.
+
+Your message stays in the fields. The panel closes on your next attempt.
+
+<Screenshot
+  dark={commitHookFailedDark}
+  light={commitHookFailedLight}
+  alt="The hook failure panel showing the hook name, exit code and the hook's output with Copy output and Dismiss buttons"
+/>
+
+## Identity
+
+Git needs `user.name` and `user.email` to commit ([first-time setup](https://git-scm.com/book/en/v2/Getting-Started-First-Time-Git-Setup)).
+
+### When no identity is set
+
+If Git refuses to commit because it does not know who you are, the **Who are you?** form opens in the commit area:
+
+1. Fill **Name** and **Email** (prefilled with what Git already has).
+2. Check **Only for this repository** to write them to the repository's config instead of your global config (unchecked by default).
+3. Click **Save and commit**, or **Cancel** (or <kbd>Esc</kbd>).
+
+yaggui runs `git config --global user.name …` and `git config --global user.email …` (or `--local`), shows "Identity saved" and retries the commit. The name and email must each fit on one line without `<` or `>`, and the email must look like `name@host`.
+
+### Identity picker and profiles
+
+Below the description, the **Commit identity** button shows who you commit as (**As \{name\} &lt;\{email\}&gt;**, or **Identity not set**) and the matching profile, if any. Its menu lists your identity profiles under **Apply to this repository**, and **Manage profiles…**.
+
+Applying a profile runs `git config --local user.name` and `user.email` in this repository and shows "Profile \"\{label\}\" applied to this repository". It cannot be undone from the undo history; apply another profile or edit the config instead.
+
+The **Identity profiles** dialog (also from the palette: **Manage identity profiles**) lists your profiles with **Apply** (or **In use** when it matches the current identity), **Edit** and a delete button (no confirmation). Add one with **Label** (for example "Personal" or "Work"), **Name** and **Email**, then **Add profile**; **Use current identity** fills the form from your current settings. Profiles are stored by yaggui for every repository (see [Data and privacy](../../reference/data-and-privacy/)).
+
+## Signing
+
+yaggui signs commits only if your Git config asks for it (`commit.gpgsign = true`); it never passes `-S` and never asks for a passphrase. When signing is on, a chip next to the identity shows **Signed · GPG**, **Signed · SSH** or **Signed · X.509** (from `gpg.format`), with the key from `user.signingkey` in its tooltip. You can change these settings in **Preferences › Configuration** (see [Git configuration](../../customize/git-configuration/)). For how Git signs, see [Signing your work](https://git-scm.com/book/en/v2/Git-Tools-Signing-Your-Work).
+
+The key must be usable without a prompt, through `gpg-agent` or `ssh-agent`. Signature badges on existing commits are shown in the [commit details](../../history/commit-graph/).
+
+## Reuse messages
+
+### Templates
+
+The **Template** menu lists:
+
+- **Git template (commit.template)**: the file set in your `commit.template` config, if any (lines starting with `#` removed). Git does not apply it by itself when yaggui commits, so pick it here. If the file cannot be read, the menu says **The commit.template file cannot be read**.
+- **Your templates**: templates saved in yaggui.
+- **Manage templates…**
+
+Choosing a template replaces the draft: its first line goes to the summary, the rest to the description.
+
+The **Message templates** dialog (also from the palette: **Manage commit message templates**) lists your templates with **Edit** and a delete button (no confirmation). To add one, give it a **Name** and a **Message** (first line: summary, then a blank line and the description), or click **Use current message**, then **Add template**. Names must be unique and fit on one line; a message can be up to 16 KB. Templates are shared by all repositories.
+
+### Conventional Commits helper
+
+Click **Conventional** (or the palette action **Toggle the Conventional Commits helper**) to show fields that build a [Conventional Commits](https://www.conventionalcommits.org/) header in the summary:
+
+- **Type**: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert.
+- **scope**: suggestions come from scopes in your recent messages.
+- **Breaking (!)**.
+- A **subject \{count\}/50** counter for the text after the header, which turns to the warning color above 50.
+
+The fields write `type(scope)!: subject` into the summary and read it back if you edit the summary by hand. Choosing a type for a plain summary turns it into the subject. The toggle applies to all repositories and resets when you restart yaggui.
+
+<Screenshot
+  dark={commitConventionalDark}
+  light={commitConventionalLight}
+  alt="The Conventional Commits fields with a type, a scope and the subject counter above the summary"
+/>
+
+### Recent messages
+
+The **Recent** menu lists the last 30 messages committed from yaggui in this repository, newest first (messages with a body are marked **with a description**). Choosing one fills the summary and description. Commits made outside yaggui do not appear.
+
+## Errors
+
+| Message                                                                                                                    | What to do                                                                           |
+| -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| "The commit summary is empty."                                                                                             | Write a summary.                                                                     |
+| "Nothing to commit: stage changes first."                                                                                  | Stage at least one change, or check **Amend previous commit**.                       |
+| "Some files are still in conflict: resolve them (and stage them) first."                                                   | Resolve the conflicts (see [Conflicts](../../history/conflicts/)).                   |
+| The hook failure panel                                                                                                     | Fix what the hook output reports and commit again.                                   |
+| "Git does not know who you are…"                                                                                           | Fill the **Who are you?** form.                                                      |
+| "The signing key needs its passphrase and no agent provided it…"                                                           | Unlock the key in `gpg-agent` or `ssh-agent` (`ssh-add`), or commit from a terminal. |
+| "Git could not sign the commit. Check the signing key (user.signingkey, gpg.format) or turn signing off (commit.gpgsign)." | Fix the signing config; **Open command log** shows Git's output.                     |
+| "Another Git process is using this repository (index.lock)…"                                                               | See [Troubleshooting](../../help/troubleshooting/).                                  |
+
+The full list is in [Error messages](../../reference/error-messages/).
+
+## Undo a commit
+
+A commit or an amend appears in the undo history as `commit "{summary}"` or `amend "{summary}"`. Undo with the toolbar **Undo** button or <kbd>⌘Z</kbd> (<kbd>Ctrl+Z</kbd> on Windows and Linux) outside a text field. yaggui moves the branch back to where it was; your working tree is not touched and the committed changes are staged again. See [Undo and redo](../../history/undo-and-redo/).

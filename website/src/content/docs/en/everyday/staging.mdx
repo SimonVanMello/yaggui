@@ -1,0 +1,269 @@
+---
+title: Staging changes
+description: Stage, unstage and discard files, hunks and single lines from the changes panel and the diff, and add untracked files to .gitignore.
+sidebar:
+  order: 1
+sources:
+  - src/features/staging/**
+  - src/features/diff/WorktreeChanges.tsx
+  - src/features/diff/ChangedFileList.tsx
+  - src/features/diff/ChangedFileRow.tsx
+  - src/features/diff/FolderRow.tsx
+  - src/features/diff/fileTree.ts
+  - src/features/diff/format.ts
+  - src/features/diff/lineSelection.ts
+  - src/features/diff/DiffView.tsx
+  - src-tauri/src/commands/write.rs
+  - src-tauri/src/repo/write.rs
+  - src-tauri/src/git/ops/patch.rs
+  - src-tauri/src/git/ops/gitignore.rs
+  - src-tauri/src/repo/commit_tools.rs
+requirements: [F-060, F-061, F-062, F-063, F-069]
+---
+
+import Screenshot from '~/components/Screenshot.astro';
+import stagingChangesPanelDark from '../../../../assets/screens/staging-changes-panel-dark.png';
+import stagingChangesPanelLight from '../../../../assets/screens/staging-changes-panel-light.png';
+import stagingHoverButtonsDark from '../../../../assets/screens/staging-hover-buttons-dark.png';
+import stagingHoverButtonsLight from '../../../../assets/screens/staging-hover-buttons-light.png';
+import stagingLineSelectionDark from '../../../../assets/screens/staging-line-selection-dark.png';
+import stagingLineSelectionLight from '../../../../assets/screens/staging-line-selection-light.png';
+import stagingDiscardConfirmDark from '../../../../assets/screens/staging-discard-confirm-dark.png';
+import stagingDiscardConfirmLight from '../../../../assets/screens/staging-discard-confirm-light.png';
+import stagingGitignoreDialogDark from '../../../../assets/screens/staging-gitignore-dialog-dark.png';
+import stagingGitignoreDialogLight from '../../../../assets/screens/staging-gitignore-dialog-light.png';
+
+The changes panel shows what differs between your working tree, the index and the last commit. This page covers how to move changes into the index (stage them), take them out again, and throw them away, whole files or line by line. For the commit itself, see [Committing](../../everyday/committing/).
+
+## The changes panel
+
+The **Local changes** panel fills the right side of the window whenever no commit is selected in the graph, no stash is previewed and no comparison is open. Its header shows the current branch (nothing when `HEAD` is detached). If a merge, rebase or other operation is in progress, its conflicts panel appears above it (see [Conflicts](../../history/conflicts/)). The commit area is always below the lists.
+
+### When there is nothing to commit
+
+With a clean working tree the panel says **Nothing to commit** and "The working tree matches the last commit.", followed by shortcuts to the next likely action:
+
+| Button                                         | Shown when                                   | Shortcut                                                      |
+| ---------------------------------------------- | -------------------------------------------- | ------------------------------------------------------------- |
+| **Pull 1 commit** / **Pull \{count\} commits** | Your branch is behind its upstream           | <kbd>⌘⇧L</kbd> (<kbd>Ctrl+Shift+L</kbd> on Windows and Linux) |
+| **New branch**                                 | Always                                       | <kbd>⌘B</kbd> (<kbd>Ctrl+B</kbd> on Windows and Linux)        |
+| **Fetch**                                      | The branch has an upstream and is not behind | <kbd>⌘⇧F</kbd> (<kbd>Ctrl+Shift+F</kbd> on Windows and Linux) |
+
+### Unstaged and Staged lists
+
+With changes, the panel shows two lists: **Unstaged** on top (changes in the working tree, including untracked files) and **Staged** below (changes in the index, ready to commit). Each list grows with its content up to about half the window height, then scrolls. When a list is empty it says **No unstaged changes** or **Nothing staged**.
+
+The list header shows the number of files and the total of added and removed lines (left out for very large change sets). The header buttons, shown when the list has files, are:
+
+| List     | Buttons                                            |
+| -------- | -------------------------------------------------- |
+| Unstaged | **Discard all changes** (undo icon), **Stage all** |
+| Staged   | **Unstage all**                                    |
+| Both     | **Show as tree** / **Show as list**                |
+
+**Show as tree** groups files under collapsible folder rows that show the number of files inside; **Show as list** shows a flat list with each file's folder dimmed next to its name. The layout applies to every file list in yaggui (commit details included) and returns to the list layout when you restart the app.
+
+<Screenshot
+  dark={stagingChangesPanelDark}
+  light={stagingChangesPanelLight}
+  alt="The Local changes panel with four unstaged files, two staged files and the commit area below"
+/>
+
+### Status letters and badges
+
+Each row starts with a colored status letter:
+
+| Letter | Status                                                    | Color |
+| ------ | --------------------------------------------------------- | ----- |
+| **M**  | Modified                                                  | Amber |
+| **T**  | Type changed (for example, a file became a symbolic link) | Amber |
+| **A**  | Added                                                     | Green |
+| **?**  | Untracked                                                 | Green |
+| **D**  | Deleted                                                   | Red   |
+| **U**  | Conflicted                                                | Red   |
+| **R**  | Renamed                                                   | Blue  |
+| **C**  | Copied                                                    | Blue  |
+
+After the file name, a row can carry:
+
+- **from \{path\}** and a similarity percentage for a renamed or copied file.
+- **chmod** when the file mode changed (for example, the executable bit).
+- **BIN** for a binary file.
+- **submodule** for a [submodule](../../repository/submodules/) whose commit changed.
+- **LFS** for a file stored with [Git LFS](../../repository/git-lfs/).
+- The `+added −removed` line counts (not computed for files over 1 MB, LFS files, submodules and conflicts).
+
+Hover a row to see its full path in a tooltip (`old → new` for a rename).
+
+## Select files
+
+- Click a file to select it and open its diff in place of the graph (see [Viewing diffs](../../everyday/diff/)). Click the open file again to close the diff.
+- <kbd>Shift</kbd>-click selects a range; <kbd>⌘</kbd>-click (<kbd>Ctrl</kbd>-click on Windows and
+  Linux) adds or removes one file. A multi-selection does not open diffs.
+- With the list focused, <kbd>↑</kbd> and <kbd>↓</kbd> move the selection and open each file's diff; <kbd>Shift+↑</kbd> and <kbd>Shift+↓</kbd> extend the selection.
+
+## Stage and unstage files
+
+Every way of staging acts on the selection when the file you act on is part of it, otherwise on that file alone.
+
+- **Hover buttons**: on an Unstaged row, the plus button (**Stage file** / **Stage \{count\} files**); on a Staged row, the minus button (**Unstage file** / **Unstage \{count\} files**).
+- **Keyboard**: press <kbd>Space</kbd> in a focused list to stage (Unstaged list) or unstage (Staged list) the selection. The selection then moves to the next file, and if the diff of the file you acted on was open, the diff follows to that next file.
+- **Drag and drop**: drag rows from one list and drop them on the other. Dragging a selected row drags the whole selection. The target list highlights while you hover it.
+- **Stage all** / **Unstage all** in the list headers.
+- **Context menu**: right-click a row (see below).
+
+<Screenshot
+  dark={stagingHoverButtonsDark}
+  light={stagingHoverButtonsLight}
+  alt="An unstaged file row under the pointer, showing its Discard changes and Stage file buttons"
+/>
+
+yaggui runs:
+
+```bash
+# Stage the selected paths (paths passed on stdin, NUL-separated)
+git --literal-pathspecs add -A --pathspec-from-file=- --pathspec-file-nul
+# Stage all
+git add -A
+# Unstage the selected paths
+git --literal-pathspecs reset -q --pathspec-from-file=- --pathspec-file-nul
+# Unstage all (keeps an ongoing merge, works before the first commit)
+git reset -q -- :/
+```
+
+Staging a conflicted file marks it as resolved. Unstaging the new name of a staged rename also unstages its old name. Staging shows no confirmation toast; a failure shows a toast with the reason. Staging and unstaging are not recorded for [undo](../../history/undo-and-redo/): use the opposite action instead.
+
+A path inside a symbolic link to a folder is refused: "\"\{path\}\" is inside a symbolic link."
+
+### File context menu
+
+Right-click a row in either list. Items, in order:
+
+| Item                                                         | Lists                   | Effect                                                                                                                                       |
+| ------------------------------------------------------------ | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Stage file** / **Stage \{count\} files**                   | Unstaged                | Stages the files                                                                                                                             |
+| **Unstage file** / **Unstage \{count\} files**               | Staged                  | Unstages the files                                                                                                                           |
+| **Discard changes** / **Discard changes of \{count\} files** | Unstaged                | See [Discard files](#discard-files)                                                                                                          |
+| **Stash this file…** / **Stash \{count\} files…**            | Both                    | Partial stash, see [Stash](../../everyday/stash/#stash-only-some-files). Conflicted files are left out; disabled when nothing can be stashed |
+| **Add to .gitignore…**                                       | One untracked file only | See [Add a file to .gitignore](#add-a-file-to-gitignore)                                                                                     |
+| **Copy path** / **Copy \{count\} paths**                     | Both                    | Copies repository-relative paths, one per line                                                                                               |
+| **File history**                                             | Both                    | Opens the [file history](../../inspect/file-history-and-blame/)                                                                              |
+| **Blame**                                                    | Both                    | Blames the working-tree version                                                                                                              |
+
+## Stage part of a file
+
+Open the diff of a file from the Unstaged or Staged list to act on individual hunks or lines. This works on text files only: not on commit or stash diffs, the Markdown preview, images, binary, LFS or submodule entries, symbolic links, or conflicted files.
+
+### Hunks
+
+Each hunk header carries buttons:
+
+- In an unstaged diff: **Discard hunk** and **Stage hunk**.
+- In a staged diff: **Unstage hunk**.
+
+In the side-by-side layout, the buttons are on the left pane.
+
+### Lines
+
+1. Click a changed line in the gutter to select it. Drag to select a run of lines, <kbd>Shift</kbd>-click to select a range, <kbd>⌘</kbd>-click (<kbd>Ctrl</kbd>-click on Windows and Linux) to add or remove one line. Clicking the only selected line deselects it.
+2. A bar appears with **\{count\} lines selected** and its actions: **Stage lines** and **Discard lines** in an unstaged diff, **Unstage lines** in a staged diff, and **Clear selection**.
+3. Choose an action, or use the keyboard (with the diff focused):
+
+| Key                                       | Action                                                             |
+| ----------------------------------------- | ------------------------------------------------------------------ |
+| <kbd>↑</kbd> / <kbd>↓</kbd>               | Move the line cursor                                               |
+| <kbd>Shift+↑</kbd> / <kbd>Shift+↓</kbd>   | Extend the selection                                               |
+| <kbd>Space</kbd>                          | Select or deselect the line under the cursor                       |
+| <kbd>Enter</kbd>                          | **Stage lines** (unstaged diff) or **Unstage lines** (staged diff) |
+| <kbd>Backspace</kbd> or <kbd>Delete</kbd> | **Discard lines** (unstaged diff only)                             |
+| <kbd>Esc</kbd>                            | Clear the selection; a second <kbd>Esc</kbd> closes the diff       |
+
+A replaced line counts as a removed line plus an added line. In the **Unified** layout you can select either one alone; in **Side by side**, a row holds both and selecting it selects both. Lines you do not select stay where they are.
+
+<Screenshot
+  dark={stagingLineSelectionDark}
+  light={stagingLineSelectionLight}
+  alt="Two added lines selected in the diff gutter, with the selection bar offering Stage lines, Discard lines and Clear selection"
+/>
+
+The hunk and line actions are disabled, with a tooltip, while **Ignore whitespace** is on in the diff options ("Unavailable while whitespace changes are ignored") and while the diff reloads ("Unavailable while the diff reloads").
+
+yaggui builds a patch from your selection and applies it:
+
+```bash
+git apply --cached --whitespace=nowarn --unidiff-zero -            # stage
+git apply --cached --reverse --whitespace=nowarn --unidiff-zero -  # unstage
+git apply --reverse --whitespace=nowarn -                          # discard
+```
+
+### When the file changed in the meantime
+
+Each request carries the exact versions of the file the diff was computed from. If the file changed on disk (or in the index) since the diff was shown, yaggui applies nothing, shows the warning **The file changed** ("\{path\} changed since this diff was shown. The diff was refreshed: select again."), and reloads the diff. Select the lines again on the new diff.
+
+Discarding hunks or lines asks for confirmation like a file discard (title **Discard the selected changes?**, "1 changed line of \{path\} is reverted in the working tree."), backs up the file first, and can be undone. Staging and unstaging hunks or lines cannot be undone from the undo history.
+
+## Discard files
+
+Discarding throws away unstaged changes: tracked files go back to their staged content, untracked files are deleted. Staged changes are kept.
+
+Entry points (Unstaged list only, no keyboard shortcut):
+
+- The **Discard changes** hover button on a row.
+- **Discard changes** / **Discard changes of \{count\} files** in the context menu.
+- **Discard all changes** in the Unstaged header: every unstaged change, untracked files included.
+
+The confirmation dialog shows:
+
+- A title: **Discard changes of this file?**, **Discard changes of \{count\} files?** or **Discard all unstaged changes?**
+- What happens, for example "2 files go back to their staged content. 1 untracked file is deleted from disk. yaggui keeps a backup first, but this is hard to undo by hand."
+- Under **What will happen**, up to 100 files, each marked **changes lost** or **untracked, deleted**, then "… and \{count\} more files".
+- **Discard** and **Cancel**.
+
+<Screenshot
+  dark={stagingDiscardConfirmDark}
+  light={stagingDiscardConfirmLight}
+  alt="The Discard all unstaged changes confirmation listing each file with the note changes lost or untracked, deleted"
+/>
+
+yaggui copies every affected file to a backup in its config folder (see [Data and privacy](../../reference/data-and-privacy/)), then runs:
+
+```bash
+git --literal-pathspecs restore --worktree --pathspec-from-file=- --pathspec-file-nul  # tracked files
+git --literal-pathspecs clean -f -q -- <paths>                                        # untracked files
+```
+
+A folder path is refused: "\"\{dir\}\" is a folder: discard its files instead." If the diff of a discarded file was open, it closes.
+
+:::caution
+You can turn the confirmation off in **Preferences › Behavior › Confirmations** (**Discard changes**); this also skips the confirmation for hunks and lines. The backup and undo entry are still made.
+:::
+
+### Undo a discard
+
+Discards appear in the undo history as "discard of \{path\}" or "discard of \{count\} files". Undo with the toolbar **Undo** button or <kbd>⌘Z</kbd> (<kbd>Ctrl+Z</kbd> on Windows and Linux) outside a text field: yaggui writes the backed-up files back. If you changed those files again after the discard, the undo is refused so it does not overwrite your new work. See [Undo and redo](../../history/undo-and-redo/).
+
+## Add a file to .gitignore
+
+Right-click a single untracked file and choose **Add to .gitignore…**. The **Add to .gitignore** dialog adds one rule at the end of the `.gitignore` at the root of the repository (created if missing). Under **What to ignore**, pick:
+
+| Option                             | Rule added   | Note                                             |
+| ---------------------------------- | ------------ | ------------------------------------------------ |
+| **This file** (default)            | `/<path>`    |                                                  |
+| **Every file with this extension** | `*.<ext>`    | Refused if the file has no extension             |
+| **Its folder**                     | `/<folder>/` | Refused for a file at the root of the repository |
+
+The dialog previews the rule and lists the untracked files it hides (**Hides \{count\} untracked files:**, up to 50). Files that are already tracked stay tracked. If the `.gitignore` already contains the rule, it says so and **Add rule** is disabled. Special characters (`\ * ? [` and trailing spaces) are escaped.
+
+<Screenshot
+  dark={stagingGitignoreDialogDark}
+  light={stagingGitignoreDialogLight}
+  alt="The Add to .gitignore dialog with the What to ignore options and the preview of the rule"
+/>
+
+Confirm with **Add rule**. yaggui writes the file directly (no Git command) after a backup, and the toast says "Added \{rule\} to .gitignore". The change is undoable ("addition of \{rule\} to .gitignore"). A root `.gitignore` that is a link or a folder is refused: ".gitignore is not a regular file (a link or a folder): edit it by hand."
+
+To ignore files with Git's own syntax, see [gitignore](https://git-scm.com/docs/gitignore).
+
+## When another Git process holds the index
+
+Staging writes Git's index, protected by `.git/index.lock`. If another program holds the lock, yaggui shows a banner above the repository ("Another Git process is using this repository") and staging fails until the lock goes away. When the lock has stayed for more than a few seconds, the banner changes to "A Git process probably crashed and left index.lock" and offers **Remove the lock…**, which asks you to make sure no other Git program is working on the repository before deleting the file. See [Troubleshooting](../../help/troubleshooting/).

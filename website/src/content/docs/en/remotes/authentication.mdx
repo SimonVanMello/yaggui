@@ -1,0 +1,108 @@
+---
+title: Authentication
+description: How yaggui gets credentials for HTTPS and SSH remotes without ever prompting, and how to set up a credential helper or ssh-agent once.
+sidebar:
+  order: 3
+sources:
+  - src-tauri/src/git/cli.rs
+  - src-tauri/src/git/errors.rs
+  - src/features/remotes/RemoteDialog.tsx
+requirements: [F-127]
+---
+
+yaggui never asks for a password, a token or an SSH passphrase, and stores no secret. Git gets your credentials from the tools you already use: a credential helper for HTTPS, ssh-agent for SSH. This page explains why, how to set them up once, and what to do when authentication fails.
+
+## Why yaggui never prompts
+
+yaggui runs the `git` of your system with prompts turned off:
+
+- `GIT_TERMINAL_PROMPT=0` stops Git from asking for a user name or password.
+- Git runs without a controlling terminal (a new session on macOS and Linux, no console window on Windows). `ssh` cannot ask for a passphrase or for confirmation of an unknown host key, even when you started yaggui from a terminal.
+
+When Git would need to ask, the operation fails at once with an authentication error instead of hanging. The fix always happens outside yaggui: you set up a helper or an agent, and sign in once from a terminal.
+
+## HTTPS: use a credential helper
+
+A [credential helper](https://git-scm.com/docs/gitcredentials) stores your user name and password or token, and gives them to Git when it needs them. yaggui uses whatever `credential.helper` your Git configuration names.
+
+| System  | Usual helper                                                    | Setting                                                                                                        |
+| ------- | --------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Windows | Git Credential Manager, installed with Git for Windows          | `git config --global credential.helper manager`                                                                |
+| macOS   | Keychain                                                        | `git config --global credential.helper osxkeychain`                                                            |
+| Linux   | Git Credential Manager, or `libsecret` (GNOME Keyring, KWallet) | `git config --global credential.helper manager` or the path of `git-credential-libsecret` on your distribution |
+
+To set it up once:
+
+1. Open a terminal. The integrated one works: press <kbd>Ctrl+`</kbd> (on every system), see [Terminal](../../repository/terminal/).
+2. Check the current helper: `git config --global credential.helper`. Set one from the table if it is empty.
+3. Run a command that needs your credentials, so Git asks for them in the terminal and the helper saves them:
+
+   ```bash
+   git ls-remote https://github.com/owner/private-repo.git
+   ```
+
+   Hosting services such as GitHub refuse account passwords over HTTPS: enter a personal access token instead, or let Git Credential Manager open its browser sign-in.
+
+4. Back in yaggui, fetch again.
+
+:::caution
+Do not put a token in the remote URL (`https://user:token@host/...`). It works, but the URL appears in clear in the [command log](../../reference/command-log/) and in `.git/config`. Use a credential helper instead.
+:::
+
+## SSH: use ssh-agent
+
+For SSH remotes (`git@host:owner/repo.git`), Git starts `ssh`, which needs your private key. A key without a passphrase works directly. A key with a passphrase must be loaded into [ssh-agent](https://man.openbsd.org/ssh-agent), because yaggui cannot ask for the passphrase.
+
+1. Open a terminal (the integrated one works).
+2. Load your key, typing its passphrase once:
+
+   ```bash
+   ssh-add ~/.ssh/id_ed25519
+   ```
+
+   On macOS, add `--apple-use-keychain` so the key is reloaded after a restart: `ssh-add --apple-use-keychain ~/.ssh/id_ed25519`.
+
+3. Check it is loaded: `ssh-add -l`.
+4. Connect once to accept the server's host key, if you never did:
+
+   ```bash
+   ssh -T git@github.com
+   ```
+
+5. Back in yaggui, fetch again.
+
+On Windows:
+
+- The **OpenSSH Authentication Agent** service must be running (`Get-Service ssh-agent` in PowerShell; set it to start automatically in Services).
+- Git for Windows may use its own `ssh` instead of the Windows one, and then does not see the Windows agent. To share it, run `git config --global core.sshCommand C:/Windows/System32/OpenSSH/ssh.exe`.
+
+If you set `SSH_ASKPASS` yourself, `ssh` can use that program to ask for the passphrase; yaggui does not provide one.
+
+## Authentication errors
+
+An authentication failure shows an error toast (**Fetch failed**, **Pull failed**, **Push failed**, or the clone error) with one of these messages. **Details** shows Git's own output. There is no **Retry** button, because the fix happens outside yaggui: run the operation again once it is done.
+
+| Message                                                                                                                                                    | Typical cause                                                                                                                                     | What to do                                                                                                                                       |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Authentication failed. yaggui never asks for passwords: configure a Git credential helper (git config credential.helper) and sign in once from a terminal. | HTTPS remote, no helper or no saved credentials (`terminal prompts disabled`, `could not read Username`), wrong or expired token, HTTP 401 or 403 | [Set up a credential helper](#https-use-a-credential-helper), sign in once. For an expired token, sign in again so the helper stores the new one |
+| SSH authentication failed. Load your key in ssh-agent (ssh-add) and check that the remote knows it.                                                        | `Permission denied (publickey)`: the key is not in the agent, or the server does not know it                                                      | [Load the key](#ssh-use-ssh-agent); check the public key is added to your account on the server                                                  |
+| SSH authentication failed. Load your key in ssh-agent (ssh-add) and check that the remote knows it.                                                        | `Host key verification failed`: the server's host key is unknown or changed                                                                       | Run `ssh -T git@host` once in a terminal to accept it. If the key changed and you did not expect it, check with the server's administrator first |
+| Remote not found: check its name and URL.                                                                                                                  | Wrong URL, or a private repository your credentials cannot see (some services answer "not found")                                                 | Check the URL ([Change the URLs](../../remotes/remotes/#change-the-urls)) and that your account has access                                       |
+
+The full list is in [Error messages](../../reference/error-messages/).
+
+## Test from the integrated terminal
+
+The [integrated terminal](../../repository/terminal/) starts in the repository folder with yaggui's own environment, so the agent and helper it sees are the ones yaggui's Git uses. Unlike yaggui, it can prompt you.
+
+```bash
+git config --show-origin --get-all credential.helper   # which helper Git uses
+ssh-add -l                                            # keys in the agent
+git ls-remote origin                                  # the same access a fetch needs
+```
+
+If `git ls-remote origin` works without asking anything, fetch, pull and push work in yaggui too. If it asks for a password or a passphrase, yaggui's Git would fail at that point: complete the setup above.
+
+Then compare with the failing command in the [command log](../../reference/command-log/) (<kbd>⌘J</kbd>, <kbd>Ctrl+J</kbd> on Windows and Linux), which shows the exact command and Git's error output.
+
+The same no-prompt rule applies to signed commits: the signing key must be available through gpg-agent or ssh-agent ([Committing](../../everyday/committing/)).

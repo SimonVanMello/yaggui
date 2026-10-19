@@ -23,6 +23,7 @@
     "test:ui": "playwright test",
     "test:demo": "playwright test --config playwright.demo.config.ts",
     "screenshots": "playwright test --config playwright.screenshots.config.ts",
+    "screenshots:docs": "playwright test --config playwright.docs-screenshots.config.ts && node website/scripts/compress-screens.ts",
     "perf:tabs": "playwright test --config playwright.perf.config.ts perf.spec",
     "perf:startup": "node scripts/measure-startup.mjs",
     "release:version": "node scripts/version.mjs set",
