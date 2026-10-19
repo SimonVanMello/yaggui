@@ -112,6 +112,27 @@ for (const { name: theme, colorScheme } of THEMES) {
       await capture(page, theme, 'repo');
     });
 
+    test('a long repository path wraps inside the tab tooltip', async ({ page }) => {
+      await openFromWelcome(page, 'yaggui');
+      await page.getByRole('tab', { selected: true }).hover();
+      const tooltip = page.getByRole('tooltip');
+      await expect(tooltip).toContainText('/Users/alex/dev/yaggui');
+      // The mock paths are short: lengthen the shown one (no spaces, like a real path).
+      const fits = await page.evaluate(() => {
+        const content = document.querySelector('[data-radix-popper-content-wrapper] > *');
+        const path = [...(content?.querySelectorAll('span') ?? [])].find((span) =>
+          span.textContent.startsWith('/Users/'),
+        );
+        if (!content || !path) return null;
+        path.textContent = '/Users/alex/git/a_very_long_workspace_name/nyx_rest_schamp_ext_service';
+        const box = content.getBoundingClientRect();
+        const text = path.getBoundingClientRect();
+        return text.right <= box.right && content.scrollWidth <= content.clientWidth;
+      });
+      expect(fits).toBe(true);
+      await capture(page, theme, 'tab-tooltip-long-path');
+    });
+
     test('three tabs with a rebase in progress', async ({ page }) => {
       await openThreeRepos(page);
       await expect(tabs(page)).toHaveCount(3);
