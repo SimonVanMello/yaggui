@@ -90,6 +90,7 @@ export function WelcomeScreen({ tabId }: { tabId: string }) {
   const known = useKnownRepos();
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState(0);
+  const [browsing, setBrowsing] = useState(false);
 
   const repos = useMemo(() => known.data ?? [], [known.data]);
   const results = useMemo(() => search(repos, query), [repos, query]);
@@ -121,6 +122,7 @@ export function WelcomeScreen({ tabId }: { tabId: string }) {
       const step = event.key === 'ArrowDown' ? 1 : -1;
       const next = Math.max(0, Math.min(ordered.length - 1, current + step));
       setSelected(next);
+      setBrowsing(true);
       document.getElementById(`${listId}-${String(next)}`)?.scrollIntoView({ block: 'nearest' });
     } else if (event.key === 'Enter') {
       const entry = ordered[current];
@@ -138,14 +140,15 @@ export function WelcomeScreen({ tabId }: { tabId: string }) {
         id={`${listId}-${String(offset + index)}`}
         repo={entry.repo}
         selected={offset + index === current}
+        active={browsing && offset + index === current}
         nameIndices={entry.nameIndices}
         pathIndices={entry.pathIndices}
         now={now}
         onOpen={() => {
           open(entry.repo);
         }}
-        onHover={() => {
-          setSelected(offset + index);
+        onPointer={() => {
+          setBrowsing(false);
         }}
       />
     ));
@@ -285,6 +288,7 @@ export function WelcomeScreen({ tabId }: { tabId: string }) {
             onChange={(event) => {
               setQuery(event.target.value);
               setSelected(0);
+              setBrowsing(false);
             }}
             onKeyDown={onSearchKeyDown}
           />

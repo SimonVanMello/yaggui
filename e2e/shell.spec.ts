@@ -76,6 +76,33 @@ for (const { name: theme, colorScheme } of THEMES) {
       await capture(page, theme, 'welcome');
     });
 
+    test('welcome rows: border on hover only, selection only from the keyboard', async ({
+      page,
+    }) => {
+      const rows = page.getByRole('option');
+      const row = rows.nth(3);
+      const border = () => row.evaluate((el) => getComputedStyle(el).borderTopColor);
+      const background = () => row.evaluate((el) => getComputedStyle(el).backgroundColor);
+      const restBorder = await border();
+      const restBackground = await background();
+      await expect(page.locator('[role="option"][data-active]')).toHaveCount(0);
+
+      await row.hover();
+      expect(await border()).not.toBe(restBorder);
+      expect(await background()).toBe(restBackground);
+      await capture(page, theme, 'welcome-row-hover');
+
+      await page.mouse.move(0, 0);
+      expect(await border()).toBe(restBorder);
+      expect(await background()).toBe(restBackground);
+
+      await page.getByRole('combobox').press('ArrowDown');
+      await expect(rows.nth(1)).toHaveAttribute('data-active', 'true');
+      await capture(page, theme, 'welcome-row-keyboard');
+      await rows.nth(1).hover();
+      await expect(page.locator('[role="option"][data-active]')).toHaveCount(0);
+    });
+
     test('repository open', async ({ page }) => {
       await openFromWelcome(page, 'yaggui');
       await expect(
