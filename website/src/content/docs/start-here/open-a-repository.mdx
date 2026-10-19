@@ -27,7 +27,10 @@ Each repository opens in its own tab. A new tab starts on the welcome screen, wh
 
 The welcome screen appears in a new tab (<kbd>⌘T</kbd>, <kbd>Ctrl+T</kbd> on Windows and Linux) and when you close the last tab.
 
-<Screenshot name="open-welcome" alt="Welcome screen with the Open, Clone and Init tiles, the workspaces section, the search field and the lists of favorite and recent repositories" />
+<Screenshot
+  name="open-welcome"
+  alt="Welcome screen with the Open, Clone and Init tiles, the workspaces section, the search field and the lists of favorite and recent repositories"
+/>
 
 From top to bottom:
 
@@ -41,11 +44,11 @@ From top to bottom:
 
 Type part of a repository's name or path. The match is fuzzy: the letters you type must appear in order, not necessarily side by side. Matches in the name rank higher, and the matched letters are highlighted. While you search, the results form a single **Results** list.
 
-| Key | Effect |
-|---|---|
-| <kbd>↑</kbd> / <kbd>↓</kbd> | Move through the list |
-| <kbd>Enter</kbd> | Open the highlighted repository |
-| <kbd>Esc</kbd> | Clear the search |
+| Key                         | Effect                          |
+| --------------------------- | ------------------------------- |
+| <kbd>↑</kbd> / <kbd>↓</kbd> | Move through the list           |
+| <kbd>Enter</kbd>            | Open the highlighted repository |
+| <kbd>Esc</kbd>              | Clear the search                |
 
 ### Each repository row
 
@@ -60,14 +63,14 @@ Hover a row to show its buttons:
 
 ## Open an existing repository
 
-| Entry point | How |
-|---|---|
-| Welcome screen | The **Open** tile, or **Enter a path…** at the bottom |
-| Keyboard | <kbd>⌘O</kbd> (<kbd>Ctrl+O</kbd> on Windows and Linux) |
-| Command palette | **Open a repository…** |
-| macOS menu | **File** > **Open Repository…** |
-| Drag and drop | Drop a folder anywhere on the window |
-| Command line | `yaggui <path>` |
+| Entry point     | How                                                    |
+| --------------- | ------------------------------------------------------ |
+| Welcome screen  | The **Open** tile, or **Enter a path…** at the bottom  |
+| Keyboard        | <kbd>⌘O</kbd> (<kbd>Ctrl+O</kbd> on Windows and Linux) |
+| Command palette | **Open a repository…**                                 |
+| macOS menu      | **File** > **Open Repository…**                        |
+| Drag and drop   | Drop a folder anywhere on the window                   |
+| Command line    | `yaggui <path>`                                        |
 
 From a welcome tab, the repository opens in that tab; from a repository tab, it opens in a new tab.
 
@@ -110,16 +113,19 @@ Open the **Clone a repository** dialog from:
 
 There is no default shortcut; you can assign one in [Palette and shortcuts](../../customize/palette-and-shortcuts/).
 
-<Screenshot name="open-clone-dialog" alt="The Clone a repository dialog with the address, target folder, folder name, branch, shallow clone and submodule options" />
+<Screenshot
+  name="open-clone-dialog"
+  alt="The Clone a repository dialog with the address, target folder, folder name, branch, shallow clone and submodule options"
+/>
 
-| Field | What to enter | Default |
-|---|---|---|
-| **Repository address** | An HTTPS or SSH URL, such as `https://github.com/owner/repo.git` or `git@host:owner/repo.git`. A local path or `file://` URL also works. | empty |
-| **Clone into** | The folder that will contain the new repository. **Browse…** opens the folder picker. | the folder you last cloned or initialized into, if it still exists |
-| **Folder name** | The name of the new folder. | taken from the address (`…/repo.git` gives `repo`) until you edit it |
-| **Branch (optional)** | A branch or tag to check out after cloning. | empty: the remote's default branch |
-| **Shallow clone** | Downloads only the latest commits: faster, but the history is truncated. Turning it on shows **Depth (commits)**. | off; depth 1 |
-| **Clone submodules** | Clones the submodules too, recursively. | off |
+| Field                  | What to enter                                                                                                                            | Default                                                              |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| **Repository address** | An HTTPS or SSH URL, such as `https://github.com/owner/repo.git` or `git@host:owner/repo.git`. A local path or `file://` URL also works. | empty                                                                |
+| **Clone into**         | The folder that will contain the new repository. **Browse…** opens the folder picker.                                                    | the folder you last cloned or initialized into, if it still exists   |
+| **Folder name**        | The name of the new folder.                                                                                                              | taken from the address (`…/repo.git` gives `repo`) until you edit it |
+| **Branch (optional)**  | A branch or tag to check out after cloning.                                                                                              | empty: the remote's default branch                                   |
+| **Shallow clone**      | Downloads only the latest commits: faster, but the history is truncated. Turning it on shows **Depth (commits)**.                        | off; depth 1                                                         |
+| **Clone submodules**   | Clones the submodules too, recursively.                                                                                                  | off                                                                  |
 
 Under the fields, **Created at \<path\>** shows where the repository will be created.
 
@@ -154,15 +160,15 @@ When the clone succeeds, the dialog closes, a **Cloned \<name\>** notification a
 
 If it fails, **Clone failed** appears in the dialog with the reason, and any partial folder is removed. The common reasons:
 
-| Message | What to do |
-|---|---|
-| "Authentication failed. yaggui never asks for passwords: configure a Git credential helper (git config credential.helper) and sign in once from a terminal." | Set up HTTPS credentials; see [Authentication](../../remotes/authentication/). |
-| "SSH authentication failed. Load your key in ssh-agent (ssh-add) and check that the remote knows it." | Run `ssh-add`, and add your public key to your account on the server. |
-| "The remote host can't be reached. Check your connection and the remote URL." | Check the address and your network, then click **Retry**. |
-| "Remote not found: check its name and URL." | The address is wrong, or the repository is private and your credentials do not give access. |
-| "The branch "\<name\>" does not exist on the remote." | Fix **Branch (optional)** or leave it empty. |
-| "The folder \<path\> already exists and is not empty. Choose another folder, or an empty one." | Change **Clone into** or **Folder name**. |
-| "A path is too long for Windows. …" | Run `git config --global core.longpaths true`, then retry. |
+| Message                                                                                                                                                      | What to do                                                                                  |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| "Authentication failed. yaggui never asks for passwords: configure a Git credential helper (git config credential.helper) and sign in once from a terminal." | Set up HTTPS credentials; see [Authentication](../../remotes/authentication/).              |
+| "SSH authentication failed. Load your key in ssh-agent (ssh-add) and check that the remote knows it."                                                        | Run `ssh-add`, and add your public key to your account on the server.                       |
+| "The remote host can't be reached. Check your connection and the remote URL."                                                                                | Check the address and your network, then click **Retry**.                                   |
+| "Remote not found: check its name and URL."                                                                                                                  | The address is wrong, or the repository is private and your credentials do not give access. |
+| "The branch "\<name\>" does not exist on the remote."                                                                                                        | Fix **Branch (optional)** or leave it empty.                                                |
+| "The folder \<path\> already exists and is not empty. Choose another folder, or an empty one."                                                               | Change **Clone into** or **Folder name**.                                                   |
+| "A path is too long for Windows. …"                                                                                                                          | Run `git config --global core.longpaths true`, then retry.                                  |
 
 A clone cannot be undone from yaggui. To get rid of it, close its tab, remove it from the welcome screen, and delete the folder.
 
@@ -174,14 +180,17 @@ Open the **Initialize a repository** dialog from:
 - the command palette: **Initialize a repository…**;
 - on macOS, **File** > **Initialize Repository…**.
 
-<Screenshot name="open-init-dialog" alt="The Initialize a repository dialog with the folder, default branch, .gitignore templates and README options" />
+<Screenshot
+  name="open-init-dialog"
+  alt="The Initialize a repository dialog with the folder, default branch, .gitignore templates and README options"
+/>
 
-| Field | What it does | Default |
-|---|---|---|
-| **Folder** | The folder of the new repository. It is created if it does not exist; files already in it are left as they are. **Browse…** opens the folder picker. | empty |
-| **Default branch** | The name of the first branch. | your `init.defaultBranch` setting, or `main` |
-| **.gitignore templates** | Node, Rust, .NET, Python, macOS, Windows. Click several to combine them. | none |
-| **Add a README.md** | Writes a `README.md` with a title that is the folder name. | off |
+| Field                    | What it does                                                                                                                                         | Default                                      |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| **Folder**               | The folder of the new repository. It is created if it does not exist; files already in it are left as they are. **Browse…** opens the folder picker. | empty                                        |
+| **Default branch**       | The name of the first branch.                                                                                                                        | your `init.defaultBranch` setting, or `main` |
+| **.gitignore templates** | Node, Rust, .NET, Python, macOS, Windows. Click several to combine them.                                                                             | none                                         |
+| **Add a README.md**      | Writes a `README.md` with a title that is the folder name.                                                                                           | off                                          |
 
 Click **Initialize**. yaggui runs `git init --initial-branch <branch> -- <folder>`, then writes the chosen files:
 
@@ -239,4 +248,5 @@ This cannot be turned off in the preferences and cannot be undone from yaggui. T
   ```
 
   This shows no notification or progress, but it appears in the command log.
+
 - yaggui saves the open tabs and reopens them at the next launch. See [Tabs](../../workspaces/tabs/).
