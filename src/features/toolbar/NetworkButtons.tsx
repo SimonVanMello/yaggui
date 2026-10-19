@@ -22,7 +22,8 @@ export function NetworkButtons({ repoId, state }: { repoId: number; state: RepoS
   const pushShortcut = useShortcut('git.push');
   const fetchShortcut = useShortcut('git.fetch');
   const detached = state.head.kind !== 'branch';
-  const { autoFetch, autoFetchMinutes, pullStrategy } = usePreferences();
+  const { autoFetch, autoFetchMinutes, prune, pullStrategy } = usePreferences();
+  const fetchFlags = prune ? '--all --prune' : '--all';
   const strategy = useQuery({
     // The preference overrides the Git config: a change must refetch the default.
     queryKey: ['pullDefaultStrategy', repoId, pullStrategy],
@@ -125,7 +126,7 @@ export function NetworkButtons({ repoId, state }: { repoId: number; state: RepoS
         <ToolbarButton
           icon="fetch"
           label={t('toolbar.fetch')}
-          command="git fetch --all --prune"
+          command={`git fetch ${fetchFlags}`}
           shortcut={fetchShortcut}
           onClick={() => {
             void fetchRepo(repoId);
@@ -143,7 +144,7 @@ export function NetworkButtons({ repoId, state }: { repoId: number; state: RepoS
         >
           <MenuItem
             icon="fetch"
-            hint="--all --prune"
+            hint={fetchFlags}
             onSelect={() => {
               void fetchRepo(repoId);
             }}
