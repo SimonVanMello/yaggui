@@ -21,6 +21,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ### Fixed
 
+- A long repository name or path wraps inside the tab tooltip instead of running past its edge.
 - Held keys repeat again in the integrated terminal on macOS (holding `j` in vim moves more than one
   line) (#22).
 - Welcome screen: the highlighted repository row keeps its border and no longer stays highlighted
