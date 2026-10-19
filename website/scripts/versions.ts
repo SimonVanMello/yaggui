@@ -1,7 +1,7 @@
-// Extracts the docs of every released version listed in versions.json from git, into
+// Extracts the docs of every released version (src/lib/docs-versions.ts) from git, into
 // `.cache/versions/<version>/` (gitignored). Called by astro.config.ts, so `astro dev`, `astro build`
-// and `astro check` always see the versions of versions.json. Each extraction is keyed by its ref:
-// a version is re-extracted only when its ref changes.
+// and `astro check` always see every version. Each extraction is keyed by its commit: a version is
+// re-extracted only when its ref points elsewhere.
 import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -44,8 +44,7 @@ export function extractVersions(websiteRoot: string, all: DocsVersion[]): void {
 
   for (const v of released) {
     const dir = path.join(cache, v.id);
-    const stamp = path.join(dir, '.ref');
-    if (existsSync(stamp) && readFileSync(stamp, 'utf8') === v.ref) continue;
+    const stamp = path.join(dir, '.commit');
 
     let commit: string;
     try {
@@ -54,13 +53,14 @@ export function extractVersions(websiteRoot: string, all: DocsVersion[]): void {
         .trim();
     } catch {
       throw new Error(
-        `versions.json: ref ${v.ref} of ${v.id} is not in this clone. ` +
+        `docs ${v.id}: ref ${v.ref} is not in this clone. ` +
           'Fetch the full history (`git fetch --unshallow --tags`, or `fetch-depth: 0` in CI).',
       );
     }
+    if (existsSync(stamp) && readFileSync(stamp, 'utf8') === commit) continue;
     const paths = EXTRACTED.filter((p) => hasPath(repo, commit, p));
     if (!paths.includes(EXTRACTED[0] ?? '')) {
-      throw new Error(`versions.json: ${v.id} (${v.ref}) has no ${EXTRACTED[0]}`);
+      throw new Error(`docs ${v.id}: ${v.ref} has no ${EXTRACTED[0]}`);
     }
 
     rmSync(dir, { recursive: true, force: true });
@@ -68,6 +68,6 @@ export function extractVersions(websiteRoot: string, all: DocsVersion[]): void {
     const archive = git(repo, ['archive', '--format=tar', commit, '--', ...paths]);
     const tar = spawnSync('tar', ['-x', '-C', dir], { input: archive });
     if (tar.status !== 0) throw new Error(`tar failed for ${v.id}: ${tar.stderr.toString()}`);
-    writeFileSync(stamp, v.ref);
+    writeFileSync(stamp, commit);
   }
 }

@@ -41,8 +41,9 @@ English is the default locale at the root (`/`, `/docs/…`); French lives under
 The visitor picks the app version in the docs header; **latest released version** is the default.
 
 - Source of truth: git. The docs of version `X.Y.Z` are the content of `website/src/content/docs/` at the commit that version was released from. No hand-maintained copies of old versions.
-- `website/versions.json` lists the published versions and the git ref of each one (`{ "version": "0.4.0", "ref": "<sha or tag>" }`). The release workflow appends the new version when a release is published. The first entry points at the commit that merges the first complete docs, labelled with the app version current at that time.
-- At build time a script extracts the docs of each listed ref into the build, so that `/docs/` serves the latest version, `/docs/<version>/` the older ones, with the same layout for `/fr/docs/`.
+- Versions come from git tags: every `vX.Y.Z` tag whose tree contains `website/src/content/docs/` is a docs version, read from that tag. Nothing to do at release time beyond tagging. Before the first tag with docs, `master` is served at `/docs/` and the switcher shows only it.
+- `website/versions.json` is an optional override list, empty by default: `{ "version": "0.4.0", "ref": "<sha or tag>" }` serves a version from another ref (or adds one that has no tag), `{ "version": "0.4.0", "hidden": true }` hides one (e.g. a tag cut while the docs were placeholders).
+- At build time a script extracts the docs of each version's ref into the build, so that `/docs/` serves the latest version, `/docs/<version>/` the older ones, with the same layout for `/fr/docs/`.
 - The docs on `master` (changes not released yet) are published under `/docs/next/`, labelled "Next (unreleased)", never as the default.
 - Changing version keeps the visitor on the same page when it exists in the target version, otherwise sends them to that version's docs home.
 - W-1 picks the implementation (e.g. the `starlight-versions` plugin fed by the extraction script, or one Starlight build per version behind a shared switcher) and documents the choice in its PR and in `website/README.md`.

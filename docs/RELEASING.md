@@ -75,14 +75,7 @@ To publish an existing release by hand (first publication, or after a fix to the
 
 ## Website docs
 
-The site serves the docs of the latest release at `/docs/` and those of `master` at `/docs/next/` ([`website/README.md`](../website/README.md#versioned-docs)). [`Docs version`](../.github/workflows/docs-version.yml) runs when a release is published: it adds the version and the commit of its tag to [`website/versions.json`](../website/versions.json) and opens a pull request `docs(website): publish the docs of <version>`. Merging it redeploys the site with that version as the default. Run it by hand (Actions → Docs version → Run workflow, tag `vX.Y.Z`) for a release published before it existed.
-
-While `versions.json` is empty, the workflow does nothing: the first entry is added by hand once the docs are complete. Publishing a release also redeploys the site, so the download links follow it.
-
-One-time setup:
-
-1. Settings → Actions → General → Workflow permissions: check **Allow GitHub Actions to create and approve pull requests**.
-2. Pull requests opened with the default `GITHUB_TOKEN` do not trigger workflows, so their checks stay pending. Optionally, add a `WEBSITE_PR_TOKEN` repository secret (a fine-grained token with Contents and Pull requests write access on this repository): the workflow then uses it and CI runs on the pull request. Without it, close and reopen the pull request to run CI.
+The site serves the docs of the latest release at `/docs/` and those of `master` at `/docs/next/` ([`website/README.md`](../website/README.md#versioned-docs)). Every `vX.Y.Z` tag whose tree has `website/src/content/docs/` is a docs version: pushing the tag is enough, nothing to merge. Publishing the release redeploys the site, so `/docs/` and the download links follow it. To hide a version or serve it from another commit, add an override to [`website/versions.json`](../website/versions.json).
 
 ## Updates
 
