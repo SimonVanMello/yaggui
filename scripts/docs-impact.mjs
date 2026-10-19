@@ -23,6 +23,8 @@ export const USER_FACING = [
   'src/ui/**',
   'src/i18n/*.json',
   'src-tauri/src/commands/**',
+  'src-tauri/src/repo/**',
+  'src-tauri/src/git/ops/**',
   'src-tauri/src/git/errors.rs',
 ];
 

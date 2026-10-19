@@ -66,6 +66,10 @@ const labels = {
     flex-wrap: wrap;
     gap: 0.25rem;
   }
+  /* Starlight's prose rules put a top margin on siblings: keycaps stay on one line. */
+  .shortcut-group .keys kbd {
+    margin: 0;
+  }
   .none {
     color: var(--sl-color-gray-3);
   }
