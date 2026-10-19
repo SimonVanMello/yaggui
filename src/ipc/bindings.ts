@@ -10,6 +10,8 @@ export const commands = {
 	appInfo: () => __TAURI_INVOKE<AppInfo>("app_info"),
 	/**  Path given on the command line (`yaggui <path>`), if any, to open at startup (F-001). */
 	launchPath: () => __TAURI_INVOKE<string | null>("launch_path"),
+	/**  Release notes embedded from `CHANGELOG.md`, newest first. */
+	changelog: () => __TAURI_INVOKE<ChangelogRelease[]>("changelog"),
 	/**
 	 *  Opens the repository containing `path` (or joins the already open session),
 	 *  records it in the recent repos and starts watching it. Sessions are reference-counted:
@@ -786,6 +788,9 @@ export type BranchStart = { kind: "head" } |
  */
 { kind: "stash"; stash: StashId };
 
+/**  How the UI groups an entry. Keep a Changelog has six sections; users care about three. */
+export type ChangeKind = "feature" | "fix" | "other";
+
 /**  One changed path of a diff target. */
 export type ChangedFile = {
 	/**  Repository-relative path, `/`-separated (the new path of a rename). */
@@ -813,6 +818,21 @@ export type ChangedFiles = {
 	 *  computed (F-262).
 	 */
 	lfs: string[],
+};
+
+export type ChangelogEntry = {
+	kind: ChangeKind,
+	/**  One paragraph; Markdown links are reduced to their text, `code` spans are kept. */
+	text: string,
+};
+
+export type ChangelogRelease = {
+	/**  `None` for the changes not released yet. */
+	version: string | null,
+	/**  Release date, `YYYY-MM-DD`. */
+	date: string | null,
+	/**  In file order: grouping by kind is the UI's. */
+	entries: ChangelogEntry[],
 };
 
 /**  How `checkout` treats local changes. */

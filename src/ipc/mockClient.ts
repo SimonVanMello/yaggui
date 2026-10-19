@@ -178,6 +178,7 @@ import {
   MockGraph,
   type MockHistory,
 } from './mockGraph';
+import { mockChangelog } from './mock/changelog';
 import { MockSettings } from './mock/settings';
 import type { IpcResult } from './result';
 
@@ -2711,6 +2712,7 @@ export class MockBackend {
   readonly commands: YagguiCommands = {
     appInfo: () => Promise.resolve(mockAppInfo),
     launchPath: () => Promise.resolve(null),
+    changelog: () => Promise.resolve(structuredClone(mockChangelog)),
     openRepo: (path) => {
       const normalized = path.trim().replace(/(.)[\\/]+$/, '$1');
       if (!normalized || !isAbsolute(normalized)) return fail(invalidPath(path));

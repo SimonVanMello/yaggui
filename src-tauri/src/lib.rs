@@ -25,6 +25,7 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
         .commands(collect_commands![
             commands::app::app_info,
             commands::app::launch_path,
+            commands::app::changelog,
             commands::repo::open_repo,
             commands::repo::close_repo,
             commands::repo::repo_state,

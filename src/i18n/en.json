@@ -1962,5 +1962,21 @@
   "diff.edit.discardTitle": "Discard your changes?",
   "diff.edit.discardDescription": "Your changes to {path} have not been saved.",
   "diff.edit.discard": "Discard",
-  "op.editFile": "File save"
+  "op.editFile": "File save",
+  "changelog.title": "What's new",
+  "changelog.description": "yaggui {version} is installed. Changes of each version, newest first.",
+  "changelog.loading": "Changes of each version, newest first.",
+  "changelog.unreleased": "Unreleased",
+  "changelog.installed": "Installed",
+  "changelog.kind.feature": "New features",
+  "changelog.kind.fix": "Fixes",
+  "changelog.kind.other": "Other changes",
+  "changelog.empty": "No release notes in this build.",
+  "changelog.open": "What's new",
+  "changelog.checkUpdates": "Check for updates",
+  "status.version": "yaggui {version}",
+  "prefs.version": "Version",
+  "prefs.version.hint": "yaggui {version}",
+  "palette.action.app.changelog": "What's new (changelog)",
+  "menu.changelog": "What's New in yaggui"
 }

@@ -9,6 +9,7 @@ export const queryClient = new QueryClient({
 
 export const queryKeys = {
   appInfo: ['app-info'] as const,
+  changelog: ['changelog'] as const,
   knownRepos: ['known-repos'] as const,
   commandLog: ['command-log'] as const,
   repoState: (repoId: number) => ['repo-state', repoId] as const,

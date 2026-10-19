@@ -1,7 +1,7 @@
 import type { AppInfo, CommandLogEntry, YagguiError, KnownRepo, RepoState } from './bindings';
 
 export const mockAppInfo: AppInfo = {
-  appVersion: '0.1.0-mock',
+  appVersion: '0.3.0',
   gitVersion: '2.47.1',
   gitSupported: true,
   minGitVersion: '2.30',

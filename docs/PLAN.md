@@ -165,5 +165,6 @@ Exit: every tagged version is installable from GitHub Releases and from the main
 | M6-4 | Chocolatey and winget packages submitted when a release is published | M6-1 | — |
 | M6-5 | Code signing: Apple notarization, Windows signing | M6-1 | — |
 | M6-6 ✅ | Updates: opt-in check at startup (asked once) and from the palette / preferences, against the `latest.json` manifest of the newest release; in-place install with the Tauri updater (signed bundles) for the Windows installers, the macOS app and the AppImage; upgrade command for Homebrew and the AUR, release page for `.deb` / `.rpm`. Beta channel left for later (pre-release versions are refused by the MSI bundler) | M6-1 | SPEC §10 |
+| M6-7 ✅ | Changelog: `CHANGELOG.md` (Keep a Changelog) backfilled from 0.1.0, embedded in the binary and parsed in Rust (`changelog` command), "What's new" view (versions newest first, grouped as features / fixes / other, installed version highlighted), installed version in the status bar and the preferences, palette and macOS Help menu entries; `pnpm release:version` moves `Unreleased` into the new version and refuses an empty one | M6-1 | — |
 
 Order: M6-1; then M6-2a ∥ M6-2b ∥ M6-3 ∥ M6-4 ∥ M6-6; M6-5 when the signing accounts exist.
