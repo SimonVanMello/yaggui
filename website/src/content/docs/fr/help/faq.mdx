@@ -16,41 +16,41 @@ requirements: []
 
 Réponses courtes aux questions courantes. Chacune renvoie vers la page qui donne les détails.
 
-## yaggui est-il gratuit et open source ?
+## yaggui est-il gratuit et open source ?
 
 Oui. yaggui est un logiciel libre sous licence GPL-3.0-or-later. Le code source est sur [GitHub](https://github.com/SimonVanMello/yaggui).
 
-## Faut-il un compte ?
+## Faut-il un compte ?
 
 Non. yaggui n’a ni compte, ni connexion, ni serveur propre. Vos remotes (GitHub, GitLab, votre propre serveur) utilisent vos identifiants Git habituels.
 
-## yaggui envoie-t-il des données quelque part ?
+## yaggui envoie-t-il des données quelque part ?
 
 Seulement ce que vous autorisez. Outre les opérations Git qui communiquent avec vos remotes (y compris le fetch automatique, que vous pouvez désactiver), yaggui peut rechercher des mises à jour sur github.com et télécharger des photos Gravatar, et ces deux fonctions sont désactivées tant que vous ne les activez pas. Il n’y a ni télémétrie ni rapport de plantage. Voir [Données et confidentialité](../../reference/data-and-privacy/).
 
-## De quelle version de Git ai-je besoin ?
+## De quelle version de Git ai-je besoin ?
 
 Git 2.30 ou plus récent, installé sur votre système : yaggui exécute votre propre `git` et n’en embarque pas. Un Git plus ancien déclenche un avertissement dans la barre d’état. Voir [Git introuvable ou trop ancien](../../help/troubleshooting/#git-introuvable-ou-trop-ancien).
 
-## yaggui stocke-t-il mes mots de passe ?
+## yaggui stocke-t-il mes mots de passe ?
 
 Non. yaggui ne demande jamais de mot de passe, de jeton ni de phrase secrète, et n’en stocke jamais. Les identifiants viennent de votre credential helper Git ou de votre agent SSH. Voir [Authentification](../../remotes/authentication/).
 
-## yaggui modifie-t-il mes dépôts ou ma configuration Git ?
+## yaggui modifie-t-il mes dépôts ou ma configuration Git ?
 
 Uniquement par l’intermédiaire de Git, et seulement pour ce que vous demandez, plus deux choses faites en arrière-plan : un fichier commit-graph qui accélère les gros historiques, et des objets Git qui rendent l’annulation possible. Il n’ajoute aucun fichier qui lui soit propre à vos dépôts.
 
 Votre configuration Git globale ne change que sur votre demande : **Faire confiance au dossier…** (`safe.directory`, après confirmation), votre identité quand vous l’enregistrez pour tous les dépôts, ou les modifications faites dans l’éditeur de configuration Git. Chaque commande que yaggui exécute figure dans le [journal des commandes](../../reference/command-log/). Voir [Ce que yaggui écrit dans vos dépôts](../../reference/data-and-privacy/#ce-que-yaggui-écrit-dans-vos-dépôts).
 
-## Puis-je utiliser yaggui et le terminal en même temps ?
+## Puis-je utiliser yaggui et le terminal en même temps ?
 
 Oui. yaggui surveille le dépôt et affiche en moins d’une seconde les changements faits dans un terminal ou un éditeur. Comme les deux utilisent le même Git, tout ce que vous faites d’un côté est visible de l’autre. Si une commande est en cours dans un terminal, yaggui peut indiquer qu’un autre processus Git détient le verrou ; attendez qu’elle se termine. yaggui propose aussi un [terminal intégré](../../repository/terminal/).
 
-## Puis-je annuler un push ?
+## Puis-je annuler un push ?
 
 Non. L’annulation porte sur les opérations locales (commits, checkouts, resets, abandons de modifications, changements de branche…). Un push a modifié un remote, donc yaggui refuse de l’annuler : « Cette opération a modifié un remote : elle ne peut pas être annulée localement. » Pour reprendre des commits poussés, faites-en un [revert](../../history/cherry-pick-revert-reset/) puis poussez de nouveau. Voir [Annuler et rétablir](../../history/undo-and-redo/).
 
-## Quelles plateformes sont prises en charge ?
+## Quelles plateformes sont prises en charge ?
 
 | OS               | Architectures                                | Paquets                                       |
 | ---------------- | -------------------------------------------- | --------------------------------------------- |
@@ -60,26 +60,26 @@ Non. L’annulation porte sur les opérations locales (commits, checkouts, reset
 
 Il n’existe pas de version ARM pour Windows ni pour Linux. Voir [Installer yaggui](../../start-here/install/).
 
-## Puis-je ouvrir un dépôt nu ?
+## Puis-je ouvrir un dépôt nu ?
 
 Pas encore. yaggui a besoin d’un arbre de travail et affiche « Les dépôts nus ne sont pas encore pris en charge. » Clonez le dépôt nu et ouvrez le clone.
 
-## Puis-je ouvrir plusieurs fenêtres ?
+## Puis-je ouvrir plusieurs fenêtres ?
 
 Non. yaggui n’a qu’une fenêtre, avec un [onglet](../../workspaces/tabs/) par dépôt. Utilisez les onglets, ou les [workspaces](../../workspaces/workspaces/) pour ouvrir d’un coup un groupe de dépôts. Lancer yaggui une seconde fois démarre une copie distincte qui partage la même base de réglages ; ce n’est pas une façon de travailler prise en charge.
 
-## Où mes réglages sont-ils stockés ?
+## Où mes réglages sont-ils stockés ?
 
 Dans une base SQLite, `yaggui.db`, dans le dossier de configuration de yaggui (`~/Library/Application Support/dev.tropico.yaggui` sous macOS, `%APPDATA%\dev.tropico.yaggui` sous Windows, `~/.config/dev.tropico.yaggui` sous Linux). Les raccourcis modifiés se trouvent dans `keybindings.json`, à côté. Voir [Données et confidentialité](../../reference/data-and-privacy/#où-yaggui-stocke-ses-données).
 
-## Comment réinitialiser yaggui ?
+## Comment réinitialiser yaggui ?
 
 Quittez yaggui et supprimez `yaggui.db` (préférences, récents, onglets, workspaces) et `keybindings.json` (raccourcis) du dossier de configuration. Vos dépôts ne sont pas touchés. Voir [Réinitialiser yaggui](../../reference/data-and-privacy/#réinitialiser-yaggui).
 
-## Comment signaler un bug ou demander une fonctionnalité ?
+## Comment signaler un bug ou demander une fonctionnalité ?
 
 Ouvrez un ticket sur [GitHub](https://github.com/SimonVanMello/yaggui/issues). Pour un bug, indiquez les versions affichées dans la barre d’état et l’entrée du journal des commandes correspondant à la commande en échec. Voir [Signaler un bug](../../help/troubleshooting/#signaler-un-bug).
 
-## yaggui est-il développé avec l’IA ?
+## yaggui est-il développé avec l’IA ?
 
 Oui. yaggui est écrit par [Claude](https://claude.com/claude-code), l’IA d’Anthropic, via Claude Code : spécification, architecture, code, tests et documentation. Un humain fixe la direction, relit le travail et teste l’application. Les instructions que suivent les agents se trouvent dans le fichier [`CLAUDE.md`](https://github.com/SimonVanMello/yaggui/blob/master/CLAUDE.md) du dépôt.
