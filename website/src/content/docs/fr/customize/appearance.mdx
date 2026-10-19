@@ -1,0 +1,109 @@
+---
+title: Apparence
+description: Choisissez le thème, le style, le contraste, la densité, les polices, la taille du texte, la langue et les avatars des auteurs dans yaggui.
+sidebar:
+  order: 1
+sources:
+  - src/features/preferences/AppearanceTab.tsx
+  - src/app/appearance.ts
+  - src/app/preferences.ts
+  - src/theme/**
+  - src/i18n/i18n.ts
+  - public/boot-theme.js
+  - src/features/graph/Avatar.tsx
+  - src/features/graph/gravatar.ts
+  - src-tauri/src/system/avatars.rs
+  - src-tauri/src/commands/avatars.rs
+  - src-tauri/src/store/types.rs
+requirements: [F-320, F-321, F-033]
+---
+
+import Screenshot from '~/components/Screenshot.astro';
+import prefsAppearanceDark from '../../../../assets/screens/prefs-appearance-dark.png';
+import prefsAppearanceLight from '../../../../assets/screens/prefs-appearance-light.png';
+import styleTerminalDark from '../../../../assets/screens/style-terminal-dark.png';
+import styleTerminalLight from '../../../../assets/screens/style-terminal-light.png';
+
+Tout ce qui figure sur cette page se règle dans **Préférences › Apparence**. Les changements s’appliquent dès que vous les faites : il n’y a pas de bouton d’enregistrement.
+
+Pour ouvrir les préférences, cliquez sur le bouton en forme d’engrenage (**Préférences**) dans la barre de titre, appuyez sur <kbd>⌘,</kbd> (<kbd>Ctrl+,</kbd> sous Windows et Linux), ou lancez **Ouvrir les préférences** depuis la [palette de commandes](../../customize/palette-and-shortcuts/). Sous macOS, l’entrée de menu **yaggui › Préférences…** les ouvre aussi. L’onglet s’ouvre sur **Apparence**.
+
+<Screenshot
+  dark={prefsAppearanceDark}
+  light={prefsAppearanceLight}
+  alt="L’onglet Apparence de la fenêtre des préférences, avec Thème, Style, Contraste élevé, Avatars Gravatar, Densité, Langue, les polices et la Taille du texte"
+/>
+
+## Choisir le thème et le style
+
+yaggui propose trois apparences :
+
+| Apparence                               | Comment l’obtenir                                                                                   |
+| --------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| **Graphite** (sombre)                   | **Style** : **Graphite / Paper**, **Thème** : **Sombre** (ou **Système** avec un OS en mode sombre) |
+| **Paper** (clair)                       | **Style** : **Graphite / Paper**, **Thème** : **Clair** (ou **Système** avec un OS en mode clair)   |
+| **Terminal** (dense, monospace, sombre) | **Style** : **Terminal**                                                                            |
+
+- **Thème** accepte **Système**, **Clair** ou **Sombre**. La valeur par défaut, **Système**, suit le réglage clair ou sombre de votre OS et bascule en direct quand celui-ci change.
+- **Style** accepte **Graphite / Paper** (par défaut) ou **Terminal**. Le style Terminal est toujours sombre : le réglage **Thème** n’a donc aucun effet tant qu’il est sélectionné. L’onglet vous le rappelle : « Dense, monospace et sombre : le choix clair / sombre ne s'applique pas. »
+
+Vous pouvez aussi changer de thème depuis la palette de commandes avec **Thème : suivre le système**, **Thème : clair** et **Thème : sombre**. L’entrée correspondant au thème actuel est grisée.
+
+yaggui applique le dernier thème utilisé avant le premier affichage de la fenêtre : une configuration sombre ne produit donc jamais d’éclair blanc au démarrage.
+
+<Screenshot
+  dark={styleTerminalDark}
+  light={styleTerminalLight}
+  alt="yaggui avec le style Terminal : des lignes denses en police monospace sur un fond presque noir"
+/>
+
+## Activer le contraste élevé
+
+**Contraste élevé** (désactivé par défaut) renforce le texte et les bordures. C’est un interrupteur, pas un thème à part : il fonctionne avec Graphite, Paper et Terminal. Dans le [terminal intégré](../../repository/terminal/), il impose aussi un rapport de contraste minimal aux couleurs du shell.
+
+## Changer la densité
+
+**Densité** accepte **Confortable** (par défaut) ou **Compacte**. Le mode compact réduit la hauteur des lignes (graphe, listes, journal des commandes, palette et autres) de 28 px à 22 px, pour en afficher davantage à l’écran.
+
+## Changer les polices et la taille du texte
+
+| Réglage                   | Valeur par défaut                       | Effet                                                                                       |
+| ------------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------- |
+| **Police de l'interface** | Vide : la police Inter fournie          | Police des menus, des libellés et des listes                                                |
+| **Police du code**        | Vide : la police JetBrains Mono fournie | Police des diffs, de la vue blame, des SHA, du journal des commandes et du terminal intégré |
+| **Taille du texte**       | 13 px                                   | Curseur de 11 à 18 px. Redimensionne tous les textes de l’application                       |
+
+Pour les deux champs de police :
+
+1. Saisissez le nom d’une police installée sur votre système, par exemple `Fira Code`.
+2. Appuyez sur <kbd>Entrée</kbd> ou quittez le champ. La police s’applique aussitôt.
+
+Un champ vide rétablit la police fournie. Si la police n’est pas installée, le système se rabat sur la police fournie. Un nom de plus de 200 caractères, ou contenant des caractères de contrôle ou l’un des caractères `; { } < > \ " '`, est refusé : un toast « Impossible d'enregistrer la préférence » indique « \{name\} » n’est pas un nom de police valide, et la police précédente reste en place.
+
+## Changer la langue
+
+**Langue** accepte **Système** (par défaut), **English** ou **Français**. **Système** utilise la première langue de votre OS que yaggui prend en charge, et l’anglais à défaut. Le changement s’applique immédiatement, sans redémarrage ; sous macOS, la barre de menus est reconstruite dans la nouvelle langue.
+
+La langue concerne toute l’interface, y compris les messages d’erreur de yaggui. La sortie brute de Git affichée dans le [journal des commandes](../../reference/command-log/) reste en anglais.
+
+## Afficher les avatars des auteurs (Gravatar)
+
+Par défaut, yaggui affiche les initiales de chaque auteur dans le graphe, le détail d’un commit et le panneau de comparaison. Il n’envoie aucune requête réseau pour les avatars.
+
+Activez **Avatars Gravatar** pour afficher à la place les photos [Gravatar](https://gravatar.com) des auteurs :
+
+- **Ce qui est envoyé** : pour chaque auteur, yaggui calcule sur votre machine le hash SHA-256 de l’adresse e-mail, puis demande `https://www.gravatar.com/avatar/<hash>?s=40&d=404` en HTTPS, sans référent. L’adresse e-mail elle-même ne quitte jamais votre machine.
+- **Pas de photo** : quand une adresse n’a pas de Gravatar, les initiales restent affichées. yaggui s’en souvient pendant 2 jours pour ne pas redemander à chaque réaffichage.
+- **Cache** : les photos téléchargées sont stockées dans un dossier `avatars-v1` du dossier de cache de yaggui (voir [Données et confidentialité](../../reference/data-and-privacy/)) et renouvelées au bout de 7 jours. Le cache est plafonné à 20 Mo et 10 000 entrées ; les plus anciennes partent en premier. Hors connexion, une photo expirée reste affichée.
+- **Vider le cache des avatars** supprime toutes les photos téléchargées (« Cache des avatars vidé »). Elles sont téléchargées de nouveau la prochaine fois qu’elles sont affichées, si l’interrupteur est activé.
+
+Désactiver l’interrupteur arrête aussitôt toutes les requêtes ; les photos déjà en cache restent sur le disque jusqu’à leur expiration ou jusqu’à ce que vous les vidiez.
+
+## Animations réduites
+
+yaggui n’a pas de réglage propre pour les animations. Il suit le réglage de réduction des animations de votre OS (`prefers-reduced-motion`) : lorsqu’il est activé, les transitions sont instantanées et la barre de progression indéterminée cesse de défiler.
+
+## Voir aussi
+
+- Toutes les préférences avec leur valeur par défaut : [Référence des préférences](../../reference/preferences/).
+- Où les préférences sont stockées : [Données et confidentialité](../../reference/data-and-privacy/).

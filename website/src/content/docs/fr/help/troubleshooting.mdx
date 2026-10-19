@@ -1,0 +1,220 @@
+---
+title: Dépannage
+description: Solutions aux problèmes courants de yaggui, de Git introuvable aux dépôts verrouillés, en passant par les rafraîchissements manquants, les échecs d’authentification et les problèmes propres à une plateforme.
+sidebar:
+  order: 1
+sources:
+  - src-tauri/src/git/errors.rs
+  - src-tauri/src/git/cli.rs
+  - src-tauri/src/system/git_binary.rs
+  - src-tauri/src/repo/mod.rs
+  - src-tauri/src/repo/watcher.rs
+  - src-tauri/src/repo/write.rs
+  - src-tauri/src/git/read/state.rs
+  - src-tauri/src/git/ops/commit_graph.rs
+  - src-tauri/src/state.rs
+  - src-tauri/src/main.rs
+  - src/app/ErrorBoundary.tsx
+  - src/features/repo/RepoBanners.tsx
+  - src/features/preferences/GitTab.tsx
+  - src/features/staging/HookFailurePanel.tsx
+requirements: [F-009, F-065, F-301, F-302, F-322]
+---
+
+import Screenshot from '~/components/Screenshot.astro';
+import indexLockBannerDark from '../../../../assets/screens/index-lock-banner-dark.png';
+import indexLockBannerLight from '../../../../assets/screens/index-lock-banner-light.png';
+
+Repérez ci-dessous le symptôme que vous observez. Pour la signification d’un message d’erreur précis, cherchez-le dans la référence des [messages d’erreur](../../reference/error-messages/). Dans la plupart des cas, le [journal des commandes](../../reference/command-log/) (<kbd>⌘J</kbd>, <kbd>Ctrl+J</kbd> sous Windows et Linux) montre la réponse exacte de Git.
+
+## Git introuvable ou trop ancien
+
+yaggui n’embarque pas Git : il exécute le `git` installé sur votre système, et il lui faut Git 2.30 ou plus récent.
+
+- **« Git est introuvable. Installe Git 2.30 ou plus récent puis relance yaggui. »**, ou « git introuvable » dans la barre d’état : installez Git depuis [git-scm.com](https://git-scm.com/downloads), avec Homebrew, avec votre gestionnaire de paquets ou avec `winget install Git.Git`, puis relancez yaggui.
+- **Une icône d’avertissement à côté de la version de Git dans la barre d’état** (« Git 2.30 ou plus récent est recommandé ») : votre Git est antérieur à 2.30. yaggui fonctionne quand même, mais certaines fonctions peuvent échouer. Mettez Git à jour.
+
+### Utiliser un Git précis
+
+Par défaut, yaggui exécute le premier `git` trouvé dans votre `PATH`. Pour en utiliser un autre :
+
+1. Ouvrez les **Préférences** (<kbd>⌘,</kbd>, <kbd>Ctrl+,</kbd> sous Windows et Linux) et sélectionnez l’onglet **Git**.
+2. Saisissez le chemin complet dans **Binaire Git**, par exemple `/opt/homebrew/bin/git` ou `C:\Program Files\Git\cmd\git.exe`.
+3. Cliquez sur **Appliquer**. yaggui exécute `<chemin> --version` et affiche « Git \{version\} · \{path\} ». Un chemin qui n’est pas un Git utilisable est refusé et rien n’est enregistré.
+
+**Détection automatique** vide le chemin enregistré et revient au `git` du `PATH`. Si un chemin enregistré cesse de fonctionner plus tard (Git désinstallé ou déplacé), yaggui se rabat sur le `git` du `PATH` au lancement suivant.
+
+:::tip
+Sous macOS, une application lancée depuis le Dock ou le Finder ne voit pas le `PATH` de votre shell. Si Git n’est installé qu’avec Homebrew, saisissez `/opt/homebrew/bin/git` (Apple Silicon) ou `/usr/local/bin/git` (Intel) dans **Binaire Git**.
+:::
+
+## Un dépôt ne s’ouvre pas
+
+Quand un dépôt ne peut pas s’ouvrir, son onglet affiche « Impossible d'ouvrir \{name\} » avec la raison, ou la boîte de dialogue **Ouvrir un dépôt** l’affiche directement.
+
+- **« \{path\} n'est pas un dépôt Git. »** : le dossier ne se trouve pas dans un dépôt Git. Un sous-dossier d’un dépôt convient : yaggui ouvre le dépôt qui le contient.
+- **« Les dépôts nus ne sont pas encore pris en charge. »** : yaggui a besoin d’un arbre de travail. Clonez le dépôt nu et ouvrez le clone.
+- **« Le dossier \{path\} n'existe pas. »**, ou **Dossier introuvable** sur l’écran d’accueil : le dépôt a été déplacé, renommé ou supprimé. Cliquez dessus, puis sur **Localiser…** pour choisir son nouveau dossier (la racine du dépôt), ou sur **Retirer de yaggui**. Retirer ne modifie que la liste de yaggui ; aucun fichier n’est supprimé. Voir [Ouvrir un dépôt](../../start-here/open-a-repository/).
+
+### Le dépôt appartient à un autre utilisateur
+
+Git refuse de travailler dans un dossier appartenant à un autre compte utilisateur (par exemple un dossier créé avec `sudo`, un disque externe ou un partage réseau), et yaggui affiche « Git refuse d'utiliser \{path\} car il appartient à un autre utilisateur. Ajoute-le à safe.directory seulement si tu lui fais confiance. »
+
+1. Cliquez sur **Faire confiance au dossier…**.
+2. Lisez la boîte de dialogue : elle affiche la commande `git config --global --add safe.directory <chemin>`.
+3. Cliquez sur **Faire confiance**. yaggui ajoute le dossier à votre configuration Git globale et rouvre le dépôt.
+
+:::caution
+Ne faites confiance qu’à des dossiers dont vous connaissez le contenu : les hooks Git d’un dépôt de confiance s’exécutent quand vous commitez, mergez ou extrayez une branche.
+:::
+
+yaggui ne fait jamais cela de lui-même. Pour l’annuler, supprimez la ligne de votre `~/.gitconfig`, ou exécutez `git config --global --unset safe.directory <chemin>`. Faire de votre compte le propriétaire du dossier règle aussi le problème.
+
+## Un autre processus Git utilise ce dépôt
+
+Git crée `.git/index.lock` pendant son travail et le supprime à la fin. Si yaggui trouve ce fichier, il affiche un bandeau au-dessus du graphe.
+
+<Screenshot
+  dark={indexLockBannerDark}
+  light={indexLockBannerLight}
+  alt="Bandeau d’alerte au-dessus du graphe : Un processus Git a probablement planté et laissé index.lock, verrou créé il y a 42 s, avec un bouton Supprimer le verrou…"
+/>
+
+- **« Un autre processus Git utilise ce dépôt »** : le verrou est récent. Un autre programme (un terminal, votre éditeur, un autre client Git) exécute probablement une commande Git. Patientez : le bandeau disparaît avec le verrou.
+- **« Un processus Git a probablement planté et laissé index.lock »** : le verrou date de plus de 10 secondes. Si aucun programme Git ne tourne, supprimez-le :
+  1. Fermez ou terminez ce qui pourrait utiliser Git dans ce dépôt.
+  2. Cliquez sur **Supprimer le verrou…**.
+  3. Vérifiez la boîte de dialogue **Supprimer le verrou de l'index ?**, puis cliquez sur **Supprimer le verrou**.
+
+Une commande qui échoue à cause du verrou affiche le même message, « Un autre processus Git utilise ce dépôt (index.lock)… », avec le même bouton **Supprimer le verrou…**.
+
+yaggui ne juge que d’après l’âge du fichier : il ne peut pas savoir si une commande Git lente tourne encore. Si une commande longue (un gros `git gc`, un rebase dans un terminal) est toujours en cours, ne supprimez pas le verrou. Vous pouvez aussi supprimer `.git/index.lock` à la main, une fois certain qu’aucun processus Git ne tourne.
+
+Quand vous annulez une opération dans yaggui, il supprime lui-même le verrou laissé par la commande annulée.
+
+## Les changements faits hors de yaggui n’apparaissent pas
+
+yaggui surveille le dossier du dépôt et se rafraîchit en moins d’une seconde quand des fichiers, des branches ou l’index changent, que ce soit depuis votre éditeur ou un terminal.
+
+S’il n’a pas pu surveiller le dépôt, un bandeau affiche **Rafraîchissement automatique indisponible**. Le dépôt reste utilisable, mais les changements faits hors de yaggui n’apparaissent que lorsque vous cliquez sur **Actualiser** dans le bandeau.
+
+Sous Linux, la cause habituelle est la limite du système sur les dossiers surveillés (inotify), atteinte quand d’autres programmes (éditeurs, synchronisation de fichiers, autres clients Git) en surveillent déjà beaucoup. yaggui surveille séparément chaque dossier de l’arbre de travail et ignore les dossiers ignorés par Git, comme `node_modules`. Relevez les limites :
+
+```bash
+# Vérifier les valeurs actuelles
+sysctl fs.inotify.max_user_watches fs.inotify.max_user_instances
+
+# Les relever jusqu'au prochain redémarrage
+sudo sysctl fs.inotify.max_user_watches=524288 fs.inotify.max_user_instances=512
+
+# Les conserver après un redémarrage
+printf 'fs.inotify.max_user_watches=524288\nfs.inotify.max_user_instances=512\n' \
+  | sudo tee /etc/sysctl.d/90-inotify.conf
+sudo sysctl --system
+```
+
+Fermez ensuite l’onglet du dépôt et rouvrez-le.
+
+:::note
+Si la limite est atteinte au milieu d’un grand arbre de travail, yaggui s’ouvre quand même sans afficher le bandeau, mais les changements dans les dossiers qu’il n’a pas pu surveiller ne se rafraîchissent pas automatiquement. Relever la limite règle aussi ce cas.
+:::
+
+## Un push, un pull ou un fetch échoue avec une erreur d’authentification
+
+yaggui n’affiche jamais d’invite de mot de passe ni de phrase secrète. Git s’exécute sans terminal, si bien qu’une commande qui demanderait des identifiants échoue aussitôt avec l’un de ces messages :
+
+- **« Authentification refusée. yaggui ne demande jamais de mot de passe : configure un credential helper Git (git config credential.helper) et connecte-toi une fois depuis un terminal. »** (HTTPS)
+- **« Authentification SSH refusée. Charge ta clé dans ssh-agent (ssh-add) et vérifie que le remote la connaît. »** (SSH)
+
+Configurez un credential helper ou chargez votre clé SSH dans l’agent, puis réessayez. Un hôte SSH inconnu produit aussi le message SSH : exécutez une fois `ssh -T git@<hôte>` dans un terminal pour accepter sa clé. Voir [Authentification](../../remotes/authentication/) pour chaque plateforme.
+
+## Un hook refuse le commit
+
+Quand un hook `pre-commit`, `prepare-commit-msg` ou `commit-msg` échoue, la zone de commit affiche « Le hook \{hook\} a refusé le commit » (ou « Un hook Git a refusé le commit ») avec la sortie du hook. Rien n’a été commité et votre message est conservé. Corrigez ce que la sortie signale, puis commitez de nouveau. **Copier la sortie** copie la sortie ; lorsqu’elle est très longue, seuls son début et sa fin sont conservés.
+
+Si le hook fonctionne dans un terminal mais échoue dans yaggui :
+
+- **Une commande est introuvable** (`node`, `npx`, `python`…) : sous macOS, les applications lancées depuis le Dock ou le Finder ne reçoivent pas le `PATH` de votre shell. Faites utiliser des chemins complets au hook, ou lancez yaggui depuis un terminal avec `/Applications/yaggui.app/Contents/MacOS/yaggui` pour qu’il hérite du `PATH` de votre shell.
+- **Le hook attend une saisie** : les hooks s’exécutent sans terminal et sans entrée, donc les invites interactives échouent. Rendez le hook non interactif.
+- **Le hook reste bloqué** : annulez le commit avec **Annuler** dans la barre d’état. yaggui arrête aussi le hook.
+
+yaggui n’a pas d’option pour ignorer les hooks. Pour commiter une fois sans eux, exécutez `git commit --no-verify` dans un terminal.
+
+## Windows : chemins longs, fins de ligne et modes de fichier
+
+- **« Un chemin est trop long pour Windows… »** : Git pour Windows a atteint la limite de 260 caractères par chemin. Exécutez `git config --global core.longpaths true`, puis recommencez.
+- **Fins de ligne** : yaggui suit votre réglage `core.autocrlf`, comme `git diff` et `git add`. Un diff où seules les fins de ligne ont changé affiche « Seules les fins de ligne ont changé » ou un avis « Fins de ligne modifiées » ; activez l’option « Ignorer les espaces » pour masquer ces lignes. Définissez `core.autocrlf` dans l’éditeur de [configuration Git](../../customize/git-configuration/) (`true` : CRLF dans l’arbre de travail, LF dans les commits ; `input` : LF uniquement).
+- **Fichiers impossibles à modifier dans le diff** : l’éditeur intégré au diff refuse les fichiers qui mélangent les fins de ligne LF et CRLF. Ouvrez-les dans votre éditeur.
+- **Changements de mode sur tous les fichiers** : si tous les fichiers apparaissent modifiés sans changement de contenu, le dépôt enregistre des bits d’exécution que votre système de fichiers ne conserve pas. Exécutez `git config core.fileMode false` dans le dépôt.
+- **Le rebase interactif échoue** : il a besoin du shell `sh` inclus dans Git pour Windows. MinGit ne l’inclut pas : installez Git pour Windows complet.
+
+## macOS : « yaggui est endommagé » ou « ne peut pas être ouvert »
+
+yaggui n’est pas encore notarisé par Apple, donc Gatekeeper le bloque au premier lancement, avec un message tel que « yaggui est endommagé et ne peut pas être ouvert » ou « Apple n’a pas pu vérifier que “yaggui” ne contient pas de logiciel malveillant ». L’application n’est pas endommagée. Deux possibilités :
+
+- retirer une fois l’indicateur de quarantaine dans un terminal :
+
+  ```bash
+  xattr -dr com.apple.quarantine /Applications/yaggui.app
+  ```
+
+- ou ouvrir **Réglages Système → Confidentialité et sécurité**, descendre jusqu’au message concernant yaggui et cliquer sur **Ouvrir quand même**.
+
+Voir [Installer yaggui](../../start-here/install/).
+
+## Windows : SmartScreen bloque l’installeur
+
+Les installeurs Windows ne sont pas encore signés. SmartScreen affiche « Windows a protégé votre ordinateur » : cliquez sur **Informations complémentaires**, puis sur **Exécuter quand même**.
+
+## Linux : fenêtre vide ou plantage sous Wayland
+
+Avec certains compositeurs Wayland et certains pilotes graphiques, la vue web du système plante avec « Error 71 (Protocol error) dispatching to Wayland display ». yaggui l’évite en définissant `WEBKIT_DISABLE_DMABUF_RENDERER=1` quand il détecte Wayland, sauf si vous définissez vous-même cette variable.
+
+Si la fenêtre reste vide ou plante malgré tout, essayez de le lancer via XWayland avec `GDK_BACKEND=x11 yaggui`, et [signalez le problème](#signaler-un-bug) avec la sortie de `echo $XDG_SESSION_TYPE $WAYLAND_DISPLAY`, votre compositeur et votre pilote graphique.
+
+## La fenêtre affiche « yaggui a rencontré un problème »
+
+Cet écran apparaît quand l’interface elle-même a rencontré un bug : « La fenêtre n'a pas pu s'afficher. Tes dépôts ne sont pas touchés. Recharge pour repartir. »
+
+1. Cliquez sur **Recharger**. yaggui recharge sa fenêtre et rouvre vos onglets.
+2. Si cela se reproduit, développez **Détails**, copiez le texte et [signalez-le](#signaler-un-bug) en précisant ce que vous faisiez.
+
+## Préférences, récents ou onglets disparus
+
+yaggui conserve tout dans `yaggui.db`, dans son [dossier de configuration](../../reference/data-and-privacy/#où-yaggui-stocke-ses-données). S’il ne peut pas ouvrir ce fichier (pas d’autorisation d’écriture, disque plein, fichier endommagé), il démarre quand même, avec une base de données vide gardée en mémoire : vos préférences, vos récents et vos onglets sont absents, et rien de ce que vous modifiez n’est enregistré.
+
+1. Quittez yaggui.
+2. Vérifiez que le dossier de configuration existe et que votre compte peut y écrire.
+3. Si les autorisations sont correctes, le fichier est peut-être endommagé : renommez `yaggui.db` pour en garder une copie, puis démarrez yaggui pour en créer un nouveau.
+
+Si `YAGGUI_CONFIG_DIR` est défini dans votre environnement, yaggui utilise ce dossier à la place.
+
+Pour les raccourcis, un `keybindings.json` défectueux affiche « keybindings.json pose problème : … » dans **Préférences → Raccourcis**. yaggui laisse le fichier tel quel jusqu’à ce que vous y enregistriez une modification ; corrigez-le à la main ou utilisez **Tout remettre par défaut**.
+
+## La première ouverture d’un gros dépôt est lente
+
+yaggui affiche aussitôt les premiers commits, puis lit le reste de l’historique en arrière-plan : entre-temps, le graphe affiche « Lecture de l'historique… \{rows\} commits ».
+
+Sur un grand dépôt sans fichier commit-graph à jour, yaggui en écrit ensuite un en arrière-plan avec `git commit-graph write --reachable --changed-paths --no-progress`. Il n’y a pas d’indicateur de progression, mais la commande apparaît dans le [journal des commandes](../../reference/command-log/). Les ouvertures suivantes sont beaucoup plus rapides. Toute opération que vous lancez annule cette écriture en arrière-plan ; yaggui réessaie plus tard dans la session.
+
+Vous pouvez aussi l’écrire vous-même dans un terminal : `git commit-graph write --reachable --changed-paths`.
+
+## Signaler un bug
+
+Ouvrez un ticket sur [GitHub](https://github.com/SimonVanMello/yaggui/issues) en précisant :
+
+1. **Les versions** : la version de yaggui et celle de Git, toutes deux affichées à droite de la barre d’état, ainsi que votre OS.
+2. **Ce que vous avez fait**, ce que vous attendiez et ce qui s’est passé. Une capture d’écran aide.
+3. **Pour une erreur** : le message, le contenu de **Détails**, et l’entrée correspondante du journal des commandes (<kbd>⌘J</kbd>, développez l’entrée, **Copier la commande** et **Copier la sortie**).
+4. **Pour un plantage ou un problème au démarrage** : la sortie de yaggui lancé depuis un terminal avec des journaux détaillés :
+
+   ```bash
+   # macOS
+   RUST_LOG=debug /Applications/yaggui.app/Contents/MacOS/yaggui
+   # Linux
+   RUST_LOG=debug yaggui
+   ```
+
+5. **Pour un problème de dépôt** : la sortie de `git status` et de `git log --oneline --graph --all -10` dans ce dépôt.
+
+Retirez tout ce qui est privé (chemins, URL contenant des jetons, messages de commit) avant de publier.

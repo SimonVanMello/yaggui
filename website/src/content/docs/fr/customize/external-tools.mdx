@@ -1,0 +1,145 @@
+---
+title: Outils externes
+description: Définissez l’éditeur, le terminal, l’outil de diff et l’outil de merge externes que yaggui lance, et voyez comment chacun est démarré et que faire en cas d’échec.
+sidebar:
+  order: 3
+sources:
+  - src/features/preferences/ToolsTab.tsx
+  - src/features/terminal/TerminalDialog.tsx
+  - src/features/terminal/openInEditor.ts
+  - src/features/diff/ExternalDiffButtons.tsx
+  - src/features/toolbar/openRepoFolder.ts
+  - src-tauri/src/system/editor.rs
+  - src-tauri/src/system/terminal.rs
+  - src-tauri/src/repo/config.rs
+  - src-tauri/src/repo/graph_tools.rs
+  - src-tauri/src/repo/history.rs
+  - src-tauri/src/commands/settings.rs
+requirements: [F-323, F-266, F-267, F-087, F-164]
+---
+
+import Screenshot from '~/components/Screenshot.astro';
+import prefsToolsDark from '../../../../assets/screens/prefs-tools-dark.png';
+import prefsToolsLight from '../../../../assets/screens/prefs-tools-light.png';
+
+yaggui peut confier un dépôt ou un fichier à d’autres programmes : votre éditeur, un terminal, un outil de diff, un outil de merge et le gestionnaire de fichiers du système. Vous les choisissez dans **Préférences › Outils**. Chaque ligne a un bouton **Tester** qui essaie l’outil avant que vous comptiez dessus.
+
+<Screenshot
+  dark={prefsToolsDark}
+  light={prefsToolsLight}
+  alt="L’onglet Outils des préférences, avec les lignes Éditeur, Terminal, Terminal externe, Outil de diff et Outil de merge et leurs boutons Tester"
+/>
+
+yaggui ne passe jamais par un shell pour démarrer ces programmes : le programme et le fichier ou le dossier sont transmis comme arguments séparés.
+
+## Tester un outil
+
+Cliquez sur **Tester** à côté d’une ligne. Le test utilise la valeur que vous êtes en train de saisir, même avant son enregistrement (un champ vide teste la valeur enregistrée). Le résultat s’affiche sous la ligne :
+
+| Outil                    | Réussite                                                                                                                      | Échecs possibles                                                                                                                                                                                                                                         |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Éditeur                  | « Lancé : _éditeur_ ». L’éditeur ouvre réellement un fichier temporaire, `yaggui-editor-test.txt`, dans le dossier temporaire | L’éditeur n’a pas pu être démarré (voir [ci-dessous](#éditeur))                                                                                                                                                                                          |
+| Terminal                 | « Lancé : _terminal_ ». Un terminal s’ouvre réellement dans le dossier temporaire                                             | Le terminal n’a pas pu être démarré (voir [ci-dessous](#terminal-externe))                                                                                                                                                                               |
+| Outil de diff / de merge | « _outil_ est disponible »                                                                                                    | « Aucun outil indiqué et diff.tool n'est pas défini. » (ou `merge.tool`) ; « Git connaît « _outil_ » mais il n'est pas installé. » ; « Git ne connaît pas « _outil_ » : choisis un outil de la liste ou définis sa commande dans ta configuration Git. » |
+
+## Éditeur
+
+**Éditeur** désigne le programme qui ouvre un dépôt ou un fichier. Saisissez un nom et appuyez sur <kbd>Entrée</kbd> ou quittez le champ pour l’enregistrer. Laissez-le vide pour utiliser l’application par défaut du système.
+
+| OS      | Avec une valeur                                                                                                 | Vide                   |
+| ------- | --------------------------------------------------------------------------------------------------------------- | ---------------------- |
+| macOS   | `open -a <application> <cible>` : la valeur est un nom d’application, par exemple `Visual Studio Code` ou `Zed` | `open <cible>`         |
+| Windows | `<programme> <cible>` : un programme présent dans le `PATH` ou un chemin complet, par exemple `code`            | `explorer.exe <cible>` |
+| Linux   | `<programme> <cible>`, par exemple `code` ou `subl`                                                             | `xdg-open <cible>`     |
+
+L’éditeur est utilisé par :
+
+- **Ouvrir dans l'éditeur** dans la palette de commandes : ouvre le dossier du dépôt.
+- **Ouvrir hors de yaggui › Ouvrir dans l'éditeur** dans la [vue diff](../../everyday/diff/) : ouvre le fichier de l’arbre de travail, même si vous consultez un commit plus ancien. L’entrée est désactivée pour un fichier supprimé.
+
+Quand l’éditeur ne peut pas démarrer, un toast « Impossible d'ouvrir l'éditeur » affiche l’un de ces messages (il n’y a pas de bouton : corrigez le réglage, puis réessayez) :
+
+- « L'éditeur « _nom_ » n'a pas pu être lancé. Vérifie son nom dans les préférences. » Vérifiez l’orthographe, ou donnez le chemin complet du programme.
+- « Aucune application n'a pu ouvrir le fichier. Choisis un éditeur dans les préférences. » Aucun éditeur n’est défini et le système n’a pas d’application par défaut pour ce fichier.
+
+Une valeur qui commence par `-`, contient des caractères de contrôle ou dépasse 512 caractères est refusée avec « L'éditeur doit être un nom de programme ou d'application, ou un chemin. »
+
+## Terminal
+
+La ligne **Terminal** choisit ce que fait le bouton **Terminal** de la barre d’outils du dépôt :
+
+- **Intégré** (par défaut) : il affiche ou masque un panneau de terminal en bas du dépôt, qui exécute votre shell. Voir [Terminal](../../repository/terminal/).
+- **Externe** : il ouvre, dans le dossier du dépôt, le terminal externe défini à la ligne suivante.
+
+L’entrée de palette **Ouvrir le terminal externe dans le dépôt** ouvre toujours le terminal externe, quel que soit le mode.
+
+### Terminal externe
+
+La ligne **Terminal externe** affiche le choix actuel (« Actuel : _nom_ » ou « Terminal par défaut du système »). Cliquez sur **Configurer…** pour le changer, dans la boîte de dialogue **Terminal**. Vous pouvez aussi ouvrir cette boîte de dialogue depuis la palette avec **Réglage du terminal…** ou, sous macOS, depuis **yaggui › Réglage du terminal…**. Saisissez le terminal et cliquez sur **Enregistrer** (« Réglage du terminal enregistré »). Laissez le champ vide pour utiliser le terminal par défaut du système.
+
+| OS      | Avec une valeur                                                                                                                       | Vide (terminal par défaut du système)                                                                                                                                |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| macOS   | `open -a <application> <dépôt>`, par exemple `iTerm` ou `Warp`                                                                        | L’application Terminal                                                                                                                                               |
+| Windows | Windows Terminal (`wt` ou `wt.exe`) reçoit `-d <dépôt>` ; tout autre programme est lancé seul, avec le dépôt comme dossier de travail | `wt.exe -d <dépôt>`, sinon `cmd.exe`                                                                                                                                 |
+| Linux   | Le programme, lancé seul avec le dépôt comme dossier de travail                                                                       | Le premier trouvé parmi `$TERMINAL`, `x-terminal-emulator`, GNOME Terminal, Konsole, Xfce Terminal, Console (`kgx`), Tilix, Alacritty, kitty, WezTerm, foot et xterm |
+
+Sous Windows et Linux, un terminal que vous nommez est utilisé seul, sans solution de repli : une faute de frappe se traduit donc par une erreur au lieu d’ouvrir silencieusement un autre terminal.
+
+Quand aucun terminal ne peut démarrer, un toast « Impossible d'ouvrir un terminal » affiche l’un de ces messages, avec un bouton **Choisir un terminal…** qui ouvre la boîte de dialogue Terminal :
+
+- « Le terminal « _nom_ » n'a pas pu être lancé. Vérifie son nom dans le réglage du terminal. »
+- « Aucun terminal n'a été trouvé sur ce système. Choisis celui à utiliser dans le réglage du terminal. »
+
+## Outil de diff
+
+L’**Outil de diff** ouvre les modifications d’un fichier dans un programme externe, par l’intermédiaire de [`git difftool`](https://git-scm.com/docs/git-difftool). Saisissez le nom d’un outil que Git connaît (le champ propose `meld`, `kdiff3`, `vimdiff`, `bc`, `opendiff`, `p4merge`, `smerge`, `araxis`, `winmerge`, `tortoisemerge`, `xxdiff`), ou d’un outil personnalisé que vous avez défini avec `difftool.<nom>.cmd` dans votre configuration Git. Exécutez `git difftool --tool-help` dans un terminal pour voir ce que votre Git prend en charge.
+
+yaggui choisit l’outil dans cet ordre :
+
+1. La préférence **Outil de diff**.
+2. `diff.tool` de votre configuration Git.
+3. `diff.guitool`, lancé avec `--gui`.
+
+Pour l’utiliser, ouvrez un diff et choisissez **Ouvrir hors de yaggui › Ouvrir dans l'outil de diff externe**, ou lancez **Ouvrir le fichier courant dans l'outil de diff externe** depuis la palette. yaggui exécute, par exemple :
+
+```bash
+git difftool --no-prompt --tool=meld --cached -- src/main.rs
+```
+
+`--cached` est utilisé pour un diff de changements indexés ; un diff de commit transmet les deux SHA de commit ; un diff de changements non indexés ne transmet ni l’un ni l’autre. yaggui attend la fermeture de l’outil (« L'outil de diff est ouvert : ferme-le pour le relancer »), mais le dépôt reste utilisable entre-temps. La commande apparaît dans le [journal des commandes](../../reference/command-log/).
+
+Erreurs :
+
+- « Aucun outil de diff externe n'est configuré : choisis-en un dans les préférences (Outils) ou renseigne diff.tool dans ta configuration Git. » yaggui ne se rabat jamais sur un outil en mode terminal.
+- « L'outil de diff « _outil_ » n'a pas pu être lancé. Vérifie qu'il est installé et configuré (difftool._outil_.cmd). » Affichée sous « L'outil de diff n'a pas pu être ouvert », avec un bouton **Ouvrir le journal** qui montre la sortie de Git.
+
+## Outil de merge
+
+L’**Outil de merge** résout un fichier en conflit dans un programme externe, par l’intermédiaire de [`git mergetool`](https://git-scm.com/docs/git-mergetool). Il fonctionne comme l’outil de diff : la préférence **Outil de merge** l’emporte, sinon `merge.tool` de votre configuration Git est utilisé.
+
+Dans la [vue des conflits](../../history/conflicts/), le bouton **Ouvrir dans _outil_** exécute :
+
+```bash
+git mergetool --no-prompt --tool=<outil> -- <chemin>
+```
+
+yaggui attend la fermeture de l’outil et vérifie si le fichier est résolu. Sans outil configuré, le bouton affiche **Outil externe** et est désactivé.
+
+Erreurs :
+
+- « Aucun outil de merge externe n'est configuré : renseigne merge.tool dans ta configuration Git. »
+- « L'outil de merge « _outil_ » n'a pas pu être lancé. Vérifie qu'il est installé et configuré (mergetool._outil_.cmd). »
+
+Un nom d’outil ne peut contenir que des lettres, des chiffres et `- _ . +`, ne doit pas commencer par `-` ou `.`, et compte au plus 100 caractères. Sinon la préférence est refusée avec « « _valeur_ » n'est pas un nom d'outil valide (lettres, chiffres, - \_ . + seulement). »
+
+## Gestionnaire de fichiers
+
+Le gestionnaire de fichiers est toujours celui du système ; il n’a pas de préférence.
+
+- Le bouton **Fichiers** de la barre d’outils du dépôt (ou **Ouvrir le dépôt dans le gestionnaire de fichiers** dans la palette) ouvre le dossier du dépôt : `open` sous macOS, `explorer.exe` sous Windows, `xdg-open` sous Linux. En cas d’échec : « Impossible d'ouvrir le gestionnaire de fichiers » avec « Le gestionnaire de fichiers n'a pas pu ouvrir le dossier du dépôt. »
+- **Ouvrir hors de yaggui › Afficher dans le gestionnaire de fichiers**, dans la vue diff, montre le fichier : sélectionné dans le Finder (`open -R`) ou dans l’Explorateur (`explorer.exe /select,`), et son dossier ouvert sous Linux (`xdg-open`, sans sélection). L’entrée est désactivée pour un fichier supprimé. En cas d’échec : « Le fichier n'a pas pu être affiché ».
+
+## Voir aussi
+
+- Tous les réglages d’Outils avec leur valeur par défaut : [Référence des préférences](../../reference/preferences/#outils).
+- Le terminal intégré : [Terminal](../../repository/terminal/).

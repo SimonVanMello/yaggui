@@ -1,0 +1,130 @@
+---
+title: Historique d’un fichier et blame
+description: Consultez tous les commits qui ont modifié un fichier, y compris à travers les renommages, et le commit qui a modifié chaque ligne en dernier, dans yaggui.
+sidebar:
+  order: 2
+sources:
+  - src/features/inspect/**
+  - src-tauri/src/repo/inspect.rs
+  - src-tauri/src/git/read/file_history.rs
+  - src-tauri/src/git/read/blame.rs
+  - src-tauri/src/commands/inspect.rs
+requirements: [F-220, F-221]
+---
+
+import Screenshot from '~/components/Screenshot.astro';
+import fileHistoryDark from '../../../../assets/screens/file-history-dark.png';
+import fileHistoryLight from '../../../../assets/screens/file-history-light.png';
+import blameDark from '../../../../assets/screens/blame-dark.png';
+import blameLight from '../../../../assets/screens/blame-light.png';
+
+L’historique d’un fichier liste les commits qui l’ont modifié, avec le diff de chacun. Le blame montre, pour chaque ligne d’un fichier, le commit qui l’a modifiée en dernier. Les deux remplacent le graphe dans la vue du dépôt ; appuyez sur <kbd>Esc</kbd> ou cliquez sur **Graphe** pour y revenir.
+
+## Ouvrir l’historique d’un fichier
+
+| Point d’entrée                                                                                                          | Point de départ                                                                          |
+| ----------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Barre d’outils du diff, icône **Historique du fichier** (diffs dans la vue du dépôt)                                    | HEAD                                                                                     |
+| Clic droit sur un fichier dans le panneau de détail du commit ou dans le panneau des changements → **Historique du fichier** | HEAD                                                                                |
+| Vue blame, bouton **Historique du fichier**                                                                             | Le commit qui fait l’objet du blame                                                      |
+| Vue blame, clic droit sur une ligne → **Historique du fichier**                                                         | HEAD                                                                                     |
+| Palette (<kbd>⌘K</kbd>, <kbd>Ctrl+K</kbd> sous Windows et Linux) → **Historique du fichier courant**                    | HEAD. Disponible quand un diff, un blame ou un historique de fichier est ouvert dans l’onglet actif |
+
+Quand l’historique part d’un autre commit que HEAD, son SHA court s’affiche dans l’en-tête sous forme de pastille. Sur une branche qui n’a encore aucun commit, la liste est vide.
+
+## Lire l’historique d’un fichier
+
+<Screenshot
+  dark={fileHistoryDark}
+  light={fileHistoryLight}
+  alt="Historique de GraphCanvas.tsx : à gauche la liste des commits qui ont modifié le fichier, à droite le diff du commit sélectionné"
+/>
+
+La partie gauche liste les **Commits qui ont modifié le fichier**, du plus récent au plus ancien, avec leur nombre. Chaque ligne affiche :
+
+- la lettre du changement pour ce fichier (ajouté, modifié, supprimé), ou une icône de merge pour un commit de merge,
+- le résumé du commit et son SHA court,
+- l’auteur et la date relative,
+- **depuis** _ancien chemin_ sur le commit qui a renommé le fichier.
+
+La partie droite montre la modification que le commit sélectionné apporte à ce fichier, par rapport à son premier parent, dans le [visualiseur de diff](../../everyday/diff/) complet (disposition, options, garde-fou des gros diffs). Sa barre d’outils comporte un bouton **Blame à ce commit** ; pour un commit qui a supprimé le fichier, il fait le blame de la version juste avant.
+
+Le commit le plus récent est sélectionné à l’ouverture de la vue. Pour vous déplacer :
+
+| Touche                                                                                                                     | Action                                       |
+| -------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| <kbd>↑</kbd> / <kbd>↓</kbd>, <kbd>Home</kbd> / <kbd>End</kbd>                                                              | Se déplacer dans la liste (quand elle a le focus) |
+| <kbd>j</kbd> / <kbd>k</kbd>, ou les flèches **Commit plus ancien** / **Commit plus récent** de la barre d’outils du diff   | Commit plus ancien / plus récent             |
+| <kbd>Esc</kbd>                                                                                                             | Fermer l’historique, retour au graphe        |
+
+La liste se charge par pages de 500 au fil du défilement (le compteur affiche `500+` tant qu’il en reste), si bien que les longs historiques s’ouvrent vite. Elle se met à jour quand des branches bougent.
+
+### Renommages
+
+yaggui suit un fichier à travers les renommages. Il lit l’historique du nom actuel et, en arrivant au commit qui a ajouté ce nom, y cherche un renommage (par similarité de contenu, sur le premier parent) et poursuit avec l’ancien nom. Le commit du renommage affiche **depuis** _ancien chemin_.
+
+```bash
+git log --name-status --no-renames <rev> -- <path>
+git diff-tree -r --find-renames --name-status <parent> <commit>   # au commit qui a ajouté le nom
+```
+
+Cela diffère de `git log --follow` : c’est plus rapide sur les gros dépôts, cela suit les renommages mais pas les copies, et seulement le long des premiers parents. Quand aucun commit n’a modifié le chemin, la vue indique « Aucun commit n'a modifié src/app.ts. »
+
+## Faire le blame d’un fichier
+
+| Point d’entrée                                                                        | Version examinée                                    |
+| ------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| Barre d’outils du diff, icône **Blame** (diff de la copie de travail)                 | Le fichier sur le disque, modifications non commitées comprises |
+| Barre d’outils du diff, icône **Blame à ce commit** (diff d’un commit, historique du fichier) | Le fichier à ce commit                         |
+| Clic droit sur un fichier dans le panneau des changements → **Blame**                 | Le fichier sur le disque                            |
+| Clic droit sur un fichier dans le panneau de détail du commit → **Blame à ce commit** | Le fichier à ce commit                              |
+| Palette → **Blame du fichier courant**                                                | La version du diff ouvert                           |
+
+<Screenshot
+  dark={blameDark}
+  light={blameLight}
+  alt="Blame de layout.ts : barres d’âge à gauche, résumé du commit, auteur et date au début de chaque bloc, numéros de ligne et code, et la barre Commit sélectionné en bas"
+/>
+
+L’en-tête affiche le chemin et une pastille indiquant la version examinée (un SHA court, ou **Copie de travail**). Chaque ligne de la grille comporte :
+
+- une **barre d’âge** : huit nuances, du plus ancien au plus récent commit de ce fichier. Les nuances suivent le rang des dates d’auteur, pas leur écart dans le temps : un fichier écrit en deux semaines utilise donc la même plage qu’un fichier écrit sur dix ans. Les lignes non commitées prennent la nuance la plus récente.
+- sur la première ligne de chaque bloc issu du même commit : le résumé, l’auteur et la date relative, ou **Pas encore commité** pour les modifications locales,
+- le numéro de ligne et le code.
+
+yaggui exécute `git blame --incremental <commit> -- <path>`. Pour la copie de travail, il envoie le fichier présent sur le disque à `git blame --incremental --contents - -- <path>`. La vue indique « Attribution de chaque ligne… » pendant le traitement.
+
+### Sélectionner le commit d’une ligne
+
+Cliquez sur une ligne : toutes les lignes du même commit sont mises en évidence, et le commit est sélectionné dans le graphe, de sorte que le [panneau de détail du commit](../../history/commit-graph/) suit. Le blame reste ouvert. La barre **Commit sélectionné** en bas affiche son SHA court, son résumé, son auteur et sa date, avec deux boutons :
+
+- **Blame du parent** : fait le blame du fichier tel qu’il était juste avant ce commit, et défile jusqu’à l’endroit où se trouvaient ces lignes. Il suit les renommages. Il est désactivé, avec « Ces lignes ont été ajoutées avec le fichier », quand il n’existe pas de version antérieure.
+- **Voir dans le graphe** : ferme le blame et affiche le commit dans le graphe.
+
+Chaque **Blame du parent** ajoute une étape à un fil : le bouton **Revenir à** _version_ dans l’en-tête ramène à la version précédente. Fermer le blame, ou ouvrir un autre blame, un historique de fichier ou le reflog, efface ce fil.
+
+### Naviguer et copier
+
+| Action                                                          | Comment                                   |
+| --------------------------------------------------------------- | ----------------------------------------- |
+| Bloc suivant / précédent                                        | <kbd>↓</kbd> / <kbd>↑</kbd> dans la grille |
+| Blame du parent, Voir dans le graphe, Historique du fichier, Copier le SHA | Clic droit sur une ligne       |
+| Retour au graphe                                                | <kbd>Esc</kbd> ou **Graphe**              |
+
+**Voir dans le graphe** et **Copier le SHA** sont désactivés sur les lignes non commitées.
+
+Un blame de la copie de travail se met à jour quand le fichier ou les branches changent. Un blame à un commit ne change jamais : yaggui le conserve.
+
+## Fichiers volumineux et cas particuliers
+
+- Fichiers longs : seules les lignes visibles sont dessinées, si bien que des fichiers de plusieurs dizaines de milliers de lignes s’ouvrent et défilent normalement.
+- Fichiers binaires : « Fichier binaire (48,2 KB) : pas de lignes à attribuer. »
+- Fichier pas encore commité (nouveau ou non suivi), examiné depuis la copie de travail : « Ce fichier n'est pas encore commité : aucune ligne n'a d'historique. »
+- Fichier vide : « Ce fichier est vide. »
+- Fichier supprimé de la copie de travail : le blame affiche la version de HEAD.
+- Lien symbolique : le blame affiche le chemin cible du lien sous forme de texte.
+- Historique d’un gros fichier : le diff de chaque commit passe par le garde-fou de taille du visualiseur de diff (« Diff volumineux non affiché », avec **Afficher quand même**), voir [Diff](../../everyday/diff/).
+
+Si la lecture échoue, la vue affiche « Impossible de lire l'historique du fichier » ou « Impossible de faire le blame du fichier » avec **Réessayer** ; la commande figure dans le [journal des commandes](../../reference/command-log/).
+
+L’historique d’un fichier et le blame ne font que lire : il n’y a rien à annuler.
