@@ -1,3 +1,7 @@
 # Cloudflare Pages headers. Astro fingerprints everything under /_astro/: cache it for good.
 /_astro/*
   Cache-Control: public, max-age=31536000, immutable
+
+# The demo's assets (Vite fingerprints them).
+/demo/assets/*
+  Cache-Control: public, max-age=31536000, immutable

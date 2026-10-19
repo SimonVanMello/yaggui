@@ -72,7 +72,17 @@ Screenshots come from the mocked frontend through Playwright (extend `pnpm scree
 
 ## Live demo
 
-`/demo/` serves a production build of the app's frontend in mock mode (`VITE_MOCK=1`), built by the website workflow from the same commit. A thin banner says it is a demo on sample data, with a link back to the download. No backend, no network calls beyond the site itself. Heavy perf fixtures (100k-commit graphs, 10k refs) stay out of the demo bundle.
+`/demo/` serves a production build of the app's frontend in mock mode, built from the same commit as the site: `pnpm build:demo` (`vite build --mode demo --base /demo/`, flags in `.env.demo`) writes into `website/public/demo/` (git-ignored), and `website`'s `pnpm build` runs it first, so Astro copies it into `dist/`. The placeholder pages are gone; `/fr/demo/` redirects to `/demo/?lang=fr`, which sets the demo's language.
+
+Demo-only behavior lives under `src/demo/` behind `isDemo` (`VITE_DEMO=1`), a build-time constant, so the desktop app is unaffected:
+
+- A thin dismissible banner ("Demo on sample data — nothing leaves your browser", link to download).
+- The sample repository opens at startup instead of the welcome screen.
+- Network features are off (avatars, update checks): no request leaves the site.
+- Commands that need the OS (external editor and terminal, folder picker, clone, reveal, diff tool, updates) answer "Available in the desktop app".
+- No heavy perf fixtures: the 100k-commit `linux` repo shrinks to 2k commits, the `many-refs` and `huge-history` paths are inert (and tree-shaken).
+
+`pnpm test:demo` (Playwright, `e2e/demo.spec.ts`) checks the built site: banner, graph, no console error, no external request.
 
 ## Keeping the docs current
 

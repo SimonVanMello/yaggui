@@ -5,7 +5,8 @@
   "packageManager": "pnpm@10.28.0",
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build && node scripts/check-links.ts",
+    "build:demo": "pnpm --dir .. build:demo",
+    "build": "pnpm build:demo && astro build && node scripts/check-links.ts",
     "preview": "astro preview",
     "check": "astro check && prettier --check .",
     "format": "prettier --write ."

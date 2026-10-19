@@ -1,0 +1,28 @@
+.banner {
+  position: relative;
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  padding: var(--space-1) var(--space-8);
+  background: var(--accent-soft);
+  border-bottom: var(--border-width) solid var(--border-subtle);
+  color: var(--fg-primary);
+  font-size: var(--text-sm);
+}
+
+.link {
+  color: var(--accent);
+  font-weight: var(--weight-semibold);
+  text-decoration: none;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+.dismiss {
+  position: absolute;
+  right: var(--space-2);
+}

@@ -1978,5 +1978,9 @@
   "prefs.version": "Version",
   "prefs.version.hint": "yaggui {version}",
   "palette.action.app.changelog": "Nouveautés (journal des modifications)",
-  "menu.changelog": "Nouveautés de yaggui"
+  "menu.changelog": "Nouveautés de yaggui",
+  "demo.banner": "Démo sur des données d'exemple — rien ne quitte ton navigateur.",
+  "demo.download": "Télécharger yaggui",
+  "demo.dismiss": "Masquer le bandeau",
+  "demo.desktopOnly": "Disponible dans l'application de bureau"
 }

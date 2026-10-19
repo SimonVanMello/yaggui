@@ -25,8 +25,6 @@ const en = {
   'versions.label': 'Docs version',
   'versions.latest': '{version} (latest)',
   'versions.next': 'Next (unreleased)',
-  'demo.title': 'Live demo',
-  'demo.lead': 'The yaggui interface on sample data, right in your browser. Coming soon.',
 };
 
 type Strings = typeof en;
@@ -54,8 +52,6 @@ const fr: Strings = {
   'versions.label': 'Version de la documentation',
   'versions.latest': '{version} (dernière)',
   'versions.next': 'Prochaine (non publiée)',
-  'demo.title': 'Démo en ligne',
-  'demo.lead': 'L’interface de yaggui sur des données d’exemple, dans votre navigateur. Bientôt.',
 };
 
 const strings: Record<Locale, Strings> = { en, fr };
