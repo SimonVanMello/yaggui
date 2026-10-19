@@ -5,3 +5,4 @@ pub mod errors;
 pub mod log;
 pub mod ops;
 pub mod read;
+pub mod redact;

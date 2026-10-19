@@ -9,7 +9,7 @@ use gix::bstr::ByteSlice;
 use crate::git::errors::YagguiError;
 use crate::git::ops::remotes::{
     PushedRef, RemoteRemovalPreview, RemovedRemote, TagPushResult, check_remote_name,
-    check_remote_url, parse_porcelain, tag_of, tag_rejection,
+    check_remote_url, keep_stored_secret, parse_porcelain, tag_of, tag_rejection,
 };
 use crate::git::ops::types::{DeletedRef, FetchTarget, JournalOp, UndoBlock};
 use crate::git::read::state::gix;
@@ -127,6 +127,14 @@ impl RepoManager {
         self.journal_op(repo_id, OpKind::Remote, false, false, move |ctx| {
             let name = checked_remote(ctx, &name)?;
             let before = remote_urls(ctx, &name)?;
+            let stored = |key: &str| {
+                before
+                    .iter()
+                    .find(|(k, _)| k.eq_ignore_ascii_case(&format!("remote.{name}.{key}")))
+                    .map(|(_, v)| v.as_str())
+            };
+            let url = keep_stored_secret(url, stored("url"));
+            let push_url = push_url.map(|p| keep_stored_secret(p, stored("pushurl")));
             ctx.run(&ctx.command(["remote", "set-url", "--", &name, &url]))?;
             match push_url {
                 Some(push_url) => {
