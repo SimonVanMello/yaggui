@@ -1,0 +1,190 @@
+---
+title: Résoudre les conflits
+description: Suivez un merge, un rebase, un cherry-pick ou un revert en cours, résolvez les fichiers en conflit dans l’éditeur à trois voies ou dans un outil externe, puis continuez, passez ou annulez.
+sidebar:
+  order: 7
+sources:
+  - src/features/repo/RepoBanners.tsx
+  - src/features/history/ContinueDialog.tsx
+  - src/features/history/historyOps.ts
+  - src/features/conflicts/**
+  - src-tauri/src/repo/history.rs
+  - src-tauri/src/git/read/operation.rs
+  - src-tauri/src/git/read/state.rs
+  - src-tauri/src/commands/history.rs
+requirements: [F-146, F-160, F-161, F-162, F-163, F-164, F-165]
+---
+
+import Screenshot from '~/components/Screenshot.astro';
+import conflictsBannerDark from '../../../../assets/screens/conflicts-banner-dark.png';
+import conflictsBannerLight from '../../../../assets/screens/conflicts-banner-light.png';
+import conflictsPanelDark from '../../../../assets/screens/conflicts-panel-dark.png';
+import conflictsPanelLight from '../../../../assets/screens/conflicts-panel-light.png';
+import conflictsMergeEditorDark from '../../../../assets/screens/conflicts-merge-editor-dark.png';
+import conflictsMergeEditorLight from '../../../../assets/screens/conflicts-merge-editor-light.png';
+import conflictsChoiceBinaryDark from '../../../../assets/screens/conflicts-choice-binary-dark.png';
+import conflictsChoiceBinaryLight from '../../../../assets/screens/conflicts-choice-binary-light.png';
+
+Quand un merge, un rebase, un cherry-pick ou un revert s’arrête, yaggui affiche un bandeau au-dessus du graphe et liste les fichiers en conflit. Cette page présente le bandeau et ses boutons **Continuer**, **Passer** et d’annulation, le panneau des conflits, l’éditeur de merge à trois voies, la vue de choix pour les fichiers supprimés ou binaires, et les outils de merge externes. Pour comprendre ce qu’est un conflit, voir [Basic merge conflicts](https://git-scm.com/book/en/v2/Git-Branching-Basic-Branching-and-Merging#_basic_merge_conflicts).
+
+## Le bandeau d’opération en cours
+
+yaggui lit l’état de l’opération dans le dossier `.git` (`MERGE_HEAD`, `rebase-merge/`, `CHERRY_PICK_HEAD`, `REVERT_HEAD`, le sequencer, l’état de bisect et de `git am`). Le bandeau apparaît donc aussi pour une opération lancée depuis un terminal, et il est toujours là après un redémarrage de l’application.
+
+<Screenshot
+  dark={conflictsBannerDark}
+  light={conflictsBannerLight}
+  alt="Bandeau affichant Rebase 3/7 avec une barre de progression, le nombre de conflits et les boutons Voir les conflits, Continuer, Passer et Annuler le rebase"
+/>
+
+Le bandeau affiche :
+
+- **Un titre** : pour un rebase dont l’étape est connue, **Rebase \{step\}/\{total\}** (par exemple « Rebase 3/7 ») avec une barre de progression. Sinon **Merge en cours**, **Rebase en cours**, **Cherry-pick en cours**, **Revert en cours**, **Bisect en cours** ou **Application de patchs (git am)**.
+- **Un résumé** : **Rebase de \{branch\} sur \{onto\}**, **Merge de \{source\} dans \{target\}**, **Merge squash de \{source\} dans \{target\}**, **Cherry-pick de \{commit\} sur \{target\}** ou **Revert de \{commit\} sur \{target\}**.
+- **Le nombre de conflits** encore non résolus, et **Voir les conflits**, qui sélectionne le travail en cours pour afficher le panneau des conflits.
+- Les boutons **Continuer**, **Passer** et d’annulation décrits ci-dessous.
+
+Tant qu’une opération est en cours, les autres actions d’historique (merge, rebase, cherry-pick, revert, reset, rebase interactif) sont désactivées avec **Termine ou annule d’abord l’opération en cours**. La palette propose aussi **Continuer l’opération en cours**, **Passer le commit en cours de l’opération** et **Annuler l’opération en cours**.
+
+### Continuer
+
+**Continuer** est désactivé tant que tous les conflits ne sont pas résolus ; son info-bulle indique **Résous d’abord les \{count\} conflits restants**. Il est masqué pendant un bisect.
+
+Pour un merge, un cherry-pick ou un revert, une boîte de dialogue **Continuer** permet de modifier le message du commit sur le point d’être créé (« Modifie si besoin le message du commit qui va être créé. »), prérempli avec le message préparé par Git. Cliquez sur **Continuer** ou appuyez sur <kbd>⌘Enter</kbd> (<kbd>Ctrl+Enter</kbd> sous Windows et Linux). Si Git n’a préparé aucun message, yaggui continue sans afficher la boîte de dialogue. Un rebase continue directement.
+
+| Opération           | Ce que Continuer exécute                                                                                                    |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Merge               | `git commit -F -` avec le message                                                                                           |
+| Cherry-pick, revert | `git commit -F -` pour le commit arrêté, puis `git cherry-pick --continue` / `git revert --continue` s’il reste des commits |
+| Rebase              | `git rebase --continue`                                                                                                     |
+| `git am`            | `git am --continue`                                                                                                         |
+
+Notifications : **Merge terminé**, **Rebase terminé**, **Cherry-pick terminé**, **Revert terminé**, **Patch appliqué**. Si un rebase s’arrête de nouveau sur un commit marqué **Edit**, vous voyez **Rebase en pause à l'étape \{step\}/\{total\}** avec « Modifie le commit si besoin, puis continue. » S’il s’arrête sur de nouveaux conflits, la notification de conflits revient.
+
+Si le cherry-pick ou le revert arrêté n’apporte plus aucun changement, Continuer échoue avec « \{short\} n'apporte plus aucune modification (il est sans doute déjà appliqué) : passe-le. »
+
+### Passer
+
+**Passer** abandonne le commit en cours et poursuit avec le suivant : `git rebase --skip`, `git cherry-pick --skip`, `git revert --skip`, `git am --skip` ou `git bisect skip`. Il n’y a pas de confirmation. Ce bouton n’est pas proposé pour un merge, qui n’a pas de commit à passer. Notification : **\{operation\} : commit passé**.
+
+### Annuler
+
+Le bouton d’annulation porte le nom de l’opération : **Annuler le merge**, **Annuler le rebase**, **Annuler le cherry-pick**, **Annuler le revert**, **Arrêter le bisect** ou **Annuler**. Il demande une confirmation :
+
+| Opération   | Confirmation                                                                                                                             | Commande                                                          |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| Merge       | **Annuler le merge ?** La branche revient à son état d’avant le merge. Les résolutions de conflits déjà faites sont perdues.             | `git merge --abort` (`git reset -q --merge` pour un merge squash) |
+| Rebase      | **Annuler le rebase ?** La branche revient à son état d’avant le rebase. Les commits déjà rejoués sont écartés.                          | `git rebase --abort`                                              |
+| Cherry-pick | **Annuler le cherry-pick ?** La branche revient à son état d’avant le cherry-pick. Les résolutions de conflits déjà faites sont perdues. | `git cherry-pick --abort`                                         |
+| Revert      | **Annuler le revert ?** La branche revient à son état d’avant le revert. Les résolutions de conflits déjà faites sont perdues.           | `git revert --abort`                                              |
+| Bisect      | **Arrêter le bisect ?** HEAD revient où il était avant le début du bisect.                                                               | `git bisect reset`                                                |
+| `git am`    | **Annuler l’application des patchs ?** La branche revient à son état d’avant.                                                            | `git am --abort`                                                  |
+
+Notification : **\{operation\} : annulé, retour à l’état précédent**.
+
+## Le panneau des conflits
+
+Quand une opération est en cours et que le travail en cours est sélectionné, le panneau **Conflits** s’affiche au-dessus des modifications locales dans le panneau de droite. Son compteur indique **\{unresolved\} non résolus sur \{total\}**, puis **Les \{total\} sont résolus**.
+
+<Screenshot
+  dark={conflictsPanelDark}
+  light={conflictsPanelLight}
+  alt="Panneau des conflits listant quatre fichiers avec leur type de conflit et les boutons Résoudre, Prendre et Marquer résolu"
+/>
+
+Chaque ligne affiche le chemin, un badge **Binaire** le cas échéant, et ce qui s’est passé :
+
+| Texte                                                                                                 | Situation                                        |
+| ----------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| **Les deux côtés ont modifié le contenu**                                                             | Les deux ont modifié le même fichier             |
+| **Les deux côtés ont ajouté ce fichier**                                                              | Les deux ont ajouté un fichier au même chemin    |
+| **Supprimé sur \{ours\}, modifié sur \{theirs\}** / **Modifié sur \{ours\}, supprimé sur \{theirs\}** | Suppression/modification                         |
+| **Ajouté sur \{ours\} seulement** / **Ajouté sur \{theirs\} seulement**                               | Le fichier n’existe que d’un côté                |
+| **Supprimé des deux côtés**                                                                           | Les deux l’ont supprimé, ou renommé différemment |
+
+Les fichiers résolus pendant l’opération restent dans la liste, marqués **Résolu**.
+
+Boutons d’un fichier non résolu, tous sans confirmation :
+
+- **Résoudre…** ouvre le fichier dans l’[éditeur de merge](#léditeur-de-merge-à-trois-voies) ou dans la [vue de choix](#fichiers-supprimés-ajoutés-et-binaires).
+- **Prendre \{side\}** (deux boutons) conserve le fichier entier tel qu’il est de ce côté : `git checkout --ours|--theirs` puis `git add`, ou `git rm` quand ce côté a supprimé le fichier.
+- **Marquer résolu** indexe le fichier tel qu’il est sur le disque (`git add`, ou `git rm` s’il n’existe plus).
+
+:::caution
+**Marquer résolu** ne vérifie pas la présence de marqueurs de conflit restants (`<<<<<<<`). Assurez-vous que le fichier est propre avant de le marquer.
+:::
+
+### Quel côté est quel
+
+Plutôt que « ours » et « theirs », yaggui nomme chaque côté d’après sa branche (ou le SHA court du commit, ou **le mien** / **le leur** quand il n’y a rien de mieux) et indique son rôle :
+
+| Opération   | Côté gauche (« ours »)                                    | Côté droit (« theirs »)                                          |
+| ----------- | --------------------------------------------------------- | ---------------------------------------------------------------- |
+| Merge       | La branche courante (**branche courante**)                | La branche mergée (**branche fusionnée**)                        |
+| Rebase      | La branche sur laquelle vous rebasez (**base du rebase**) | Le commit de votre branche en cours de rejeu (**commit rejoué**) |
+| Cherry-pick | La branche courante                                       | Le commit cherry-pické (**commit cherry-pické**)                 |
+| Revert      | La branche courante                                       | Le commit annulé (**commit annulé (revert)**)                    |
+
+Pendant un rebase, Git rejoue vos commits par-dessus l’autre branche : « ours » est donc l’autre branche et « theirs » votre propre travail. C’est l’inverse d’un merge. yaggui affiche les noms des branches, si bien que **Prendre main** désigne toujours la version de `main`. Voir [git-rebase](https://git-scm.com/docs/git-rebase#Documentation/git-rebase.txt---ours).
+
+## L’éditeur de merge à trois voies
+
+**Résoudre…** sur un fichier texte modifié des deux côtés ouvre l’éditeur à la place du graphe. Il affiche les versions telles qu’elles sont à son ouverture ; les modifications faites entre-temps sur le disque ne sont pas rechargées.
+
+<Screenshot
+  dark={conflictsMergeEditorDark}
+  light={conflictsMergeEditorLight}
+  alt="Éditeur de merge avec les deux côtés en haut, des blocs de conflit avec cases à cocher, et le Résultat modifiable en dessous"
+/>
+
+- **En haut** : les deux côtés, en lecture seule, intitulés avec le nom du côté, son rôle et `sha · résumé`. Les changements qui ne sont pas en conflit sont déjà fusionnés.
+- **Chaque bloc de conflit** a un en-tête **Conflit \{n\} / \{total\}** dans les deux panneaux latéraux, avec une case à cocher (**Garder le conflit \{n\} de \{name\}**) :
+  - un côté coché : ses lignes vont dans le résultat ;
+  - les deux côtés cochés : les deux y vont, dans l’ordre où vous les avez cochés (un badge indique lequel vient en premier) ;
+  - aucun côté coché : le bloc reste non résolu et affiche « Conflit non résolu : coche un côté au-dessus, ou écris ici le résultat ».
+- **En bas** : le **Résultat**, modifiable. Saisir du texte dans un bloc le résout avec votre texte ; cocher ensuite une case remplace votre modification par ce côté. **Tout prendre de \{name\}** prend tous les blocs d’un seul côté.
+
+La barre d’outils affiche la position du fichier (**Fichier \{index\} / \{total\}**), un compteur (**\{count\} conflits restants**, puis **Tous les blocs sont résolus**) et des boutons de navigation.
+
+| Touche                                                  | Action                                                    |
+| ------------------------------------------------------- | --------------------------------------------------------- |
+| <kbd>⌥↓</kbd> (<kbd>Alt+↓</kbd> sous Windows et Linux)  | **Conflit suivant** (reprend au début après le dernier)   |
+| <kbd>⌥↑</kbd> (<kbd>Alt+↑</kbd> sous Windows et Linux)  | **Conflit précédent**                                     |
+| <kbd>⌘S</kbd> (<kbd>Ctrl+S</kbd> sous Windows et Linux) | **Enregistrer et marquer résolu**                         |
+| <kbd>Esc</kbd>                                          | Retour au graphe (pas pendant la saisie dans le Résultat) |
+
+**Enregistrer et marquer résolu** reste désactivé tant que tous les blocs ne sont pas résolus (**Résous d'abord les \{count\} conflits restants**). Il écrit le fichier en conservant ses fins de ligne, et l’indexe. yaggui ouvre ensuite le fichier non résolu suivant. Après le dernier : **Tous les conflits sont résolus**, « Continue l'opération en cours pour la terminer. », et le graphe revient.
+
+Quitter l’éditeur avec des choix non enregistrés (**Graphe**, <kbd>Esc</kbd>, ou **Résoudre…** sur un autre fichier) demande **Abandonner la résolution en cours ?** ; le fichier reste en conflit.
+
+## Outil de merge externe
+
+Dans l’éditeur de merge, **Ouvrir dans \{tool\}** exécute
+
+```bash
+git mergetool --no-prompt --tool=<tool> -- <path>
+```
+
+puis attend la fermeture de l’outil. L’outil est celui de la préférence **Outil de merge** si elle est renseignée (voir [Outils externes](../../customize/external-tools/)), sinon le réglage `merge.tool` de Git. Sans l’un ni l’autre, le bouton affiche **Outil externe** et est désactivé : « Aucun outil de merge configuré : renseigne merge.tool dans ta configuration Git (git config merge.tool \<outil\>). »
+
+- Si vous avez enregistré le résultat dans l’outil : **Fichier résolu avec \{tool\}**, et le fichier suivant s’ouvre.
+- Si vous l’avez fermé sans enregistrer : **\{tool\} fermé sans résoudre le fichier** ; le fichier reste en conflit.
+- « L'outil de merge « \{tool\} » n'a pas pu être lancé. Vérifie qu'il est installé et configuré (mergetool.\{tool\}.cmd). »
+
+L’outil externe n’est proposé que pour les conflits de texte, pas dans la vue de choix.
+
+## Fichiers supprimés, ajoutés et binaires
+
+Les fichiers qui ne peuvent pas être mergés ligne à ligne s’ouvrent dans une vue de choix : un côté a supprimé le fichier, un seul côté le possède, les deux l’ont supprimé, ou il est binaire. Une phrase explique la situation, par exemple « Fichier binaire modifié des deux côtés : il ne peut pas être fusionné ligne à ligne. Choisis la version à garder. »
+
+<Screenshot
+  dark={conflictsChoiceBinaryDark}
+  light={conflictsChoiceBinaryLight}
+  alt="Vue de choix pour une image binaire, avec les deux versions côte à côte et un bouton pour prendre chacune"
+/>
+
+Deux cartes présentent chaque côté : ce qu’il a fait (**A modifié le fichier**, **A ajouté le fichier**, **A supprimé le fichier**, **N'a pas ce fichier**), la taille, le nombre de lignes ou **Binaire**, et un aperçu (les images sont affichées ; pour un texte, les 40 premières lignes). Cliquez sur le bouton de la carte voulue : **Prendre la version de \{name\}**, **Garder la version modifiée**, **Garder le fichier**, **Accepter la suppression** ou **Retirer le fichier**. Il n’y a pas de confirmation ; accepter une suppression exécute `git rm`.
+
+## Annulation
+
+Rien sur cette page n’est enregistré dans l’historique d’annulation : **Continuer**, **Passer**, l’annulation de l’opération, les résolutions rapides, les enregistrements depuis l’éditeur de merge et l’outil externe. L’annulation de l’opération abandonne toute l’opération, y compris les résolutions déjà faites. Un merge, un cherry-pick ou un revert terminé avec **Continuer** ne peut pas être annulé avec <kbd>⌘Z</kbd>. Voir [Annuler et rétablir](../../history/undo-and-redo/).

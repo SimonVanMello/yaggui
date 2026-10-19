@@ -1,0 +1,131 @@
+---
+title: Gérer les remotes
+description: Ajoutez, renommez, modifiez les URL et supprimez les remotes d’un dépôt dans yaggui, et annulez ces changements.
+sidebar:
+  order: 2
+sources:
+  - src/features/remotes/**
+  - src/features/sidebar/RemoteContextMenu.tsx
+  - src/features/palette/builtinActions.ts
+  - src-tauri/src/repo/remotes.rs
+  - src-tauri/src/git/ops/remotes.rs
+  - src-tauri/src/commands/remotes.rs
+requirements: [F-125]
+---
+
+import Screenshot from '~/components/Screenshot.astro';
+import remotesManageDark from '../../../../assets/screens/remotes-manage-dark.png';
+import remotesManageLight from '../../../../assets/screens/remotes-manage-light.png';
+import remoteAddDialogDark from '../../../../assets/screens/remote-add-dialog-dark.png';
+import remoteAddDialogLight from '../../../../assets/screens/remote-add-dialog-light.png';
+import remoteRemoveConfirmDark from '../../../../assets/screens/remote-remove-confirm-dark.png';
+import remoteRemoveConfirmLight from '../../../../assets/screens/remote-remove-confirm-light.png';
+
+Un remote est une URL nommée depuis laquelle votre dépôt fait ses fetch et vers laquelle il pousse ([Git book : travailler avec les remotes](https://git-scm.com/book/en/v2/Git-Basics-Working-with-Remotes)). Cette page montre où gérer les remotes dans yaggui, ce que chaque changement fait à vos branches de suivi, et comment l’annuler. Tous les changements sont locaux : rien ne change sur le serveur.
+
+## Où gérer les remotes
+
+| Point d’entrée                                                          | Actions                                                                                                                                                  |
+| ----------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Barre latérale, clic droit sur l’en-tête de la section **Remote**       | **Ajouter un remote…**, **Gérer les remotes…**, **Récupérer les tags de tous les remotes**                                                               |
+| Barre latérale, clic droit sur un dossier de remote (comme `origin`)    | **Fetch**, **Récupérer ses tags**, **Y pousser tous les tags**, **Modifier le remote…**, **Supprimer le remote…**, **Copier le nom**, **Copier l'URL**  |
+| Palette (<kbd>⌘K</kbd>, <kbd>Ctrl+K</kbd> sous Windows et Linux)        | **Ajouter un remote…**, **Gérer les remotes…**                                                                                                           |
+
+**Gérer les remotes…** ouvre la boîte de dialogue **Remotes**. Elle liste chaque remote avec son URL de fetch, et son URL de push quand elle est différente. Chaque ligne a des boutons **Modifier** et **Supprimer**, et le pied de la boîte de dialogue contient **Ajouter un remote…**. Sans remote, elle indique « Aucun remote : ajoutes-en un pour faire des fetch et des push. » Quand vous modifiez ou ajoutez un remote depuis cette boîte de dialogue, vous y revenez ensuite.
+
+<Screenshot
+  dark={remotesManageDark}
+  light={remotesManageLight}
+  alt="La boîte de dialogue Remotes qui liste origin et upstream avec leurs URL de fetch, des boutons Modifier et Supprimer sur chaque ligne, et Ajouter un remote… dans le pied"
+/>
+
+## Ajouter un remote
+
+1. Ouvrez **Ajouter un remote…** depuis l’en-tête de la section **Remote** ou depuis la palette.
+2. Renseignez **Nom** (par exemple `origin` ou `upstream`). yaggui le vérifie pendant la saisie : « Ce nom est disponible. » quand il est libre.
+3. Renseignez **URL de fetch** : HTTPS, SSH (`git@host:path`) ou un chemin local.
+4. Pour pousser vers une autre URL que celle depuis laquelle vous faites vos fetch, cochez **Pousser vers une autre URL** et renseignez **URL de push**.
+5. Laissez **Faire un fetch après l'ajout** coché (c’est le cas par défaut) pour récupérer le nouveau remote tout de suite.
+6. Cliquez sur **Ajouter**.
+
+<Screenshot
+  dark={remoteAddDialogDark}
+  light={remoteAddDialogLight}
+  alt="La boîte de dialogue Ajouter un remote avec Nom, URL de fetch, la case Pousser vers une autre URL et URL de push, l’indication sur les identifiants et la case Faire un fetch après l'ajout"
+/>
+
+yaggui exécute :
+
+```bash
+git remote add -- upstream https://github.com/owner/repo.git
+git remote set-url --push -- upstream git@github.com:me/repo.git   # seulement avec une URL de push
+```
+
+Une notification **Remote upstream ajouté** le confirme. Si **Faire un fetch après l'ajout** est coché, le fetch suit, avec sa progression dans la barre d’état ([Fetch](../../remotes/fetch-pull-push/#fetch)). Si ce fetch échoue, par exemple à cause des identifiants, le remote reste ajouté : corrigez le problème et refaites un fetch.
+
+yaggui ne demande jamais de mot de passe. L’URL indique seulement où se trouve le dépôt ; les identifiants viennent de votre credential helper Git ou de ssh-agent ([Authentification](../../remotes/authentication/)).
+
+### Validation
+
+Le bouton **Ajouter** ou **Enregistrer** reste désactivé tant que le nom et l’URL ne sont pas renseignés. Les erreurs s’affichent sous le champ concerné :
+
+| Message                                                                                      | Cause                                                                                                                                                  |
+| -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Un remote nommé « origin » existe déjà.                                                      | Le nom est déjà pris                                                                                                                                   |
+| « bad name » n'est pas un nom de remote valide : pas d'espace, pas de tiret au début, aucun de @@LIST@@. | Des espaces, un `-` au début, `@{`, ou un caractère que Git refuse dans un nom de référence ([git check-ref-format](https://git-scm.com/docs/git-check-ref-format)) |
+| L'URL du remote est vide.                                                                    | URL vide après suppression des espaces autour                                                                                                          |
+| « -x » n'est pas une URL de remote valide.                                                   | URL commençant par `-` ou contenant des caractères de contrôle                                                                                         |
+
+## Modifier les URL
+
+1. Faites un clic droit sur le dossier du remote dans la barre latérale → **Modifier le remote…**, ou cliquez sur **Modifier** à côté du remote dans **Remotes**.
+2. Changez **URL de fetch**, et **URL de push** si **Pousser vers une autre URL** est coché. Décochez cette case pour pousser de nouveau vers l’URL de fetch.
+3. Cliquez sur **Enregistrer**. **Enregistrer** reste désactivé tant que rien n’a changé.
+
+yaggui exécute `git remote set-url -- <name> <url>`, puis `git remote set-url --push -- <name> <push url>`, ou `git config --unset-all remote.<name>.pushurl` quand vous décochez **Pousser vers une autre URL**. La notification indique **URL de origin enregistrées**. Les branches de suivi ne sont pas touchées ; le prochain fetch utilise la nouvelle URL.
+
+## Renommer un remote
+
+Ouvrez **Modifier le remote…**, changez **Nom**, puis cliquez sur **Enregistrer**. yaggui exécute :
+
+```bash
+git remote rename -- origin upstream
+```
+
+Git renomme les branches de suivi (`origin/main` devient `upstream/main`) et met à jour l’upstream de chaque branche locale qui les suivait. La notification indique **Remote origin renommé en upstream**.
+
+Si vous modifiez en même temps les URL et le nom, les URL sont enregistrées en premier. Si le renommage est ensuite refusé (par exemple parce que le nouveau nom est déjà pris), les URL restent enregistrées.
+
+## Supprimer un remote
+
+1. Faites un clic droit sur le dossier du remote → **Supprimer le remote…**, ou cliquez sur **Supprimer** dans **Remotes**.
+2. Une confirmation intitulée **Supprimer le remote origin ?** montre ce qui change dans votre dépôt :
+   - chaque branche de suivi de ce remote, marquée **supprimée**,
+   - chaque branche locale dont l’upstream est sur ce remote, marquée **perd son upstream**,
+   - la commande `git remote remove -- origin`.
+3. Cliquez sur **Supprimer**.
+
+<Screenshot
+  dark={remoteRemoveConfirmDark}
+  light={remoteRemoveConfirmLight}
+  alt="La confirmation Supprimer le remote upstream ? qui liste upstream/main comme supprimée, les branches locales qui perdent leur upstream, et la commande git remote remove"
+/>
+
+La description rappelle que « Rien ne change sur le serveur. » Vos branches locales et vos commits sont conservés. Les branches qui perdent leur upstream ne peuvent plus faire de pull ni de push tant que vous n’en définissez pas un nouveau ; le prochain push propose de les publier ([Premier push d’une branche](../../remotes/fetch-pull-push/#premier-push-dune-branche)).
+
+Cette confirmation est toujours demandée.
+
+## Annuler un changement de remote
+
+L’ajout, le renommage, la modification des URL et la suppression d’un remote sont tous enregistrés dans l’historique d’annulation et peuvent être annulés avec <kbd>⌘Z</kbd> (<kbd>Ctrl+Z</kbd> sous Windows et Linux) ou avec le bouton **Annuler** de la barre d’outils :
+
+| Opération           | Annulation                                                                                                                                                                       |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Ajout               | Supprime de nouveau le remote                                                                                                                                                    |
+| Renommage           | Le renomme à nouveau avec son ancien nom (`git remote rename`)                                                                                                                   |
+| Changement d’URL    | Rétablit les URL précédentes                                                                                                                                                     |
+| Suppression         | Rétablit la configuration du remote, les branches de suivi telles qu’elles étaient, et l’upstream des branches locales qui existent toujours et n’en ont plus                    |
+
+L’annulation est refusée si le remote a de nouveau été modifié depuis, en dehors de l’historique d’annulation (par exemple depuis un terminal). L’historique d’annulation n’est conservé que pour la session. Voir [Annuler et rétablir](../../history/undo-and-redo/).
+
+Ces opérations passent dans la file du dépôt comme les autres écritures, mais elles ne peuvent pas être annulées en cours de route : elles sont instantanées.

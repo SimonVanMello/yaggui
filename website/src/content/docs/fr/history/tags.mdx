@@ -1,0 +1,147 @@
+---
+title: Tags
+description: Créer des tags légers ou annotés, les supprimer en local ou sur un remote, pousser et récupérer des tags, et basculer sur un tag.
+sidebar:
+  order: 3
+sources:
+  - src/features/refs/CreateTagDialog.tsx
+  - src/features/refs/TagCheckoutDialog.tsx
+  - src/features/refs/refOps.ts
+  - src/features/sidebar/RefContextMenu.tsx
+  - src/features/sidebar/RemoteContextMenu.tsx
+  - src/features/network/networkOps.ts
+  - src-tauri/src/repo/ref_ops.rs
+  - src-tauri/src/repo/network.rs
+requirements: [F-124, F-200, F-201, F-202]
+---
+
+import Screenshot from '~/components/Screenshot.astro';
+import tagCreateDark from '../../../../assets/screens/tag-create-dark.png';
+import tagCreateLight from '../../../../assets/screens/tag-create-light.png';
+import tagCheckoutDark from '../../../../assets/screens/tag-checkout-dark.png';
+import tagCheckoutLight from '../../../../assets/screens/tag-checkout-light.png';
+
+Les tags marquent un commit d’un nom permanent, généralement une version (`v1.0.0`). Cette page présente la création, la suppression, le push, le fetch et le checkout des tags. Pour savoir ce que sont les tags, voir [Git Basics - Tagging](https://git-scm.com/book/en/v2/Git-Basics-Tagging).
+
+Les tags apparaissent sous forme d’étiquettes sur leur commit dans le [graphe des commits](../../history/commit-graph/) et dans la section **Tags** de la barre latérale, repliée par défaut. Une icône d’information signale les tags annotés.
+
+## Créer un tag
+
+Ouvrez la boîte de dialogue **Créer un tag** depuis :
+
+| Point d’entrée                                                                                    | Cible du tag                                                           |
+| ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Le bouton **Tag** de la barre d’outils, ou l’action de palette **Créer un tag…**                  | Le commit sur lequel HEAD pointe à l’ouverture de la boîte de dialogue |
+| **Créer un tag ici…** dans le menu d’un commit du graphe                                          | Ce commit                                                              |
+| **Créer un tag ici…** dans le menu de la barre latérale d’une branche locale ou d’un HEAD détaché | Sa pointe                                                              |
+
+Dans un dépôt sans aucun commit, le bouton de la barre d’outils est grisé : « Rien à taguer : le dépôt n'a pas encore de commit ». Il n’y a pas de raccourci par défaut.
+
+<Screenshot
+  dark={tagCreateDark}
+  light={tagCreateLight}
+  alt="La boîte de dialogue Créer un tag avec le commit cible, le champ du nom du tag, le message facultatif et la case Signer le tag (GPG)"
+/>
+
+1. Vérifiez **Sur le commit** : le commit cible.
+2. Saisissez le **Nom du tag** (par exemple `v1.0.0`). yaggui le vérifie pendant la saisie : « Ce nom est disponible. », « Un tag « _nom_ » existe déjà. » ou « « _nom_ » n'est pas un nom de tag valide : … ».
+3. Facultatif : saisissez un **Message (facultatif)**.
+   - Sans message, le tag est léger : juste un nom sur le commit.
+   - Avec un message, le tag est annoté : il garde son auteur et sa date.
+4. Facultatif, avec un message uniquement : cochez **Signer le tag (GPG)**. Git utilise votre configuration de signature ([`gpg.format`](https://git-scm.com/docs/git-config#Documentation/git-config.txt-gpgformat), `user.signingKey`).
+5. Cliquez sur **Créer le tag**.
+
+| Tag    | Commande                                                                   |
+| ------ | -------------------------------------------------------------------------- |
+| Léger  | `git tag -- <name> <sha>`                                                  |
+| Annoté | `git tag -a -F - -- <name> <sha>` (message transmis sur l’entrée standard) |
+| Signé  | `git tag -s -F - -- <name> <sha>`                                          |
+
+La notification indique « Tag _nom_ créé ». Si la signature échoue (pas de clé, mauvaise phrase de passe, `gpg` absent), une erreur l’explique, avec un lien vers le [journal des commandes](../../reference/command-log/).
+
+Le tag reste local tant que vous ne le [poussez pas](#pousser-les-tags). Annuler le supprime.
+
+## Supprimer un tag
+
+### En local
+
+1. Développez **Tags** dans la barre latérale, faites un clic droit sur le tag, puis **Supprimer le tag…**.
+2. La boîte de dialogue **Supprimer le tag _nom_ ?** explique que seul le tag local est supprimé (un tag poussé reste sur le remote) et affiche `git tag -d <name>`.
+3. Cliquez sur **Supprimer le tag**.
+
+La notification indique « Tag _nom_ supprimé. Il pointait sur _abc1234_. » Annuler le recrée, annotation comprise.
+
+Vous pouvez désactiver cette confirmation dans **Préférences › Comportement › Confirmations** (**Supprimer un tag**).
+
+### Sur un remote
+
+1. Faites un clic droit sur le tag dans la barre latérale, puis **Supprimer sur le remote…**. Avec plusieurs remotes, choisissez-en un dans le sous-menu **Supprimer sur un remote**. Avec un seul remote, il est utilisé. Sans remote, vous voyez « Ce dépôt n'a aucun remote. »
+2. La boîte de dialogue **Supprimer le tag _nom_ sur _origin_ ?** prévient que le tag est supprimé sur le remote pour tout le monde et que le tag local ne bouge pas. Elle affiche `git push origin --delete refs/tags/<name>`. Cette confirmation ne peut pas être désactivée.
+3. Cliquez sur **Supprimer sur le remote**.
+
+La notification indique « Tag _nom_ supprimé sur _origin_ ». Un tag déjà absent du remote compte comme supprimé. Cette opération ne peut pas être annulée dans yaggui.
+
+## Pousser les tags
+
+`git push` n’envoie pas les tags par défaut ([Sharing tags](https://git-scm.com/book/en/v2/Git-Basics-Tagging#_sharing_tags)). yaggui les pousse explicitement.
+
+| Push          | Où                                                                                                                                                                                                                                                      | Commande                                                                   |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| Un seul tag   | Clic droit sur le tag, puis **Pousser le tag** (ou **Pousser le tag vers** ▸ remote quand vous en avez plusieurs)                                                                                                                                       | `git push --progress --porcelain <remote> refs/tags/<tag>:refs/tags/<tag>` |
+| Tous les tags | Clic droit sur l’en-tête de la section **Tags**, puis **Pousser tous les tags** (ou **Pousser tous les tags vers** ▸ remote) ; clic droit sur un dossier de remote, puis **Y pousser tous les tags** ; ou l’action de palette **Pousser tous les tags** | `git push --progress --porcelain <remote> refs/tags/*:refs/tags/*`         |
+
+Quand aucun remote n’est choisi, yaggui utilise `origin`, ou le premier remote s’il n’y a pas d’`origin`.
+
+Résultats possibles :
+
+- « Tag _nom_ poussé vers _origin_ », ou « Le tag _nom_ est déjà sur _origin_ ».
+- « N tags poussés vers _origin_ » avec la liste, « Tous les tags sont déjà sur _origin_ », ou « Aucun tag à pousser ».
+- Si le remote a déjà un tag du même nom sur un autre commit : « Le remote a refusé le tag _nom_ : un tag de ce nom y existe déjà et pointe vers un autre commit. Supprime d'abord le tag distant, ou renomme le tien. » Quand vous poussez tous les tags, les autres tags sont tout de même poussés.
+- Si une règle du serveur ou un hook refuse le tag : « Le remote a refusé le tag _nom_ (règle du serveur ou hook). Le journal des commandes montre sa réponse. »
+
+Pousser tous les tags ne supprime pas les tags du remote que vous n’avez pas en local. La progression s’affiche dans la barre d’état, où vous pouvez l’annuler. Un push ne peut pas être annulé dans yaggui. Pour les problèmes d’authentification, voir [Authentification](../../remotes/authentication/).
+
+## Récupérer les tags
+
+Un fetch normal ramène déjà les tags des branches qu’il récupère. Pour récupérer tous les tags :
+
+| Où                                                                                                                                                                  | Commande                               |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| L’action de palette **Récupérer les tags**, ou **Récupérer les tags de tous les remotes** dans le menu contextuel de l’en-tête de la section **Tags** ou **Remote** | `git fetch --progress --tags --all`    |
+| **Récupérer ses tags** dans le menu contextuel d’un dossier de remote                                                                                               | `git fetch --progress --tags <remote>` |
+
+La notification indique « Tags récupérés ». Récupérer les tags ne supprime jamais de tags locaux. Cette opération n’est pas enregistrée pour l’annulation. Voir [Fetch, pull et push](../../remotes/fetch-pull-push/).
+
+## Basculer sur un tag
+
+Basculer sur un tag détache HEAD ([HEAD détaché](https://git-scm.com/docs/git-checkout#_detached_head)). yaggui commence par vous l’expliquer.
+
+Double-cliquez sur un tag dans la barre latérale, ou faites un clic droit dessus, puis **Checkout du tag…**. Un double-clic sur l’étiquette d’un tag dans le graphe ne fait rien.
+
+<Screenshot
+  dark={tagCheckoutDark}
+  light={tagCheckoutLight}
+  alt="La boîte de dialogue Checkout du tag avec l’avertissement HEAD détaché, le champ Créer une branche depuis le tag et le bouton Continuer en HEAD détaché"
+/>
+
+La boîte de dialogue **Checkout du tag _nom_** prévient que les commits faits en HEAD détaché n’appartiennent à aucune branche et se perdent facilement. Elle propose :
+
+| Bouton                                      | Ce qu’il fait                                                                                                                                                                                                             |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Créer et faire le checkout** (par défaut) | Crée une branche sur le tag, nommée dans **Nom de la branche** (par défaut `<tag>-branch`, vérifiée pendant la saisie), puis bascule dessus : `git branch -- <name> refs/tags/<tag>`, puis `git switch --no-guess <name>` |
+| **Continuer en HEAD détaché**               | `git switch --detach <commit>`, pour regarder le code uniquement. Vous pourrez créer une branche plus tard depuis la ligne HEAD de la barre latérale.                                                                     |
+| **Annuler**                                 | Rien                                                                                                                                                                                                                      |
+
+Si vous avez des modifications locales, la [boîte de dialogue des modifications locales](../../history/branches/#quand-vous-avez-des-modifications-locales) apparaît avant le changement de branche. Avec **Créer et faire le checkout**, la branche est créée même si vous annulez ensuite le changement de branche.
+
+## Annulation
+
+| Opération                                                             | Annulation                                                                                                                   |
+| --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Créer un tag                                                          | Oui                                                                                                                          |
+| Supprimer un tag local                                                | Oui, le tag revient tel qu’il était                                                                                          |
+| Basculer sur un tag                                                   | Oui. Avec **Créer et faire le checkout**, la création de la branche et le checkout sont deux étapes d’annulation distinctes. |
+| Pousser un tag, pousser tous les tags, supprimer un tag sur un remote | Non : le remote a changé                                                                                                     |
+| Récupérer les tags                                                    | Non (non enregistré)                                                                                                         |
+
+Voir [Annuler et rétablir](../../history/undo-and-redo/). Chaque commande apparaît dans le [journal des commandes](../../reference/command-log/).

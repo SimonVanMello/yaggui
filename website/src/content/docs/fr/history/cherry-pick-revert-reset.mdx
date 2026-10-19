@@ -26,9 +26,9 @@ import historyParentDialogLight from '../../../../assets/screens/history-parent-
 import historyResetHardDark from '../../../../assets/screens/history-reset-hard-dark.png';
 import historyResetHardLight from '../../../../assets/screens/history-reset-hard-light.png';
 
-Ces actions portent sur des commits que vous sélectionnez dans le graphe : les copier sur une branche (cherry-pick), créer un commit qui en annule un (revert), déplacer la branche courante sur un commit (reset), ou extraire un commit sans branche.
+Ces actions portent sur des commits que vous sélectionnez dans le graphe : les copier sur une branche (cherry-pick), créer un commit qui en annule un (revert), déplacer la branche courante sur un commit (reset), ou extraire un commit sans branche.
 
-La plupart partent du menu contextuel d’un commit : faites un clic droit sur une ligne du graphe, ou appuyez sur <kbd>Shift+F10</kbd> ou sur la touche de menu contextuel, la ligne étant sélectionnée. Tant qu’un merge, un rebase, un cherry-pick ou un revert est en cours, les entrées de cherry-pick, de revert et de reset sont désactivées (**Termine ou annule d’abord l’opération en cours**).
+La plupart partent du menu contextuel d’un commit : faites un clic droit sur une ligne du graphe, ou appuyez sur <kbd>Shift+F10</kbd> ou sur la touche de menu contextuel, la ligne étant sélectionnée. Tant qu’un merge, un rebase, un cherry-pick ou un revert est en cours, les entrées de cherry-pick, de revert et de reset sont désactivées (**Termine ou annule d’abord l’opération en cours**).
 
 ## Cherry-pick de commits
 
@@ -40,7 +40,7 @@ Faites un clic droit sur le commit et choisissez **Cherry-pick sur \{branch\}**,
 
 ### Plusieurs commits
 
-1. Sélectionnez les commits dans le graphe : <kbd>⌘</kbd>-clic (<kbd>Ctrl</kbd>-clic sous Windows et Linux) pour en ajouter ou en retirer un, <kbd>Shift</kbd>-clic ou <kbd>Shift+↑</kbd>/<kbd>Shift+↓</kbd> pour une plage.
+1. Sélectionnez les commits dans le graphe : <kbd>⌘</kbd>-clic (<kbd>Ctrl</kbd>-clic sous Windows et Linux) pour en ajouter ou en retirer un, <kbd>Shift</kbd>-clic ou <kbd>Shift+↑</kbd>/<kbd>Shift+↓</kbd> pour une plage.
 2. La barre de sélection affiche **\{count\} commits sélectionnés**. Cliquez sur **Cherry-pick de \{count\} commits sur \{branch\}** dans la barre, ou faites un clic droit dans la sélection et choisissez la même entrée.
 
 <kbd>Esc</kbd> ramène la sélection à un seul commit.
@@ -63,28 +63,28 @@ Glissez une ligne de commit (ou une ligne de la multisélection en cours, ce qui
 
 ### Ce qui est exécuté
 
-Il n’y a pas de confirmation. yaggui exécute :
+Il n’y a pas de confirmation. yaggui exécute :
 
 ```bash
 git cherry-pick [-m <parent>] <sha1> <sha2> …
 ```
 
-Notification : **Commit cherry-pické sur \{target\}** ou **\{count\} commits cherry-pickés sur \{target\}**.
+Notification : **Commit cherry-pické sur \{target\}** ou **\{count\} commits cherry-pickés sur \{target\}**.
 
-Cherry-picker un commit de merge demande un parent : yaggui ouvre la [boîte de dialogue du parent](#revert-ou-cherry-pick-dun-commit-de-merge).
+Cherry-picker un commit de merge demande un parent : yaggui ouvre la [boîte de dialogue du parent](#revert-ou-cherry-pick-dun-commit-de-merge).
 
 ## Revert d’un commit
 
 Un revert crée un nouveau commit qui annule les changements d’un commit existant ([git-revert](https://git-scm.com/docs/git-revert)).
 
-Faites un clic droit sur le commit et choisissez **Revert de ce commit**, ou lancez **Revert du commit sélectionné** depuis la palette (elle utilise le commit sélectionné). Pour un commit ordinaire, il n’y a pas de confirmation ; yaggui exécute `git revert --no-edit <sha>` et affiche **\{sha\} annulé (revert)**.
+Faites un clic droit sur le commit et choisissez **Revert de ce commit**, ou lancez **Revert du commit sélectionné** depuis la palette (elle utilise le commit sélectionné). Pour un commit ordinaire, il n’y a pas de confirmation ; yaggui exécute `git revert --no-edit <sha>` et affiche **\{sha\} annulé (revert)**.
 
 ### Revert ou cherry-pick d’un commit de merge
 
-Un commit de merge a plusieurs parents : Git doit donc savoir quel côté conserver. yaggui ouvre une boîte de dialogue :
+Un commit de merge a plusieurs parents : Git doit donc savoir quel côté conserver. yaggui ouvre une boîte de dialogue :
 
-- **Revert du merge \{sha\}** : « Un merge a plusieurs parents. Choisis celui dont le côté est conservé : le revert annule ce qu’a apporté l’autre côté. »
-- **Cherry-pick du merge \{sha\}** : « Un merge a plusieurs parents. Choisis celui par rapport auquel les changements sont calculés. »
+- **Revert du merge \{sha\}** : « Un merge a plusieurs parents. Choisis celui dont le côté est conservé : le revert annule ce qu’a apporté l’autre côté. »
+- **Cherry-pick du merge \{sha\}** : « Un merge a plusieurs parents. Choisis celui par rapport auquel les changements sont calculés. »
 
 <Screenshot
   dark={historyParentDialogDark}
@@ -92,7 +92,7 @@ Un commit de merge a plusieurs parents : Git doit donc savoir quel côté conser
   alt="Boîte de dialogue de revert d’un merge demandant quel parent conserver, avec Parent 1 sélectionné"
 />
 
-Sous **Parent conservé**, chaque option affiche **Parent \{n\}**, son SHA court et son résumé. **Parent 1** est sélectionné par défaut et porte la mention « En général la branche sur laquelle le merge a été fait » ; les autres portent la mention « En général la branche qui a été mergée ». La boîte de dialogue affiche un aperçu de `git revert -m <n> <sha>` ou de `git cherry-pick -m <n> <sha>`. Cliquez sur **Revert** ou sur **Cherry-pick**.
+Sous **Parent conservé**, chaque option affiche **Parent \{n\}**, son SHA court et son résumé. **Parent 1** est sélectionné par défaut et porte la mention « En général la branche sur laquelle le merge a été fait » ; les autres portent la mention « En général la branche qui a été mergée ». La boîte de dialogue affiche un aperçu de `git revert -m <n> <sha>` ou de `git cherry-pick -m <n> <sha>`. Cliquez sur **Revert** ou sur **Cherry-pick**.
 
 ## Reset de la branche courante
 
@@ -101,7 +101,7 @@ Un reset déplace la branche courante sur un autre commit ([git-reset](https://g
 - Faites un clic droit sur un commit, ouvrez **Reset de \{branch\} ici** et choisissez **Soft** (Garde tous les changements indexés), **Mixed** (Garde les changements, non indexés) ou **Hard** (Perd les changements locaux). La boîte de dialogue s’ouvre avec ce mode sélectionné.
 - Ou lancez **Reset de la branche courante sur le commit sélectionné…** depuis la palette. La boîte de dialogue s’ouvre sur **Mixed**.
 
-La boîte de dialogue **Reset de \{branch\} sur \{sha\}** affiche : « Déplace la branche courante sur ce commit. Choisis ce qu’il advient de tes changements. » Elle fonctionne aussi sur un HEAD détaché (`{branch}` vaut alors `HEAD`).
+La boîte de dialogue **Reset de \{branch\} sur \{sha\}** affiche : « Déplace la branche courante sur ce commit. Choisis ce qu’il advient de tes changements. » Elle fonctionne aussi sur un HEAD détaché (`{branch}` vaut alors `HEAD`).
 
 <Screenshot
   dark={historyResetHardDark}
@@ -109,32 +109,32 @@ La boîte de dialogue **Reset de \{branch\} sur \{sha\}** affiche : « Déplace 
   alt="Boîte de dialogue de reset en mode Hard, listant les fichiers qui perdent leur contenu local"
 />
 
-Elle commence par vérifier ce qui changerait (**Calcul de ce qui changerait…**) et résume l’effet sur la branche :
+Elle commence par vérifier ce qui changerait (**Calcul de ce qui changerait…**) et résume l’effet sur la branche :
 
 - **\{branch\} perd \{count\} commits (toujours dans le reflog).**
 - **\{branch\} avance de \{count\} commits.**
 - **\{branch\} pointe déjà sur ce commit.**
 
-Choisissez ensuite un **Mode de reset** :
+Choisissez ensuite un **Mode de reset** :
 
-| Mode      | Ce qui se passe                                                                                                                                                  |
-| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Soft**  | Seule la branche bouge. Les changements des commits défaits restent indexés, prêts à être recommités.                                                            |
-| **Mixed** | La branche et l’index bougent. Vos changements restent dans le répertoire de travail, non indexés.                                                               |
-| **Hard**  | La branche, l’index et le répertoire de travail prennent tous le contenu de ce commit. Les changements locaux sont perdus (sauvegardés au préalable).            |
+| Mode      | Ce qui se passe                                                                                                                                       |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Soft**  | Seule la branche bouge. Les changements des commits défaits restent indexés, prêts à être recommités.                                                 |
+| **Mixed** | La branche et l’index bougent. Vos changements restent dans le répertoire de travail, non indexés.                                                    |
+| **Hard**  | La branche, l’index et le répertoire de travail prennent tous le contenu de ce commit. Les changements locaux sont perdus (sauvegardés au préalable). |
 
-Pour **Hard**, la boîte de dialogue liste les fichiers qui perdent leur contenu local, avec ce qu’il advient de chacun :
+Pour **Hard**, la boîte de dialogue liste les fichiers qui perdent leur contenu local, avec ce qu’il advient de chacun :
 
-| Mention                 | Signification                                                        |
-| ----------------------- | -------------------------------------------------------------------- |
-| **changements perdus**  | Un fichier suivi avec des modifications locales (ou en conflit)      |
-| **sera supprimé**       | Un fichier que vous avez ajouté et qui n’existe pas dans le commit cible |
-| **revient**             | Un fichier que vous avez supprimé et qui existe dans le commit cible |
-| **écrasé**              | Un fichier non suivi que le commit cible suit                        |
+| Mention                | Signification                                                            |
+| ---------------------- | ------------------------------------------------------------------------ |
+| **changements perdus** | Un fichier suivi avec des modifications locales (ou en conflit)          |
+| **sera supprimé**      | Un fichier que vous avez ajouté et qui n’existe pas dans le commit cible |
+| **revient**            | Un fichier que vous avez supprimé et qui existe dans le commit cible     |
+| **écrasé**             | Un fichier non suivi que le commit cible suit                            |
 
-Les fichiers non suivis que la cible n’a pas sont laissés tels quels et ne sont pas listés. Sous la liste : **Ces fichiers sont sauvegardés avant le reset.** Si rien ne serait perdu, la boîte de dialogue affiche **Aucun changement local ne serait perdu.**
+Les fichiers non suivis que la cible n’a pas sont laissés tels quels et ne sont pas listés. Sous la liste : **Ces fichiers sont sauvegardés avant le reset.** Si rien ne serait perdu, la boîte de dialogue affiche **Aucun changement local ne serait perdu.**
 
-La boîte de dialogue affiche `git reset --<mode> <sha>` et tient lieu de confirmation : cliquez sur **Reset (soft)**, **Reset (mixed)** ou **Reset (hard)**. Le bouton est disponible une fois la vérification terminée. yaggui exécute `git reset -q --<mode> <sha> --`, après avoir copié les fichiers listés dans une sauvegarde pour un reset hard. Notification : **Reset (\{mode\}) sur \{sha\}**, accompagnée de **Fichiers locaux sauvegardés avant.** quand une sauvegarde a été faite.
+La boîte de dialogue affiche `git reset --<mode> <sha>` et tient lieu de confirmation : cliquez sur **Reset (soft)**, **Reset (mixed)** ou **Reset (hard)**. Le bouton est disponible une fois la vérification terminée. yaggui exécute `git reset -q --<mode> <sha> --`, après avoir copié les fichiers listés dans une sauvegarde pour un reset hard. Notification : **Reset (\{mode\}) sur \{sha\}**, accompagnée de **Fichiers locaux sauvegardés avant.** quand une sauvegarde a été faite.
 
 :::caution
 Un reset hard écrase votre répertoire de travail. yaggui conserve une sauvegarde des fichiers listés pour que l’annulation puisse les restaurer pendant cette session, mais les commits que la branche quitte ne sont ensuite accessibles que par le [reflog](../../inspect/reflog/).
@@ -142,36 +142,36 @@ Un reset hard écrase votre répertoire de travail. yaggui conserve une sauvegar
 
 ## Checkout d’un commit (HEAD détaché)
 
-Faites un clic droit sur un commit et choisissez **Checkout de ce commit**. yaggui exécute `git switch --detach <sha>` et affiche **HEAD est détaché sur \{sha\}**. Plus aucune branche n’est extraite ; les commits que vous faites ne sont sur aucune branche tant que vous n’en créez pas une (**Créer une branche ici…**). Voir [HEAD détaché](https://git-scm.com/docs/git-checkout#_detached_head).
+Faites un clic droit sur un commit et choisissez **Checkout de ce commit**. yaggui exécute `git switch --detach <sha>` et affiche **HEAD est détaché sur \{sha\}**. Plus aucune branche n’est extraite ; les commits que vous faites ne sont sur aucune branche tant que vous n’en créez pas une (**Créer une branche ici…**). Voir [HEAD détaché](https://git-scm.com/docs/git-checkout#_detached_head).
 
 :::note
 Aucun avertissement n’est affiché avant de détacher HEAD. Pour revenir en arrière, extrayez une branche ou appuyez sur <kbd>⌘Z</kbd> (<kbd>Ctrl+Z</kbd> sous Windows et Linux).
 :::
 
-Si des modifications locales gênent, la boîte de dialogue de checkout s’ouvre : voir [Branches](../../history/branches/).
+Si des modifications locales gênent, la boîte de dialogue de checkout s’ouvre : voir [Branches](../../history/branches/).
 
 ## Erreurs
 
-| Message                                                                                                                              | Que faire                                                                                                                                                     |
-| ------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| « \{short\} n'apporte plus aucune modification (il est sans doute déjà appliqué) : passe-le. »                                       | Le commit est déjà dans la branche. Le cherry-pick ou le revert reste en cours ; cliquez sur **Passer** dans la notification ou le bandeau, ou sur le bouton d’annulation |
-| « \{short\} est un commit de merge : choisis le parent dont le côté est conservé. »                                                   | yaggui ouvre la boîte de dialogue du parent                                                                                                                   |
-| « \{short\} n'a pas de parent \{n\}. »                                                                                               | Choisissez un parent qui existe                                                                                                                               |
-| « Il n'y a pas encore de commit sur lequel les appliquer. »                                                                          | Le dépôt ne contient aucun commit : faites un premier commit                                                                                                  |
-| « Tes modifications locales seraient écrasées par le cherry-pick. Commite-les ou mets-les de côté (stash) d'abord. » (idem pour le revert) | Committez-les ou mettez-les de côté ([stash](../../everyday/stash/)). **Voir les changements** dans la notification les ouvre                                   |
-| « Une autre opération (merge, rebase, cherry-pick, revert ou bisect) est en cours : continue-la ou annule-la d'abord. »              | Terminez-la depuis le bandeau                                                                                                                                 |
+| Message                                                                                                                                    | Que faire                                                                                                                                                                 |
+| ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| « \{short\} n'apporte plus aucune modification (il est sans doute déjà appliqué) : passe-le. »                                             | Le commit est déjà dans la branche. Le cherry-pick ou le revert reste en cours ; cliquez sur **Passer** dans la notification ou le bandeau, ou sur le bouton d’annulation |
+| « \{short\} est un commit de merge : choisis le parent dont le côté est conservé. »                                                        | yaggui ouvre la boîte de dialogue du parent                                                                                                                               |
+| « \{short\} n'a pas de parent \{n\}. »                                                                                                     | Choisissez un parent qui existe                                                                                                                                           |
+| « Il n'y a pas encore de commit sur lequel les appliquer. »                                                                                | Le dépôt ne contient aucun commit : faites un premier commit                                                                                                              |
+| « Tes modifications locales seraient écrasées par le cherry-pick. Commite-les ou mets-les de côté (stash) d'abord. » (idem pour le revert) | Committez-les ou mettez-les de côté ([stash](../../everyday/stash/)). **Voir les changements** dans la notification les ouvre                                             |
+| « Une autre opération (merge, rebase, cherry-pick, revert ou bisect) est en cours : continue-la ou annule-la d'abord. »                    | Terminez-la depuis le bandeau                                                                                                                                             |
 
-Quand Git s’arrête sur des conflits, le cherry-pick ou le revert reste en cours : résolvez les fichiers, puis choisissez **Continuer**, **Passer** ou le bouton d’annulation. Voir [Résoudre les conflits](../../history/conflicts/). Les autres messages figurent dans [Messages d’erreur](../../reference/error-messages/).
+Quand Git s’arrête sur des conflits, le cherry-pick ou le revert reste en cours : résolvez les fichiers, puis choisissez **Continuer**, **Passer** ou le bouton d’annulation. Voir [Résoudre les conflits](../../history/conflicts/). Les autres messages figurent dans [Messages d’erreur](../../reference/error-messages/).
 
 ## Annulation
 
-| Opération                                    | Libellé d’annulation                         | Ce que fait l’annulation                                                               |
-| -------------------------------------------- | -------------------------------------------- | -------------------------------------------------------------------------------------- |
-| Cherry-pick terminé d’un seul coup           | **cherry-pick de \{count\} commits**         | Ramène la branche en arrière avec `git reset --keep`                                   |
-| Revert terminé d’un seul coup                | **revert de \{sha\}**                        | Idem                                                                                   |
-| Reset soft                                   | **reset soft vers \{sha\}**                  | Ramène la branche en arrière                                                           |
-| Reset mixed                                  | **reset mixed vers \{sha\}**                 | Ramène la branche en arrière et restaure l’index                                       |
-| Reset hard                                   | **reset hard vers \{sha\}**                  | Ramène la branche en arrière et réécrit les fichiers sauvegardés                       |
-| Checkout d’un commit                         | **checkout de \{sha\} (HEAD détaché)**       | Rebascule sur la branche ou le commit précédent, en conservant les modifications locales |
+| Opération                          | Libellé d’annulation                   | Ce que fait l’annulation                                                                 |
+| ---------------------------------- | -------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Cherry-pick terminé d’un seul coup | **cherry-pick de \{count\} commits**   | Ramène la branche en arrière avec `git reset --keep`                                     |
+| Revert terminé d’un seul coup      | **revert de \{sha\}**                  | Idem                                                                                     |
+| Reset soft                         | **reset soft vers \{sha\}**            | Ramène la branche en arrière                                                             |
+| Reset mixed                        | **reset mixed vers \{sha\}**           | Ramène la branche en arrière et restaure l’index                                         |
+| Reset hard                         | **reset hard vers \{sha\}**            | Ramène la branche en arrière et réécrit les fichiers sauvegardés                         |
+| Checkout d’un commit               | **checkout de \{sha\} (HEAD détaché)** | Rebascule sur la branche ou le commit précédent, en conservant les modifications locales |
 
 Un cherry-pick ou un revert arrêté sur des conflits puis terminé avec **Continuer** ne peut pas être annulé. Voir [Annuler et rétablir](../../history/undo-and-redo/).

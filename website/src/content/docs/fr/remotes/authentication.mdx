@@ -1,0 +1,108 @@
+---
+title: Authentification
+description: Comment yaggui obtient les identifiants des remotes HTTPS et SSH sans jamais rien demander, et comment configurer une fois pour toutes un credential helper ou ssh-agent.
+sidebar:
+  order: 3
+sources:
+  - src-tauri/src/git/cli.rs
+  - src-tauri/src/git/errors.rs
+  - src/features/remotes/RemoteDialog.tsx
+requirements: [F-127]
+---
+
+yaggui ne demande jamais de mot de passe, de jeton ou de phrase secrète SSH, et ne stocke aucun secret. Git obtient vos identifiants auprès des outils que vous utilisez déjà : un credential helper pour HTTPS, ssh-agent pour SSH. Cette page explique pourquoi, comment les configurer une fois pour toutes, et que faire quand l’authentification échoue.
+
+## Pourquoi yaggui ne demande jamais rien
+
+yaggui exécute le `git` de votre système avec les invites désactivées :
+
+- `GIT_TERMINAL_PROMPT=0` empêche Git de demander un nom d’utilisateur ou un mot de passe.
+- Git s’exécute sans terminal de contrôle (une nouvelle session sous macOS et Linux, aucune fenêtre de console sous Windows). `ssh` ne peut donc ni demander une phrase secrète ni demander de confirmer une clé d’hôte inconnue, même si vous avez lancé yaggui depuis un terminal.
+
+Quand Git aurait besoin de poser une question, l’opération échoue aussitôt avec une erreur d’authentification au lieu de rester bloquée. La solution se trouve toujours en dehors de yaggui : vous configurez un helper ou un agent, et vous vous connectez une fois depuis un terminal.
+
+## HTTPS : utiliser un credential helper
+
+Un [credential helper](https://git-scm.com/docs/gitcredentials) stocke votre nom d’utilisateur et votre mot de passe ou jeton, et les fournit à Git quand il en a besoin. yaggui utilise le `credential.helper` que désigne votre configuration Git.
+
+| Système | Helper habituel                                                  | Réglage                                                                                                                  |
+| ------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Windows | Git Credential Manager, installé avec Git for Windows            | `git config --global credential.helper manager`                                                                          |
+| macOS   | Trousseau d’accès (Keychain)                                     | `git config --global credential.helper osxkeychain`                                                                      |
+| Linux   | Git Credential Manager, ou `libsecret` (GNOME Keyring, KWallet)  | `git config --global credential.helper manager` ou le chemin de `git-credential-libsecret` sur votre distribution        |
+
+Pour le configurer une fois pour toutes :
+
+1. Ouvrez un terminal. Le terminal intégré convient : appuyez sur <kbd>Ctrl+`</kbd> (sur tous les systèmes), voir [Terminal](../../repository/terminal/).
+2. Vérifiez le helper actuel : `git config --global credential.helper`. S’il est vide, définissez-en un parmi ceux du tableau.
+3. Lancez une commande qui a besoin de vos identifiants, pour que Git les demande dans le terminal et que le helper les enregistre :
+
+   ```bash
+   git ls-remote https://github.com/owner/private-repo.git
+   ```
+
+   Les services d’hébergement comme GitHub refusent les mots de passe de compte en HTTPS : saisissez plutôt un jeton d’accès personnel, ou laissez Git Credential Manager ouvrir sa connexion dans le navigateur.
+
+4. De retour dans yaggui, refaites un fetch.
+
+:::caution
+Ne mettez pas de jeton dans l’URL du remote (`https://user:token@host/...`). Cela fonctionne, mais l’URL apparaît en clair dans le [journal des commandes](../../reference/command-log/) et dans `.git/config`. Utilisez plutôt un credential helper.
+:::
+
+## SSH : utiliser ssh-agent
+
+Pour les remotes SSH (`git@host:owner/repo.git`), Git lance `ssh`, qui a besoin de votre clé privée. Une clé sans phrase secrète fonctionne directement. Une clé protégée par une phrase secrète doit être chargée dans [ssh-agent](https://man.openbsd.org/ssh-agent), car yaggui ne peut pas demander la phrase secrète.
+
+1. Ouvrez un terminal (le terminal intégré convient).
+2. Chargez votre clé en saisissant sa phrase secrète une seule fois :
+
+   ```bash
+   ssh-add ~/.ssh/id_ed25519
+   ```
+
+   Sous macOS, ajoutez `--apple-use-keychain` pour que la clé soit rechargée après un redémarrage : `ssh-add --apple-use-keychain ~/.ssh/id_ed25519`.
+
+3. Vérifiez qu’elle est chargée : `ssh-add -l`.
+4. Connectez-vous une fois pour accepter la clé d’hôte du serveur, si vous ne l’avez jamais fait :
+
+   ```bash
+   ssh -T git@github.com
+   ```
+
+5. De retour dans yaggui, refaites un fetch.
+
+Sous Windows :
+
+- Le service **OpenSSH Authentication Agent** doit être démarré (`Get-Service ssh-agent` dans PowerShell ; réglez-le sur un démarrage automatique dans Services).
+- Git for Windows peut utiliser son propre `ssh` au lieu de celui de Windows, et ne voit alors pas l’agent Windows. Pour le partager, exécutez `git config --global core.sshCommand C:/Windows/System32/OpenSSH/ssh.exe`.
+
+Si vous définissez vous-même `SSH_ASKPASS`, `ssh` peut utiliser ce programme pour demander la phrase secrète ; yaggui n’en fournit pas.
+
+## Erreurs d’authentification
+
+Un échec d’authentification affiche une notification d’erreur (**Fetch a échoué**, **Pull a échoué**, **Push a échoué**, ou l’erreur de clonage) avec l’un de ces messages. **Détails** affiche la sortie brute de Git. Il n’y a pas de bouton **Réessayer**, car la solution se trouve en dehors de yaggui : relancez l’opération une fois celle-ci appliquée.
+
+| Message                                                                                                                                                                                        | Cause habituelle                                                                                                                                         | Que faire                                                                                                                                                              |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Authentification refusée. yaggui ne demande jamais de mot de passe : configure un credential helper Git (git config credential.helper) et connecte-toi une fois depuis un terminal.          | Remote HTTPS, pas de helper ou pas d’identifiants enregistrés (`terminal prompts disabled`, `could not read Username`), jeton erroné ou expiré, HTTP 401 ou 403 | [Configurez un credential helper](#https-utiliser-un-credential-helper) et connectez-vous une fois. Pour un jeton expiré, reconnectez-vous afin que le helper enregistre le nouveau |
+| Authentification SSH refusée. Charge ta clé dans ssh-agent (ssh-add) et vérifie que le remote la connaît.                                                                                     | `Permission denied (publickey)` : la clé n’est pas dans l’agent, ou le serveur ne la connaît pas                                                         | [Chargez la clé](#ssh-utiliser-ssh-agent) ; vérifiez que la clé publique est ajoutée à votre compte sur le serveur                                                     |
+| Authentification SSH refusée. Charge ta clé dans ssh-agent (ssh-add) et vérifie que le remote la connaît.                                                                                     | `Host key verification failed` : la clé d’hôte du serveur est inconnue ou a changé                                                                       | Exécutez une fois `ssh -T git@host` dans un terminal pour l’accepter. Si la clé a changé alors que vous ne vous y attendiez pas, vérifiez d’abord auprès de l’administrateur du serveur |
+| Remote introuvable : vérifie son nom et son URL.                                                                                                                                               | URL erronée, ou dépôt privé que vos identifiants ne permettent pas de voir (certains services répondent « introuvable »)                                 | Vérifiez l’URL ([Modifier les URL](../../remotes/remotes/#modifier-les-url)) et que votre compte y a accès                                                             |
+
+La liste complète se trouve dans [Messages d’erreur](../../reference/error-messages/).
+
+## Tester depuis le terminal intégré
+
+Le [terminal intégré](../../repository/terminal/) démarre dans le dossier du dépôt avec l’environnement propre à yaggui : l’agent et le helper qu’il voit sont donc ceux qu’utilise le Git de yaggui. Contrairement à yaggui, il peut vous poser des questions.
+
+```bash
+git config --show-origin --get-all credential.helper   # quel helper Git utilise
+ssh-add -l                                            # clés présentes dans l'agent
+git ls-remote origin                                  # le même accès que celui d'un fetch
+```
+
+Si `git ls-remote origin` fonctionne sans rien demander, le fetch, le pull et le push fonctionnent aussi dans yaggui. S’il demande un mot de passe ou une phrase secrète, le Git de yaggui échouerait à cet endroit : terminez la configuration décrite plus haut.
+
+Comparez ensuite avec la commande en échec dans le [journal des commandes](../../reference/command-log/) (<kbd>⌘J</kbd>, <kbd>Ctrl+J</kbd> sous Windows et Linux), qui affiche la commande exacte et la sortie d’erreur de Git.
+
+La même règle « aucune invite » s’applique aux commits signés : la clé de signature doit être disponible via gpg-agent ou ssh-agent ([Commits](../../everyday/committing/)).

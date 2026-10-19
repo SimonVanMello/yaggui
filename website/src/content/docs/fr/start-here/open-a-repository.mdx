@@ -1,0 +1,261 @@
+---
+title: Ouvrir un dépôt
+description: L’écran d’accueil, l’ouverture d’un dépôt existant, le clonage, l’initialisation d’un nouveau dépôt et la réparation des dossiers déplacés ou non approuvés.
+sidebar:
+  order: 4
+sources:
+  - src/features/welcome/**
+  - src/features/clone/**
+  - src/features/repo/repoSessions.ts
+  - src/features/repo/knownRepoActions.ts
+  - src/features/workspaces/MissingRepoDialog.tsx
+  - src/app/startup.ts
+  - src/app/errors/**
+  - src-tauri/src/repo/mod.rs
+  - src-tauri/src/repo/create.rs
+  - src-tauri/src/commands/repo.rs
+  - src-tauri/src/commands/create.rs
+  - src-tauri/src/commands/app.rs
+requirements: [F-001, F-002, F-003, F-005, F-009]
+---
+
+import Screenshot from '~/components/Screenshot.astro';
+import openWelcomeDark from '../../../../assets/screens/open-welcome-dark.png';
+import openWelcomeLight from '../../../../assets/screens/open-welcome-light.png';
+import openCloneDialogDark from '../../../../assets/screens/open-clone-dialog-dark.png';
+import openCloneDialogLight from '../../../../assets/screens/open-clone-dialog-light.png';
+import openInitDialogDark from '../../../../assets/screens/open-init-dialog-dark.png';
+import openInitDialogLight from '../../../../assets/screens/open-init-dialog-light.png';
+
+Chaque dépôt s’ouvre dans son propre onglet. Un nouvel onglet démarre sur l’écran d’accueil, où vous ouvrez un dépôt existant, en clonez un ou en créez un. Cette page couvre toutes les façons d’ouvrir un dépôt et ce qui peut mal tourner.
+
+## L’écran d’accueil
+
+L’écran d’accueil apparaît dans un nouvel onglet (<kbd>⌘T</kbd>, <kbd>Ctrl+T</kbd> sous Windows et Linux) et quand vous fermez le dernier onglet.
+
+<Screenshot
+  dark={openWelcomeDark}
+  light={openWelcomeLight}
+  alt="L’écran d’accueil avec les tuiles Ouvrir, Cloner et Initialiser, la section des workspaces, le champ de recherche et les listes des dépôts favoris et récents"
+/>
+
+De haut en bas :
+
+- Les tuiles **Ouvrir**, **Cloner** et **Initialiser**. Voir [Ouvrir un dépôt existant](#ouvrir-un-dépôt-existant), [Cloner un dépôt](#cloner-un-dépôt) et [Initialiser un dépôt](#initialiser-un-dépôt).
+- **Workspaces** : vos groupes de dépôts, avec **Scanner un dossier…** et **Gérer**. Cliquez sur un workspace pour ouvrir tous ses dépôts dans des onglets. Voir [Workspaces](../../workspaces/workspaces/).
+- **Rechercher un dépôt par nom ou chemin** : un champ de recherche, qui a le focus à l’ouverture de l’écran.
+- **Favoris**, puis **Récents** : les dépôts que yaggui connaît. Les récents sont triés selon la dernière fois que vous les avez ouverts.
+- En bas, un rappel indiquant que vous pouvez déposer un dossier sur la fenêtre, et **Saisir un chemin…**.
+
+### Recherche
+
+Tapez une partie du nom ou du chemin d’un dépôt. La correspondance est approximative : les lettres tapées doivent apparaître dans l’ordre, pas forcément côte à côte. Les correspondances dans le nom sont mieux classées, et les lettres correspondantes sont surlignées. Pendant la recherche, les résultats forment une seule liste, **Résultats**.
+
+| Touche                      | Effet                       |
+| --------------------------- | --------------------------- |
+| <kbd>↑</kbd> / <kbd>↓</kbd> | Se déplacer dans la liste   |
+| <kbd>Enter</kbd>            | Ouvrir le dépôt sélectionné |
+| <kbd>Esc</kbd>              | Effacer la recherche        |
+
+### Chaque ligne de dépôt
+
+Une ligne affiche le point de couleur du dépôt, son nom, son chemin et la date de sa dernière ouverture. **Jamais ouvert** désigne un dépôt ajouté par un scan de dossier et pas encore ouvert. **Dossier introuvable** désigne un dépôt dont le dossier a disparu (voir [Un dépôt a été déplacé ou supprimé](#un-dépôt-a-été-déplacé-ou-supprimé)).
+
+Cliquez sur une ligne, ou sélectionnez-la et appuyez sur <kbd>Enter</kbd>, pour l’ouvrir dans cet onglet. Si le dépôt est déjà ouvert dans un autre onglet, yaggui bascule vers cet onglet : un dépôt n’a jamais deux onglets.
+
+Survolez une ligne pour afficher ses boutons :
+
+- L’étoile, **Ajouter aux favoris** ou **Retirer des favoris**, déplace le dépôt vers **Favoris** ou l’en retire.
+- **×**, **Retirer des récents**, retire le dépôt de la liste de yaggui, et de chaque workspace qui le contient, immédiatement et sans confirmation. Le dossier sur le disque n’est pas touché. Cela ferme aussi les terminaux intégrés du dépôt. Pour le retrouver, ouvrez de nouveau le dossier.
+
+## Ouvrir un dépôt existant
+
+| Point d’entrée       | Comment                                                 |
+| -------------------- | ------------------------------------------------------- |
+| Écran d’accueil      | La tuile **Ouvrir**, ou **Saisir un chemin…** en bas    |
+| Clavier              | <kbd>⌘O</kbd> (<kbd>Ctrl+O</kbd> sous Windows et Linux) |
+| Palette de commandes | **Ouvrir un dépôt…**                                    |
+| Menu macOS           | **Fichier** > **Ouvrir un dépôt…**                      |
+| Glisser-déposer      | Déposez un dossier n’importe où sur la fenêtre          |
+| Ligne de commande    | `yaggui <path>`                                         |
+
+Depuis un onglet d’accueil, le dépôt s’ouvre dans cet onglet ; depuis un onglet de dépôt, il s’ouvre dans un nouvel onglet.
+
+**Ouvrir**, <kbd>⌘O</kbd> et la palette affichent le sélecteur de dossier de votre système, **Choisir le dossier d'un dépôt**. Choisissez un dossier et yaggui l’ouvre ; si vous annulez, rien ne se passe.
+
+**Saisir un chemin…** ouvre à la place la boîte de dialogue **Ouvrir un dépôt**. Collez le chemin dans **Dossier** et cliquez sur **Ouvrir**, ou cliquez sur **Parcourir…** pour le choisir. Si le dossier ne peut pas être ouvert, l’erreur s’affiche dans la boîte de dialogue, qui reste ouverte pour que vous corrigiez le chemin. Si le sélecteur de dossier n’est pas disponible sur votre système, yaggui affiche aussi cette boîte de dialogue.
+
+### Glisser-déposer
+
+Faites glisser un dossier depuis votre gestionnaire de fichiers vers la fenêtre. **Dépose pour ouvrir le dépôt** recouvre la fenêtre pendant le glissement. Déposez plusieurs dossiers pour ouvrir chacun dans son propre onglet ; le premier réutilise l’onglet d’accueil courant.
+
+### Depuis la ligne de commande
+
+```bash
+yaggui /home/me/projects/website
+```
+
+Donnez un chemin absolu. Pour ouvrir le dossier courant, utilisez `yaggui "$PWD"` (sous Windows, `yaggui "%CD%"` dans l’invite de commandes). Un chemin relatif comme `yaggui .` échoue avec « Chemin de dossier absolu attendu… ».
+
+Le chemin n’est lu qu’au démarrage de yaggui. Si yaggui est déjà lancé, la commande démarre une seconde instance de yaggui, indépendante.
+
+L’emplacement de la commande `yaggui` dépend de la manière dont vous l’avez installé : `/usr/bin/yaggui` pour les paquets `.deb`, `.rpm` et AUR, `/Applications/yaggui.app/Contents/MacOS/yaggui` sous macOS, et le dossier d’installation sous Windows.
+
+### Quel dossier ouvrir
+
+- **Un sous-dossier** d’un dépôt ouvre le dépôt entier : yaggui remonte l’arborescence pour trouver la racine du dépôt, comme Git.
+- **Un dépôt nu** (sans arbre de travail) ne peut pas être ouvert : « Les dépôts nus ne sont pas encore pris en charge. »
+- **Un dossier hors de tout dépôt** échoue avec « \<chemin\> n'est pas un dépôt Git. » Pour en faire un dépôt, utilisez [Initialiser un dépôt](#initialiser-un-dépôt).
+- **Un dossier qui n'existe pas** échoue avec « Le dossier \<chemin\> n'existe pas. »
+
+Quand l’ouverture échoue depuis l’écran d’accueil, une notification intitulée **Impossible d'ouvrir le dépôt** reste affichée jusqu’à ce que vous la fermiez. **Détails** indique la cause technique. Voir [Messages d’erreur](../../reference/error-messages/).
+
+## Cloner un dépôt
+
+Ouvrez la boîte de dialogue **Cloner un dépôt** depuis :
+
+- la tuile **Cloner** de l’écran d’accueil ;
+- la palette de commandes : **Cloner un dépôt…** ;
+- sous macOS, **Fichier** > **Cloner un dépôt…**.
+
+Il n’y a pas de raccourci par défaut ; vous pouvez en attribuer un dans [Palette et raccourcis](../../customize/palette-and-shortcuts/).
+
+<Screenshot
+  dark={openCloneDialogDark}
+  light={openCloneDialogLight}
+  alt="La boîte de dialogue Cloner un dépôt avec l’adresse, le dossier de destination, le nom du dossier, la branche, le clone superficiel et l’option des sous-modules"
+/>
+
+| Champ                       | Ce qu’il faut saisir                                                                                                                                 | Valeur par défaut                                                                |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| **Adresse du dépôt**        | Une URL HTTPS ou SSH, comme `https://github.com/owner/repo.git` ou `git@host:owner/repo.git`. Un chemin local ou une URL `file://` fonctionne aussi. | vide                                                                             |
+| **Cloner dans**             | Le dossier qui contiendra le nouveau dépôt. **Parcourir…** ouvre le sélecteur de dossier.                                                            | le dernier dossier dans lequel vous avez cloné ou initialisé, s’il existe encore |
+| **Nom du dossier**          | Le nom du nouveau dossier.                                                                                                                           | tiré de l’adresse (`…/repo.git` donne `repo`) tant que vous ne le modifiez pas   |
+| **Branche (facultatif)**    | Une branche ou un tag à extraire après le clonage.                                                                                                   | vide : la branche par défaut du serveur                                          |
+| **Clone superficiel**       | Ne télécharge que les derniers commits : plus rapide, mais l’historique est tronqué. L’activer affiche **Profondeur (commits)**.                     | désactivé ; profondeur 1                                                         |
+| **Cloner les sous-modules** | Clone aussi les sous-modules, récursivement.                                                                                                         | désactivé                                                                        |
+
+Sous les champs, **Créé dans \<chemin\>** indique où le dépôt sera créé.
+
+yaggui ne demande jamais de mot de passe. Les identifiants HTTPS viennent de votre credential helper Git, et les clés SSH de `ssh-agent`. Configurez-les avant de cloner un dépôt privé ; voir [Authentification](../../remotes/authentication/).
+
+### Validation
+
+Quand vous cliquez sur **Cloner**, les champs vides ou invalides passent en rouge et rien ne démarre :
+
+- **Adresse du dépôt**, **Cloner dans** et **Nom du dossier** sont obligatoires.
+- **Nom du dossier** ne peut être ni `.` ni `..`, ni contenir `/` ou `\` : « Le nom du dossier ne peut pas contenir / ni \\. »
+- **Profondeur (commits)** doit être un entier de 1 à 1 000 000 : « La profondeur doit être un entier supérieur ou égal à 1. »
+- **Branche (facultatif)** est vérifiée avec `git check-ref-format --branch` avant le début du clonage.
+
+### Progression et annulation
+
+Pendant le clonage, le titre de la boîte de dialogue devient **Clonage de \<nom\>…** et affiche une barre de progression, la phase en cours (**Connexion…**, **Comptage des objets**, **Réception des objets**, **Résolution des deltas**, **Mise à jour des fichiers**…) et un pourcentage.
+
+Cliquez sur **Annuler le clonage** pour arrêter. yaggui arrête Git et supprime le dossier qu’il a créé (ou le vide, s’il existait et était vide au départ). Aucune erreur n’est affichée. Pendant le clonage, <kbd>Esc</kbd> et un clic en dehors de la boîte de dialogue ne la ferment pas.
+
+yaggui lance :
+
+```bash
+git -c protocol.ext.allow=never clone --progress [--branch <branch>] [--depth <n>] [--recurse-submodules [--shallow-submodules]] -- <address> <folder>
+```
+
+La commande apparaît dans le [journal des commandes](../../reference/command-log/) sous le filtre **Toutes**.
+
+### Résultat et erreurs
+
+Quand le clonage réussit, la boîte de dialogue se ferme, une notification **\<nom\> cloné** apparaît et le dépôt s’ouvre : dans l’onglet courant si vous êtes parti de l’écran d’accueil, sinon dans un nouvel onglet.
+
+S’il échoue, **Échec du clonage** apparaît dans la boîte de dialogue avec la raison, et tout dossier partiel est supprimé. Les raisons courantes :
+
+| Message                                                                                                                                                                             | Que faire                                                                                   |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| Authentification refusée. yaggui ne demande jamais de mot de passe : configure un credential helper Git (git config credential.helper) et connecte-toi une fois depuis un terminal. | Configurez les identifiants HTTPS ; voir [Authentification](../../remotes/authentication/). |
+| Authentification SSH refusée. Charge ta clé dans ssh-agent (ssh-add) et vérifie que le remote la connaît.                                                                           | Lancez `ssh-add`, et ajoutez votre clé publique à votre compte sur le serveur.              |
+| L'hôte distant est injoignable. Vérifie ta connexion et l'URL du remote.                                                                                                            | Vérifiez l’adresse et votre réseau, puis cliquez sur **Réessayer**.                         |
+| Remote introuvable : vérifie son nom et son URL.                                                                                                                                    | L’adresse est erronée, ou le dépôt est privé et vos identifiants ne donnent pas accès.      |
+| La branche « \<nom\> » n'existe pas sur le serveur.                                                                                                                                 | Corrigez **Branche (facultatif)** ou laissez-le vide.                                       |
+| Le dossier \<chemin\> existe déjà et n'est pas vide. Choisis un autre dossier, ou un dossier vide.                                                                                  | Changez **Cloner dans** ou **Nom du dossier**.                                              |
+| Un chemin est trop long pour Windows. …                                                                                                                                             | Lancez `git config --global core.longpaths true`, puis recommencez.                         |
+
+Un clonage ne peut pas être annulé depuis yaggui. Pour vous en débarrasser, fermez son onglet, retirez-le de l’écran d’accueil et supprimez le dossier.
+
+## Initialiser un dépôt
+
+Ouvrez la boîte de dialogue **Initialiser un dépôt** depuis :
+
+- la tuile **Initialiser** de l’écran d’accueil ;
+- la palette de commandes : **Initialiser un dépôt…** ;
+- sous macOS, **Fichier** > **Initialiser un dépôt…**.
+
+<Screenshot
+  dark={openInitDialogDark}
+  light={openInitDialogLight}
+  alt="La boîte de dialogue Initialiser un dépôt avec le dossier, la branche par défaut, les modèles de .gitignore et l’option README"
+/>
+
+| Champ                     | Ce qu’il fait                                                                                                                                                        | Valeur par défaut                             |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| **Dossier**               | Le dossier du nouveau dépôt. Il est créé s’il n’existe pas ; les fichiers qu’il contient déjà sont laissés tels quels. **Parcourir…** ouvre le sélecteur de dossier. | vide                                          |
+| **Branche par défaut**    | Le nom de la première branche.                                                                                                                                       | votre réglage `init.defaultBranch`, ou `main` |
+| **Modèles de .gitignore** | Node, Rust, .NET, Python, macOS, Windows. Cliquez sur plusieurs modèles pour les combiner.                                                                           | aucun                                         |
+| **Ajouter un README.md**  | Écrit un `README.md` dont le titre est le nom du dossier.                                                                                                            | désactivé                                     |
+
+Cliquez sur **Initialiser**. yaggui lance `git init --initial-branch <branch> -- <folder>`, puis écrit les fichiers choisis :
+
+- `.gitignore` n’est écrit que si le dossier n’en a pas : un fichier existant n’est jamais remplacé. Chaque modèle commence par un commentaire `# <nom>`.
+- `README.md` n’est écrit que si le dossier ne contient aucun fichier dont le nom commence par « readme », quelle que soit la casse.
+
+Aucun commit n’est créé : le dépôt s’ouvre avec **Aucun commit**, prêt pour votre premier commit. Une notification indique **\<nom\> initialisé**.
+
+Si **Dossier** ou **Branche par défaut** est vide, le champ passe en rouge et rien ne s’exécute. Les erreurs apparaissent dans la boîte de dialogue sous **Échec de l'initialisation** :
+
+- « \<chemin\> est déjà un dépôt Git. » Ouvrez-le plutôt.
+- « Le dossier \<chemin\> existe déjà et n'est pas vide… » quand le chemin est un fichier.
+- Un nom de branche invalide, avec les règles de nommage.
+
+Si Git échoue, un dossier que yaggui a créé pour le dépôt est de nouveau supprimé. L’initialisation ne peut pas être annulée depuis yaggui : supprimez le dossier `.git` pour l’annuler.
+
+## Un dépôt a été déplacé ou supprimé
+
+Quand le dossier d'un dépôt connu a disparu, sa ligne de l’écran d’accueil affiche **Dossier introuvable**. Cliquez dessus pour ouvrir la boîte de dialogue **\<nom\> a été déplacé ou supprimé** :
+
+- **Localiser…** ouvre le sélecteur de dossier. Choisissez le nouveau dossier racine du dépôt (pas un sous-dossier). yaggui met à jour sa liste et affiche **\<nom\> localisé**. Si ce dossier figurait déjà dans la liste, les deux entrées sont fusionnées. Si le dossier n’est pas la racine d’un dépôt Git, **Impossible de localiser le dépôt** apparaît avec la raison.
+- **Retirer de yaggui** le retire de la liste. Retirer ne supprime jamais de fichiers : seule la liste de yaggui change.
+- **Annuler** ferme la boîte de dialogue.
+
+Un onglet restauré au démarrage pour un dépôt qui ne peut pas être ouvert affiche **Impossible d'ouvrir \<nom\>**, avec **Réessayer** et **Fermer l'onglet**. Quand le dossier a disparu, il propose aussi **Localiser…** et **Retirer des récents** (qui ferme aussi l’onglet).
+
+## Faire confiance à un dossier appartenant à un autre utilisateur
+
+Git refuse de travailler dans un dépôt qui appartient à un autre compte utilisateur, par exemple un dépôt situé sur un disque partagé ou créé avec `sudo`. yaggui affiche alors « Git refuse d'utiliser \<chemin\> car il appartient à un autre utilisateur. Ajoute-le à safe.directory seulement si tu lui fais confiance. » avec le bouton **Faire confiance au dossier…**.
+
+1. Cliquez sur **Faire confiance au dossier…**. La boîte de dialogue **Faire confiance à ce dossier ?** explique le risque et montre la commande exacte.
+2. Cliquez sur **Faire confiance**. yaggui lance :
+
+   ```bash
+   git config --global --add safe.directory <path>
+   ```
+
+3. yaggui rouvre le dépôt.
+
+:::caution
+Ne faites confiance qu'aux dossiers que vous connaissez. Les hooks Git d’un dépôt approuvé s’exécutent avec les permissions de votre compte quand yaggui y lance Git.
+:::
+
+Cela ne peut pas être annulé depuis yaggui. Pour révoquer la confiance, supprimez la ligne `safe.directory` de votre configuration Git globale, par exemple avec `git config --global --unset safe.directory <path>`. Voir [safe.directory](https://git-scm.com/docs/git-config#Documentation/git-config.txt-safedirectory) dans la documentation de Git.
+
+## Ce qui se passe à l’ouverture d’un dépôt
+
+- Un indicateur d’activité et **Ouverture de \<nom\>…** s’affichent pendant que yaggui lit le dépôt. yaggui le lit directement, sans processus `git`, sauf `git rev-parse --git-dir` quand le dossier appartient à un autre utilisateur.
+- Le dépôt passe en tête de **Récents**.
+- yaggui commence à surveiller le dossier : les modifications faites en dehors de yaggui (un éditeur, un terminal) apparaissent donc d’elles-mêmes. Si le système ne peut pas le surveiller, par exemple parce que la limite Linux de fichiers surveillés est atteinte, le dépôt s’ouvre quand même avec la bannière **Rafraîchissement automatique indisponible** et un bouton **Actualiser**. Voir [Dépannage](../../help/troubleshooting/).
+- Si le fichier commit-graph du dépôt ne couvre pas 1 000 commits accessibles ou plus, yaggui le réécrit en arrière-plan pour accélérer le graphe (pas dans les clones superficiels, ni quand `core.commitGraph` vaut `false`) :
+
+  ```bash
+  git commit-graph write --reachable --changed-paths --no-progress
+  ```
+
+  Aucune notification ni progression ne s’affiche, mais la commande apparaît dans le journal des commandes.
+
+- yaggui enregistre les onglets ouverts et les rouvre au lancement suivant. Voir [Onglets](../../workspaces/tabs/).

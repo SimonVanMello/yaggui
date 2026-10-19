@@ -41,27 +41,27 @@ Le panneau **Changements locaux** occupe le côté droit de la fenêtre tant qu�
 
 ### Rien à commiter
 
-Quand l’arbre de travail est propre, le panneau affiche **Rien à commiter** et « L'arbre de travail correspond au dernier commit. », suivis de raccourcis vers la suite la plus probable :
+Quand l’arbre de travail est propre, le panneau affiche **Rien à commiter** et « L'arbre de travail correspond au dernier commit. », suivis de raccourcis vers la suite la plus probable :
 
-| Bouton                                                | Affiché quand                                       | Raccourci                                                         |
-| ----------------------------------------------------- | --------------------------------------------------- | ----------------------------------------------------------------- |
-| **Pull de 1 commit** / **Pull de \{count\} commits**  | Votre branche est en retard sur son upstream        | <kbd>⌘⇧L</kbd> (<kbd>Ctrl+Shift+L</kbd> sous Windows et Linux)    |
-| **Nouvelle branche**                                  | Toujours                                            | <kbd>⌘B</kbd> (<kbd>Ctrl+B</kbd> sous Windows et Linux)           |
-| **Fetch**                                             | La branche a un upstream et n’est pas en retard     | <kbd>⌘⇧F</kbd> (<kbd>Ctrl+Shift+F</kbd> sous Windows et Linux)    |
+| Bouton                                               | Affiché quand                                   | Raccourci                                                      |
+| ---------------------------------------------------- | ----------------------------------------------- | -------------------------------------------------------------- |
+| **Pull de 1 commit** / **Pull de \{count\} commits** | Votre branche est en retard sur son upstream    | <kbd>⌘⇧L</kbd> (<kbd>Ctrl+Shift+L</kbd> sous Windows et Linux) |
+| **Nouvelle branche**                                 | Toujours                                        | <kbd>⌘B</kbd> (<kbd>Ctrl+B</kbd> sous Windows et Linux)        |
+| **Fetch**                                            | La branche a un upstream et n’est pas en retard | <kbd>⌘⇧F</kbd> (<kbd>Ctrl+Shift+F</kbd> sous Windows et Linux) |
 
 ### Les listes Non indexés et Indexés
 
-Quand il y a des changements, le panneau affiche deux listes : **Non indexés** en haut (changements de l’arbre de travail, fichiers non suivis compris) et **Indexés** en dessous (changements de l’index, prêts à être commités). Chaque liste grandit avec son contenu jusqu’à environ la moitié de la hauteur de la fenêtre, puis défile. Quand une liste est vide, elle affiche **Aucune modification non indexée** ou **Rien d'indexé**.
+Quand il y a des changements, le panneau affiche deux listes : **Non indexés** en haut (changements de l’arbre de travail, fichiers non suivis compris) et **Indexés** en dessous (changements de l’index, prêts à être commités). Chaque liste grandit avec son contenu jusqu’à environ la moitié de la hauteur de la fenêtre, puis défile. Quand une liste est vide, elle affiche **Aucune modification non indexée** ou **Rien d'indexé**.
 
-L’en-tête de chaque liste indique le nombre de fichiers et le total des lignes ajoutées et supprimées (omis pour les très gros ensembles de changements). Les boutons de l’en-tête, affichés quand la liste contient des fichiers, sont :
+L’en-tête de chaque liste indique le nombre de fichiers et le total des lignes ajoutées et supprimées (omis pour les très gros ensembles de changements). Les boutons de l’en-tête, affichés quand la liste contient des fichiers, sont :
 
-| Liste        | Boutons                                                          |
-| ------------ | ---------------------------------------------------------------- |
-| Non indexés  | **Annuler tous les changements** (icône d’annulation), **Tout indexer** |
-| Indexés      | **Tout désindexer**                                              |
-| Les deux     | **Afficher en arbre** / **Afficher en liste**                    |
+| Liste       | Boutons                                                                 |
+| ----------- | ----------------------------------------------------------------------- |
+| Non indexés | **Annuler tous les changements** (icône d’annulation), **Tout indexer** |
+| Indexés     | **Tout désindexer**                                                     |
+| Les deux    | **Afficher en arbre** / **Afficher en liste**                           |
 
-**Afficher en arbre** regroupe les fichiers sous des lignes de dossiers repliables qui indiquent le nombre de fichiers qu’ils contiennent ; **Afficher en liste** montre une liste à plat où le dossier de chaque fichier est estompé à côté de son nom. Cet affichage s’applique à toutes les listes de fichiers de yaggui (détails d’un commit compris) et revient à la liste au redémarrage de l’application.
+**Afficher en arbre** regroupe les fichiers sous des lignes de dossiers repliables qui indiquent le nombre de fichiers qu’ils contiennent ; **Afficher en liste** montre une liste à plat où le dossier de chaque fichier est estompé à côté de son nom. Cet affichage s’applique à toutes les listes de fichiers de yaggui (détails d’un commit compris) et revient à la liste au redémarrage de l’application.
 
 <Screenshot
   dark={stagingChangesPanelDark}
@@ -71,46 +71,46 @@ L’en-tête de chaque liste indique le nombre de fichiers et le total des ligne
 
 ### Lettres de statut et badges
 
-Chaque ligne commence par une lettre de statut colorée :
+Chaque ligne commence par une lettre de statut colorée :
 
-| Lettre | Statut                                                              | Couleur |
-| ------ | ------------------------------------------------------------------- | ------- |
-| **M**  | Modifié                                                             | Ambre   |
+| Lettre | Statut                                                               | Couleur |
+| ------ | -------------------------------------------------------------------- | ------- |
+| **M**  | Modifié                                                              | Ambre   |
 | **T**  | Type modifié (par exemple, un fichier est devenu un lien symbolique) | Ambre   |
-| **A**  | Ajouté                                                              | Vert    |
-| **?**  | Non suivi                                                           | Vert    |
-| **D**  | Supprimé                                                            | Rouge   |
-| **U**  | En conflit                                                          | Rouge   |
-| **R**  | Renommé                                                             | Bleu    |
-| **C**  | Copié                                                               | Bleu    |
+| **A**  | Ajouté                                                               | Vert    |
+| **?**  | Non suivi                                                            | Vert    |
+| **D**  | Supprimé                                                             | Rouge   |
+| **U**  | En conflit                                                           | Rouge   |
+| **R**  | Renommé                                                              | Bleu    |
+| **C**  | Copié                                                                | Bleu    |
 
-Après le nom du fichier, une ligne peut porter :
+Après le nom du fichier, une ligne peut porter :
 
 - **depuis \{path\}** et un pourcentage de similarité pour un fichier renommé ou copié.
 - **chmod** quand le mode du fichier a changé (par exemple, le bit exécutable).
 - **BIN** pour un fichier binaire.
 - **submodule** pour un [submodule](../../repository/submodules/) dont le commit a changé.
 - **LFS** pour un fichier stocké avec [Git LFS](../../repository/git-lfs/).
-- Le nombre de lignes `+ajoutées −supprimées` (non calculé pour les fichiers de plus de 1 Mo, les fichiers LFS, les submodules et les conflits).
+- Le nombre de lignes `+ajoutées −supprimées` (non calculé pour les fichiers de plus de 1 Mo, les fichiers LFS, les submodules et les conflits).
 
 Survolez une ligne pour voir son chemin complet dans une infobulle (`ancien → nouveau` pour un renommage).
 
 ## Sélectionner des fichiers
 
 - Cliquez sur un fichier pour le sélectionner et ouvrir son diff à la place du graphe (voir [Consulter les diffs](../../everyday/diff/)). Cliquez à nouveau sur le fichier ouvert pour fermer le diff.
-- <kbd>Shift</kbd>+clic sélectionne une plage ; <kbd>⌘</kbd>+clic (<kbd>Ctrl</kbd>+clic sous Windows et
-  Linux) ajoute ou retire un fichier. Une sélection multiple n’ouvre pas de diff.
-- Quand la liste a le focus, <kbd>↑</kbd> et <kbd>↓</kbd> déplacent la sélection et ouvrent le diff de chaque fichier ; <kbd>Shift+↑</kbd> et <kbd>Shift+↓</kbd> étendent la sélection.
+- <kbd>Shift</kbd>+clic sélectionne une plage ; <kbd>⌘</kbd>+clic (<kbd>Ctrl</kbd>+clic sous Windows
+  et Linux) ajoute ou retire un fichier. Une sélection multiple n’ouvre pas de diff.
+- Quand la liste a le focus, <kbd>↑</kbd> et <kbd>↓</kbd> déplacent la sélection et ouvrent le diff de chaque fichier ; <kbd>Shift+↑</kbd> et <kbd>Shift+↓</kbd> étendent la sélection.
 
 ## Indexer et désindexer des fichiers
 
 Chaque méthode d’indexation agit sur la sélection quand le fichier visé en fait partie, et sinon sur ce fichier seul.
 
-- **Boutons au survol** : sur une ligne de la liste Non indexés, le bouton plus (**Indexer le fichier** / **Indexer \{count\} fichiers**) ; sur une ligne de la liste Indexés, le bouton moins (**Désindexer le fichier** / **Désindexer \{count\} fichiers**).
-- **Clavier** : appuyez sur <kbd>Space</kbd> dans une liste qui a le focus pour indexer (liste Non indexés) ou désindexer (liste Indexés) la sélection. La sélection passe ensuite au fichier suivant et, si le diff du fichier traité était ouvert, le diff suit jusqu’à ce fichier suivant.
-- **Glisser-déposer** : faites glisser des lignes d’une liste vers l’autre. Glisser une ligne sélectionnée entraîne toute la sélection. La liste cible est mise en évidence pendant le survol.
+- **Boutons au survol** : sur une ligne de la liste Non indexés, le bouton plus (**Indexer le fichier** / **Indexer \{count\} fichiers**) ; sur une ligne de la liste Indexés, le bouton moins (**Désindexer le fichier** / **Désindexer \{count\} fichiers**).
+- **Clavier** : appuyez sur <kbd>Space</kbd> dans une liste qui a le focus pour indexer (liste Non indexés) ou désindexer (liste Indexés) la sélection. La sélection passe ensuite au fichier suivant et, si le diff du fichier traité était ouvert, le diff suit jusqu’à ce fichier suivant.
+- **Glisser-déposer** : faites glisser des lignes d’une liste vers l’autre. Glisser une ligne sélectionnée entraîne toute la sélection. La liste cible est mise en évidence pendant le survol.
 - **Tout indexer** / **Tout désindexer** dans les en-têtes de liste.
-- **Menu contextuel** : clic droit sur une ligne (voir plus bas).
+- **Menu contextuel** : clic droit sur une ligne (voir plus bas).
 
 <Screenshot
   dark={stagingHoverButtonsDark}
@@ -118,7 +118,7 @@ Chaque méthode d’indexation agit sur la sélection quand le fichier visé en 
   alt="Une ligne de fichier non indexé sous le pointeur, avec ses boutons Annuler les changements et Indexer le fichier"
 />
 
-yaggui exécute :
+yaggui exécute :
 
 ```bash
 # Stage the selected paths (paths passed on stdin, NUL-separated)
@@ -131,54 +131,54 @@ git --literal-pathspecs reset -q --pathspec-from-file=- --pathspec-file-nul
 git reset -q -- :/
 ```
 
-Indexer un fichier en conflit le marque comme résolu. Désindexer le nouveau nom d’un renommage indexé désindexe aussi l’ancien. L’indexation n’affiche aucun toast de confirmation ; un échec affiche un toast avec la raison. L’indexation et la désindexation ne sont pas enregistrées pour l’[annulation](../../history/undo-and-redo/) : utilisez l’action inverse.
+Indexer un fichier en conflit le marque comme résolu. Désindexer le nouveau nom d’un renommage indexé désindexe aussi l’ancien. L’indexation n’affiche aucun toast de confirmation ; un échec affiche un toast avec la raison. L’indexation et la désindexation ne sont pas enregistrées pour l’[annulation](../../history/undo-and-redo/) : utilisez l’action inverse.
 
-Un chemin situé dans un lien symbolique vers un dossier est refusé : « \{path\} » est dans un lien symbolique.
+Un chemin situé dans un lien symbolique vers un dossier est refusé : « \{path\} » est dans un lien symbolique.
 
 ### Menu contextuel d’un fichier
 
-Faites un clic droit sur une ligne de l’une ou l’autre liste. Entrées, dans l’ordre :
+Faites un clic droit sur une ligne de l’une ou l’autre liste. Entrées, dans l’ordre :
 
-| Entrée                                                                                | Listes                         | Effet                                                                                                                                                                       |
-| ------------------------------------------------------------------------------------- | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Indexer le fichier** / **Indexer \{count\} fichiers**                               | Non indexés                    | Indexe les fichiers                                                                                                                                                         |
-| **Désindexer le fichier** / **Désindexer \{count\} fichiers**                         | Indexés                        | Désindexe les fichiers                                                                                                                                                      |
-| **Annuler les changements** / **Annuler les changements de \{count\} fichiers**      | Non indexés                    | Voir [Annuler les modifications de fichiers](#annuler-les-modifications-de-fichiers)                                                                                        |
-| **Mettre ce fichier de côté…** / **Mettre \{count\} fichiers de côté…**               | Les deux                       | Stash partiel, voir [Stash](../../everyday/stash/#mettre-de-côté-seulement-certains-fichiers). Les fichiers en conflit sont écartés ; désactivé quand rien ne peut être mis de côté |
-| **Ajouter au .gitignore…**                                                            | Un seul fichier non suivi      | Voir [Ajouter un fichier au .gitignore](#ajouter-un-fichier-au-gitignore)                                                                                                   |
-| **Copier le chemin** / **Copier \{count\} chemins**                                   | Les deux                       | Copie les chemins relatifs au dépôt, un par ligne                                                                                                                           |
-| **Historique du fichier**                                                             | Les deux                       | Ouvre l’[historique du fichier](../../inspect/file-history-and-blame/)                                                                                                      |
-| **Blame**                                                                             | Les deux                       | Fait le blame de la version de l’arbre de travail                                                                                                                           |
+| Entrée                                                                          | Listes                    | Effet                                                                                                                                                                               |
+| ------------------------------------------------------------------------------- | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Indexer le fichier** / **Indexer \{count\} fichiers**                         | Non indexés               | Indexe les fichiers                                                                                                                                                                 |
+| **Désindexer le fichier** / **Désindexer \{count\} fichiers**                   | Indexés                   | Désindexe les fichiers                                                                                                                                                              |
+| **Annuler les changements** / **Annuler les changements de \{count\} fichiers** | Non indexés               | Voir [Annuler les modifications de fichiers](#annuler-les-modifications-de-fichiers)                                                                                                |
+| **Mettre ce fichier de côté…** / **Mettre \{count\} fichiers de côté…**         | Les deux                  | Stash partiel, voir [Stash](../../everyday/stash/#mettre-de-côté-seulement-certains-fichiers). Les fichiers en conflit sont écartés ; désactivé quand rien ne peut être mis de côté |
+| **Ajouter au .gitignore…**                                                      | Un seul fichier non suivi | Voir [Ajouter un fichier au .gitignore](#ajouter-un-fichier-au-gitignore)                                                                                                           |
+| **Copier le chemin** / **Copier \{count\} chemins**                             | Les deux                  | Copie les chemins relatifs au dépôt, un par ligne                                                                                                                                   |
+| **Historique du fichier**                                                       | Les deux                  | Ouvre l’[historique du fichier](../../inspect/file-history-and-blame/)                                                                                                              |
+| **Blame**                                                                       | Les deux                  | Fait le blame de la version de l’arbre de travail                                                                                                                                   |
 
 ## Indexer une partie du fichier
 
-Ouvrez le diff d’un fichier depuis la liste Non indexés ou Indexés pour agir sur des blocs ou des lignes individuels. Cela ne fonctionne que sur les fichiers texte : pas sur les diffs de commit ou de stash, l’aperçu Markdown, les images, les entrées binaires, LFS ou submodule, les liens symboliques ni les fichiers en conflit.
+Ouvrez le diff d’un fichier depuis la liste Non indexés ou Indexés pour agir sur des blocs ou des lignes individuels. Cela ne fonctionne que sur les fichiers texte : pas sur les diffs de commit ou de stash, l’aperçu Markdown, les images, les entrées binaires, LFS ou submodule, les liens symboliques ni les fichiers en conflit.
 
 ### Blocs
 
-L’en-tête de chaque bloc porte des boutons :
+L’en-tête de chaque bloc porte des boutons :
 
-- Dans un diff non indexé : **Annuler le bloc** et **Indexer le bloc**.
-- Dans un diff indexé : **Désindexer le bloc**.
+- Dans un diff non indexé : **Annuler le bloc** et **Indexer le bloc**.
+- Dans un diff indexé : **Désindexer le bloc**.
 
 Dans la disposition côte à côte, les boutons sont sur le volet de gauche.
 
 ### Lignes
 
 1. Cliquez sur une ligne modifiée dans la gouttière pour la sélectionner. Faites glisser pour sélectionner une suite de lignes, <kbd>Shift</kbd>+clic pour sélectionner une plage, <kbd>⌘</kbd>+clic (<kbd>Ctrl</kbd>+clic sous Windows et Linux) pour ajouter ou retirer une ligne. Cliquer sur l’unique ligne sélectionnée la désélectionne.
-2. Une barre apparaît avec **\{count\} lignes sélectionnées** et ses actions : **Indexer les lignes** et **Annuler les lignes** dans un diff non indexé, **Désindexer les lignes** dans un diff indexé, et **Effacer la sélection**.
-3. Choisissez une action, ou utilisez le clavier (le diff ayant le focus) :
+2. Une barre apparaît avec **\{count\} lignes sélectionnées** et ses actions : **Indexer les lignes** et **Annuler les lignes** dans un diff non indexé, **Désindexer les lignes** dans un diff indexé, et **Effacer la sélection**.
+3. Choisissez une action, ou utilisez le clavier (le diff ayant le focus) :
 
-| Touche                                    | Action                                                                         |
-| ----------------------------------------- | ------------------------------------------------------------------------------ |
-| <kbd>↑</kbd> / <kbd>↓</kbd>               | Déplace le curseur de ligne                                                    |
-| <kbd>Shift+↑</kbd> / <kbd>Shift+↓</kbd>   | Étend la sélection                                                             |
-| <kbd>Space</kbd>                          | Sélectionne ou désélectionne la ligne sous le curseur                          |
+| Touche                                    | Action                                                                              |
+| ----------------------------------------- | ----------------------------------------------------------------------------------- |
+| <kbd>↑</kbd> / <kbd>↓</kbd>               | Déplace le curseur de ligne                                                         |
+| <kbd>Shift+↑</kbd> / <kbd>Shift+↓</kbd>   | Étend la sélection                                                                  |
+| <kbd>Space</kbd>                          | Sélectionne ou désélectionne la ligne sous le curseur                               |
 | <kbd>Enter</kbd>                          | **Indexer les lignes** (diff non indexé) ou **Désindexer les lignes** (diff indexé) |
-| <kbd>Backspace</kbd> ou <kbd>Delete</kbd> | **Annuler les lignes** (diff non indexé uniquement)                            |
-| <kbd>Esc</kbd>                            | Efface la sélection ; un second <kbd>Esc</kbd> ferme le diff                   |
+| <kbd>Backspace</kbd> ou <kbd>Delete</kbd> | **Annuler les lignes** (diff non indexé uniquement)                                 |
+| <kbd>Esc</kbd>                            | Efface la sélection ; un second <kbd>Esc</kbd> ferme le diff                        |
 
-Une ligne remplacée compte pour une ligne supprimée plus une ligne ajoutée. Dans la disposition **Unifié**, vous pouvez sélectionner l’une ou l’autre seule ; en **Côte à côte**, une rangée contient les deux et la sélectionner sélectionne les deux. Les lignes que vous ne sélectionnez pas restent où elles sont.
+Une ligne remplacée compte pour une ligne supprimée plus une ligne ajoutée. Dans la disposition **Unifié**, vous pouvez sélectionner l’une ou l’autre seule ; en **Côte à côte**, une rangée contient les deux et la sélectionner sélectionne les deux. Les lignes que vous ne sélectionnez pas restent où elles sont.
 
 <Screenshot
   dark={stagingLineSelectionDark}
@@ -186,9 +186,9 @@ Une ligne remplacée compte pour une ligne supprimée plus une ligne ajoutée. D
   alt="Deux lignes ajoutées sélectionnées dans la gouttière du diff, avec la barre de sélection proposant Indexer les lignes, Annuler les lignes et Effacer la sélection"
 />
 
-Les actions sur les blocs et les lignes sont désactivées, avec une infobulle, tant que **Ignorer les espaces** est activé dans les options du diff (« Indisponible tant que les espaces sont ignorés ») et pendant le rechargement du diff (« Indisponible pendant le rechargement du diff »).
+Les actions sur les blocs et les lignes sont désactivées, avec une infobulle, tant que **Ignorer les espaces** est activé dans les options du diff (« Indisponible tant que les espaces sont ignorés ») et pendant le rechargement du diff (« Indisponible pendant le rechargement du diff »).
 
-yaggui construit un patch à partir de votre sélection et l’applique :
+yaggui construit un patch à partir de votre sélection et l’applique :
 
 ```bash
 git apply --cached --whitespace=nowarn --unidiff-zero -            # stage
@@ -198,25 +198,25 @@ git apply --reverse --whitespace=nowarn -                          # discard
 
 ### Quand le fichier a changé entre-temps
 
-Chaque requête porte les versions exactes du fichier à partir desquelles le diff a été calculé. Si le fichier a changé sur le disque (ou dans l’index) depuis l’affichage du diff, yaggui n’applique rien, affiche l’avertissement **Le fichier a changé** (« \{path\} a changé depuis l'affichage de ce diff. Le diff a été rafraîchi : refais ta sélection. ») et recharge le diff. Resélectionnez les lignes sur le nouveau diff.
+Chaque requête porte les versions exactes du fichier à partir desquelles le diff a été calculé. Si le fichier a changé sur le disque (ou dans l’index) depuis l’affichage du diff, yaggui n’applique rien, affiche l’avertissement **Le fichier a changé** (« \{path\} a changé depuis l'affichage de ce diff. Le diff a été rafraîchi : refais ta sélection. ») et recharge le diff. Resélectionnez les lignes sur le nouveau diff.
 
-Annuler des blocs ou des lignes demande une confirmation comme l’annulation d’un fichier (titre **Annuler les changements sélectionnés ?**, « 1 ligne modifiée de \{path\} est annulée dans l'arbre de travail. »), sauvegarde d’abord le fichier et peut être défait. L’indexation et la désindexation de blocs ou de lignes ne peuvent pas être défaites depuis l’historique d’annulation.
+Annuler des blocs ou des lignes demande une confirmation comme l’annulation d’un fichier (titre **Annuler les changements sélectionnés ?**, « 1 ligne modifiée de \{path\} est annulée dans l'arbre de travail. »), sauvegarde d’abord le fichier et peut être défait. L’indexation et la désindexation de blocs ou de lignes ne peuvent pas être défaites depuis l’historique d’annulation.
 
 ## Annuler les modifications de fichiers
 
-Annuler jette les changements non indexés : les fichiers suivis reviennent à leur contenu indexé, les fichiers non suivis sont supprimés. Les changements indexés sont conservés.
+Annuler jette les changements non indexés : les fichiers suivis reviennent à leur contenu indexé, les fichiers non suivis sont supprimés. Les changements indexés sont conservés.
 
-Points d’entrée (liste Non indexés uniquement, sans raccourci clavier) :
+Points d’entrée (liste Non indexés uniquement, sans raccourci clavier) :
 
 - Le bouton au survol **Annuler les changements** sur une ligne.
 - **Annuler les changements** / **Annuler les changements de \{count\} fichiers** dans le menu contextuel.
-- **Annuler tous les changements** dans l’en-tête de la liste Non indexés : tous les changements non indexés, fichiers non suivis compris.
+- **Annuler tous les changements** dans l’en-tête de la liste Non indexés : tous les changements non indexés, fichiers non suivis compris.
 
-La boîte de dialogue de confirmation affiche :
+La boîte de dialogue de confirmation affiche :
 
-- Un titre : **Annuler les changements de ce fichier ?**, **Annuler les changements de \{count\} fichiers ?** ou **Annuler tous les changements non indexés ?**
-- Ce qui va se passer, par exemple « 2 fichiers reviennent à leur contenu indexé. 1 fichier non suivi est supprimé du disque. yaggui en garde une sauvegarde, mais c'est difficile à défaire à la main. »
-- Sous **Ce qui va se passer**, jusqu’à 100 fichiers, chacun marqué **changements perdus** ou **non suivi, supprimé**, puis « … et \{count\} autres fichiers ».
+- Un titre : **Annuler les changements de ce fichier ?**, **Annuler les changements de \{count\} fichiers ?** ou **Annuler tous les changements non indexés ?**
+- Ce qui va se passer, par exemple « 2 fichiers reviennent à leur contenu indexé. 1 fichier non suivi est supprimé du disque. yaggui en garde une sauvegarde, mais c'est difficile à défaire à la main. »
+- Sous **Ce qui va se passer**, jusqu’à 100 fichiers, chacun marqué **changements perdus** ou **non suivi, supprimé**, puis « … et \{count\} autres fichiers ».
 - **Annuler les changements** et **Annuler**.
 
 <Screenshot
@@ -225,34 +225,34 @@ La boîte de dialogue de confirmation affiche :
   alt="La confirmation Annuler tous les changements non indexés, qui liste chaque fichier avec la mention changements perdus ou non suivi, supprimé"
 />
 
-yaggui copie chaque fichier concerné vers une sauvegarde dans son dossier de configuration (voir [Données et confidentialité](../../reference/data-and-privacy/)), puis exécute :
+yaggui copie chaque fichier concerné vers une sauvegarde dans son dossier de configuration (voir [Données et confidentialité](../../reference/data-and-privacy/)), puis exécute :
 
 ```bash
 git --literal-pathspecs restore --worktree --pathspec-from-file=- --pathspec-file-nul  # tracked files
 git --literal-pathspecs clean -f -q -- <paths>                                        # untracked files
 ```
 
-Un chemin de dossier est refusé : « \{dir\} » est un dossier : annule plutôt ses fichiers. Si le diff d’un fichier annulé était ouvert, il se ferme.
+Un chemin de dossier est refusé : « \{dir\} » est un dossier : annule plutôt ses fichiers. Si le diff d’un fichier annulé était ouvert, il se ferme.
 
 :::caution
-Vous pouvez désactiver la confirmation dans **Préférences › Comportement › Confirmations** (**Abandonner des modifications**) ; cela supprime aussi la confirmation pour les blocs et les lignes. La sauvegarde et l’entrée d’annulation sont toujours créées.
+Vous pouvez désactiver la confirmation dans **Préférences › Comportement › Confirmations** (**Abandonner des modifications**) ; cela supprime aussi la confirmation pour les blocs et les lignes. La sauvegarde et l’entrée d’annulation sont toujours créées.
 :::
 
 ### Défaire une annulation
 
-Les annulations apparaissent dans l’historique d’annulation sous la forme « abandon des modifications de \{path\} » ou « abandon des modifications de \{count\} fichiers ». Défaites-les avec le bouton **Annuler** de la barre d’outils ou <kbd>⌘Z</kbd> (<kbd>Ctrl+Z</kbd> sous Windows et Linux) hors d’un champ de texte : yaggui réécrit les fichiers sauvegardés. Si vous avez de nouveau modifié ces fichiers après l’annulation, la restauration est refusée pour ne pas écraser votre nouveau travail. Voir [Annuler et rétablir](../../history/undo-and-redo/).
+Les annulations apparaissent dans l’historique d’annulation sous la forme « abandon des modifications de \{path\} » ou « abandon des modifications de \{count\} fichiers ». Défaites-les avec le bouton **Annuler** de la barre d’outils ou <kbd>⌘Z</kbd> (<kbd>Ctrl+Z</kbd> sous Windows et Linux) hors d’un champ de texte : yaggui réécrit les fichiers sauvegardés. Si vous avez de nouveau modifié ces fichiers après l’annulation, la restauration est refusée pour ne pas écraser votre nouveau travail. Voir [Annuler et rétablir](../../history/undo-and-redo/).
 
 ## Ajouter un fichier au .gitignore
 
-Faites un clic droit sur un seul fichier non suivi et choisissez **Ajouter au .gitignore…**. La boîte de dialogue **Ajouter au .gitignore** ajoute une règle à la fin du `.gitignore` situé à la racine du dépôt (créé s’il manque). Sous **Quoi ignorer**, choisissez :
+Faites un clic droit sur un seul fichier non suivi et choisissez **Ajouter au .gitignore…**. La boîte de dialogue **Ajouter au .gitignore** ajoute une règle à la fin du `.gitignore` situé à la racine du dépôt (créé s’il manque). Sous **Quoi ignorer**, choisissez :
 
-| Option                                      | Règle ajoutée | Remarque                                              |
-| ------------------------------------------- | ------------- | ----------------------------------------------------- |
-| **Ce fichier** (par défaut)                 | `/<path>`     |                                                       |
-| **Tous les fichiers de cette extension**    | `*.<ext>`     | Refusé si le fichier n’a pas d’extension              |
-| **Son dossier**                             | `/<folder>/`  | Refusé pour un fichier à la racine du dépôt           |
+| Option                                   | Règle ajoutée | Remarque                                    |
+| ---------------------------------------- | ------------- | ------------------------------------------- |
+| **Ce fichier** (par défaut)              | `/<path>`     |                                             |
+| **Tous les fichiers de cette extension** | `*.<ext>`     | Refusé si le fichier n’a pas d’extension    |
+| **Son dossier**                          | `/<folder>/`  | Refusé pour un fichier à la racine du dépôt |
 
-La boîte de dialogue prévisualise la règle et liste les fichiers non suivis qu’elle masque (**Masque \{count\} fichiers non suivis :**, jusqu’à 50). Les fichiers déjà suivis restent suivis. Si le `.gitignore` contient déjà la règle, la boîte de dialogue le dit et **Ajouter la règle** est désactivé. Les caractères spéciaux (`\ * ? [` et les espaces en fin de ligne) sont échappés.
+La boîte de dialogue prévisualise la règle et liste les fichiers non suivis qu’elle masque (**Masque \{count\} fichiers non suivis :**, jusqu’à 50). Les fichiers déjà suivis restent suivis. Si le `.gitignore` contient déjà la règle, la boîte de dialogue le dit et **Ajouter la règle** est désactivé. Les caractères spéciaux (`\ * ? [` et les espaces en fin de ligne) sont échappés.
 
 <Screenshot
   dark={stagingGitignoreDialogDark}
@@ -260,10 +260,10 @@ La boîte de dialogue prévisualise la règle et liste les fichiers non suivis q
   alt="La boîte de dialogue Ajouter au .gitignore avec les options de Quoi ignorer et l’aperçu de la règle"
 />
 
-Confirmez avec **Ajouter la règle**. yaggui écrit le fichier directement (sans commande Git) après une sauvegarde, et le toast indique « \{rule\} ajouté au .gitignore ». La modification peut être défaite (« ajout de \{rule\} au .gitignore »). Un `.gitignore` racine qui est un lien ou un dossier est refusé : « .gitignore n'est pas un fichier ordinaire (un lien ou un dossier) : modifie-le à la main. »
+Confirmez avec **Ajouter la règle**. yaggui écrit le fichier directement (sans commande Git) après une sauvegarde, et le toast indique « \{rule\} ajouté au .gitignore ». La modification peut être défaite (« ajout de \{rule\} au .gitignore »). Un `.gitignore` racine qui est un lien ou un dossier est refusé : « .gitignore n'est pas un fichier ordinaire (un lien ou un dossier) : modifie-le à la main. »
 
 Pour ignorer des fichiers avec la syntaxe propre à Git, voir [gitignore](https://git-scm.com/docs/gitignore).
 
 ## Quand un autre processus Git verrouille l’index
 
-L’indexation écrit l’index de Git, protégé par `.git/index.lock`. Si un autre programme détient le verrou, yaggui affiche une bannière au-dessus du dépôt (« Un autre processus Git utilise ce dépôt ») et l’indexation échoue jusqu’à la disparition du verrou. Quand le verrou est présent depuis plus de quelques secondes, la bannière devient « Un processus Git a probablement planté et laissé index.lock » et propose **Supprimer le verrou…**, qui vous demande de vérifier qu’aucun autre programme Git ne travaille sur le dépôt avant de supprimer le fichier. Voir [Dépannage](../../help/troubleshooting/).
+L’indexation écrit l’index de Git, protégé par `.git/index.lock`. Si un autre programme détient le verrou, yaggui affiche une bannière au-dessus du dépôt (« Un autre processus Git utilise ce dépôt ») et l’indexation échoue jusqu’à la disparition du verrou. Quand le verrou est présent depuis plus de quelques secondes, la bannière devient « Un processus Git a probablement planté et laissé index.lock » et propose **Supprimer le verrou…**, qui vous demande de vérifier qu’aucun autre programme Git ne travaille sur le dépôt avant de supprimer le fichier. Voir [Dépannage](../../help/troubleshooting/).
