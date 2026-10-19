@@ -240,7 +240,7 @@ impl RepoManager {
         let tracking = format!("refs/remotes/{remote}/{remote_branch}");
         let remote_sha = find_ref(&repo, &tracking)?;
         let mut overwritten = Vec::new();
-        let mut truncated = false;
+        let mut hidden = 0;
         if remote_sha.is_some() {
             let range = format!("refs/heads/{branch}..{tracking}");
             let output = self.git.run(
@@ -248,7 +248,7 @@ impl RepoManager {
                     "log".to_owned(),
                     format!("--max-count={}", PREVIEW_LIMIT + 1),
                     "--format=%H%x1f%an%x1f%s".to_owned(),
-                    range,
+                    range.clone(),
                     "--".to_owned(),
                 ])
                 .cwd(&session.workdir)
@@ -266,19 +266,28 @@ impl RepoManager {
                     });
                 }
             }
-            truncated = overwritten.len() > PREVIEW_LIMIT;
-            overwritten.truncate(PREVIEW_LIMIT);
+            if overwritten.len() > PREVIEW_LIMIT {
+                overwritten.truncate(PREVIEW_LIMIT);
+                let count = self.git.run(
+                    &GitCommand::new(["rev-list", "--count", range.as_str(), "--"])
+                        .cwd(&session.workdir)
+                        .repo(repo_id),
+                )?;
+                let total: usize = count.stdout.trim().parse().unwrap_or(PREVIEW_LIMIT + 1);
+                hidden = u32::try_from(total.saturating_sub(PREVIEW_LIMIT)).unwrap_or(u32::MAX);
+            }
         }
         Ok(ForcePushPreview {
             protected: is_protected_branch(
                 &remote_branch,
                 &self.store.preferences()?.protected_branches,
             ),
+            branch,
             remote,
             remote_branch,
             remote_sha: remote_sha.map(|id| id.to_string()),
             overwritten,
-            truncated,
+            hidden,
         })
     }
 

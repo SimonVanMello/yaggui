@@ -207,7 +207,7 @@ export async function forcePushRepo(repoId: number, branch: string | null = null
           : t('network.force.description', { target, count }),
       command: `git push --force-with-lease=refs/heads/${preview.remoteBranch}:${
         preview.remoteSha ?? ''
-      } ${preview.remote} ${branch ?? 'HEAD'}`,
+      } ${preview.remote} refs/heads/${preview.branch}:refs/heads/${preview.remoteBranch}`,
       confirmLabel: t('network.force.confirm'),
       danger: true,
       items: preview.overwritten.map((commit) => ({
@@ -215,7 +215,7 @@ export async function forcePushRepo(repoId: number, branch: string | null = null
         note: commit.author,
         danger: true,
       })),
-      moreItems: preview.truncated ? 1 : undefined,
+      moreItems: preview.hidden > 0 ? preview.hidden : undefined,
     });
     if (!confirmed) return;
     await unwrap(

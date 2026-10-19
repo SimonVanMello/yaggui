@@ -4013,11 +4013,12 @@ export class MockBackend {
       });
       const remoteBranch = split?.branch ?? name;
       return ok<ForcePushPreview>({
+        branch: name,
         remote: split?.remote ?? 'origin',
         remoteBranch,
         remoteSha: history.commits[remote.commit]?.sha ?? null,
         overwritten,
-        truncated: dropped.length > 100,
+        hidden: Math.max(0, dropped.length - 100),
         protected: isProtectedBranch(remoteBranch, this.preferences.protectedBranches),
       });
     },
