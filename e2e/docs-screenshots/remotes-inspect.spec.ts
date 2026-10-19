@@ -185,6 +185,8 @@ test('remote-remove-confirm', async ({ page }, testInfo) => {
 test('file-history', async ({ page }, testInfo) => {
   await openYaggui(page);
   await commitFileAction(page, /\bGraphCanvas\.tsx\b/, /^File history$/);
+  // Room for the side-by-side diff: the commit details are not part of this view.
+  await page.getByRole('button', { name: 'Toggle right panel' }).click();
   const view = page.getByRole('region', { name: /^History of src\/features\/graph/ });
   const commits = view.getByRole('listbox', { name: 'Commits that changed the file' });
   await expect(commits.getByRole('option').first()).toHaveAttribute('aria-selected', 'true');
@@ -216,6 +218,6 @@ test('reflog-reset', async ({ page }, testInfo) => {
   await bar.getByRole('button', { name: /^Reset .* here/ }).click();
   const dialog = page.getByRole('dialog');
   await expect(dialog).toContainText('HEAD@{2}');
-  await dialog.getByRole('radio', { name: /^Hard/ }).click();
+  await expect(dialog.getByRole('radio', { name: /^Mixed/ })).toBeChecked();
   await capture(page, testInfo, 'reflog-reset', dialog);
 });
