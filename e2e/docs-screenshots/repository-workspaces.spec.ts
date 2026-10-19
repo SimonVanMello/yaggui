@@ -1,5 +1,5 @@
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
-import { capture, openRepo, start } from './capture';
+import { capture, openRepo, screenPath, settle, start } from './capture';
 
 /** Docs screenshots of the repository/* and workspaces/* pages. */
 
@@ -45,10 +45,9 @@ async function captureRect(
   name: string,
   rect: { x: number; y: number; width: number; height: number },
 ) {
-  await page.evaluate(() => document.fonts.ready);
-  await page.waitForTimeout(400);
+  await settle(page);
   await page.screenshot({
-    path: `website/src/assets/screens/${name}-${testInfo.project.name}.png`,
+    path: screenPath(testInfo, name),
     clip: rect,
     animations: 'disabled',
   });
