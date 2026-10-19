@@ -1,0 +1,672 @@
+{
+  "groups": [
+    {
+      "id": "repo",
+      "title": {
+        "en": "Repository",
+        "fr": "Dépôt"
+      },
+      "shortcuts": [
+        {
+          "id": "repo.open",
+          "title": {
+            "en": "Open a repository…",
+            "fr": "Ouvrir un dépôt…"
+          },
+          "mac": [
+            "⌘",
+            "O"
+          ],
+          "other": [
+            "Ctrl",
+            "O"
+          ]
+        },
+        {
+          "id": "repo.refsFilter",
+          "title": {
+            "en": "Filter branches and tags",
+            "fr": "Filtrer les branches et tags"
+          },
+          "mac": [
+            "⌘",
+            "⇧",
+            "R"
+          ],
+          "other": [
+            "Ctrl",
+            "Shift",
+            "R"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tabs",
+      "title": {
+        "en": "Tabs",
+        "fr": "Onglets"
+      },
+      "shortcuts": [
+        {
+          "id": "tab.new",
+          "title": {
+            "en": "New tab",
+            "fr": "Nouvel onglet"
+          },
+          "mac": [
+            "⌘",
+            "T"
+          ],
+          "other": [
+            "Ctrl",
+            "T"
+          ]
+        },
+        {
+          "id": "tab.close",
+          "title": {
+            "en": "Close tab",
+            "fr": "Fermer l'onglet"
+          },
+          "mac": [
+            "⌘",
+            "W"
+          ],
+          "other": [
+            "Ctrl",
+            "W"
+          ]
+        },
+        {
+          "id": "tab.next",
+          "title": {
+            "en": "Next tab",
+            "fr": "Onglet suivant"
+          },
+          "mac": [
+            "⌃",
+            "Tab"
+          ],
+          "other": [
+            "Ctrl",
+            "Tab"
+          ]
+        },
+        {
+          "id": "tab.previous",
+          "title": {
+            "en": "Previous tab",
+            "fr": "Onglet précédent"
+          },
+          "mac": [
+            "⌃",
+            "⇧",
+            "Tab"
+          ],
+          "other": [
+            "Ctrl",
+            "Shift",
+            "Tab"
+          ]
+        },
+        {
+          "id": "tab.goto.1",
+          "title": {
+            "en": "Go to tab 1",
+            "fr": "Aller à l'onglet 1"
+          },
+          "mac": [
+            "⌘",
+            "1"
+          ],
+          "other": [
+            "Ctrl",
+            "1"
+          ]
+        },
+        {
+          "id": "tab.goto.2",
+          "title": {
+            "en": "Go to tab 2",
+            "fr": "Aller à l'onglet 2"
+          },
+          "mac": [
+            "⌘",
+            "2"
+          ],
+          "other": [
+            "Ctrl",
+            "2"
+          ]
+        },
+        {
+          "id": "tab.goto.3",
+          "title": {
+            "en": "Go to tab 3",
+            "fr": "Aller à l'onglet 3"
+          },
+          "mac": [
+            "⌘",
+            "3"
+          ],
+          "other": [
+            "Ctrl",
+            "3"
+          ]
+        },
+        {
+          "id": "tab.goto.4",
+          "title": {
+            "en": "Go to tab 4",
+            "fr": "Aller à l'onglet 4"
+          },
+          "mac": [
+            "⌘",
+            "4"
+          ],
+          "other": [
+            "Ctrl",
+            "4"
+          ]
+        },
+        {
+          "id": "tab.goto.5",
+          "title": {
+            "en": "Go to tab 5",
+            "fr": "Aller à l'onglet 5"
+          },
+          "mac": [
+            "⌘",
+            "5"
+          ],
+          "other": [
+            "Ctrl",
+            "5"
+          ]
+        },
+        {
+          "id": "tab.goto.6",
+          "title": {
+            "en": "Go to tab 6",
+            "fr": "Aller à l'onglet 6"
+          },
+          "mac": [
+            "⌘",
+            "6"
+          ],
+          "other": [
+            "Ctrl",
+            "6"
+          ]
+        },
+        {
+          "id": "tab.goto.7",
+          "title": {
+            "en": "Go to tab 7",
+            "fr": "Aller à l'onglet 7"
+          },
+          "mac": [
+            "⌘",
+            "7"
+          ],
+          "other": [
+            "Ctrl",
+            "7"
+          ]
+        },
+        {
+          "id": "tab.goto.8",
+          "title": {
+            "en": "Go to tab 8",
+            "fr": "Aller à l'onglet 8"
+          },
+          "mac": [
+            "⌘",
+            "8"
+          ],
+          "other": [
+            "Ctrl",
+            "8"
+          ]
+        },
+        {
+          "id": "tab.goto.9",
+          "title": {
+            "en": "Go to tab 9",
+            "fr": "Aller à l'onglet 9"
+          },
+          "mac": [
+            "⌘",
+            "9"
+          ],
+          "other": [
+            "Ctrl",
+            "9"
+          ]
+        },
+        {
+          "id": "tab.moveLeft",
+          "title": {
+            "en": "Move the tab left",
+            "fr": "Déplacer l'onglet vers la gauche"
+          },
+          "mac": [
+            "⌘",
+            "⇧",
+            "ArrowLeft"
+          ],
+          "other": [
+            "Ctrl",
+            "Shift",
+            "ArrowLeft"
+          ]
+        },
+        {
+          "id": "tab.moveRight",
+          "title": {
+            "en": "Move the tab right",
+            "fr": "Déplacer l'onglet vers la droite"
+          },
+          "mac": [
+            "⌘",
+            "⇧",
+            "ArrowRight"
+          ],
+          "other": [
+            "Ctrl",
+            "Shift",
+            "ArrowRight"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "view",
+      "title": {
+        "en": "View",
+        "fr": "Affichage"
+      },
+      "shortcuts": [
+        {
+          "id": "terminal.toggle",
+          "title": {
+            "en": "Show or hide the terminal",
+            "fr": "Afficher ou masquer le terminal"
+          },
+          "mac": [
+            "⌃",
+            "`"
+          ],
+          "other": [
+            "Ctrl",
+            "`"
+          ]
+        },
+        {
+          "id": "terminal.new",
+          "title": {
+            "en": "New terminal",
+            "fr": "Nouveau terminal"
+          },
+          "mac": [
+            "⌃",
+            "⇧",
+            "`"
+          ],
+          "other": [
+            "Ctrl",
+            "Shift",
+            "`"
+          ]
+        },
+        {
+          "id": "view.sidebar",
+          "title": {
+            "en": "Toggle the refs panel",
+            "fr": "Afficher/masquer le panneau des refs"
+          },
+          "mac": [
+            "⌘",
+            "⌥",
+            "B"
+          ],
+          "other": [
+            "Ctrl",
+            "Alt",
+            "B"
+          ]
+        },
+        {
+          "id": "view.details",
+          "title": {
+            "en": "Toggle the details panel",
+            "fr": "Afficher/masquer le panneau de détails"
+          },
+          "mac": [
+            "⌘",
+            "⌥",
+            "I"
+          ],
+          "other": [
+            "Ctrl",
+            "Alt",
+            "I"
+          ]
+        },
+        {
+          "id": "view.log",
+          "title": {
+            "en": "Toggle the command log",
+            "fr": "Afficher/masquer le journal des commandes"
+          },
+          "mac": [
+            "⌘",
+            "J"
+          ],
+          "other": [
+            "Ctrl",
+            "J"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "app",
+      "title": {
+        "en": "Application",
+        "fr": "Application"
+      },
+      "shortcuts": [
+        {
+          "id": "app.preferences",
+          "title": {
+            "en": "Open preferences",
+            "fr": "Ouvrir les préférences"
+          },
+          "mac": [
+            "⌘",
+            ","
+          ],
+          "other": [
+            "Ctrl",
+            ","
+          ]
+        },
+        {
+          "id": "app.shortcuts",
+          "title": {
+            "en": "Show keyboard shortcuts",
+            "fr": "Afficher les raccourcis clavier"
+          },
+          "mac": [
+            "⌘",
+            "/"
+          ],
+          "other": [
+            "Ctrl",
+            "/"
+          ]
+        },
+        {
+          "id": "app.palette",
+          "title": {
+            "en": "Open the command palette",
+            "fr": "Ouvrir la palette de commandes"
+          },
+          "mac": [
+            "⌘",
+            "K"
+          ],
+          "other": [
+            "Ctrl",
+            "K"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "git",
+      "title": {
+        "en": "Git",
+        "fr": "Git"
+      },
+      "shortcuts": [
+        {
+          "id": "git.fetch",
+          "title": {
+            "en": "Fetch",
+            "fr": "Fetch"
+          },
+          "mac": [
+            "⌘",
+            "⇧",
+            "F"
+          ],
+          "other": [
+            "Ctrl",
+            "Shift",
+            "F"
+          ]
+        },
+        {
+          "id": "git.pull",
+          "title": {
+            "en": "Pull",
+            "fr": "Pull"
+          },
+          "mac": [
+            "⌘",
+            "⇧",
+            "L"
+          ],
+          "other": [
+            "Ctrl",
+            "Shift",
+            "L"
+          ]
+        },
+        {
+          "id": "git.push",
+          "title": {
+            "en": "Push",
+            "fr": "Push"
+          },
+          "mac": [
+            "⌘",
+            "⇧",
+            "P"
+          ],
+          "other": [
+            "Ctrl",
+            "Shift",
+            "P"
+          ]
+        },
+        {
+          "id": "git.commit",
+          "title": {
+            "en": "Commit",
+            "fr": "Commit"
+          },
+          "mac": [
+            "⌘",
+            "↵"
+          ],
+          "other": [
+            "Ctrl",
+            "Enter"
+          ]
+        },
+        {
+          "id": "git.branch.create",
+          "title": {
+            "en": "Create a branch…",
+            "fr": "Créer une branche…"
+          },
+          "mac": [
+            "⌘",
+            "B"
+          ],
+          "other": [
+            "Ctrl",
+            "B"
+          ]
+        },
+        {
+          "id": "edit.undo",
+          "title": {
+            "en": "Undo the latest operation",
+            "fr": "Annuler la dernière opération"
+          },
+          "mac": [
+            "⌘",
+            "Z"
+          ],
+          "other": [
+            "Ctrl",
+            "Z"
+          ]
+        },
+        {
+          "id": "edit.redo",
+          "title": {
+            "en": "Redo the latest undone operation",
+            "fr": "Rétablir la dernière opération annulée"
+          },
+          "mac": [
+            "⌘",
+            "⇧",
+            "Z"
+          ],
+          "other": [
+            "Ctrl",
+            "Shift",
+            "Z"
+          ]
+        },
+        {
+          "id": "git.stash",
+          "title": {
+            "en": "Stash changes",
+            "fr": "Mettre les changements de côté (stash)"
+          },
+          "mac": [
+            "⌘",
+            "⇧",
+            "S"
+          ],
+          "other": [
+            "Ctrl",
+            "Shift",
+            "S"
+          ]
+        },
+        {
+          "id": "git.stash.pop",
+          "title": {
+            "en": "Pop the latest stash",
+            "fr": "Restaurer le dernier stash (pop)"
+          },
+          "mac": [
+            "⌘",
+            "⇧",
+            "⌥",
+            "S"
+          ],
+          "other": [
+            "Ctrl",
+            "Shift",
+            "Alt",
+            "S"
+          ]
+        },
+        {
+          "id": "edit.redoAlt",
+          "title": {
+            "en": "Redo (Ctrl+Y)",
+            "fr": "Rétablir (Ctrl+Y)"
+          },
+          "mac": null,
+          "other": [
+            "Ctrl",
+            "Y"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "graph",
+      "title": {
+        "en": "Graph",
+        "fr": "Graphe"
+      },
+      "shortcuts": [
+        {
+          "id": "graph.search",
+          "title": {
+            "en": "Search the graph",
+            "fr": "Rechercher dans le graphe"
+          },
+          "mac": [
+            "⌘",
+            "F"
+          ],
+          "other": [
+            "Ctrl",
+            "F"
+          ]
+        },
+        {
+          "id": "graph.goToHead",
+          "title": {
+            "en": "Go to HEAD in the graph",
+            "fr": "Aller à HEAD dans le graphe"
+          },
+          "mac": [
+            "⌘",
+            "⇧",
+            "H"
+          ],
+          "other": [
+            "Ctrl",
+            "Shift",
+            "H"
+          ]
+        },
+        {
+          "id": "graph.copySha",
+          "title": {
+            "en": "Copy the commit SHA",
+            "fr": "Copier le SHA du commit"
+          },
+          "mac": [
+            "⌘",
+            "C"
+          ],
+          "other": [
+            "Ctrl",
+            "C"
+          ]
+        },
+        {
+          "id": "graph.copyMessage",
+          "title": {
+            "en": "Copy the commit message",
+            "fr": "Copier le message du commit"
+          },
+          "mac": [
+            "⌘",
+            "⇧",
+            "C"
+          ],
+          "other": [
+            "Ctrl",
+            "Shift",
+            "C"
+          ]
+        }
+      ]
+    }
+  ]
+}
