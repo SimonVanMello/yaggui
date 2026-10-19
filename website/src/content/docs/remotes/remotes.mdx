@@ -1,0 +1,113 @@
+---
+title: Managing remotes
+description: Add, rename, change the URLs of and remove the remotes of a repository in yaggui, and undo those changes.
+sidebar:
+  order: 2
+sources:
+  - src/features/remotes/**
+  - src/features/sidebar/RemoteContextMenu.tsx
+  - src/features/palette/builtinActions.ts
+  - src-tauri/src/repo/remotes.rs
+  - src-tauri/src/git/ops/remotes.rs
+  - src-tauri/src/commands/remotes.rs
+requirements: [F-125]
+---
+
+import Screenshot from '../../../../components/Screenshot.astro';
+
+A remote is a named URL that your repository fetches from and pushes to ([Git book: working with remotes](https://git-scm.com/book/en/v2/Git-Basics-Working-with-Remotes)). This page shows where to manage them in yaggui, what each change does to your remote-tracking branches, and how to undo it. All changes are local: nothing changes on the server.
+
+## Where to manage remotes
+
+| Entry point | Actions |
+|---|---|
+| Sidebar, right-click the **Remote** section header | **Add a remote…**, **Manage remotes…**, **Fetch tags from every remote** |
+| Sidebar, right-click a remote folder (such as `origin`) | **Fetch**, **Fetch its tags**, **Push all tags here**, **Edit the remote…**, **Remove the remote…**, **Copy name**, **Copy the URL** |
+| Palette (<kbd>⌘K</kbd>, <kbd>Ctrl+K</kbd> on Windows and Linux) | **Add a remote…**, **Manage remotes…** |
+
+**Manage remotes…** opens the **Remotes** dialog. It lists each remote with its fetch URL, and its push URL when that one is different. Each row has **Edit** and **Remove** buttons, and the footer has **Add a remote…**. With no remote, it says "No remote yet: add one to fetch and push." When you edit or add a remote from this dialog, you come back to it afterwards.
+
+<Screenshot name="remotes-manage" alt="The Remotes dialog listing origin and upstream with their fetch URLs, Edit and Remove buttons on each row, and Add a remote… in the footer" />
+
+## Add a remote
+
+1. Open **Add a remote…** from the **Remote** section header or the palette.
+2. Fill in **Name** (for example `origin` or `upstream`). yaggui checks it as you type: "This name is available." when it is free.
+3. Fill in **Fetch URL**: HTTPS, SSH (`git@host:path`) or a local path.
+4. To push to another URL than the one you fetch from, check **Push to a different URL** and fill in **Push URL**.
+5. Leave **Fetch it once added** checked (the default) to fetch the new remote right away.
+6. Click **Add**.
+
+<Screenshot name="remote-add-dialog" alt="The Add a remote dialog with Name, Fetch URL, the Push to a different URL checkbox and Push URL, the credentials hint and the Fetch it once added checkbox" />
+
+yaggui runs:
+
+```bash
+git remote add -- upstream https://github.com/owner/repo.git
+git remote set-url --push -- upstream git@github.com:me/repo.git   # only with a push URL
+```
+
+A **Remote upstream added** toast confirms it. If **Fetch it once added** is checked, the fetch follows, with its progress in the status bar ([Fetch](../../remotes/fetch-pull-push/#fetch)). If that fetch fails, for example on credentials, the remote stays added: fix the problem and fetch again.
+
+yaggui never asks for a password. The URL only says where the repository is; credentials come from your Git credential helper or ssh-agent ([Authentication](../../remotes/authentication/)).
+
+### Validation
+
+The **Add** or **Save** button stays disabled until the name and URL are filled in. Errors show under the field they concern:
+
+| Message | Cause |
+|---|---|
+| A remote named "origin" already exists. | The name is taken |
+| "bad name" is not a valid remote name: no spaces, no leading dash, none of ~ ^ : ? * [ \. | Spaces, a leading `-`, `@{`, or a character Git refuses in a ref name ([git check-ref-format](https://git-scm.com/docs/git-check-ref-format)) |
+| The remote URL is empty. | Empty URL after trimming |
+| "-x" is not a valid remote URL. | URL starting with `-` or containing control characters |
+
+## Change the URLs
+
+1. Right-click the remote folder in the sidebar → **Edit the remote…**, or click **Edit** next to it in **Remotes**.
+2. Change **Fetch URL**, and **Push URL** if **Push to a different URL** is checked. Uncheck it to push to the fetch URL again.
+3. Click **Save**. **Save** stays disabled while nothing changed.
+
+yaggui runs `git remote set-url -- <name> <url>`, then `git remote set-url --push -- <name> <push url>`, or `git config --unset-all remote.<name>.pushurl` when you uncheck **Push to a different URL**. The toast says **URLs of origin saved**. Remote-tracking branches are not touched; the next fetch uses the new URL.
+
+## Rename a remote
+
+Open **Edit the remote…** and change **Name**, then click **Save**. yaggui runs:
+
+```bash
+git remote rename -- origin upstream
+```
+
+Git renames the remote-tracking branches (`origin/main` becomes `upstream/main`) and updates the upstream of every local branch that tracked them. The toast says **Remote origin renamed to upstream**.
+
+If you change the URLs and the name at the same time, the URLs are saved first. If the rename is then refused (for example the new name is taken), the URLs stay saved.
+
+## Remove a remote
+
+1. Right-click the remote folder → **Remove the remote…**, or click **Remove** in **Remotes**.
+2. A confirmation titled **Remove the remote origin?** shows what changes in your repository:
+   - each remote-tracking branch of that remote, marked **deleted**,
+   - each local branch whose upstream is on that remote, marked **loses its upstream**,
+   - the command `git remote remove -- origin`.
+3. Click **Remove**.
+
+<Screenshot name="remote-remove-confirm" alt="The Remove the remote upstream? confirmation listing upstream/main as deleted, local branches that lose their upstream, and the git remote remove command" />
+
+The description reminds you that "Nothing changes on the server." Your local branches and commits stay. Branches that lose their upstream can no longer be pulled or pushed until you set a new upstream; the next push asks to publish them ([First push of a branch](../../remotes/fetch-pull-push/#first-push-of-a-branch)).
+
+This confirmation is always asked.
+
+## Undo a remote change
+
+Adding, renaming, changing the URLs of and removing a remote are all recorded in the undo history and can be undone with <kbd>⌘Z</kbd> (<kbd>Ctrl+Z</kbd> on Windows and Linux) or the toolbar **Undo** button:
+
+| Operation | Undo |
+|---|---|
+| Add | Removes the remote again |
+| Rename | Renames it back (`git remote rename`) |
+| URL change | Restores the previous URLs |
+| Remove | Restores the remote's configuration, the remote-tracking branches as they were, and the upstream of local branches that still exist and have none |
+
+Undo is refused if the remote was changed again since, outside the undo history (for example from a terminal). Undo history is kept for the session only. See [Undo and redo](../../history/undo-and-redo/).
+
+These operations run on the repository's queue like other writes but cannot be cancelled: they are instant.

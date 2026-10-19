@@ -1,0 +1,118 @@
+---
+title: File history and blame
+description: See every commit that changed a file, including across renames, and which commit last changed each line, in yaggui.
+sidebar:
+  order: 2
+sources:
+  - src/features/inspect/**
+  - src-tauri/src/repo/inspect.rs
+  - src-tauri/src/git/read/file_history.rs
+  - src-tauri/src/git/read/blame.rs
+  - src-tauri/src/commands/inspect.rs
+requirements: [F-220, F-221]
+---
+
+import Screenshot from '../../../../components/Screenshot.astro';
+
+File history lists the commits that changed one file, with the diff of each. Blame shows, for every line of a file, the commit that last changed it. Both replace the graph in the repository view; press <kbd>Esc</kbd> or click **Graph** to go back.
+
+## Open the history of a file
+
+| Entry point | Starts from |
+|---|---|
+| Diff toolbar, **File history** icon (diffs in the repository view) | HEAD |
+| Right-click a file in the commit details panel or in the changes panel → **File history** | HEAD |
+| Blame view, **File history** button | The commit being blamed |
+| Blame view, right-click a line → **File history** | HEAD |
+| Palette (<kbd>⌘K</kbd>, <kbd>Ctrl+K</kbd> on Windows and Linux) → **History of the current file** | HEAD. Available when a diff, a blame or a file history is open in the active tab |
+
+When the history starts from a commit other than HEAD, its short SHA shows as a chip in the header. On a branch with no commit yet, the list is empty.
+
+## Read the file history
+
+<Screenshot name="file-history" alt="File history of GraphCanvas.tsx: the list of commits that changed the file on the left, the diff of the selected commit on the right" />
+
+The left side lists **Commits that changed the file**, newest first, with their count. Each row shows:
+
+- the change letter for this file (added, modified, deleted), or a merge icon for a merge commit,
+- the commit summary and short SHA,
+- the author and relative date,
+- **from** *old path* on the commit that renamed the file.
+
+The right side shows the selected commit's change to this file, compared with its first parent, in the full [diff viewer](../../everyday/diff/) (layout, options, large-diff guard). Its toolbar has a **Blame at this commit** button; for a commit that deleted the file, it blames the version just before.
+
+The newest commit is selected when the view opens. To move:
+
+| Key | Action |
+|---|---|
+| <kbd>↑</kbd> / <kbd>↓</kbd>, <kbd>Home</kbd> / <kbd>End</kbd> | Move in the list (when it has focus) |
+| <kbd>j</kbd> / <kbd>k</kbd>, or the **Older commit** / **Newer commit** arrows of the diff toolbar | Older / newer commit |
+| <kbd>Esc</kbd> | Close the history, back to the graph |
+
+The list loads by pages of 500 as you scroll (the count shows `500+` while more remain), so long histories open fast. It updates when branches move.
+
+### Renames
+
+yaggui follows a file across renames. It reads the history of the current name, and when it reaches the commit that added that name, it looks in that commit for a rename (by content similarity, on the first parent) and continues with the old name. The rename commit shows **from** *old path*.
+
+```bash
+git log --name-status --no-renames <rev> -- <path>
+git diff-tree -r --find-renames --name-status <parent> <commit>   # at the commit that added the name
+```
+
+This differs from `git log --follow`: it is faster on large repositories, it follows renames but not copies, and only along first parents. When no commit changed the path, the view says "No commit changed src/app.ts."
+
+## Blame a file
+
+| Entry point | Version blamed |
+|---|---|
+| Diff toolbar, **Blame** icon (working tree diff) | The file on disk, including uncommitted changes |
+| Diff toolbar, **Blame at this commit** icon (commit diff, file history) | The file at that commit |
+| Right-click a file in the changes panel → **Blame** | The file on disk |
+| Right-click a file in the commit details panel → **Blame at this commit** | The file at that commit |
+| Palette → **Blame of the current file** | The version of the open diff |
+
+<Screenshot name="blame" alt="Blame of layout.ts: age bars on the left, commit summary, author and date at the start of each block, line numbers and code, and the Selected commit bar at the bottom" />
+
+The header shows the path and a chip with the version blamed (a short SHA, or **Working tree**). Each line of the grid has:
+
+- an **age bar**: eight shades from the oldest to the newest commit of this file. Shades follow the rank of the commit dates, not their distance in time, so a file written in two weeks uses the same range as one written over ten years. Uncommitted lines take the newest shade.
+- on the first line of each block from the same commit: the summary, the author and the relative date, or **Not committed yet** for local changes,
+- the line number and the code.
+
+yaggui runs `git blame --incremental <commit> -- <path>`. For the working tree, it sends the file on disk to `git blame --incremental --contents - -- <path>`. The view says "Attributing every line…" while it works.
+
+### Select a line's commit
+
+Click a line: every line of the same commit is highlighted, and the commit is selected in the graph, so the [commit details panel](../../history/commit-graph/) follows. The blame stays open. The **Selected commit** bar at the bottom shows its short SHA, summary, author and date, with two buttons:
+
+- **Blame of the parent**: blames the file as it was just before this commit, and scrolls to where these lines were. It follows renames. It is disabled with "These lines were added with the file" when there is no earlier version.
+- **Show in graph**: closes the blame and shows the commit in the graph.
+
+Each **Blame of the parent** adds a step to a trail: the **Back to** *version* button in the header returns to the previous version. The trail is kept until you close the repository.
+
+### Navigate and copy
+
+| Action | How |
+|---|---|
+| Next / previous block | <kbd>↓</kbd> / <kbd>↑</kbd> in the grid |
+| Blame of the parent, Show in graph, File history, Copy SHA | Right-click a line |
+| Back to the graph | <kbd>Esc</kbd> or **Graph** |
+
+**Show in graph** and **Copy SHA** are disabled on uncommitted lines.
+
+A working tree blame updates when the file or branches change. A blame at a commit never changes, so yaggui keeps it.
+
+## Large and special files
+
+- Long files: only the visible lines are drawn, so files of tens of thousands of lines open and scroll normally.
+- Binary files: "Binary file (48.2 KB): no lines to attribute."
+- A file that is not committed yet (new or untracked), blamed from the working tree: "This file is not committed yet: no line has a history."
+- An empty file: "This file is empty."
+- A file deleted from the working tree: the blame shows the HEAD version.
+- A symbolic link: the blame shows the link's target path as text.
+- File history of a large file: each commit's diff goes through the diff viewer's size guard ("Large diff not shown", with **Show anyway**), see [Diff](../../everyday/diff/).
+
+If reading fails, the view shows "Could not read the file history" or "Could not blame the file" with **Retry**; the command is in the [command log](../../reference/command-log/).
+
+File history and blame only read: nothing to undo.

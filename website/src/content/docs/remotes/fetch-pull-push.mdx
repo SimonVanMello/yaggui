@@ -1,0 +1,234 @@
+---
+title: Fetch, pull and push
+description: Download from and send to your remotes in yaggui, with auto-fetch, pull strategies, first push, force push with lease, progress and cancellation.
+sidebar:
+  order: 1
+sources:
+  - src/features/network/**
+  - src/features/toolbar/NetworkButtons.tsx
+  - src/features/statusbar/StatusBar.tsx
+  - src/features/preferences/BehaviorTab.tsx
+  - src/features/preferences/ProtectedBranchesField.tsx
+  - src/features/sidebar/RefContextMenu.tsx
+  - src/features/sidebar/RemoteContextMenu.tsx
+  - src/app/shellActions.ts
+  - src-tauri/src/repo/network.rs
+  - src-tauri/src/commands/network.rs
+  - src-tauri/src/git/errors.rs
+requirements: [F-120, F-121, F-122, F-123, F-124, F-126, F-127]
+---
+
+import Screenshot from '../../../../components/Screenshot.astro';
+
+This page covers the three network buttons of the toolbar: **Fetch**, **Pull** and **Push**, plus auto-fetch, force push, progress and the errors you can meet. Remotes themselves are managed on the [Remotes](../../remotes/remotes/) page, and credentials on [Authentication](../../remotes/authentication/).
+
+Every network command runs in the background on the repository's operation queue, so the window stays usable. Each command yaggui runs is recorded in the [command log](../../reference/command-log/). The shortcuts below are defaults; you can rebind them ([Palette and shortcuts](../../customize/palette-and-shortcuts/)).
+
+## Fetch
+
+A fetch downloads new commits and branches from a remote without touching your branches or files ([git fetch](https://git-scm.com/docs/git-fetch)).
+
+| Entry point | What it fetches |
+|---|---|
+| Toolbar **Fetch** button | All remotes |
+| Toolbar **Fetch** chevron (**Fetch options**) → **Fetch all remotes** | All remotes |
+| Toolbar **Fetch** chevron → **Fetch origin** (one item per remote) | That remote only |
+| <kbd>⌘⇧F</kbd> (<kbd>Ctrl+Shift+F</kbd> on Windows and Linux) | All remotes |
+| Palette (<kbd>⌘K</kbd>) → **Fetch** | All remotes |
+| Sidebar, right-click a remote folder under **Remote** → **Fetch** | That remote only |
+
+yaggui runs:
+
+```bash
+git fetch --progress --prune --all      # all remotes
+git fetch --progress --prune origin     # one remote
+```
+
+When it finishes, a **Fetch complete** toast appears and the status bar shows **Fetch completed** with the time. Remote branches in the sidebar and the graph update on their own.
+
+### Prune on fetch
+
+With **Prune on fetch** on (the default), every fetch adds `--prune`: remote-tracking branches deleted on the server disappear from the sidebar and the graph. Your local branches are never deleted. The setting is in **Preferences → Behavior** and applies to every fetch, including auto-fetch. See [Preferences](../../reference/preferences/).
+
+:::note
+The toolbar tooltip and the **Fetch all remotes** hint always show `--all --prune`, even when **Prune on fetch** is off. The command that actually runs follows the setting: check it in the command log.
+:::
+
+A fetch with prune cannot be undone. It appears in the undo history as "not undoable" and blocks undo of older operations for the rest of the session. A fetch without prune is not recorded at all. See [Undo and redo](../../history/undo-and-redo/).
+
+## Auto-fetch
+
+yaggui fetches all remotes of the active repository in the background, at a fixed interval.
+
+| Setting (Preferences → Behavior) | Default | Effect |
+|---|---|---|
+| **Fetch automatically** | On | Turns auto-fetch on or off |
+| **Every (minutes)** | 10 | Interval, from 1 to 240 minutes. Disabled when auto-fetch is off |
+
+How it behaves:
+
+- Only the visible tab fetches. Tabs in the background pause their timer; when you switch back to one, its timer restarts for a full interval.
+- No fetch runs when you open a repository: the first one comes after one full interval.
+- A tick is skipped when another operation is running in that repository.
+- Auto-fetch is silent: no toast on success or failure. The status bar still shows the progress and **Fetch completed** or **Fetch failed**. If a fetch fails, open the command log to see why.
+- The footer of the **Fetch** menu shows the current state: **Auto-fetch every 10 min** or **Auto-fetch is off**.
+
+To turn it off, uncheck **Fetch automatically** in **Preferences → Behavior**.
+
+## Pull
+
+A pull fetches the upstream of the current branch and integrates its commits ([git pull](https://git-scm.com/docs/git-pull)). The **Pull** button shows a badge with the number of commits you are behind, and is disabled when HEAD is detached.
+
+| Entry point | Strategy |
+|---|---|
+| Toolbar **Pull** button | Default strategy |
+| Toolbar **Pull** chevron (**Pull strategy**) → **Fast-forward only**, **Merge** or **Rebase** | The one you pick |
+| <kbd>⌘⇧L</kbd> (<kbd>Ctrl+Shift+L</kbd> on Windows and Linux) | Default strategy |
+| Palette → **Pull** | Default strategy |
+| Sidebar, right-click a local branch with an upstream → **Pull** | Default strategy. Only enabled on the checked-out branch ("Pull only applies to the checked-out branch") |
+
+<Screenshot name="pull-strategy-menu" alt="The Pull strategy menu open under the toolbar, with Fast-forward only marked as default, Merge and Rebase" />
+
+The **Pull with…** menu marks the default strategy with **default**. The three strategies run:
+
+| Strategy | Command | Result |
+|---|---|---|
+| **Fast-forward only** | `git pull --progress --no-rebase --ff-only` | Moves your branch forward. Fails if your branch and its upstream diverged |
+| **Merge** | `git pull --progress --no-rebase --ff` | Fast-forwards when possible, otherwise creates a merge commit |
+| **Rebase** | `git pull --progress --rebase` | Replays your local commits on top of the upstream |
+
+### Default strategy
+
+The strategy used by the **Pull** button and <kbd>⌘⇧L</kbd> is resolved in this order:
+
+1. **Default pull strategy** in **Preferences → Behavior**, if set to **Fast-forward only**, **Merge** or **Rebase**. The default value, **Git configuration**, goes to the next steps.
+2. `branch.<name>.rebase`, else `pull.rebase`: a true value (`true`, `merges`, `interactive`…) means **Rebase**.
+3. `pull.ff=only` means **Fast-forward only**; any other `pull.ff` value means **Merge**.
+4. `pull.rebase=false` with no `pull.ff` means **Merge**.
+5. Nothing set: **Fast-forward only**.
+
+The tooltip of the **Pull** button names the resulting strategy. To change it from Git, see [git config pull.rebase](https://git-scm.com/docs/git-config#Documentation/git-config.txt-pullrebase) or set it in [Git configuration](../../customize/git-configuration/).
+
+### Pull results and errors
+
+- Success: **Pull complete (fast-forward)**, **(merge)** or **(rebase)**. Nothing new: **Already up to date**.
+- Branches diverged with **Fast-forward only**: "Your branch and its upstream diverged: a fast-forward is impossible. Pull with merge or rebase." Pick **Merge** or **Rebase** from the chevron.
+- Local changes in the way: "Your local changes would be overwritten by the checkout. Stash them first (stash, checkout, then pop)." [Stash](../../everyday/stash/) them, pull, then pop.
+- Conflicts with **Merge** or **Rebase**: the pull stops, a toast explains it, and the operation banner and conflict view open. Resolve the files, then **Continue** or **Abort**, as described in [Conflicts](../../history/conflicts/).
+- No upstream: "\"feature\" has no upstream branch." Publish the branch with a push first (see below).
+
+A pull that changed your branch cannot be undone: it appears as "not undoable" in the undo history. Reset the branch instead if needed ([Reset](../../history/cherry-pick-revert-reset/)).
+
+## Push
+
+A push sends the commits of a local branch to its upstream ([git push](https://git-scm.com/docs/git-push)). The **Push** button shows a badge with the number of commits you are ahead, and is disabled when HEAD is detached.
+
+| Entry point | What it pushes |
+|---|---|
+| Toolbar **Push** button | The current branch |
+| Toolbar **Push** chevron (**Push options**) → **Push** | The current branch |
+| <kbd>⌘⇧P</kbd> (<kbd>Ctrl+Shift+P</kbd> on Windows and Linux) | The current branch |
+| Palette → **Push** | The current branch |
+| Sidebar, right-click a local branch → **Push** | That branch, checked out or not |
+| Commit box, **Push after commit** checkbox | The current branch, right after a successful commit ([Committing](../../everyday/committing/)) |
+
+yaggui pushes the branch to the remote and branch named by its upstream configuration (`branch.<name>.remote` and `branch.<name>.merge`):
+
+```bash
+git push --progress --porcelain origin refs/heads/feature:refs/heads/feature
+```
+
+Results: **Pushed to origin/feature**, or **origin/feature is already up to date**.
+
+### First push of a branch
+
+When the branch has no upstream yet, yaggui asks before publishing it:
+
+1. A **Publish the branch?** dialog says: "\"feature\" has no upstream yet. It will be pushed to origin/feature, which becomes its upstream." It shows the command, `git push --set-upstream origin feature`.
+2. Click **Publish**.
+
+The remote is `origin` if it exists, otherwise the first remote of the repository. If the repository has no remote at all, you get "This repository has no remote." Add one first ([Remotes](../../remotes/remotes/#add-a-remote)).
+
+### Rejected push
+
+If the remote branch has commits you do not have, the push fails with "Push rejected: the remote branch has commits you don't have." The error toast has a **Pull then push** button: it pulls with the default strategy and, if the pull succeeds, pushes again. If the pull stops on conflicts, resolve them and push again yourself.
+
+A successful push cannot be undone in yaggui, because undo only changes your local repository. It appears as "not undoable" in the undo history, and older operations of the session can no longer be undone either. See [Undo and redo](../../history/undo-and-redo/).
+
+## Force push with lease
+
+A force push replaces the remote branch with yours, dropping the commits that only exist there. yaggui always uses [`--force-with-lease`](https://git-scm.com/docs/git-push#Documentation/git-push.txt---force-with-leaseltrefnamegt), never `--force`: Git refuses the push if the remote branch moved since your last fetch.
+
+Entry points: toolbar **Push** chevron → **Force push (with lease)…**, or palette → **Force push (with lease)**. There is no default shortcut. The item is disabled when HEAD is detached or the branch has no upstream.
+
+<Screenshot name="force-push-confirm" alt="The Overwrite origin/feat/graph-lanes? confirmation, listing the commits the force push would drop and the git push --force-with-lease command" />
+
+1. yaggui lists the commits of the remote branch that are not in yours, as of your last fetch.
+2. A confirmation titled **Overwrite origin/feature?** says how many commits will be dropped ("The force push will drop 2 commits from origin/feature (as of the last fetch). If the branch moved since, Git will refuse.") or that none will be lost, lists those commits (up to 100) and shows the command:
+
+   ```bash
+   git push --force-with-lease=refs/heads/feature:<sha> origin feature
+   ```
+
+3. Click **Force push**. The toast **origin/feature was overwritten** confirms it.
+
+This confirmation is always asked: it cannot be turned off in the preferences.
+
+If someone pushed in the meantime, Git refuses: "Force push refused: the remote branch moved since your last fetch. Fetch and check what would be overwritten." Fetch, look at the new commits in the graph, then decide again.
+
+### Protected branches
+
+Force push to a protected branch is always refused, with no override: "\"main\" is a protected branch: force push is refused." Nothing runs. The check uses the name of the remote branch.
+
+The list is in **Preferences → Behavior → Protected branches**. Defaults: `main`, `master`, `develop`, `release/*`.
+
+- An entry is an exact name, or a pattern `prefix/*` that matches any branch under `prefix/` (at any depth), but not `prefix` itself.
+- Type a name in **Add a branch or pattern** and click **Add**. Remove one with its chip's remove button. **Restore defaults** puts the default list back.
+- An empty list ("No protected branch.") protects nothing.
+
+The same list also guards batch branch deletion ([Branches](../../history/branches/)).
+
+## Tags over the network
+
+Fetch tags, push one tag or all of them, and delete a tag on a remote from the sidebar **Tags** section or the palette (**Fetch tags**, **Push all tags**). These actions are described on the [Tags](../../history/tags/) page.
+
+## Progress and cancellation
+
+While a fetch, pull or push runs, the left part of the status bar shows the operation (**Fetch**, **Pull** or **Push**), Git's current phase (for example "Receiving objects"), the percentage, the amount transferred and the rate, with a progress bar and a **Cancel** button.
+
+<Screenshot name="network-progress" alt="The status bar during a push: Push, Receiving objects, percentage, transferred size and rate, a progress bar and a Cancel button" />
+
+Click **Cancel** to stop it. The status bar shows "Cancelling Push…", then **Push cancelled**, and a toast confirms it. yaggui stops Git and its child processes (such as `ssh`) within about a second. Cancellation is offered for fetch, pull, push, and tag pushes, fetches and deletions on a remote.
+
+Operations in the same repository run one at a time. A fetch, pull or push you start while another operation runs waits for it.
+
+## Errors
+
+A failed fetch, pull or push shows an error toast titled **Fetch failed**, **Pull failed** or **Push failed**. It stays until you close it, and holds:
+
+- a message that says what went wrong and what to do,
+- **Details**, collapsed, with Git's own output,
+- at most one action button, when one helps.
+
+| Message | What to do | Button |
+|---|---|---|
+| The remote host can't be reached. Check your connection and the remote URL. | Check the network or the URL ([Remotes](../../remotes/remotes/#change-the-urls)) | **Retry** |
+| Authentication failed. yaggui never asks for passwords: configure a Git credential helper… | See [Authentication](../../remotes/authentication/#https-use-a-credential-helper) | — |
+| SSH authentication failed. Load your key in ssh-agent (ssh-add)… | See [Authentication](../../remotes/authentication/#ssh-use-ssh-agent) | — |
+| Remote not found: check its name and URL. | Fix the URL of the remote | — |
+| Push rejected: the remote branch has commits you don't have. | Pull, then push | **Pull then push** |
+| "feature" has no upstream branch. | Publish the branch | **Set upstream and push** |
+| HEAD is detached (no current branch): check out a branch first. | Check out a branch | — |
+| The Git command failed. | Read Git's output | **Open command log** |
+
+Auto-fetch failures show no toast; look in the status bar and the command log. The full list of messages is in [Error messages](../../reference/error-messages/).
+
+## What cannot be undone
+
+Undo in yaggui only changes your local repository. These network operations are recorded as "not undoable" and block undo of anything older in the same session:
+
+- a push, a force push, a tag push, or a deletion on the remote,
+- a pull that changed your branch,
+- a fetch with prune (the deleted remote-tracking branches come back with the next fetch if they still exist on the server).
+
+A fetch without prune and an up-to-date pull or push are not recorded. See [Undo and redo](../../history/undo-and-redo/).
