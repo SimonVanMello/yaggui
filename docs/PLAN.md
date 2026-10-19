@@ -179,7 +179,7 @@ Exit: `https://yaggui.tropico.dev` serves the landing page, the versioned docs (
 | W-2 ⬜ | Landing page from the mockup, EN and FR: OS-aware download, install commands, features, undo, transparency, themes, FAQ, final call to action | W-1 | — |
 | W-3 🟦 | Docs content in English from an analysis of the app (features, flows, UI wording, edge cases, undo), information architecture, `sources` / `requirements` frontmatter, docs screenshots in both themes | — | — |
 | W-4 ⬜ | Docs upkeep: `CLAUDE.md` rules and Definition of done, PR template, `docs-impact` warning job, keyboard shortcut reference generated from the action registry | W-1 | — |
-| W-5 ⬜ | Live demo: mocked frontend built into `/demo/` with a demo banner | W-1 | — |
+| W-5 🟨 | Live demo: mocked frontend built into `/demo/` with a demo banner | W-1 | — |
 | W-6 ⬜ | French docs | W-3 | — |
 
 Order: W-1 ∥ W-3; then W-2 ∥ W-4 ∥ W-5 on top of W-1; W-6 once the English docs of W-3 are stable.

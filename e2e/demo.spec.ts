@@ -11,9 +11,15 @@ const THEMES = [
 function watch(page: Page) {
   const problems: string[] = [];
   page.on('console', (message) => {
+    // The redirect page has no icon, so the browser may ask for /favicon.ico.
+    if (message.location().url.endsWith('/favicon.ico')) return;
     if (message.type() === 'error') problems.push(`console: ${message.text()}`);
   });
   page.on('pageerror', (error) => problems.push(`exception: ${error.message}`));
+  page.on('response', (r) => {
+    if (r.status() >= 400 && !r.url().endsWith('/favicon.ico'))
+      problems.push(`HTTP ${String(r.status())}: ${r.url()}`);
+  });
   page.on('request', (request) => {
     const { protocol, origin } = new URL(request.url());
     if (protocol.startsWith('http') && origin !== 'http://localhost:4321') {

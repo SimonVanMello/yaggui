@@ -1,6 +1,6 @@
 # yaggui website
 
-The public site at <https://yaggui.tropico.dev>: landing page (`/`), documentation (`/docs/`) and live demo slot (`/demo/`), in English (root) and French (`/fr/`). Brief: [`docs/WEBSITE.md`](../docs/WEBSITE.md); mockup: [`docs/ui/website.html`](../docs/ui/website.html).
+The public site at <https://yaggui.tropico.dev>: landing page (`/`), documentation (`/docs/`) and live demo (`/demo/`, the app's frontend on a mocked backend), in English (root) and French (`/fr/`). Brief: [`docs/WEBSITE.md`](../docs/WEBSITE.md); mockup: [`docs/ui/website.html`](../docs/ui/website.html).
 
 [Astro](https://astro.build) with [Starlight](https://starlight.astro.build) for the docs. A standalone package, not a workspace member of the app: its own `package.json`, lockfile and checks.
 
@@ -22,11 +22,12 @@ pnpm check     # astro check (strict TypeScript, content schema) + Prettier
 | `src/content/docs/en/`, `src/content/docs/fr/` | Docs pages (MDX), same relative path in both locales                                                                    |
 | `src/content/docs/sidebar.json`                | Docs sidebar, versioned with the pages                                                                                  |
 | `src/assets/screens/`                          | Docs screenshots, `<name>-dark.png` (Graphite) and `<name>-light.png` (Paper)                                           |
-| `src/pages/`                                   | Landing (`index.astro`, `fr/index.astro`) and demo slot (`demo/`)                                                       |
+| `src/pages/`                                   | Landing (`index.astro`, `fr/index.astro`)                                                                               |
 | `src/components/`                              | `Screenshot`, `DownloadButton`, site navigation and footer; `starlight/`: Starlight overrides (title, version switcher) |
 | `src/styles/theme.css`                         | Theme adapter: every color of the site comes from the app's `src/theme/graphite.css` and `paper.css` through it         |
 | `src/i18n/ui.ts`                               | Strings of the site outside the docs content, EN and FR                                                                 |
 | `src/lib/`                                     | Docs versions, latest release lookup                                                                                    |
+| `public/demo/`                                 | Built by `pnpm build:demo` (git-ignored): the live demo, see `docs/WEBSITE.md`                                          |
 | `versions.json`                                | Optional overrides of the docs versions found in git tags                                                               |
 | `scripts/`                                     | Version extraction, link check                                                                                          |
 | `public/_headers`                              | Cloudflare Pages headers (cache of `/_astro/`)                                                                          |
