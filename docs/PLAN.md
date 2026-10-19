@@ -168,3 +168,18 @@ Exit: every tagged version is installable from GitHub Releases and from the main
 | M6-7 ✅ | Changelog: `CHANGELOG.md` (Keep a Changelog) backfilled from 0.1.0, embedded in the binary and parsed in Rust (`changelog` command), "What's new" view (versions newest first, grouped as features / fixes / other, installed version highlighted), installed version in the status bar and the preferences, palette and macOS Help menu entries; `pnpm release:version` moves `Unreleased` into the new version and refuses an empty one | M6-1 | — |
 
 Order: M6-1; then M6-2a ∥ M6-2b ∥ M6-3 ∥ M6-4 ∥ M6-6; M6-5 when the signing accounts exist.
+
+## W — Website and documentation
+
+Exit: `https://yaggui.tropico.dev` serves the landing page, the versioned docs (latest release by default, older versions selectable, `next` for `master`) and the live demo, in English and French, deployed by CI. Agents keep the docs current with each change. See [`docs/WEBSITE.md`](WEBSITE.md) and the mockup [`docs/ui/website.html`](ui/website.html).
+
+| ID | Task | Depends on | Requirements |
+|---|---|---|---|
+| W-1 🟦 | Website scaffold: Astro + Starlight in `website/` (standalone package), app theme tokens through one adapter, EN / FR routing, versioned docs built from git refs (`website/versions.json`), lightbox, placeholder pages; `ci.yml` skips app jobs on site-only PRs, `website.yml` builds PRs and deploys to GitHub Pages on `master` and on release | — | — |
+| W-2 ⬜ | Landing page from the mockup, EN and FR: OS-aware download, install commands, features, undo, transparency, themes, FAQ, final call to action | W-1 | — |
+| W-3 🟦 | Docs content in English from an analysis of the app (features, flows, UI wording, edge cases, undo), information architecture, `sources` / `requirements` frontmatter, docs screenshots in both themes | — | — |
+| W-4 ⬜ | Docs upkeep: `CLAUDE.md` rules and Definition of done, PR template, `docs-impact` warning job, keyboard shortcut reference generated from the action registry | W-1 | — |
+| W-5 ⬜ | Live demo: mocked frontend built into `/demo/` with a demo banner | W-1 | — |
+| W-6 ⬜ | French docs | W-3 | — |
+
+Order: W-1 ∥ W-3; then W-2 ∥ W-4 ∥ W-5 on top of W-1; W-6 once the English docs of W-3 are stable.
