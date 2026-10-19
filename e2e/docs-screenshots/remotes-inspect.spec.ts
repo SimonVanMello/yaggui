@@ -1,6 +1,6 @@
 import { expect, test, type Locator, type Page, type TestInfo } from '@playwright/test';
 
-import { capture, openRepo, start } from './capture';
+import { capture, frenchUi, lang, openRepo, start } from './capture';
 
 /** Docs screenshots: remotes (fetch, pull, push, manage) and inspect (file history, blame, reflog). */
 
@@ -115,9 +115,11 @@ test('force-push-confirm', async ({ page }, testInfo) => {
   await start(page, '(mock) => mock.seedPreferences({ protectedBranches: [] })');
   await openRepo(page, /^blog\b/);
   await toolbar(page).getByRole('button', { name: 'Push options' }).click();
-  await page.getByRole('menuitem', { name: /Force push/ }).click();
+  const forcePush = await page.getByRole('menuitem', { name: /Force push/ }).elementHandle();
+  await frenchUi(page);
+  await forcePush.click();
   const dialog = page.getByRole('alertdialog').or(page.getByRole('dialog'));
-  await expect(dialog).toContainText('Overwrite origin/main?');
+  await expect(dialog).toContainText(lang('Overwrite origin/main?', 'Écraser origin/main ?'));
   await expect(dialog).toContainText('--force-with-lease');
   await capture(page, testInfo, 'force-push-confirm', dialog);
 });
@@ -175,9 +177,13 @@ test('remote-remove-confirm', async ({ page }, testInfo) => {
   await page.getByRole('dialog').getByRole('button', { name: 'Save' }).click();
   await expect(page.getByText('Remote origin renamed to upstream', { exact: true })).toBeVisible();
   await folder('upstream').click({ button: 'right' });
-  await page.getByRole('menuitem', { name: 'Remove the remote…' }).click();
+  const remove = await page.getByRole('menuitem', { name: 'Remove the remote…' }).elementHandle();
+  await frenchUi(page);
+  await remove.click();
   const confirm = page.getByRole('alertdialog').or(page.getByRole('dialog'));
-  await expect(confirm).toContainText('Remove the remote upstream?');
+  await expect(confirm).toContainText(
+    lang('Remove the remote upstream?', 'Supprimer le remote upstream ?'),
+  );
   await expect(confirm).toContainText('git remote remove -- upstream');
   await capture(page, testInfo, 'remote-remove-confirm', confirm);
 });

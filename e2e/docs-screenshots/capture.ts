@@ -22,6 +22,19 @@ const LOCALE = process.env.DOCS_LOCALE === 'fr' ? 'fr' : 'en';
 /** Margin kept around a cropped element, in CSS pixels. */
 const PAD = 12;
 
+/** `en` in English runs, `fr` in French runs: for the few steps that must happen in French. */
+export function lang<T>(en: T, fr: T): T {
+  return LOCALE === 'fr' ? fr : en;
+}
+
+/**
+ * Switches the UI to French right now (no-op in English runs). Dialogs and toasts keep the text
+ * they were opened with, so a capture that shows one must open it after this call.
+ */
+export async function frenchUi(page: Page) {
+  if (LOCALE !== 'en') await setLocale(page, LOCALE);
+}
+
 /** Output file of a capture, for the current theme and locale. */
 export function screenPath(testInfo: TestInfo, name: string): string {
   const locale = LOCALE === 'en' ? '' : `-${LOCALE}`;
@@ -97,14 +110,24 @@ async function shoot(
   await page.screenshot({ path, clip, animations: 'disabled' });
 }
 
-/** Loads the app at the fixed mock time, optionally preparing the mock before it starts. */
-export async function start(page: Page, setup?: string) {
+/**
+ * Loads the app at the fixed mock time, optionally preparing the mock before it starts. With
+ * `french`, French runs boot the app in French (for what the app writes at startup, such as the
+ * update notice); English runs ignore it.
+ */
+export async function start(page: Page, setup?: string, { french = false } = {}) {
   await page.clock.setFixedTime(new Date(MOCK_NOW_MS));
   if (setup) {
     await page.addInitScript(`window.__yagguiMockSetup = ${setup};`);
   }
+  const boot = french && LOCALE === 'fr' ? 'fr' : 'en';
+  if (boot === 'fr') {
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, 'languages', { get: () => ['fr-FR', 'fr'] });
+    });
+  }
   await page.goto('/');
-  await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+  await expect(page.locator('html')).toHaveAttribute('lang', boot);
 }
 
 /** Opens a fixture repository from the welcome screen (yaggui, linux, blog). */

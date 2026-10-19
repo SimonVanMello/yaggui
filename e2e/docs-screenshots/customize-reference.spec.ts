@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { capture, openRepo, start } from './capture';
+import { capture, frenchUi, lang, openRepo, start } from './capture';
 
 /** Docs screenshots of the customize/*, reference/* and help/* pages. */
 
@@ -107,14 +107,16 @@ test('error-toast-retry', async ({ page }, testInfo) => {
   await welcome(page);
   await openRepo(page);
   await page.evaluate(() => window.__yagguiMock?.addOfflineRemote(1));
-  await page
+  const fetch = await page
     .getByRole('toolbar', { name: 'Repository actions' })
     .getByRole('button', { name: 'Fetch', exact: true })
-    .click();
-  const toast = toastWith(page, 'Fetch failed');
-  await expect(toast).toContainText("The remote host can't be reached");
+    .elementHandle();
+  await frenchUi(page);
+  await fetch.click();
+  const toast = toastWith(page, lang('Fetch failed', 'Fetch a échoué'));
+  await expect(toast).toBeVisible();
   // The page shows the Details section collapsed.
-  await expect(toast.locator('summary')).toContainText('Details');
+  await expect(toast.locator('summary')).toContainText(lang('Details', 'Détails'));
   await page.mouse.move(0, 0);
   await capture(page, testInfo, 'error-toast-retry', toast);
 });
