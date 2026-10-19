@@ -49,7 +49,7 @@ Voir [Apparence](../../customize/appearance/).
 
 ## Raccourcis
 
-Voir [Palette de commandes et raccourcis](../../customize/palette-and-shortcuts/). Cet onglet modifie `keybindings.json`, pas la base de données des préférences.
+Voir [Palette de commandes et raccourcis](../../customize/palette-and-shortcuts/#modifier-un-raccourci). Cet onglet modifie `keybindings.json`, pas la base de données des préférences.
 
 | Contrôle                                    | Effet                                                                           |
 | ------------------------------------------- | ------------------------------------------------------------------------------- |
@@ -74,7 +74,7 @@ Voir [Outils externes](../../customize/external-tools/). Chaque ligne, sauf **Te
 
 ## Git
 
-Voir [Binaire Git et configuration](../../customize/git-configuration/).
+Voir [Binaire Git et configuration](../../customize/git-configuration/#choisir-le-binaire-git).
 
 | Libellé         | Valeurs                                                   | Par défaut                                           | Effet                                                                                                                                                                                 |
 | --------------- | --------------------------------------------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -82,7 +82,7 @@ Voir [Binaire Git et configuration](../../customize/git-configuration/).
 
 ## Configuration
 
-Ce ne sont pas des préférences de yaggui : cet onglet modifie les fichiers de configuration propres à Git avec `git config`. Voir [Binaire Git et configuration](../../customize/git-configuration/).
+Ce ne sont pas des préférences de yaggui : cet onglet modifie les fichiers de configuration propres à Git avec `git config`. Voir [Binaire Git et configuration](../../customize/git-configuration/#modifier-la-configuration-git).
 
 | Contrôle                     | Valeurs                                                                                                                                                                                                                                                                                  | Par défaut                                 |
 | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
@@ -140,7 +140,7 @@ Les préférences ne sont pas dans un fichier `settings.json`. Elles sont stock�
 
 La variable d’environnement `YAGGUI_CONFIG_DIR` remplace ce dossier.
 
-- Les raccourcis sont stockés à part, dans `keybindings.json`, dans le même dossier ; vous pouvez le modifier à la main. Voir [Modifier keybindings.json](../../customize/palette-and-shortcuts/).
+- Les raccourcis sont stockés à part, dans `keybindings.json`, dans le même dossier ; vous pouvez le modifier à la main. Voir [Modifier keybindings.json](../../customize/palette-and-shortcuts/#modifier-keybindingsjson).
 - Les avatars sont mis en cache dans le dossier de cache de l’OS, pas avec les préférences.
 - Une valeur illisible ou hors limites reprend sa valeur par défaut. Si la base de données ne peut pas être ouverte, yaggui démarre avec les valeurs par défaut et ne conserve les changements qu’en mémoire : ils sont perdus quand vous quittez.
 - Pour réinitialiser toutes les préférences, quittez yaggui et supprimez `yaggui.db`. Cela fait aussi oublier vos dépôts, vos onglets et vos workspaces. Voir [Données et confidentialité](../../reference/data-and-privacy/).

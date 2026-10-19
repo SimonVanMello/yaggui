@@ -30,7 +30,7 @@ yaggui exécute votre propre `git` pour chaque modification qu’il effectue, et
 Chaque processus Git que yaggui lance est enregistré, y compris ceux que vous n’avez pas demandés directement :
 
 - les commandes que vous déclenchez (commit, checkout, fetch, push…) ;
-- les commandes d’arrière-plan, comme les fetchs automatiques et le `git commit-graph write --reachable --changed-paths --no-progress` qui accélère le graphe des gros dépôts (voir [Première ouverture lente](../../help/troubleshooting/)) ;
+- les commandes d’arrière-plan, comme les fetchs automatiques et le `git commit-graph write --reachable --changed-paths --no-progress` qui accélère le graphe des gros dépôts (voir [Première ouverture lente](../../help/troubleshooting/#la-première-ouverture-dun-gros-dépôt-est-lente)) ;
 - les vérifications comme `git --version` quand vous renseignez le chemin de Git.
 
 La plupart des lectures (le graphe, le statut, les diffs) n’exécutent pas Git du tout : yaggui lit directement le dépôt, elles n’apparaissent donc pas ici.
