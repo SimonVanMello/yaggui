@@ -6,7 +6,7 @@ import { useTabsStore } from '../../app/tabs/tabsStore';
 import { translate, useI18nStore, type MessageKey, type MessageParams } from '../../i18n/i18n';
 import { ipc, unwrap, type KnownRepo, type Workspace } from '../../ipc';
 import { toast } from '../../ui/toastStore';
-import { restoreRepoSession, tryOpenRepo } from '../repo/repoSessions';
+import { closeTabAndRepo, restoreRepoSession, tryOpenRepo } from '../repo/repoSessions';
 import { workspaceKeys } from './workspaceQueries';
 import { useWorkspaceUi } from './workspaceStore';
 
@@ -95,6 +95,10 @@ export async function removeRepoFromWorkspace(workspaceId: number, repoId: numbe
   }
 }
 
+function isEmptyTab(tabId: string | undefined): boolean {
+  return useTabsStore.getState().tabs.some((tab) => tab.id === tabId && tab.repoId === null);
+}
+
 /**
  * Opens every repo of the workspace in a tab (F-006), in the workspace order, and activates the
  * first one. `targetTabId` (a welcome tab) receives the first repo. Missing folders are skipped
@@ -122,10 +126,12 @@ export async function openWorkspace(workspace: Workspace, targetTabId?: string):
       failed.push(repo.name);
       continue;
     }
-    target = undefined;
+    // A repo that already had a tab leaves the welcome tab for the next one.
+    if (!isEmptyTab(target)) target = undefined;
     firstRepoId ??= repo.id;
   }
   const tabs = useTabsStore.getState();
+  if (targetTabId && firstRepoId !== null && isEmptyTab(targetTabId)) tabs.closeTab(targetTabId);
   const first = tabs.tabs.find((tab) => tab.repoId === firstRepoId);
   if (first) tabs.activate(first.id);
 
@@ -276,6 +282,10 @@ export async function importRepos(
 export async function forgetRepo(repoId: number): Promise<void> {
   try {
     await unwrap(ipc.commands.forgetRepo(repoId));
+    // Its tab would keep pointing to a repo id that no longer exists.
+    for (const tab of useTabsStore.getState().tabs) {
+      if (tab.repoId === repoId) closeTabAndRepo(tab.id);
+    }
   } catch (error) {
     showError(error);
   }

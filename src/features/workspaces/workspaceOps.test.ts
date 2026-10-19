@@ -6,7 +6,7 @@ import { ipc, type YagguiError } from '../../ipc';
 import { mockBackend } from '../../ipc/mockClient';
 import { closeTabAndRepo } from '../repo/repoSessions';
 import { useToastStore } from '../../ui/toastStore';
-import { fetchWorkspace, openWorkspace, relocateRepo } from './workspaceOps';
+import { fetchWorkspace, forgetRepo, openWorkspace, relocateRepo } from './workspaceOps';
 import { useWorkspaceUi } from './workspaceStore';
 
 const perso = { id: 1, name: 'Personal', repoIds: [1, 3, 4] };
@@ -41,6 +41,42 @@ describe('openWorkspace', () => {
     expect(toast).toMatchObject({ variant: 'warning', description: 'legacy-api' });
     toast?.action?.onClick();
     expect(useWorkspaceUi.getState().manager).toEqual({ workspaceId: 1 });
+  });
+});
+
+describe('openWorkspace with repos already open', () => {
+  it('uses the welcome tab for the first repo that has no tab yet', async () => {
+    await openWorkspace(
+      { id: 1, name: 'Personal', repoIds: [1] },
+      useTabsStore.getState().tabs[0]?.id,
+    );
+    const welcome = useTabsStore.getState().newTab();
+    await openWorkspace(perso, welcome);
+    expect(useTabsStore.getState().tabs.map((tab) => tab.repoId)).toEqual([1, 3]);
+    expect(useTabsStore.getState().tabs[1]?.id).toBe(welcome);
+  });
+
+  it('closes the welcome tab when every repo already has a tab', async () => {
+    await openWorkspace(
+      { id: 1, name: 'Personal', repoIds: [1, 3] },
+      useTabsStore.getState().tabs[0]?.id,
+    );
+    const welcome = useTabsStore.getState().newTab();
+    await openWorkspace(perso, welcome);
+    const { tabs } = useTabsStore.getState();
+    expect(tabs.map((tab) => tab.repoId)).toEqual([1, 3]);
+    expect(tabs.some((tab) => tab.id === welcome)).toBe(false);
+  });
+});
+
+describe('forgetRepo', () => {
+  it('closes the tab of the repo it forgets', async () => {
+    await openWorkspace(
+      { id: 1, name: 'Personal', repoIds: [1, 3] },
+      useTabsStore.getState().tabs[0]?.id,
+    );
+    await forgetRepo(3);
+    expect(useTabsStore.getState().tabs.map((tab) => tab.repoId)).toEqual([1]);
   });
 });
 
