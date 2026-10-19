@@ -1,0 +1,136 @@
+---
+title: Rebase interactif
+description: Réordonnez, reformulez, regroupez (squash, fixup), supprimez ou modifiez les commits de la branche courante dans un éditeur visuel, puis lancez le rebase.
+sidebar:
+  order: 6
+sources:
+  - src/features/rebase/**
+  - src/features/graph/CommitContextMenu.tsx
+  - src/features/palette/builtinActions.ts
+  - src-tauri/src/repo/interactive.rs
+  - src-tauri/src/git/ops/rebase_todo.rs
+  - src-tauri/src/commands/history.rs
+requirements: [F-142]
+---
+
+import Screenshot from '~/components/Screenshot.astro';
+import rebaseTodoDark from '../../../../assets/screens/rebase-todo-dark.png';
+import rebaseTodoLight from '../../../../assets/screens/rebase-todo-light.png';
+
+L’éditeur de rebase interactif réécrit les commits récents de la branche courante : vous les organisez dans une liste, vérifiez le résultat, et yaggui exécute `git rebase --interactive` à votre place, sans ouvrir d’éditeur de texte. Pour le côté Git, voir [Rewriting history](https://git-scm.com/book/en/v2/Git-Tools-Rewriting-History).
+
+## Lancer un rebase interactif
+
+Vous choisissez une **base** : le commit sur lequel les commits réécrits sont placés. La base elle-même n’est pas modifiée ; tous les commits qui la suivent, jusqu’à la pointe de la branche courante, sont listés (comme avec `git rebase -i <base>`).
+
+- **Depuis un commit** : faites un clic droit sur un commit de la branche courante dans le graphe et choisissez **Rebase interactif depuis ici…**. Ce commit est la base.
+- **Depuis la palette** : lancez **Rebase interactif depuis…** (<kbd>⌘K</kbd>, ou <kbd>Ctrl+K</kbd> sous Windows et Linux). Si un commit autre que HEAD est sélectionné dans le graphe, il sert de base. Sinon, un sélecteur demande « Rebaser au-dessus de quel commit ? Les commits qui le suivent seront listés. » et propose les 30 derniers commits de la branche (premiers parents uniquement), chacun avec **\{count\} commits au-dessus**. Utilisez <kbd>↑</kbd>/<kbd>↓</kbd> et <kbd>Entrée</kbd>, ou cliquez sur l’un d’eux.
+
+L’éditeur remplace le graphe. Les deux points d’entrée sont désactivés tant qu’une autre opération est en cours.
+
+L’éditeur refuse de démarrer, avec un message, dans les cas suivants :
+
+| Message                                                                                                                                                         | Cause                                                                         |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| « HEAD est détaché (aucune branche courante) : fais d'abord un checkout d'une branche. »                                                                        | Aucune branche n’est extraite                                                 |
+| « \{short\} n'est pas un ancêtre de la branche courante. »                                                                                                      | La base n’appartient pas à l’historique de la branche courante                |
+| « Plus de 200 commits à rebaser : choisis une base plus récente. »                                                                                              | La plage est trop longue                                                      |
+| **Aucun commit après cette base : rien à rebaser.**                                                                                                             | La base est la pointe de la branche                                           |
+| **Cette plage contient des commits de merge. yaggui ne reconstruit pas les merges dans un rebase interactif : choisis une base plus récente.**                  | Un commit de merge se trouve au-dessus de la base ; **Lancer le rebase** reste désactivé |
+
+Vos modifications n’existent que dans l’éditeur ouvert : le quitter (**Annuler**, <kbd>Esc</kbd>) les abandonne, et choisir une autre base repart de zéro.
+
+## Modifier la liste
+
+<Screenshot
+  dark={rebaseTodoDark}
+  light={rebaseTodoLight}
+  alt="Éditeur de rebase interactif avec des commits en Reword, Squash, Fixup, Drop et Edit, et le panneau Résultat"
+/>
+
+L’en-tête affiche la branche, **sur \{sha\} \{summary\}** et le nombre de commits. La liste **Commits à rebaser, du plus récent au plus ancien** place le commit le plus récent en haut, comme le graphe : « en dessous » signifie donc plus ancien. Chaque ligne affiche une poignée de glissement, le SHA, le résumé, l’auteur et la date, un badge **Poussé** quand le commit est déjà sur l’upstream (**Déjà sur \{target\}**), et les boutons d’action.
+
+### Actions
+
+Cliquez sur un bouton de la ligne, ou donnez le focus à la ligne et appuyez sur sa touche (sans modificateur) :
+
+| Action     | Touche       | Effet                                                                   |
+| ---------- | ------------ | ----------------------------------------------------------------------- |
+| **Pick**   | <kbd>P</kbd> | Garder le commit tel quel                                               |
+| **Reword** | <kbd>R</kbd> | Garder les changements, écrire un nouveau message                       |
+| **Squash** | <kbd>S</kbd> | Fusionner dans le commit du dessous, en combinant les messages          |
+| **Fixup**  | <kbd>F</kbd> | Fusionner dans le commit du dessous, en gardant son message             |
+| **Drop**   | <kbd>D</kbd> | Supprimer le commit                                                     |
+| **Edit**   | <kbd>E</kbd> | S'arrêter après ce commit pour le modifier ou ajouter des commits       |
+
+Les lignes fusionnées affichent **Fusionné dans « \{summary\} »** ; une ligne **Edit** affiche **Le rebase s'arrête ici**.
+
+### Réordonner
+
+- Glissez une ligne par sa poignée et déposez-la au-dessus ou en dessous d’une autre ligne. La liste défile quand vous approchez de ses bords.
+- Ou donnez le focus à une ligne et appuyez sur <kbd>⌥↑</kbd>/<kbd>⌥↓</kbd> (<kbd>Alt+↑</kbd>/<kbd>Alt+↓</kbd> sous Windows et Linux) pour la monter ou la descendre.
+
+Autres touches dans la liste : <kbd>↑</kbd>/<kbd>↓</kbd> déplacent le focus, <kbd>Home</kbd>/<kbd>End</kbd> vont au commit le plus récent/le plus ancien, <kbd>Esc</kbd> annule un glissement ou quitte l’éditeur. Le pied de page rappelle ces touches.
+
+### Modifier un message
+
+Un commit reformulé (Reword), ou le dernier commit squashé d’un groupe, porte le nouveau message. Cliquez sur **Modifier le message** sur cette ligne, ou donnez-lui le focus et appuyez sur <kbd>Entrée</kbd>. Un éditeur en ligne s’ouvre avec un champ de résumé (doté d’un compteur `n/72`) et un champ de description.
+
+- Le message par défaut est le message d’origine pour un Reword, et le message du commit de tête suivi de chaque message squashé pour un groupe de squash. Un Fixup garde le message du commit dans lequel il est fusionné.
+- **Les lignes commençant par # sont conservées.**
+- **Revenir au message par défaut** rétablit le message par défaut ; **Terminé**, <kbd>Esc</kbd> ou <kbd>⌘Entrée</kbd> (<kbd>Ctrl+Entrée</kbd> sous Windows et Linux) ferme l’éditeur.
+
+### Validation
+
+Les lignes qui posent problème sont mises en évidence et **Lancer le rebase** est désactivé avec **Corrige les commits signalés pour lancer** :
+
+- **Rien en dessous où fusionner : garde un commit sous celui-ci** : un Squash ou un Fixup n’a aucun commit conservé en dessous.
+- **Le message a besoin d'un résumé** : le message d’un Reword ou d’un Squash est vide.
+- **Tous les commits sont supprimés : fais plutôt un reset de la branche.** (voir [Reset](../../history/cherry-pick-revert-reset/#reset-de-la-branche-courante)).
+
+Quand rien n’a changé, l’indication est **Modifie au moins un commit pour lancer**.
+
+### Aperçu du résultat
+
+Le panneau **Résultat** montre les commits tels qu’ils seront après le rebase : **\{count\} commits**, **\{count\} commits supprimés**, et pour chaque commit des pastilles comme **\{count\} fusionnés**, **message modifié** ou **arrêt pour modification**. Son pied de page rappelle la base : **sur \{sha\} \{summary\}**.
+
+Pour quitter sans rien faire, cliquez sur **Annuler** ou appuyez sur <kbd>Esc</kbd>.
+
+## Confirmer et lancer
+
+Cliquez sur **Lancer le rebase**. La confirmation **Réécrire \{count\} commits de \{branch\} ?** compte les commits depuis le premier modifié jusqu’à la pointe, indique qu’ils « vont être réécrits et recevoir de nouveaux SHA », et affiche `git rebase -i <base>`.
+
+Si certains commits réécrits sont déjà sur l’upstream, la confirmation se transforme en avertissement : « \{count\} des commits réécrits de \{branch\} sont déjà sur \{target\}. Après le rebase, \{branch\} diverge de \{target\} : seul un force push (--force-with-lease) pourra le mettre à jour. » Chacun de ces commits y est listé avec la mention **poussé sur \{target\}**. Voir [Force push](../../remotes/fetch-pull-push/).
+
+Confirmez avec **Lancer le rebase**. yaggui :
+
+1. Vérifie qu’aucune opération n’est en cours et qu’aucun fichier suivi n’a de modifications locales (« Tes modifications locales seraient écrasées par le rebase. Commite-les ou mets-les de côté (stash) d'abord. »).
+2. Crée avec `git commit-tree` les commits qui portent un nouveau message (Reword et groupes de Squash), en conservant l’auteur et la date d’origine.
+3. Écrit lui-même la liste todo (lignes `pick`, `fixup`, `edit`, `drop`) dans un dossier temporaire privé, supprimé ensuite.
+4. Exécute `git rebase --interactive <base>` en remplaçant les éditeurs de Git, de sorte qu’aucun éditeur ne s’ouvre jamais.
+
+La progression s’affiche dans la barre d’état. Une fois terminé : **Rebase de \{branch\} terminé**, et le graphe revient.
+
+Si la branche a changé depuis le chargement de la liste, le rebase ne démarre pas (« La liste des commits ne correspond plus à la branche (elle a changé entre-temps) : recharge-la. ») et l’éditeur affiche **Le rebase n'a pas démarré** avec **Recharger les commits**.
+
+## Quand le rebase s’arrête
+
+### Sur un commit Edit
+
+Un panneau **Rebase interrompu** affiche **Rebase arrêté à l'étape \{step\}/\{total\} sur \{sha\} \{summary\}** et « Modifie ce commit ou ajoute des commits par-dessus, puis continue. » HEAD est détaché pendant l’exécution du rebase. Modifiez le commit ou ajoutez-en depuis le panneau de commit (voir [Committer](../../everyday/committing/)), puis cliquez sur **Continuer**.
+
+Le panneau propose **Continuer**, **Annuler le rebase** et **Fermer (le rebase reste en cours)**. Il n’y a pas de bouton **Passer** sur un arrêt d’édition.
+
+### Sur des conflits
+
+Le panneau affiche **Conflits à l'étape \{step\}/\{total\}**, « Résous les conflits dans le panneau des changements, puis continue. » et **\{count\} fichiers encore en conflit**. L’éditeur de merge s’ouvre sur le premier fichier en conflit ; le bouton **Graphe** de sa barre d’outils ramène au panneau. Quand tous les fichiers sont résolus, le panneau affiche **Tous les conflits sont résolus.** et **Continuer** devient disponible. **Passer** abandonne le commit en cours. Voir [Résoudre les conflits](../../history/conflicts/).
+
+Après **Continuer** ou **Passer**, le panneau suit l’arrêt suivant, ou se ferme quand le rebase est terminé. Vous pouvez aussi continuer ou annuler depuis le [bandeau d’opération](../../history/conflicts/#le-bandeau-dopération-en-cours) au-dessus du graphe ; l’éditeur se ferme de lui-même dès que le rebase n’est plus en cours.
+
+:::caution
+**Annuler le rebase** dans ce panneau exécute `git rebase --abort` sans demander de confirmation (le bouton **Annuler le rebase** du bandeau, lui, en demande une). La branche revient à son état d’avant le rebase. Notification : **Rebase de \{branch\} abandonné**.
+:::
+
+## Annulation
+
+Un rebase interactif n’est pas enregistré dans l’historique d’annulation : <kbd>⌘Z</kbd> ne l’annule pas. Tant qu’il est en cours, **Annuler le rebase** restaure la branche. Une fois terminé, retrouvez l’ancienne pointe dans le [reflog](../../inspect/reflog/) et resetez-y la branche. Voir [Annuler et rétablir](../../history/undo-and-redo/).

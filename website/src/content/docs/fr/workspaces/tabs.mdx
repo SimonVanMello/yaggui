@@ -1,0 +1,96 @@
+---
+title: Onglets
+description: Ouvrir plusieurs dépôts dans des onglets, passer de l'un à l'autre, les réordonner, lire leurs indicateurs et les retrouver après un redémarrage.
+sidebar:
+  order: 1
+sources:
+  - src/app/titlebar/**
+  - src/app/tabs/**
+  - src/app/shellActions.ts
+  - src/features/keybindings/builtinBindings.ts
+  - src-tauri/src/store/tabs.rs
+  - src-tauri/src/store/repo_ui_state.rs
+requirements: [F-004]
+---
+
+import Screenshot from '~/components/Screenshot.astro';
+import tabsIndicatorsDark from '../../../../assets/screens/tabs-indicators-dark.png';
+import tabsIndicatorsLight from '../../../../assets/screens/tabs-indicators-light.png';
+
+Chaque dépôt que vous ouvrez obtient un onglet dans la barre de titre. Cette page couvre l'ouverture, la fermeture, le changement et le réordonnancement des onglets, la signification de leurs indicateurs, et ce que yaggui retient d'un lancement à l'autre.
+
+## Ouvrir et fermer des onglets
+
+- **Nouvel onglet** : cliquez sur **+** à la fin de la barre d'onglets, ou appuyez sur <kbd>⌘T</kbd> (<kbd>Ctrl+T</kbd> sous Windows et Linux). Un nouvel onglet affiche l'écran d'accueil, où vous choisissez un dépôt (voir [Ouvrir un dépôt](../../start-here/open-a-repository/)). Sur un onglet d'accueil, ce raccourci donne le focus à son champ de recherche au lieu d'ajouter un autre onglet vide.
+- **Fermer un onglet** : cliquez sur son **×**, faites un clic du milieu dessus, appuyez sur <kbd>⌘W</kbd> (<kbd>Ctrl+W</kbd> sous Windows et Linux), ou appuyez sur <kbd>Suppr</kbd> quand l'onglet a le focus. <kbd>⌘W</kbd> ferme l'onglet, jamais la fenêtre. Fermer le dernier onglet laisse un nouvel onglet d'accueil.
+
+Après la fermeture d'un onglet, celui de droite devient actif (ou celui de gauche, à défaut).
+
+Fermer un onglet ne demande jamais de confirmation. Cela annule toute commande yaggui encore en cours ou en attente pour ce dépôt (un fetch, un push…) et ferme ses terminaux intégrés. Vos fichiers, vos changements et vos stashes, ainsi qu'un merge ou un rebase arrêté sur des conflits, restent tels quels. Pour retrouver l'onglet, rouvrez le dépôt depuis l'écran d'accueil.
+
+## Un onglet par dépôt
+
+Un dépôt s'ouvre dans un seul onglet. Ouvrir un dépôt qui a déjà un onglet bascule vers cet onglet au lieu d'en créer un second. Pour travailler sur deux branches côte à côte, utilisez un [worktree](../../repository/worktrees/) : chaque worktree est un dépôt distinct avec son propre onglet.
+
+## Passer d'un onglet à l'autre
+
+| Raccourci                                                                                      | Effet                                                           |
+| ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| <kbd>Ctrl+Tab</kbd> / <kbd>Ctrl+Shift+Tab</kbd>                                                | Onglet suivant / précédent. La touche Contrôle est aussi utilisée sous macOS. |
+| <kbd>⌘1</kbd> … <kbd>⌘8</kbd> (<kbd>Ctrl+1</kbd> … <kbd>Ctrl+8</kbd> sous Windows et Linux)    | Aller à l'onglet situé à cette position.                        |
+| <kbd>⌘9</kbd> (<kbd>Ctrl+9</kbd> sous Windows et Linux)                                        | Aller au dernier onglet, quel que soit leur nombre.             |
+
+Quand un onglet a le focus clavier, <kbd>←</kbd> / <kbd>→</kbd> passent à l'onglet précédent ou suivant (en bouclant), et <kbd>Début</kbd> / <kbd>Fin</kbd> au premier ou au dernier.
+
+La palette propose aussi **Nouvel onglet**, **Fermer l'onglet**, **Onglet suivant** et **Onglet précédent**. Tous ces raccourcis sont des valeurs par défaut que vous pouvez modifier : voir [Palette et raccourcis](../../customize/palette-and-shortcuts/).
+
+Passer d'un onglet récemment affiché à un autre est instantané : yaggui garde prêtes les trois dernières vues de dépôt et rattrape les changements survenus pendant qu'un onglet était masqué.
+
+## Réordonner les onglets
+
+- **Faites glisser** un onglet le long de la barre.
+- Avec un onglet qui a le focus, appuyez sur <kbd>⌘⇧←</kbd> / <kbd>⌘⇧→</kbd> (<kbd>Ctrl+Shift+←</kbd> / <kbd>Ctrl+Shift+→</kbd> sous Windows et Linux).
+- Utilisez **Déplacer à gauche** / **Déplacer à droite** dans le menu contextuel de l'onglet.
+
+Quand les onglets ne tiennent plus, ils rétrécissent uniformément, puis la barre défile : utilisez la molette de la souris au-dessus d'elle.
+
+## Menu contextuel d'un onglet
+
+Faites un clic droit sur un onglet :
+
+| Entrée                                     | Disponible quand                    | Effet                                                        |
+| ------------------------------------------ | ----------------------------------- | ------------------------------------------------------------ |
+| **Fermer l'onglet**                        | Toujours                            | Ferme cet onglet.                                            |
+| **Fermer les autres onglets**              | Au moins deux onglets               | Ferme tous les autres onglets.                               |
+| **Fermer les onglets à droite**            | L'onglet n'est pas le dernier       | Ferme les onglets situés à sa droite.                        |
+| **Déplacer à droite** / **Déplacer à gauche** | L'onglet n'est pas à cette extrémité | Déplace l'onglet d'une place.                                |
+| **Copier le chemin**                       | Onglets de dépôt                    | Copie le chemin du dépôt et affiche **Chemin copié**.        |
+
+## Indicateurs d'onglet
+
+<Screenshot
+  dark={tabsIndicatorsDark}
+  light={tabsIndicatorsLight}
+  alt="Barre d'onglets avec trois dépôts : un indicateur d'activité, une icône d'avertissement et une pastille de nombre de changements, ainsi que l'infobulle de l'onglet actif"
+/>
+
+Un onglet de dépôt affiche un point coloré (calculé à partir du nom du dépôt, donc toujours le même), le nom du dépôt, et :
+
+| Indicateur                     | Signification                                                                                                                                                              |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Indicateur d'activité (spinner) | Le dépôt est en cours d'ouverture, ou une opération (fetch, rebase, push…) est en cours.                                                                                   |
+| Icône d'avertissement ambrée   | Un merge, un rebase, un cherry-pick, un revert, un bisect ou une application de patch est en cours, ou il y a des conflits. Voir [Conflits](../../history/conflicts/).     |
+| Icône d'erreur rouge           | Le dépôt n'a pas pu être ouvert.                                                                                                                                           |
+| Pastille numérique             | Nombre de fichiers modifiés : indexés, modifiés, non suivis et en conflit.                                                                                                 |
+
+Survolez un onglet pour afficher une infobulle avec le nom, le chemin complet et une ligne d'état, par exemple « Rebase en cours · 1 conflit · 6 changements », ou **Ouverture impossible**. Les lecteurs d'écran reçoivent le même texte.
+
+## Restaurer les onglets au redémarrage
+
+yaggui enregistre vos onglets peu après chaque changement : leur ordre, l'onglet actif et la disposition de chacun. Au lancement suivant, chaque onglet de dépôt se rouvre.
+
+Si un dépôt ne peut pas être rouvert, son onglet affiche l'erreur avec **Réessayer** et **Fermer l'onglet**. Quand son dossier n'existe plus, l'onglet propose aussi **Localiser…** (indiquez le nouveau dossier, voir [Dépôts déplacés ou supprimés](../../workspaces/workspaces/#dépôts-déplacés-ou-supprimés)) et **Retirer des récents**. Voir [Ouvrir un dépôt](../../start-here/open-a-repository/). Un onglet dont vous avez retiré le dépôt de yaggui se rouvre en onglet d'accueil.
+
+## Disposition mémorisée par dépôt
+
+La taille et l'état replié des panneaux, les sections du panneau gauche et les colonnes du graphe sont enregistrés par dépôt. Quand vous rouvrez un dépôt, dans n'importe quel onglet, il revient avec la disposition que vous lui aviez laissée.
