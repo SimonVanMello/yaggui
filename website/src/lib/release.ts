@@ -6,6 +6,8 @@ import appPackage from '../../../package.json' with { type: 'json' };
 export const REPOSITORY = 'SimonVanMello/yaggui';
 export const REPOSITORY_URL = `https://github.com/${REPOSITORY}`;
 export const RELEASES_URL = `${REPOSITORY_URL}/releases`;
+export const AUR_URL = 'https://aur.archlinux.org/packages/yaggui-bin';
+export const HOMEBREW_COMMAND = 'brew install --cask simonvanmello/yaggui/yaggui';
 export const CHANGELOG_URL = `${REPOSITORY_URL}/blob/master/CHANGELOG.md`;
 
 export type Platform =
@@ -18,7 +20,7 @@ export type Platform =
   | 'linux-rpm';
 
 /** Asset file names per platform, from docs/RELEASING.md. */
-const ASSET_NAMES: Record<Platform, (version: string) => string> = {
+export const ASSET_NAMES: Record<Platform, (version: string) => string> = {
   'macos-arm64': (v) => `yaggui_${v}_aarch64.dmg`,
   'macos-x64': (v) => `yaggui_${v}_x64.dmg`,
   'windows-exe': (v) => `yaggui_${v}_x64-setup.exe`,

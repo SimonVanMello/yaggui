@@ -1,0 +1,897 @@
+---
+// The landing page, reproduced from docs/ui/website.html. Strings: i18n/landing.ts.
+import graphDark from '../../../docs/assets/screenshot-graph.png';
+import graphLight from '../../../docs/assets/screenshot-graph-paper.png';
+import stagingDark from '../../../docs/assets/screenshot-staging.png';
+import stagingLight from '../../../docs/assets/screenshot-staging-paper.png';
+import { localeOf, localePath } from '../i18n/ui';
+import { tl } from '../i18n/landing';
+import CopyBox from './CopyBox.astro';
+import DownloadButton from './DownloadButton.astro';
+import Downloads from './Downloads.astro';
+import Screenshot from './Screenshot.astro';
+import { HOMEBREW_COMMAND } from '../lib/release';
+
+const locale = localeOf(Astro.url);
+const l = (key: Parameters<typeof tl>[1]) => tl(locale, key);
+
+const faq = [1, 2, 3, 4, 5] as const;
+---
+
+<section class="gut" aria-labelledby="hero-title">
+  <div class="wrap hero">
+    <h1 id="hero-title">{l('hero.title')}</h1>
+    <p class="lead">{l('hero.lead')}</p>
+    <div class="ctas">
+      <DownloadButton />
+      <a class="btn ghost" href={localePath(locale, '/docs/')}>
+        {l('hero.docs')}
+      </a>
+    </div>
+    <p class="fine">
+      <span>{l('hero.fine')}</span>
+      <span aria-hidden="true"> · </span>
+      <a href={localePath(locale, '/demo/')}>{l('hero.demo')}</a>
+      <span aria-hidden="true"> · </span>
+      <span>
+        <Fragment set:html={l('hero.also')} />
+      </span>
+    </p>
+  </div>
+</section>
+
+<section class="gut" aria-label={l('proof.label')}>
+  <div class="wrap shot-wrap">
+    <Screenshot dark={graphDark} light={graphLight} alt={l('hero.alt')} eager />
+    <ul class="proof">
+      <li>
+        <Fragment set:html={l('proof.fps')} />
+      </li>
+      <li>
+        <Fragment set:html={l('proof.open')} />
+      </li>
+      <li>
+        <Fragment set:html={l('proof.privacy')} />
+      </li>
+    </ul>
+  </div>
+</section>
+
+<section class="gut sec" id="features" aria-labelledby="features-title">
+  <div class="wrap">
+    <p class="kicker">{l('features.kicker')}</p>
+    <h2 class="h2" id="features-title">
+      {l('features.title')}
+    </h2>
+    <p class="sub">
+      <Fragment set:html={l('features.sub')} />
+    </p>
+    <div class="grid">
+      <article class="card wide">
+        <div class="vis">
+          <Screenshot
+            dark={stagingDark}
+            light={stagingLight}
+            alt={l('features.staging.alt')}
+            frame={false}
+          />
+        </div>
+        <h3>{l('features.staging.title')}</h3>
+        <p>
+          <Fragment set:html={l('features.staging.text')} />
+        </p>
+      </article>
+      <article class="card wide">
+        <div class="vis">
+          <div class="rb" aria-hidden="true">
+            <div>
+              <span class="v p">{l('features.rebase.pick')}</span>
+              <span class="sha">2d449ec</span>
+              <span class="m">fix(graph): merge edges</span>
+            </div>
+            <div class="drag">
+              <span class="v s">{l('features.rebase.squash')}</span>
+              <span class="sha">6bfc7e0</span>
+              <span class="m">feat(graph): draw lanes</span>
+            </div>
+            <div>
+              <span class="v r">{l('features.rebase.reword')}</span>
+              <span class="sha">024bec7</span>
+              <span class="m">perf(diff): speed up lane colors</span>
+            </div>
+            <div>
+              <span class="v d">{l('features.rebase.drop')}</span>
+              <span class="sha">a7d811d</span>
+              <span class="m">wip: try another layout</span>
+            </div>
+          </div>
+        </div>
+        <h3>{l('features.rebase.title')}</h3>
+        <p>{l('features.rebase.text')}</p>
+      </article>
+      <article class="card third">
+        <span class="ic">
+          <svg
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.4"
+            aria-hidden="true"
+          >
+            <circle cx="4" cy="3.5" r="1.5"></circle>
+            <circle cx="4" cy="12.5" r="1.5"></circle>
+            <circle cx="12" cy="5.5" r="1.5"></circle>
+            <path d="M4 5v6M12 7c0 3-8 2-8 4"></path>
+          </svg>
+        </span>
+        <h3>{l('features.graph.title')}</h3>
+        <p>{l('features.graph.text')}</p>
+      </article>
+      <article class="card third">
+        <span class="ic">
+          <svg
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.4"
+            aria-hidden="true"
+          >
+            <rect x="1.5" y="2.5" width="5.5" height="11" rx="1"></rect>
+            <rect x="9" y="2.5" width="5.5" height="11" rx="1"></rect>
+          </svg>
+        </span>
+        <h3>{l('features.merge.title')}</h3>
+        <p>{l('features.merge.text')}</p>
+      </article>
+      <article class="card third">
+        <span class="ic">
+          <svg
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.4"
+            aria-hidden="true"
+          >
+            <rect x="1.5" y="2.5" width="13" height="11" rx="1.5"></rect>
+            <path d="M4 6l2 2-2 2M8 10h4"></path>
+          </svg>
+        </span>
+        <h3>{l('features.terminal.title')}</h3>
+        <p>{l('features.terminal.text')}</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="gut sec" aria-labelledby="undo-title">
+  <div class="wrap split">
+    <div class="undo" aria-hidden="true">
+      <div class="undo-bar">
+        <span class="pill">
+          {l('undo.mock.undo')} <kbd class="mod">⌘</kbd>
+          <kbd>Z</kbd>
+        </span>
+        <span>{l('undo.mock.history')}</span>
+      </div>
+      <div class="undo-row gone">
+        <i></i>
+        <span>{l('undo.mock.row1')}</span>
+        <time>10:42</time>
+      </div>
+      <div class="undo-row on">
+        <i></i>
+        <span>{l('undo.mock.row2')}</span>
+        <time>10:39</time>
+      </div>
+      <div class="undo-row">
+        <i></i>
+        <span>{l('undo.mock.row3')}</span>
+        <time>10:31</time>
+      </div>
+      <div class="undo-row">
+        <i></i>
+        <span>{l('undo.mock.row4')}</span>
+        <time>10:28</time>
+      </div>
+      <div class="toast">
+        <span>{l('undo.mock.toast')}</span>
+        <b>{l('undo.mock.redo')}</b>
+      </div>
+    </div>
+    <div>
+      <p class="kicker">{l('undo.kicker')}</p>
+      <h2 class="h2" id="undo-title">
+        <Fragment set:html={l('undo.title')} />
+      </h2>
+      <p class="sub">{l('undo.sub')}</p>
+      <ul class="checks">
+        <li>{l('undo.check1')}</li>
+        <li>{l('undo.check2')}</li>
+        <li>{l('undo.check3')}</li>
+        <li>{l('undo.check4')}</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="gut sec" aria-labelledby="local-title">
+  <div class="wrap split">
+    <div>
+      <p class="kicker">{l('local.kicker')}</p>
+      <h2 class="h2" id="local-title">
+        {l('local.title')}
+      </h2>
+      <p class="sub">
+        <Fragment set:html={l('local.sub')} />
+      </p>
+      <ul class="checks">
+        <li>{l('local.check1')}</li>
+        <li>
+          <Fragment set:html={l('local.check2')} />
+        </li>
+        <li>{l('local.check3')}</li>
+      </ul>
+    </div>
+    <div class="term" role="img" aria-label={l('local.log.label')}>
+      <div class="term-top" aria-hidden="true">
+        <i></i>
+        <i></i>
+        <i></i>
+        <span>{l('local.log.title')}</span>
+      </div>
+      <div class="term-body" aria-hidden="true">
+        <div class="term-row">
+          <span>git fetch --prune origin</span>
+          <span class="ms">412 ms</span>
+          <span class="ok">0</span>
+        </div>
+        <div class="term-row">
+          <span>git apply --cached --unidiff-zero -</span>
+          <span class="ms">18 ms</span>
+          <span class="ok">0</span>
+        </div>
+        <div class="term-row">
+          <span>
+            git commit -F - <span class="g"># feat(graph): merge edges</span>
+          </span>
+          <span class="ms">96 ms</span>
+          <span class="ok">0</span>
+        </div>
+        <div class="term-row err">
+          <span>git push origin main</span>
+          <span class="ms">640 ms</span>
+          <span class="ko">1</span>
+        </div>
+        <div class="term-row">
+          <span class="g">&nbsp; ! [rejected] main -&gt; main (fetch first)</span>
+          <span></span>
+          <span></span>
+        </div>
+        <div class="term-row">
+          <span>git pull --rebase origin main</span>
+          <span class="ms">530 ms</span>
+          <span class="ok">0</span>
+        </div>
+        <div class="term-row">
+          <span>git push origin main</span>
+          <span class="ms">588 ms</span>
+          <span class="ok">0</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="gut sec" aria-labelledby="themes-title">
+  <div class="wrap center">
+    <p class="kicker">{l('themes.kicker')}</p>
+    <h2 class="h2" id="themes-title">
+      {l('themes.title')}
+    </h2>
+    <p class="sub">{l('themes.sub')}</p>
+    <div class="themes">
+      <div>
+        <Screenshot dark={graphDark} light={graphDark} alt={l('themes.darkAlt')} />
+        <p class="cap">
+          <b>{l('themes.dark')}</b>
+          <span>{l('themes.darkKind')}</span>
+        </p>
+      </div>
+      <div>
+        <Screenshot dark={graphLight} light={graphLight} alt={l('themes.lightAlt')} />
+        <p class="cap">
+          <b>{l('themes.light')}</b>
+          <span>{l('themes.lightKind')}</span>
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="gut sec" id="faq" aria-labelledby="faq-title">
+  <div class="wrap center">
+    <p class="kicker">{l('faq.kicker')}</p>
+    <h2 class="h2" id="faq-title">
+      {l('faq.title')}
+    </h2>
+    <div class="faq">
+      {faq.map((n) => (
+        <details open={n === 1}>
+          <summary>{l(`faq.q${n}`)}</summary>
+          <p set:html={l(`faq.a${n}`)} />
+        </details>
+      ))}
+    </div>
+  </div>
+</section>
+
+<section class="gut" id="download" aria-labelledby="cta-title">
+  <div class="wrap final">
+    <h2 id="cta-title">{l('cta.title')}</h2>
+    <p>{l('cta.sub')}</p>
+    <div class="ctas">
+      <DownloadButton />
+      <a class="btn ghost" href="#downloads">
+        {l('cta.others')}
+      </a>
+    </div>
+    <CopyBox command={HOMEBREW_COMMAND} />
+    <Downloads />
+  </div>
+</section>
+
+<script>
+  // ⌘ is the Command key on macOS; everywhere else the same shortcuts use Ctrl.
+  if (!/Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent)) {
+    for (const key of document.querySelectorAll('kbd.mod')) key.textContent = 'Ctrl';
+  }
+</script>
+
+<style>
+  .hero {
+    position: relative;
+    text-align: center;
+    padding-block: 112px 56px;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: -120px 0 0;
+    z-index: -1;
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 56px 56px;
+    background-position: center top;
+    mask-image: radial-gradient(70% 60% at 50% 30%, #000, transparent);
+  }
+  .hero h1 {
+    margin: 0 auto;
+    font-size: clamp(42px, 6.6vw, 76px);
+    line-height: 1.04;
+    letter-spacing: -0.045em;
+    max-width: 13ch;
+  }
+  .lead {
+    margin: 22px auto 0;
+    max-width: 34em;
+    font-size: 18.5px;
+    color: var(--fg2);
+  }
+  .ctas {
+    margin-top: 34px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+  }
+  .fine {
+    margin-top: 18px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .fine a {
+    text-decoration: underline;
+    text-decoration-color: var(--line2);
+    text-underline-offset: 3px;
+  }
+  .fine a:hover {
+    color: var(--fg);
+  }
+
+  .shot-wrap {
+    position: relative;
+    padding-bottom: 24px;
+  }
+  .shot-wrap::before {
+    content: '';
+    position: absolute;
+    left: 10%;
+    right: 10%;
+    top: 6%;
+    height: 60%;
+    background: var(--glow);
+    filter: blur(80px);
+    z-index: -1;
+    border-radius: 50%;
+  }
+  .shot-wrap :global(.yaggui-shot) {
+    margin: 0;
+  }
+  .shot-wrap :global(.yaggui-shot .zoom) {
+    box-shadow: var(--shadow);
+  }
+
+  .proof {
+    list-style: none;
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    padding: 28px 0 0;
+  }
+  .proof li {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 10px 18px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--card);
+    font-size: 14px;
+    color: var(--fg2);
+  }
+  .proof :global(b) {
+    color: var(--fg);
+    font-weight: 600;
+    font-size: 15.5px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .sec {
+    padding-block: 128px 0;
+  }
+  .kicker {
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+  .h2 {
+    font-size: clamp(30px, 4vw, 46px);
+    line-height: 1.1;
+    letter-spacing: -0.035em;
+    max-width: 20ch;
+  }
+  .sub {
+    margin-top: 16px;
+    font-size: 17.5px;
+    color: var(--fg2);
+    max-width: 36em;
+  }
+  .center {
+    text-align: center;
+  }
+  .center .h2,
+  .center .sub {
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .grid {
+    margin-top: 56px;
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 16px;
+  }
+  .card {
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: var(--card);
+    padding: 24px;
+    display: grid;
+    gap: 8px;
+    align-content: start;
+    min-width: 0;
+  }
+  .card h3 {
+    font-size: 17px;
+    letter-spacing: -0.015em;
+    font-weight: 600;
+  }
+  .card p {
+    font-size: 15px;
+    color: var(--fg2);
+  }
+  .ic {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--line);
+    color: var(--fg2);
+    margin-bottom: 10px;
+  }
+  .ic svg {
+    width: 16px;
+    height: 16px;
+  }
+  .wide {
+    grid-column: span 3;
+  }
+  .third {
+    grid-column: span 2;
+  }
+  .vis {
+    margin: -8px -8px 18px;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    aspect-ratio: 16 / 9;
+    position: relative;
+  }
+  .vis :global(.yaggui-shot),
+  .vis :global(.zoom) {
+    height: 100%;
+    margin: 0;
+  }
+  .vis :global(img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 60% 30%;
+    border-radius: 0;
+  }
+
+  .rb {
+    position: absolute;
+    inset: 0;
+    padding: 18px;
+    display: grid;
+    align-content: center;
+    gap: 6px;
+    font-size: 13px;
+  }
+  .rb div {
+    display: grid;
+    grid-template-columns: 52px 64px minmax(0, 1fr);
+    gap: 10px;
+    align-items: center;
+    padding: 8px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--bg);
+    color: var(--fg2);
+  }
+  .rb div.drag {
+    transform: translateX(10px) rotate(-0.6deg);
+    border-color: var(--accent);
+    box-shadow: 0 10px 30px -12px color-mix(in srgb, var(--sunk) 90%, transparent);
+    color: var(--fg);
+  }
+  .rb .v {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 2px 0;
+    border-radius: 4px;
+    text-align: center;
+  }
+  .rb .v.p {
+    color: var(--fg2);
+    background: var(--elev);
+  }
+  .rb .v.s {
+    color: color-mix(in srgb, var(--l2) 60%, var(--fg));
+    background: color-mix(in srgb, var(--l2) 14%, transparent);
+  }
+  .rb .v.r {
+    color: color-mix(in srgb, var(--l1) 60%, var(--fg));
+    background: color-mix(in srgb, var(--l1) 14%, transparent);
+  }
+  .rb .v.d {
+    color: color-mix(in srgb, var(--del) 70%, var(--fg));
+    background: color-mix(in srgb, var(--del) 14%, transparent);
+  }
+  .rb .sha {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--fg2);
+  }
+  .rb .m {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .split {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 72px;
+    align-items: center;
+  }
+  .checks {
+    list-style: none;
+    padding: 0;
+    margin: 28px 0 0;
+    display: grid;
+    gap: 12px;
+    font-size: 15.5px;
+    color: var(--fg2);
+  }
+  .checks li {
+    display: flex;
+    gap: 12px;
+    align-items: baseline;
+  }
+  .checks li::before {
+    content: '';
+    flex: none;
+    width: 14px;
+    height: 8px;
+    border-left: 1.5px solid var(--add);
+    border-bottom: 1.5px solid var(--add);
+    transform: rotate(-45deg) translateY(-3px);
+  }
+
+  .undo {
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: var(--card);
+    padding: 18px;
+  }
+  .undo-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 8px;
+    font-size: 13px;
+    color: var(--fg2);
+  }
+  .pill {
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+    padding: 6px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--line2);
+    color: var(--fg);
+    background: var(--elev);
+  }
+  .undo-row {
+    display: grid;
+    grid-template-columns: 18px minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: center;
+    padding: 10px 8px;
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--fg2);
+  }
+  .undo-row.on {
+    background: var(--accent-soft);
+    color: var(--fg);
+  }
+  .undo-row.gone {
+    color: var(--muted);
+  }
+  .undo-row i {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--l0);
+    justify-self: center;
+  }
+  .undo-row time {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--fg2);
+  }
+  .toast {
+    margin-top: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--line2);
+    background: var(--elev);
+    font-size: 13.5px;
+  }
+  .toast span {
+    color: var(--fg2);
+  }
+  .toast b {
+    font-weight: 500;
+    color: var(--accent);
+  }
+
+  .term {
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    overflow: hidden;
+    background: var(--sunk);
+    font-family: var(--mono);
+    font-size: 12.5px;
+  }
+  .term-top {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--line);
+    color: var(--fg2);
+    font-size: 11.5px;
+  }
+  .term-top i {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--line2);
+  }
+  .term-top span {
+    margin-left: 8px;
+  }
+  .term-body {
+    padding: 10px 0;
+    overflow-x: auto;
+  }
+  .term-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 18px;
+    padding: 6px 16px;
+    white-space: nowrap;
+    color: var(--fg);
+    min-width: 460px;
+  }
+  .term-row .ms {
+    color: var(--fg2);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .term-row .ok {
+    color: var(--add);
+  }
+  .term-row .ko {
+    color: var(--del);
+  }
+  .term-row .g {
+    color: var(--fg2);
+  }
+  .term-row.err {
+    background: color-mix(in srgb, var(--del) 7%, transparent);
+  }
+
+  .themes {
+    margin-top: 56px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 16px;
+  }
+  .themes :global(.yaggui-shot) {
+    margin: 0;
+  }
+  .themes :global(.yaggui-shot .zoom) {
+    box-shadow: var(--shadow);
+  }
+  .cap {
+    margin-top: 12px;
+    font-size: 14px;
+    color: var(--fg2);
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .cap b {
+    font-weight: 600;
+    color: var(--fg);
+  }
+
+  .faq {
+    margin: 48px auto 0;
+    max-width: 760px;
+    border-top: 1px solid var(--line);
+    text-align: left;
+  }
+  .faq details {
+    border-bottom: 1px solid var(--line);
+  }
+  .faq summary {
+    list-style: none;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 20px 4px;
+    font-size: 16.5px;
+    font-weight: 500;
+  }
+  .faq summary::-webkit-details-marker {
+    display: none;
+  }
+  .faq summary::after {
+    content: '+';
+    font-weight: 300;
+    font-size: 22px;
+    line-height: 1;
+    color: var(--muted);
+    transition: transform 150ms;
+  }
+  .faq details[open] summary::after {
+    transform: rotate(45deg);
+  }
+  .faq details :global(p) {
+    padding: 0 4px 22px;
+    color: var(--fg2);
+    font-size: 15.5px;
+    max-width: 62ch;
+  }
+
+  .final {
+    padding-block: 144px 120px;
+    text-align: center;
+  }
+  .final h2 {
+    font-size: clamp(36px, 5.4vw, 64px);
+    letter-spacing: -0.045em;
+    line-height: 1.05;
+  }
+  .final > p {
+    margin: 18px auto 0;
+    color: var(--fg2);
+    font-size: 17.5px;
+    max-width: 32em;
+  }
+  .final :global(.copy) {
+    margin: 26px auto 0;
+  }
+
+  /* A single quiet fade on load. */
+  @keyframes up {
+    from {
+      opacity: 0.25;
+      transform: translateY(10px);
+    }
+  }
+  .hero > * {
+    animation: up 700ms cubic-bezier(0.2, 0, 0, 1) both;
+  }
+  .hero > :nth-child(2) {
+    animation-delay: 60ms;
+  }
+  .hero > :nth-child(3) {
+    animation-delay: 120ms;
+  }
+  .hero > :nth-child(4) {
+    animation-delay: 180ms;
+  }
+
+  @media (max-width: 900px) {
+    .wide,
+    .third {
+      grid-column: span 6;
+    }
+    .split,
+    .themes {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 40px;
+    }
+  }
+  @media (max-width: 640px) {
+    .hero {
+      padding-block: 64px 40px;
+    }
+    .sec {
+      padding-block: 96px 0;
+    }
+  }
+</style>

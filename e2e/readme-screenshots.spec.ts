@@ -31,6 +31,22 @@ async function selectCommit(page: Page, index: number) {
   await expect(page.getByRole('listbox', { name: /^Commit [0-9a-f]{7}$/ })).toBeVisible();
 }
 
+async function stageLines(page: Page, name: string) {
+  await openRepo(page);
+  const unstaged = page.getByRole('listbox', { name: 'Unstaged', exact: true });
+  await unstaged
+    .getByRole('option')
+    .and(unstaged.locator('[title="src/features/tabs/TabBar.tsx"]'))
+    .click();
+  const diff = page.getByRole('region', { name: /^Diff of / });
+  await expect(diff.locator('.yaggui-hunk')).not.toHaveCount(0);
+  const gutter = diff.locator('.yaggui-signs .yaggui-selectable');
+  await gutter.first().click();
+  await gutter.nth(1).click({ modifiers: ['Shift'] });
+  await expect(diff.locator('.yaggui-selected').first()).toBeVisible();
+  await capture(page, name);
+}
+
 test.describe('graphite', () => {
   test.use({ colorScheme: 'dark' });
 
@@ -41,19 +57,7 @@ test.describe('graphite', () => {
   });
 
   test('line staging in the diff', async ({ page }) => {
-    await openRepo(page);
-    const unstaged = page.getByRole('listbox', { name: 'Unstaged', exact: true });
-    await unstaged
-      .getByRole('option')
-      .and(unstaged.locator('[title="src/features/tabs/TabBar.tsx"]'))
-      .click();
-    const diff = page.getByRole('region', { name: /^Diff of / });
-    await expect(diff.locator('.yaggui-hunk')).not.toHaveCount(0);
-    const gutter = diff.locator('.yaggui-signs .yaggui-selectable');
-    await gutter.first().click();
-    await gutter.nth(1).click({ modifiers: ['Shift'] });
-    await expect(diff.locator('.yaggui-selected').first()).toBeVisible();
-    await capture(page, 'screenshot-staging');
+    await stageLines(page, 'screenshot-staging');
   });
 });
 
@@ -64,5 +68,9 @@ test.describe('paper', () => {
     await openRepo(page);
     await selectCommit(page, 2);
     await capture(page, 'screenshot-graph-paper');
+  });
+
+  test('line staging in the diff', async ({ page }) => {
+    await stageLines(page, 'screenshot-staging-paper');
   });
 });

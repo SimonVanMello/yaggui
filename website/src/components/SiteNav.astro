@@ -13,7 +13,9 @@ const locale = localeOf(Astro.url);
       yaggui
     </a>
     <div class="nav-links">
+      <a href={localePath(locale, '/#features')}>{t(locale, 'nav.features')}</a>
       <a href={localePath(locale, '/docs/')}>{t(locale, 'nav.docs')}</a>
+      <a href={localePath(locale, '/#faq')}>{t(locale, 'nav.faq')}</a>
       <a href={CHANGELOG_URL}>{t(locale, 'nav.changelog')}</a>
     </div>
     <a class="nav-icon github" href={REPOSITORY_URL}>

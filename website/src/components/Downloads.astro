@@ -1,0 +1,174 @@
+---
+// Every asset of the latest release, plus the package managers.
+import { localeOf } from '../i18n/ui';
+import { tl, type LandingKey } from '../i18n/landing';
+import {
+  ASSET_NAMES,
+  AUR_URL,
+  HOMEBREW_COMMAND,
+  getLatestRelease,
+  type Platform,
+} from '../lib/release';
+import CopyBox from './CopyBox.astro';
+
+const locale = localeOf(Astro.url);
+const release = await getLatestRelease();
+
+const groups: { title: LandingKey; items: { label: LandingKey; platform: Platform }[] }[] = [
+  {
+    title: 'dl.macos',
+    items: [
+      { label: 'dl.macosArm', platform: 'macos-arm64' },
+      { label: 'dl.macosX64', platform: 'macos-x64' },
+    ],
+  },
+  {
+    title: 'dl.windows',
+    items: [
+      { label: 'dl.windowsExe', platform: 'windows-exe' },
+      { label: 'dl.windowsMsi', platform: 'windows-msi' },
+    ],
+  },
+  {
+    title: 'dl.linux',
+    items: [
+      { label: 'dl.linuxAppImage', platform: 'linux-appimage' },
+      { label: 'dl.linuxDeb', platform: 'linux-deb' },
+      { label: 'dl.linuxRpm', platform: 'linux-rpm' },
+    ],
+  },
+];
+---
+
+<div class="downloads" id="downloads">
+  <h3>{tl(locale, 'dl.title')}</h3>
+  <p class="meta">
+    {tl(locale, 'dl.version', { version: release.version })} ·
+    <a href={release.url}>{tl(locale, 'dl.notes')}</a>
+  </p>
+  <div class="dl-grid">
+    {groups.map((group) => (
+      <section aria-labelledby={`dl-${group.title}`}>
+        <h4 id={`dl-${group.title}`}>{tl(locale, group.title)}</h4>
+        <ul>
+          {group.items.map((item) => (
+            <li>
+              <a href={release.assets[item.platform]}>
+                <span>{tl(locale, item.label)}</span>
+                <code>{ASSET_NAMES[item.platform](release.version)}</code>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </section>
+    ))}
+    <section aria-labelledby="dl-packages">
+      <h4 id="dl-packages">{tl(locale, 'dl.packages')}</h4>
+      <ul>
+        <li class="pkg">
+          <span>{tl(locale, 'dl.homebrew')}</span>
+          <CopyBox command={HOMEBREW_COMMAND} />
+        </li>
+        <li>
+          <a href={AUR_URL}>
+            <span>{tl(locale, 'dl.aur')}</span>
+            <code>{tl(locale, 'dl.aurLink')}</code>
+          </a>
+        </li>
+      </ul>
+    </section>
+  </div>
+  <p class="signing">
+    <a href="#faq">{tl(locale, 'dl.signing')}</a>
+  </p>
+</div>
+
+<style>
+  .downloads {
+    margin-top: 96px;
+    padding-top: 48px;
+    border-top: 1px solid var(--line);
+    text-align: left;
+    scroll-margin-top: 96px;
+  }
+  h3 {
+    font-size: 24px;
+    letter-spacing: -0.025em;
+    font-weight: 600;
+  }
+  .meta {
+    margin-top: 6px;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .meta a,
+  .signing a {
+    text-decoration: underline;
+    text-decoration-color: var(--line2);
+    text-underline-offset: 3px;
+  }
+  .meta a:hover,
+  .signing a:hover {
+    color: var(--fg);
+  }
+  .dl-grid {
+    margin-top: 32px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+    gap: 16px;
+  }
+  section {
+    min-width: 0;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: var(--card);
+    padding: 20px;
+  }
+  h4 {
+    margin: 0 0 12px;
+    font-size: 12px;
+    font-family: var(--mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 500;
+  }
+  ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+  li > a,
+  li.pkg {
+    display: grid;
+    gap: 2px;
+    padding: 8px 10px;
+    margin: 0 -10px;
+    border-radius: 8px;
+    font-size: 15px;
+    min-width: 0;
+  }
+  li > a:hover {
+    background: var(--elev);
+  }
+  li code {
+    font-size: 12px;
+    color: var(--muted);
+    overflow-wrap: anywhere;
+  }
+  li.pkg {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+  li.pkg :global(.copy) {
+    display: flex;
+  }
+  .signing {
+    margin-top: 20px;
+    font-size: 13.5px;
+    color: var(--muted);
+  }
+</style>

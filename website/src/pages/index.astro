@@ -1,8 +1,9 @@
 ---
-import LandingPlaceholder from '../components/LandingPlaceholder.astro';
+import Landing from '../components/Landing.astro';
 import SiteLayout from '../layouts/SiteLayout.astro';
+import { tl } from '../i18n/landing';
 ---
 
-<SiteLayout title="yaggui: the Git client that keeps up">
-  <LandingPlaceholder />
+<SiteLayout title={tl('en', 'title')} description={tl('en', 'description')}>
+  <Landing />
 </SiteLayout>
