@@ -51,6 +51,8 @@ pub enum OpKind {
     Config,
     /// Background write of the commit-graph; silent in the UI, reloads the graph when done.
     CommitGraph,
+    /// Save of a file edited in the diff view.
+    EditFile,
     /// Undo of a journaled operation.
     Undo,
     /// Redo of an undone operation.

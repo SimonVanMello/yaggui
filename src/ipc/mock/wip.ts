@@ -2,6 +2,7 @@ import type {
   DiffOptions,
   DirtyState,
   FileMode,
+  LineEnding,
   YagguiError,
   HunkChange,
   PathSelection,
@@ -41,6 +42,31 @@ export function staleDiff(path: string): YagguiError {
     ),
     action: { kind: 'refresh' },
   };
+}
+
+/** Same messages as `YagguiError::file_changed`. */
+export function fileChanged(path: string): YagguiError {
+  return mockError(
+    'fileChanged',
+    `${path} changed on disk since it was opened.`,
+    `${path} a changé sur le disque depuis son ouverture.`,
+  );
+}
+
+function notEditable(path: string, en: string, fr: string): YagguiError {
+  return mockError(
+    'invalidArgument',
+    `"${path}" cannot be edited here: ${en}.`,
+    `« ${path} » ne peut pas être modifié ici : ${fr}.`,
+  );
+}
+
+/** Line ending style of a whole text, as `text::line_ending` reports it. */
+export function lineEndingOf(text: string): LineEnding {
+  const breaks = text.match(/\r?\n/g) ?? [];
+  if (breaks.length === 0) return 'none';
+  const crlf = breaks.filter((b) => b === '\r\n').length;
+  return crlf === 0 ? 'lf' : crlf === breaks.length ? 'crlf' : 'mixed';
 }
 
 export function unresolvedConflicts(): YagguiError {
@@ -484,6 +510,44 @@ export class MockWip {
 
   worktreeFile(path: string): string | null {
     return this.worktree.get(path)?.text ?? null;
+  }
+
+  /** A working tree file the diff view can edit, as `worktree_file` checks it. */
+  editableFile(path: string): Result<{ text: string; original: string | null }> {
+    if (this.isConflicted(path)) return { error: unresolvedConflicts() };
+    const side = this.worktree.get(path);
+    if (!side || side.text === null) {
+      return { error: notEditable(path, 'it was deleted', 'il a été supprimé') };
+    }
+    if (side.mode !== 'regular' && side.mode !== 'executable') {
+      return {
+        error: notEditable(path, 'it is not a regular file', 'ce n’est pas un fichier ordinaire'),
+      };
+    }
+    if (side.binarySize !== undefined || side.text.includes('\0')) {
+      return { error: notEditable(path, 'it is binary', 'il est binaire') };
+    }
+    if (side.tooLargeSize !== undefined) {
+      return { error: notEditable(path, 'it is too large', 'il est trop gros') };
+    }
+    if (side.encoding === 'windows1252') {
+      return { error: notEditable(path, 'it is not UTF-8 text', 'ce n’est pas du texte UTF-8') };
+    }
+    if (lineEndingOf(side.text) === 'mixed') {
+      return {
+        error: notEditable(
+          path,
+          'it mixes LF and CRLF line endings',
+          'il mélange les fins de ligne LF et CRLF',
+        ),
+      };
+    }
+    return { ok: { text: side.text, original: this.index.get(path)?.text ?? null } };
+  }
+
+  /** Saves a file edited in the diff view, keeping its mode. */
+  saveFile(path: string, text: string): void {
+    this.worktree.set(path, { text, mode: this.worktree.get(path)?.mode ?? 'regular' });
   }
 
   /** Writes a text file in the working tree (`.gitignore`). */

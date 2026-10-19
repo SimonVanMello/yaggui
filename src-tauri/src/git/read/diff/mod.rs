@@ -2,6 +2,7 @@
 //! `gix` (reads only). Blobs go through the gix diff pipeline, so `.gitattributes`
 //! (`binary`, `-diff`, eol conversion) behave as in `git diff`.
 
+pub mod edit;
 pub mod text;
 pub mod types;
 

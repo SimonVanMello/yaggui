@@ -17,6 +17,8 @@ export const diffKeys = {
     oldPath: string | null,
     options: DiffOptions,
   ) => [...scope(repoId, target), 'file', targetKey(target), path, oldPath, options] as const,
+  /** Working tree file of the editor: a watcher event reloads it like the diffs. */
+  edit: (repoId: number, path: string) => [...diffKeys.worktree(repoId), 'edit', path] as const,
   image: (
     repoId: number,
     target: DiffTarget,
@@ -57,6 +59,17 @@ export function useFileDiff(
     staleTime: Infinity,
     // Keeps the previous file on screen while the next one loads: no flash between files.
     placeholderData: (previous) => previous,
+  });
+}
+
+/** Working tree content of a file and its index version, for the file editor. */
+export function useWorktreeFile(repoId: number, path: string) {
+  return useQuery({
+    queryKey: diffKeys.edit(repoId, path),
+    queryFn: () => unwrap(ipc.commands.worktreeFile(repoId, path)),
+    staleTime: Infinity,
+    // An edited file is never loaded in place of another one.
+    gcTime: 0,
   });
 }
 

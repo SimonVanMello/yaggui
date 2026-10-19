@@ -6,6 +6,7 @@ use super::blocking;
 use crate::git::errors::YagguiError;
 use crate::git::read::diff::{
     self,
+    edit::WorktreeFile,
     types::{ChangedFiles, DiffOptions, DiffTarget, FileDiff},
 };
 use crate::state::AppState;
@@ -38,6 +39,24 @@ pub async fn file_diff(
     blocking(move || {
         let repo = repos.session(repo_id)?.repo()?.to_thread_local();
         diff::file_diff(&repo, &target, &path, old_path.as_deref(), &options)
+    })
+    .await
+}
+
+/// Working tree content of an unstaged text file and its index version, for the diff view's
+/// editor. Refused for files it could not write back as they are (binary, not UTF-8, mixed
+/// line endings, LFS, symlinks).
+#[tauri::command]
+#[specta::specta]
+pub async fn worktree_file(
+    state: State<'_, AppState>,
+    repo_id: u32,
+    path: String,
+) -> Result<WorktreeFile, YagguiError> {
+    let repos = Arc::clone(&state.repos);
+    blocking(move || {
+        let repo = repos.session(repo_id)?.repo()?.to_thread_local();
+        diff::edit::read(&repo, &path)
     })
     .await
 }

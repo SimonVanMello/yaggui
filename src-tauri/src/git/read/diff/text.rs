@@ -74,6 +74,11 @@ fn split_lines(text: &str) -> Lines<'_> {
     }
 }
 
+/// Line ending style of a whole text.
+pub fn line_ending(text: &str) -> LineEnding {
+    split_lines(text).ending
+}
+
 fn display(line: &str) -> &str {
     line.strip_suffix('\r').unwrap_or(line)
 }

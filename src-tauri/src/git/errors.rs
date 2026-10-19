@@ -68,6 +68,8 @@ pub enum ErrorCode {
     HookFailed,
     /// The file changed since its diff was shown: the hunk selection no longer applies.
     StaleDiff,
+    /// The file changed on disk since the editor loaded it: saving would overwrite that.
+    FileChanged,
     /// Unmerged paths prevent the operation (resolve the conflicts first).
     UnresolvedConflicts,
     /// The operation needs a branch and HEAD is detached.
@@ -709,6 +711,14 @@ impl YagguiError {
             format!("{path} a changé depuis l'affichage de son diff. Rafraîchis puis refais la sélection."),
         )
         .with_action(ErrorAction::Refresh)
+    }
+
+    pub fn file_changed(path: &str) -> Self {
+        Self::new(
+            ErrorCode::FileChanged,
+            format!("{path} changed on disk since it was opened."),
+            format!("{path} a changé sur le disque depuis son ouverture."),
+        )
     }
 
     pub fn unresolved_conflicts() -> Self {

@@ -90,6 +90,21 @@ pub async fn discard_paths(
     blocking(move || repos.discard_paths(repo_id, paths, include_staged)).await
 }
 
+/// Saves a file edited in the diff view, unless it changed on disk since `version` was read.
+/// Returns the version written.
+#[tauri::command]
+#[specta::specta]
+pub async fn save_worktree_file(
+    state: State<'_, AppState>,
+    repo_id: u32,
+    path: String,
+    content: String,
+    version: String,
+) -> Result<String, YagguiError> {
+    let repos = Arc::clone(&state.repos);
+    blocking(move || repos.save_worktree_file(repo_id, path, content, version)).await
+}
+
 /// Commits the index (or amends HEAD), running the hooks unless `skip_hooks`. Cancellable
 /// (`cancel_op`): a hanging hook and the processes it started are killed.
 #[tauri::command]
