@@ -1,0 +1,216 @@
+---
+title: Troubleshooting
+description: Fixes for common problems with yaggui, from Git not being found to locked repositories, missing refreshes, authentication failures and platform-specific issues.
+sidebar:
+  order: 1
+sources:
+  - src-tauri/src/git/errors.rs
+  - src-tauri/src/git/cli.rs
+  - src-tauri/src/system/git_binary.rs
+  - src-tauri/src/repo/mod.rs
+  - src-tauri/src/repo/watcher.rs
+  - src-tauri/src/repo/write.rs
+  - src-tauri/src/git/read/state.rs
+  - src-tauri/src/git/ops/commit_graph.rs
+  - src-tauri/src/state.rs
+  - src-tauri/src/main.rs
+  - src/app/ErrorBoundary.tsx
+  - src/features/repo/RepoBanners.tsx
+  - src/features/preferences/GitTab.tsx
+  - src/features/staging/HookFailurePanel.tsx
+requirements: [F-009, F-065, F-301, F-302, F-322]
+---
+
+import Screenshot from '../../../../components/Screenshot.astro';
+
+Find the symptom you see below. For the meaning of a specific error message, search the [error messages](../../reference/error-messages/) reference. In most cases the [command log](../../reference/command-log/) (<kbd>⌘J</kbd>, <kbd>Ctrl+J</kbd> on Windows and Linux) shows Git's exact answer.
+
+## Git not found or too old
+
+yaggui does not include Git: it runs the `git` installed on your system, and needs Git 2.30 or later.
+
+- **"Git was not found. Install Git 2.30 or later and restart yaggui."**, or "git not found" in the status bar: install Git from [git-scm.com](https://git-scm.com/downloads), Homebrew, your package manager or `winget install Git.Git`, then restart yaggui.
+- **A warning icon next to the Git version in the status bar** ("Git 2.30 or later is recommended"): your Git is older than 2.30. yaggui still works, but some features may fail. Update Git.
+
+### Use a specific Git
+
+By default yaggui runs the first `git` found on your `PATH`. To use another one:
+
+1. Open **Preferences** (<kbd>⌘,</kbd>, <kbd>Ctrl+,</kbd> on Windows and Linux) and select the **Git** tab.
+2. Enter the full path in **Git binary**, for example `/opt/homebrew/bin/git` or `C:\Program Files\Git\cmd\git.exe`.
+3. Click **Apply**. yaggui runs `<path> --version` and shows "Git \{version\} · \{path\}". A path that is not a working Git is refused and nothing is saved.
+
+**Auto-detect** clears the saved path and goes back to `git` on the `PATH`. If a saved path stops working later (Git uninstalled or moved), yaggui falls back to `git` on the `PATH` at the next launch.
+
+:::tip
+On macOS, an app started from the Dock or Finder does not see the `PATH` of your shell. If Git is installed only with Homebrew, enter `/opt/homebrew/bin/git` (Apple Silicon) or `/usr/local/bin/git` (Intel) in **Git binary**.
+:::
+
+## A repository won't open
+
+When a repository cannot open, its tab shows "Could not open \{name\}" with the reason, or the **Open a repository** dialog shows it inline.
+
+- **"\{path\} is not a Git repository."**: the folder is not in a Git repository. A sub-folder of a repository is fine: yaggui opens the repository that contains it.
+- **"Bare repositories are not supported yet."**: yaggui needs a working tree. Clone the bare repository and open the clone.
+- **"The folder \{path\} does not exist."**, or **Folder not found** on the welcome screen: the repository was moved, renamed or deleted. Click it, then **Locate…** to choose its new folder (the repository root), or **Remove from yaggui**. Removing only changes yaggui's list; no file is deleted. See [Open a repository](../../start-here/open-a-repository/).
+
+### The repository belongs to another user
+
+Git refuses to work in a folder owned by another user account (for example a folder created by `sudo`, an external drive, or a network share), and yaggui shows "Git refuses to use \{path\} because it belongs to another user. Add it to safe.directory only if you trust it."
+
+1. Click **Trust this folder…**.
+2. Read the dialog: it shows the command `git config --global --add safe.directory <path>`.
+3. Click **Trust folder**. yaggui adds the folder to your global Git configuration and opens the repository again.
+
+:::caution
+Only trust folders whose content you trust: Git hooks in a trusted repository run when you commit, merge or check out.
+:::
+
+yaggui never does this on its own. To undo it, remove the line from your `~/.gitconfig`, or run `git config --global --unset safe.directory <path>`. Changing the folder's owner to your account also fixes the problem.
+
+## Another Git process is using this repository
+
+Git creates `.git/index.lock` while it works and deletes it at the end. If yaggui finds this file, it shows a banner above the graph.
+
+<Screenshot name="index-lock-banner" alt="Danger banner above the graph: A Git process probably crashed and left index.lock, lock created 42 s ago, with a Remove the lock… button" />
+
+- **"Another Git process is using this repository"**: the lock is recent. Another program (a terminal, your editor, another Git client) is probably running a Git command. Wait: the banner disappears when the lock does.
+- **"A Git process probably crashed and left index.lock"**: the lock is older than 10 seconds. If no Git program is running, remove it:
+  1. Close or finish what could be using Git in this repository.
+  2. Click **Remove the lock…**.
+  3. Check the dialog **Remove the index lock?**, then click **Remove lock**.
+
+A command that fails because of the lock shows the same message, "Another Git process is using this repository (index.lock)…", with the same **Remove the lock…** button.
+
+yaggui judges only by the age of the file: it cannot tell whether a slow Git command is still running. If a long command (a large `git gc`, a rebase in a terminal) is still working, do not remove the lock. You can also delete `.git/index.lock` by hand once you are sure no Git process runs.
+
+When you cancel an operation in yaggui, it removes the lock left by the cancelled command itself.
+
+## Changes made outside yaggui don't show
+
+yaggui watches the repository folder and refreshes within a second when files, branches or the index change, whether from your editor or a terminal.
+
+If it could not watch the repository, a banner says **Automatic refresh unavailable**. The repository still works, but changes made outside yaggui only appear when you click **Refresh** in the banner.
+
+On Linux, the usual cause is the system limit on watched folders (inotify), reached when other programs (editors, file sync, other Git clients) already watch many folders. yaggui watches each folder of the working tree separately and skips ignored folders such as `node_modules`. Raise the limits:
+
+```bash
+# Check the current values
+sysctl fs.inotify.max_user_watches fs.inotify.max_user_instances
+
+# Raise them until the next reboot
+sudo sysctl fs.inotify.max_user_watches=524288 fs.inotify.max_user_instances=512
+
+# Keep them after a reboot
+printf 'fs.inotify.max_user_watches=524288\nfs.inotify.max_user_instances=512\n' \
+  | sudo tee /etc/sysctl.d/90-inotify.conf
+sudo sysctl --system
+```
+
+Then close and reopen the repository tab.
+
+:::note
+If the limit is reached in the middle of a large working tree, yaggui still opens without the banner, but changes in the folders it could not watch do not refresh automatically. Raising the limit fixes this too.
+:::
+
+## Push, pull or fetch fails with an authentication error
+
+yaggui never shows a password or passphrase prompt. Git runs without a terminal, so a command that would ask for credentials fails at once with one of these messages:
+
+- **"Authentication failed. yaggui never asks for passwords: configure a Git credential helper (git config credential.helper) and sign in once from a terminal."** (HTTPS)
+- **"SSH authentication failed. Load your key in ssh-agent (ssh-add) and check that the remote knows it."** (SSH)
+
+Set up a credential helper or load your SSH key in the agent, then try again. An unknown SSH host also gives the SSH message: run `ssh -T git@<host>` once in a terminal to accept its key. See [Authentication](../../remotes/authentication/) for each platform.
+
+## A hook rejects the commit
+
+When a `pre-commit`, `prepare-commit-msg` or `commit-msg` hook fails, the commit box shows "The \{hook\} hook rejected the commit" (or "A Git hook rejected the commit") with the hook's output. Nothing was committed and your message is kept. Fix what the output reports, then commit again. **Copy output** copies the output; very long output keeps only its beginning and end.
+
+If the hook works in a terminal but fails in yaggui:
+
+- **A command is not found** (`node`, `npx`, `python`…): on macOS, apps started from the Dock or Finder do not get your shell's `PATH`. Start yaggui from a terminal (`open -a yaggui`) or make the hook use full paths.
+- **The hook waits for input**: hooks run without a terminal and without input, so interactive prompts fail. Make the hook non-interactive.
+- **The hook hangs**: cancel the commit with **Cancel** in the status bar. yaggui stops the hook too.
+
+yaggui has no option to skip hooks. To commit without them once, run `git commit --no-verify` in a terminal.
+
+## Windows: long paths, line endings and file modes
+
+- **"A path is too long for Windows…"**: Git for Windows hit the 260-character path limit. Run `git config --global core.longpaths true`, then retry.
+- **Line endings**: yaggui follows your `core.autocrlf` setting, like `git diff` and `git add`. A diff where only line endings changed shows "Only the line endings changed" or a "Line endings changed" notice; turn on the ignore-whitespace option to hide those lines. Set `core.autocrlf` in the [Git configuration](../../customize/git-configuration/) editor (`true`: CRLF in the working tree, LF committed; `input`: LF only).
+- **Files you can't edit in the diff**: the in-diff editor refuses files that mix LF and CRLF endings. Open them in your editor.
+- **Mode changes on every file**: if every file shows as changed with no content change, the repository records executable bits that your file system does not keep. Run `git config core.fileMode false` in the repository.
+- **Interactive rebase fails**: it needs the `sh` shell included in Git for Windows. MinGit does not include it: install the full Git for Windows.
+
+## macOS: "yaggui is damaged" or "can't be opened"
+
+yaggui is not notarized by Apple yet, so Gatekeeper blocks it on first launch, with a message such as "yaggui is damaged and can't be opened" or "Apple could not verify yaggui is free of malware". The app is not damaged. Either:
+
+- remove the quarantine flag once in a terminal:
+
+  ```bash
+  xattr -dr com.apple.quarantine /Applications/yaggui.app
+  ```
+
+- or open **System Settings → Privacy & Security**, scroll to the message about yaggui and click **Open Anyway**.
+
+See [Install](../../start-here/install/).
+
+## Windows: SmartScreen blocks the installer
+
+The Windows installers are not signed yet. SmartScreen shows "Windows protected your PC": click **More info**, then **Run anyway**.
+
+## Linux: blank window or crash on Wayland
+
+On some Wayland compositors and graphics drivers, the system web view crashes with "Error 71 (Protocol error) dispatching to Wayland display". yaggui avoids it by setting `WEBKIT_DISABLE_DMABUF_RENDERER=1` when it detects Wayland, unless you set that variable yourself.
+
+If the window still stays blank or crashes, try running it through XWayland with `GDK_BACKEND=x11 yaggui`, and [report the problem](#report-a-bug) with the output of `echo $XDG_SESSION_TYPE $WAYLAND_DISPLAY`, your compositor and your graphics driver.
+
+## The window shows "yaggui ran into a problem"
+
+This screen appears when the interface itself hit a bug: "The window could not be displayed. Your repositories are not affected. Reload to start again."
+
+1. Click **Reload**. yaggui reloads its window and reopens your tabs.
+2. If it happens again, expand **Details**, copy the text and [report it](#report-a-bug) with what you were doing.
+
+Operations already running in the background are not stopped by the crash screen.
+
+## Preferences, recents or tabs are gone
+
+yaggui keeps everything in `yaggui.db` in its [config folder](../../reference/data-and-privacy/#where-yaggui-stores-its-data). If it cannot open that file (no write permission, full disk, damaged file), it still starts, with an empty database kept in memory: your preferences, recents and tabs are missing, and nothing you change is saved.
+
+1. Quit yaggui.
+2. Check that the config folder exists and that your account can write to it.
+3. If the permissions are right, the file may be damaged: rename `yaggui.db` to keep a copy, then start yaggui to create a new one.
+
+If `YAGGUI_CONFIG_DIR` is set in your environment, yaggui uses that folder instead.
+
+For shortcuts, a broken `keybindings.json` shows "keybindings.json has a problem: …" in **Preferences → Shortcuts**. yaggui leaves the file as is until you save a change there; fix it by hand or use **Reset all to defaults**.
+
+## The first open of a big repository is slow
+
+yaggui shows the first commits at once, then reads the rest of the history in the background: the graph shows "Reading the history… \{rows\} commits" meanwhile.
+
+On a large repository with no up-to-date commit-graph file, yaggui then writes one in the background with `git commit-graph write --reachable --changed-paths --no-progress`. There is no progress indicator, but it appears in the [command log](../../reference/command-log/). Following opens are much faster. Any operation you start cancels this background write; yaggui tries again later in the session.
+
+You can also write it yourself in a terminal: `git commit-graph write --reachable --changed-paths`.
+
+## Report a bug
+
+Open an issue on [GitHub](https://github.com/SimonVanMello/yaggui/issues) with:
+
+1. **Versions**: the yaggui version and the Git version, both shown at the right of the status bar, and your OS.
+2. **What you did**, what you expected and what happened. A screenshot helps.
+3. **For an error**: the message, the content of **Details**, and the matching command log entry (<kbd>⌘J</kbd>, expand the entry, **Copy command** and **Copy output**).
+4. **For a crash or a startup problem**: the output of yaggui started from a terminal with detailed logs:
+
+   ```bash
+   # macOS
+   RUST_LOG=debug /Applications/yaggui.app/Contents/MacOS/yaggui
+   # Linux
+   RUST_LOG=debug yaggui
+   ```
+
+5. **For a repository problem**: the output of `git status` and `git log --oneline --graph --all -10` in that repository.
+
+Remove anything private (paths, URLs with tokens, commit messages) before posting.
