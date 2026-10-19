@@ -8,8 +8,11 @@ import path from 'node:path';
 
 import { VERSIONS_CACHE, type DocsVersion } from '../src/lib/docs-versions.ts';
 
-/** Paths extracted from each ref: the docs and the images they import relatively. */
-const EXTRACTED = ['website/src/content/docs', 'website/src/assets'];
+/**
+ * Paths extracted from each ref, at their repository path: the docs, then the images they import
+ * relatively (the site's and the README's).
+ */
+const EXTRACTED = ['website/src/content/docs', 'website/src/assets', 'docs/assets'];
 
 function git(repo: string, args: string[]): Buffer {
   return execFileSync('git', ['-C', repo, ...args], {

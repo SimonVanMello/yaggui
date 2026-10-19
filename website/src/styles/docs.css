@@ -109,3 +109,8 @@ starlight-toc a[aria-current='true']:hover {
 .right-sidebar {
   border-inline-start: 1px solid var(--line);
 }
+
+/* Inter is wider than Starlight's system font: "Français" would be cut. */
+starlight-lang-select label {
+  --sl-select-width: 7.5em !important;
+}

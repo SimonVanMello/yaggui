@@ -20,7 +20,7 @@ A public site at **`https://yaggui.tropico.dev`** with two parts, built and depl
 | Fonts | Inter and JetBrains Mono, self-hosted through `@fontsource-variable/*` like the app. No Google Fonts or other third-party requests: the site has no trackers and no analytics, like the app |
 | Colors | Imported from the app: `src/theme/graphite.css` (dark) and `src/theme/paper.css` (light), mapped onto the site's and Starlight's variables by one adapter stylesheet. Never copy hex values into `website/` |
 | Search | Starlight's built-in Pagefind |
-| Hosting | GitHub Pages, deployed by GitHub Actions; custom domain through `website/public/CNAME` |
+| Hosting | Cloudflare Pages, project `yaggui`. GitHub Actions builds the site and uploads it with `wrangler pages deploy` (Cloudflare's own Git integration is not used: the build needs the full git history for the versioned docs and the app's toolchain for the demo). Custom domain set in the Cloudflare dashboard. Not GitHub Pages |
 
 ## Look
 
@@ -83,15 +83,15 @@ Screenshots come from the mocked frontend through Playwright (extend `pnpm scree
 ## CI and deployment
 
 - `ci.yml`: the existing `changes` job also decides whether the app changed. A PR that only touches `website/**` (or `docs/WEBSITE.md`, `docs/ui/website.html`) skips the app jobs; skipped jobs count as passed for required checks. Do not use `paths-ignore` on the whole workflow (required checks would stay pending).
-- `website.yml`: on pull requests touching the site or the docs sources, type-check, build (all versions, both locales, demo) and check internal links. On push to `master` and when a release is published, build and deploy to GitHub Pages. `workflow_dispatch` for manual redeploys.
+- `website.yml`: on pull requests touching the site or the docs sources, type-check, build (all versions, both locales, demo) and check internal links, then deploy a preview to Cloudflare Pages (`--branch=<pr branch>`) and print its URL in the job summary; skipped when the secrets are missing (pull requests from forks). On push to `master`, when a release is published and on `workflow_dispatch`, build and deploy to production (`--branch=master`).
+- Deployment uses `cloudflare/wrangler-action` (pinned by SHA) with the repository secrets `CLOUDFLARE_API_TOKEN` (scope: Cloudflare Pages edit) and `CLOUDFLARE_ACCOUNT_ID`. Redirects and headers go in `website/public/_redirects` and `_headers`.
 - Release links and the version shown on the landing page are read at build time from the GitHub API (latest release) with a fallback to `package.json`.
-- M6-3 (apt and dnf repositories) also plans to use this repository's GitHub Pages. The deploy job must keep that possible: the site is the root of the Pages artifact and leaves `/apt/` and `/rpm/` free for M6-3 to add.
 
 ## Tasks
 
 | ID | Owns | Depends on |
 |---|---|---|
-| W-1 | `website/` scaffold (Astro, Starlight, theme adapter, i18n routing, versioning machinery, lightbox component, placeholder pages), `ci.yml` changes, `website.yml`, Pages deploy, ESLint / Prettier / check-case integration, `website/README.md` | — |
+| W-1 | `website/` scaffold (Astro, Starlight, theme adapter, i18n routing, versioning machinery, lightbox component, placeholder pages), `ci.yml` changes, `website.yml`, Cloudflare Pages deploy, ESLint / Prettier / check-case integration, `website/README.md` | — |
 | W-2 | Landing page in both locales (`website/src/pages/`, its components and strings) | W-1 |
 | W-3 | App analysis, docs information architecture and the English docs content (`website/src/content/docs/en/` or the root locale), docs screenshots | — (rebases on W-1) |
 | W-4 | `CLAUDE.md` docs rules, PR template, `docs-impact` job, generated shortcut reference | W-1 |
