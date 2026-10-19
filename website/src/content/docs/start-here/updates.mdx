@@ -1,0 +1,108 @@
+---
+title: Updates
+description: Turn on the update check, install a new version from inside yaggui, and read what changed in each release.
+sidebar:
+  order: 3
+sources:
+  - src/features/updates/**
+  - src/features/changelog/**
+  - src-tauri/src/system/updates.rs
+  - src-tauri/src/commands/updates.rs
+  - src-tauri/src/system/changelog.rs
+  - CHANGELOG.md
+requirements: []
+---
+
+import Screenshot from '../../../../components/Screenshot.astro';
+
+yaggui checks for a new version only if you allow it. When one is available, it installs it the way that fits how you installed yaggui. This page also covers the **What's new** dialog, which lists the changes of each release.
+
+## Turn on the update check
+
+The update check is off until you turn it on. When it is on, yaggui reads the latest release on github.com at each launch. When it is off, yaggui makes no request at all.
+
+On the first launch, yaggui asks once with a notification: **Check for updates at startup?** It stays until you close it.
+
+- Click **Check for updates** to turn the check on. yaggui checks right away and at every launch after that.
+- Close the notification or ignore it to leave the check off. yaggui does not ask again.
+
+To change your choice later, open **Preferences** (<kbd>⌘,</kbd>, <kbd>Ctrl+,</kbd> on Windows and Linux) > **Behavior** and switch **Check for updates at startup**.
+
+The check at startup is silent: when yaggui is up to date, or when you are offline, nothing is shown.
+
+## Check now
+
+You can check at any time, even with the startup check off:
+
+- **Preferences** > **Behavior** > **Check now**.
+- The command palette: **Check for updates**.
+- The **Check for updates** button of the **What's new** dialog.
+
+A check you start yourself always answers: a notice for the new version, **yaggui is up to date**, or an error (see [When an update fails](#when-an-update-fails)).
+
+yaggui downloads `latest.json` from the latest GitHub release over HTTPS and compares versions. Drafts and pre-releases are never offered.
+
+## Install an update
+
+When a newer version exists, a notification titled **yaggui \<version\> is available** stays in the bottom-right corner until you act on it or close it. Its button depends on how yaggui was installed.
+
+<Screenshot name="updates-notice" alt="Notification saying a new version of yaggui is available, with an Update and restart button" />
+
+| Installed from | Button | What happens |
+|---|---|---|
+| macOS `.dmg` or Homebrew cask, Windows `.exe` or `.msi`, Linux AppImage | **Update and restart** | yaggui downloads the update, checks its signature, installs it and restarts |
+| Linux `.deb` | **Update** | yaggui downloads the new `.deb`, checks it, and installs it with `apt` in the upgrade dialog |
+| Linux `.rpm` | **Update** | yaggui downloads the new `.rpm`, checks it, and installs it with `dnf` (or `zypper`) in the upgrade dialog |
+| Arch Linux AUR (`yaggui-bin`) | **Update** | yaggui runs `yay` (or `paru`) in the upgrade dialog |
+| Anything else, such as a build from source | **Open the release page** | your browser opens the [latest release](https://github.com/SimonVanMello/yaggui/releases/latest) |
+
+### Update and restart
+
+A notification shows **Downloading yaggui \<version\>…** with a percentage. When the download is complete and its signature is valid, yaggui installs it and restarts on its own; your tabs come back. On Windows the installer runs with a progress window and no questions.
+
+### The upgrade dialog (Linux packages)
+
+For the `.deb`, `.rpm` and AUR packages, **Update** opens the **Updating yaggui to \<version\>** dialog. It holds a terminal where the package manager runs, so you can type your password and answer its questions.
+
+<Screenshot name="updates-upgrade-dialog" alt="The Updating yaggui dialog with a terminal running the package manager" />
+
+1. For `.deb` and `.rpm`, yaggui downloads `SHA256SUMS.txt` and the new package from the release into its cache folder, and checks the package's SHA-256. The dialog shows **Downloading the package… \<percent\>%**.
+2. The package manager starts. The dialog shows **Follow the package manager below: it may ask for your password.** The command is one of:
+
+   ```bash
+   sudo apt install /path/to/yaggui_<version>_amd64.deb
+   sudo dnf install /path/to/yaggui-<version>-1.x86_64.rpm
+   sudo zypper install --allow-unsigned-rpm /path/to/yaggui-<version>-1.x86_64.rpm   # when dnf is absent
+   yay -S yaggui-bin                                                                   # or paru -S yaggui-bin
+   ```
+
+3. When it succeeds, the dialog shows **yaggui \<version\> is installed. Restart to use it.** Click **Restart yaggui**, or **Close** to keep working and restart later.
+
+While the download or the package manager runs, **Close** is disabled and <kbd>Esc</kbd> goes to the terminal. Only x86_64 packages are published.
+
+## When an update fails
+
+| What you see | Cause and what to do |
+|---|---|
+| **Could not check for updates.** with **Retry** | GitHub could not be reached or answered with an error. Check your connection and retry. **Details** shows the cause. |
+| **The update could not be installed.** with **Retry** | The download, the signature check or the installation failed. **Details** shows why. Retry, or download the new version from the release page. |
+| **The upgrade could not start.** in the upgrade dialog | A tool is missing (**Details** says `sudo not found`, `apt not found`, `dnf or zypper not found`, `yay or paru not found`), the download failed, or the checksum did not match. Install the missing tool or update from a terminal, then click **Retry**. |
+| **The upgrade did not finish (exit code \<code\>).** | The package manager failed: read its output in the dialog, fix the cause, then click **Retry**. |
+| **The upgrade was stopped.** | The package manager was interrupted before it finished. Click **Retry** to start again. |
+
+An update cannot be undone from yaggui. To go back to an older version, install it from the [releases page](https://github.com/SimonVanMello/yaggui/releases).
+
+## What's new
+
+The **What's new** dialog lists the changes of each version, newest first. It is built into the app, so it works offline. It never opens on its own after an update.
+
+Open it from:
+
+- the **yaggui \<version\>** button at the right of the status bar;
+- the command palette: **What's new (changelog)**;
+- **Preferences** > **Behavior** > **Version** > **What's new**;
+- on macOS, **Help** > **What's New in yaggui**.
+
+<Screenshot name="updates-whats-new" alt="The What's new dialog listing releases with their new features and fixes" />
+
+Each release has its version, its date, and up to three groups: **New features**, **Fixes** and **Other changes**. The version you are running carries an **Installed** badge. The footer has **Check for updates** and **Close**.

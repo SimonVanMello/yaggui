@@ -1,0 +1,89 @@
+---
+title: Introduction
+description: What yaggui is, what it does and does not do, and how to read this documentation.
+sidebar:
+  order: 1
+sources:
+  - README.md
+  - docs/SPEC.md
+  - src-tauri/src/git/cli.rs
+  - src-tauri/src/system/updates.rs
+  - src-tauri/src/system/avatars.rs
+requirements: []
+---
+
+import Screenshot from '../../../../components/Screenshot.astro';
+
+yaggui is a graphical Git client for macOS, Windows and Linux. It runs on your computer, works with your own `git` installation, and shows every Git command it runs. This page sums up what yaggui does, what it leaves out, and how to read the rest of the docs.
+
+<Screenshot name="intro-main-window" alt="The yaggui window with a repository open: refs on the left, the commit graph in the center, the changes panel on the right" />
+
+## How yaggui works
+
+- **Your own Git.** yaggui reads repositories directly for speed, and runs the `git` command installed on your system for every change it makes. Your hooks, your configuration, your credential helper and your `ssh-agent` apply, as in a terminal. You need Git 2.30 or later; see [Install yaggui](../install/).
+- **No account, no telemetry.** yaggui never asks you to sign in and sends no usage data.
+- **Network only when you ask for it.** yaggui contacts a server for Git operations (clone, fetch, pull, push, auto-fetch) and for two features that are off until you turn them on:
+  - **Gravatar avatars**: a hash of each author's e-mail is sent to gravatar.com. See [Preferences](../../reference/preferences/).
+  - **Update check**: yaggui reads the latest release on github.com at launch. See [Updates](../updates/).
+- **No stored secrets.** yaggui never asks for or stores a password or token. Credentials come from your Git credential helper or `ssh-agent`; see [Authentication](../../remotes/authentication/).
+
+What yaggui keeps on disk (recent repositories, tabs, preferences) is listed in [Data and privacy](../../reference/data-and-privacy/).
+
+## What yaggui does
+
+| Area | What you can do | Start here |
+|---|---|---|
+| Getting started | Install, open, clone or initialize a repository, find your way around the window | [Open a repository](../open-a-repository/), [Tour of the window](../tour/) |
+| Everyday work | Stage files, hunks or single lines, commit and amend, stash, read diffs | [Staging](../../everyday/staging/), [Committing](../../everyday/committing/), [Stash](../../everyday/stash/), [Diff](../../everyday/diff/) |
+| History | Browse the commit graph, manage branches and tags, merge, rebase, cherry-pick, revert, reset, rebase interactively, resolve conflicts, undo | [Commit graph](../../history/commit-graph/), [Branches](../../history/branches/), [Undo and redo](../../history/undo-and-redo/) |
+| Remotes | Fetch, pull and push, manage remotes, set up credentials | [Fetch, pull and push](../../remotes/fetch-pull-push/), [Remotes](../../remotes/remotes/), [Authentication](../../remotes/authentication/) |
+| Inspect | Compare branches, read a file's history and blame, browse the reflog | [Compare](../../inspect/compare/), [File history and blame](../../inspect/file-history-and-blame/), [Reflog](../../inspect/reflog/) |
+| Repository | Submodules, worktrees, Git LFS, the integrated terminal | [Submodules](../../repository/submodules/), [Worktrees](../../repository/worktrees/), [Git LFS](../../repository/git-lfs/), [Terminal](../../repository/terminal/) |
+| Workspaces | Work with several repositories in tabs, group them in workspaces | [Tabs](../../workspaces/tabs/), [Workspaces](../../workspaces/workspaces/) |
+| Customize | Themes, language, shortcuts, external tools, Git configuration | [Appearance](../../customize/appearance/), [Palette and shortcuts](../../customize/palette-and-shortcuts/), [External tools](../../customize/external-tools/), [Git configuration](../../customize/git-configuration/) |
+| Reference and help | Every shortcut, setting and error message; troubleshooting | [Reference](../../reference/keyboard-shortcuts/), [Troubleshooting](../../help/troubleshooting/), [FAQ](../../help/faq/) |
+
+## What yaggui does not do
+
+These are outside the scope of yaggui:
+
+- Integration with hosting services: no pull requests, issues or reviews from GitHub, GitLab or Azure DevOps.
+- Syncing preferences through a cloud service.
+- AI-generated commit messages.
+- Creating or managing GPG and SSH keys. yaggui uses the keys you already have.
+- Version control systems other than Git.
+
+These are not available in the current version:
+
+- Bare repositories. Opening one shows "Bare repositories are not supported yet."
+- Several windows. Each repository opens in a tab of the same window.
+- Starting a bisect. A bisect started in a terminal is detected, and you can skip a commit or stop it from the operation banner; see [Conflicts](../../history/conflicts/).
+- Creating or applying patches. A `git am` started in a terminal is detected and can be continued, skipped or aborted from yaggui.
+- A first-parent view of the graph, and the history of a line range (`git log -L`).
+- Fixup commits from the graph (the **Create fixup commit…** menu item is shown as planned), co-author trailers, and applying a single file from a stash.
+- Adding, removing or syncing submodules; see [Submodules](../../repository/submodules/) for what is available.
+- System notifications when a long operation finishes in the background.
+- Importing or exporting preferences.
+- A dialog to type a password or token when authentication fails. Configure a credential helper or `ssh-agent` instead.
+
+## How to read these docs
+
+### Keyboard shortcuts
+
+Shortcuts are written for macOS first, then for Windows and Linux when they differ: <kbd>⌘K</kbd> (<kbd>Ctrl+K</kbd> on Windows and Linux). When a shortcut uses the Control key on every system, it is written once, for example <kbd>Ctrl+Tab</kbd> or <kbd>Ctrl+`</kbd>.
+
+Every shortcut in these docs is a default. You can change any of them; see [Palette and shortcuts](../../customize/palette-and-shortcuts/). The full list is in [Keyboard shortcuts](../../reference/keyboard-shortcuts/), and <kbd>⌘/</kbd> (<kbd>Ctrl+/</kbd> on Windows and Linux) shows it inside the app.
+
+Most actions are also in the command palette: press <kbd>⌘K</kbd> (<kbd>Ctrl+K</kbd> on Windows and Linux) and type a few letters of the action.
+
+### Undo
+
+Many local operations can be undone with **Undo** in the toolbar or <kbd>⌘Z</kbd> (<kbd>Ctrl+Z</kbd> on Windows and Linux): commits, checkouts, resets, discards, branch changes, and more. Each page says whether its actions can be undone. What can and cannot be undone, and for how long, is explained in [Undo and redo](../../history/undo-and-redo/).
+
+### The command log
+
+yaggui records every Git command it runs, with its output, exit code and duration. Open the log with <kbd>⌘J</kbd> (<kbd>Ctrl+J</kbd> on Windows and Linux) or the **Log** button at the right of the status bar. When these docs show the command an action runs, you can check it there. See [Command log](../../reference/command-log/).
+
+### Error messages
+
+When a Git command fails, yaggui shows a plain-language message, the raw Git output under **Details**, and, when it can, a button that fixes or explains the problem. Every message is listed in [Error messages](../../reference/error-messages/).

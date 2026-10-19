@@ -1,0 +1,139 @@
+---
+title: External tools
+description: Set the external editor, terminal, diff tool and merge tool yaggui launches, and see how each one is started and what to do when it fails.
+sidebar:
+  order: 3
+sources:
+  - src/features/preferences/ToolsTab.tsx
+  - src/features/terminal/TerminalDialog.tsx
+  - src/features/terminal/openInEditor.ts
+  - src/features/diff/ExternalDiffButtons.tsx
+  - src/features/toolbar/openRepoFolder.ts
+  - src-tauri/src/system/editor.rs
+  - src-tauri/src/system/terminal.rs
+  - src-tauri/src/repo/config.rs
+  - src-tauri/src/repo/graph_tools.rs
+  - src-tauri/src/repo/history.rs
+  - src-tauri/src/commands/settings.rs
+requirements: [F-323, F-266, F-267, F-087, F-164]
+---
+
+import Screenshot from '../../../../components/Screenshot.astro';
+
+yaggui can hand a repository or a file over to other programs: your editor, a terminal, a diff tool, a merge tool and the system file manager. You choose them in **Preferences › Tools**. Each row has a **Test** button that tries the tool before you rely on it.
+
+<Screenshot name="prefs-tools" alt="The Tools tab of the preferences with the Editor, Terminal, External terminal, Diff tool and Merge tool rows and their Test buttons" />
+
+yaggui never goes through a shell to start these programs: the program and the file or folder are passed as separate arguments.
+
+## Test a tool
+
+Click **Test** next to a row. It uses the value you are typing, even before it is saved (an empty field tests the saved value). The result shows under the row:
+
+| Tool | Success | Possible failures |
+|---|---|---|
+| Editor | "Started: *editor*". The editor really opens a scratch file, `yaggui-editor-test.txt` in the temporary folder | The editor could not be started (see [below](#editor)) |
+| Terminal | "Started: *terminal*". A terminal really opens in the temporary folder | The terminal could not be started (see [below](#external-terminal)) |
+| Diff tool / Merge tool | "*tool* is available" | "No tool named and diff.tool is not set." (or `merge.tool`); "Git knows "*tool*" but it is not installed."; "Git does not know "*tool*": pick a listed tool or define its command in your Git configuration." |
+
+## Editor
+
+**Editor** names the program that opens a repository or a file. Type a name and press <kbd>Enter</kbd> or leave the field to save it. Leave it empty to use the system's default application.
+
+| OS | With a value | Empty |
+|---|---|---|
+| macOS | `open -a <application> <target>`: the value is an application name, for example `Visual Studio Code` or `Zed` | `open <target>` |
+| Windows | `<program> <target>`: a program on the `PATH` or a full path, for example `code` | `explorer.exe <target>` |
+| Linux | `<program> <target>`, for example `code` or `subl` | `xdg-open <target>` |
+
+The editor is used by:
+
+- **Open in editor** in the command palette: opens the repository folder.
+- **Open outside yaggui › Open in the editor** in the [diff view](../../everyday/diff/): opens the file from the working tree, even when you are looking at an older commit. It is disabled for a deleted file.
+
+When the editor cannot start, a toast "Could not open the editor" offers **Retry**, with one of these messages:
+
+- "The editor "*name*" could not be started. Check its name in the preferences." Check the spelling, or give the full path of the program.
+- "No application could open the file. Choose an editor in the preferences." No editor is set and the system has no default application for this file.
+
+A value that starts with `-`, contains control characters or is longer than 512 characters is refused with "The editor must be a program or application name, or a path."
+
+## Terminal
+
+The **Terminal** row chooses what the **Terminal** button of the repository toolbar does:
+
+- **Integrated** (default): it shows or hides a terminal panel at the bottom of the repository, running your shell. See [Terminal](../../repository/terminal/).
+- **External**: it opens the external terminal set in the next row, in the repository folder.
+
+The palette entry **Open the external terminal in the repository** always opens the external terminal, whatever the mode.
+
+### External terminal
+
+The **External terminal** row shows the current choice ("Current: *name*" or "System default"). Click **Configure…** to change it, in the **Terminal** dialog. You can also open this dialog from the palette with **Terminal settings…** or, on macOS, from **yaggui › Terminal Setting…**. Type the terminal and click **Save** ("Terminal setting saved"). Leave the field empty to use the system default.
+
+| OS | With a value | Empty (system default) |
+|---|---|---|
+| macOS | `open -a <application> <repository>`, for example `iTerm` or `Warp` | The Terminal app |
+| Windows | Windows Terminal (`wt` or `wt.exe`) gets `-d <repository>`; any other program is started alone with the repository as its working folder | `wt.exe -d <repository>`, otherwise `cmd.exe` |
+| Linux | The program, started alone with the repository as its working folder | The first one found among `$TERMINAL`, `x-terminal-emulator`, GNOME Terminal, Konsole, Xfce Terminal, Console (`kgx`), Tilix, Alacritty, kitty, WezTerm, foot and xterm |
+
+On Windows and Linux, a terminal you name is used on its own, with no fallback, so a typo shows up as an error instead of silently opening another terminal.
+
+When no terminal can be started, a toast "Could not open a terminal" shows one of these messages, with a **Choose a terminal…** button that opens the Terminal dialog:
+
+- "The terminal "*name*" could not be started. Check its name in the terminal setting."
+- "No terminal was found on this system. Choose the one to use in the terminal setting."
+
+## Diff tool
+
+The **Diff tool** opens a file's changes in an external program through [`git difftool`](https://git-scm.com/docs/git-difftool). Type a tool name Git knows (the field suggests `meld`, `kdiff3`, `vimdiff`, `bc`, `opendiff`, `p4merge`, `smerge`, `araxis`, `winmerge`, `tortoisemerge`, `xxdiff`), or a custom tool you defined with `difftool.<name>.cmd` in your Git configuration. Run `git difftool --tool-help` in a terminal to see what your Git supports.
+
+yaggui picks the tool in this order:
+
+1. The **Diff tool** preference.
+2. `diff.tool` from your Git configuration.
+3. `diff.guitool`, run with `--gui`.
+
+To use it, open a diff and choose **Open outside yaggui › Open in the external diff tool**, or run **Open the current file in the external diff tool** from the palette. yaggui runs, for example:
+
+```bash
+git difftool --no-prompt --tool=meld --cached -- src/main.rs
+```
+
+`--cached` is used for a staged diff; a commit diff passes the two commit SHAs; an unstaged diff passes neither. yaggui waits for the tool to close ("The diff tool is open: close it to use it again") but the repository stays usable meanwhile. The command appears in the [command log](../../reference/command-log/).
+
+Errors:
+
+- "No external diff tool is configured: choose one in the preferences (Tools) or set diff.tool in your Git configuration." yaggui never falls back to a terminal tool.
+- "The diff tool "*tool*" could not be started. Check that it is installed and configured (difftool.*tool*.cmd)." Shown under "The diff tool could not be opened", with **Retry**. The command log has Git's output.
+
+## Merge tool
+
+The **Merge tool** resolves a conflicted file in an external program through [`git mergetool`](https://git-scm.com/docs/git-mergetool). It works like the diff tool: the **Merge tool** preference wins, otherwise `merge.tool` from your Git configuration is used.
+
+In the [conflict view](../../history/conflicts/), the button **Open in *tool*** runs:
+
+```bash
+git mergetool --no-prompt --tool=<tool> -- <path>
+```
+
+yaggui waits for the tool to close and checks whether the file is resolved. With no tool configured, the button reads **External tool** and is disabled.
+
+Errors:
+
+- "No external merge tool is configured: set merge.tool in your Git configuration."
+- "The merge tool "*tool*" could not be started. Check that it is installed and configured (mergetool.*tool*.cmd)."
+
+A tool name may only contain letters, digits and `- _ . +`, must not start with `-` or `.`, and is at most 100 characters. Otherwise the preference is refused with ""*value*" is not a valid tool name (letters, digits, - _ . + only)."
+
+## File manager
+
+The file manager is always the system one; it has no preference.
+
+- The **Files** button of the repository toolbar (or **Open the repository in the file manager** in the palette) opens the repository folder: `open` on macOS, `explorer.exe` on Windows, `xdg-open` on Linux. On failure: "Could not open the file manager" with "The file manager could not open the repository folder."
+- **Open outside yaggui › Show in the file manager** in the diff view shows the file: selected in Finder (`open -R`) or Explorer (`explorer.exe /select,`), and its folder opened on Linux (`xdg-open`, no selection). It is disabled for a deleted file. On failure: "The file could not be shown".
+
+## Related
+
+- Every Tools setting with its default: [Preferences reference](../../reference/preferences/#tools).
+- The integrated terminal: [Terminal](../../repository/terminal/).

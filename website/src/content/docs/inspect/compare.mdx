@@ -1,0 +1,83 @@
+---
+title: Compare commits and branches
+description: Compare two commits or two branches to see the commits only on each side and every change between them, and jump to their merge-base.
+sidebar:
+  order: 1
+sources:
+  - src/features/compare/**
+  - src/features/graph/SelectionBar.tsx
+  - src/features/graph/CommitContextMenu.tsx
+  - src-tauri/src/repo/graph_tools.rs
+  - src-tauri/src/commands/graph_tools.rs
+requirements: [F-029, F-030, F-104]
+---
+
+import Screenshot from '../../../../components/Screenshot.astro';
+
+The Compare panel shows how two commits or two branches differ: the commits that are only on each side, and the overall change between them. It opens on the right of the repository tab, in place of the commit details.
+
+## Compare two commits
+
+1. In the [commit graph](../../history/commit-graph/), click a commit, then <kbd>⌘</kbd>-click (<kbd>Ctrl</kbd>-click on Windows and Linux) a second one.
+2. Do one of:
+   - Click **Compare** in the selection bar that appears at the bottom of the graph.
+   - Right-click one of the two commits, then **Compare these 2 commits**.
+   - Run **Compare the 2 selected commits** from the command palette (<kbd>⌘K</kbd>, <kbd>Ctrl+K</kbd> on Windows and Linux).
+
+These entries are available only when exactly two commits are selected. Side A is the newer commit, side B the older one, both labeled by short SHA.
+
+To compare one commit with HEAD, right-click it, then **Compare with HEAD**. Side A is the commit, side B is HEAD.
+
+## Compare two branches
+
+| Entry point | Compares |
+|---|---|
+| Sidebar: right-click a branch, then **Compare with *current*** | That branch (A) with the checked-out branch (B) |
+| Sidebar: right-click a branch, then **Compare with…** | Opens the dialog below, with that branch as **Branch** |
+| Command palette: **Compare two branches…** | Opens the dialog below |
+
+**Compare with *current*** is disabled on the checked-out branch and when HEAD is detached: "Check out another branch to compare with".
+
+The **Compare two branches** dialog lists local and remote branches:
+
+1. Pick a **Branch** (side A).
+2. Pick what it is **Compared with** (side B). It defaults to the checked-out branch.
+3. Click **Compare**. The button stays disabled until the two branches differ: "Choose two different branches."
+
+<Screenshot name="compare-branches-dialog" alt="The Compare two branches dialog with the Branch and Compared with selectors" />
+
+## Read the Compare panel
+
+The panel header shows the two sides, A ⇄ B. **Swap the sides** exchanges them. Below, **Merge-base:** gives the short SHA of the two sides' common ancestor ([git merge-base](https://git-scm.com/docs/git-merge-base)); click it to select that commit in the graph. If the sides share no history, it reads "No common ancestor: unrelated histories".
+
+Switch between the two views with **Commits** and **Changes**.
+
+<Screenshot name="compare-panel" alt="The Compare panel showing the Only in sections for both sides with their commits, the merge-base link and the Commits and Changes switch" />
+
+### Commits
+
+Two lists, **Only in *A*** and **Only in *B***, each with a count. They hold the commits reachable from one side but not from the other, like `git log B..A` and `git log A..B`. A side with none shows "No commit".
+
+Each list shows up to 1000 commits; beyond that, "N more commits, not listed (first 1000 shown)". Click a commit to select it in the graph.
+
+### Changes
+
+The file list "Changes *B* → *A*" holds the overall difference between the two sides, as `git diff B A` would show it: what A has that B lacks. Each file shows its status and `+`/`−` line counts. Click a file to open its diff in the center, with every feature of the [diff viewer](../../everyday/diff/). If the two sides have the same content, the list reads "No difference between the two".
+
+For two commits, B is the older one, so the changes read from older to newer.
+
+### Updates and errors
+
+The panel recomputes itself when branches or tags change. If it fails, it shows "The comparison could not be loaded" with **Retry**. Comparing runs no Git command: yaggui reads the history directly.
+
+Close the panel with **Close the comparison**. The comparison is not saved when you close the repository.
+
+## Jump to the merge-base
+
+To select the common ancestor of two commits in the graph:
+
+- With two commits selected: **Merge-base** in the selection bar, **Go to their merge-base** in the context menu, or the palette action **Go to the merge-base of the 2 selected commits**.
+- For a commit and HEAD: right-click the commit, then **Go to the merge-base with HEAD**.
+- For two branches: compare them, then click the SHA after **Merge-base:** in the panel.
+
+The merge-base is selected and centered. If the histories are unrelated, a toast says "No common ancestor: these histories are unrelated". If a [graph filter](../../history/commit-graph/#hide-solo-and-filter-branches) hides the merge-base, it is still selected and its details shown, with "The merge-base *abc1234* is not shown in the graph (filter)".

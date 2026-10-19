@@ -1,0 +1,97 @@
+---
+title: Appearance
+description: Choose the theme, style, contrast, density, fonts, text size, language and author avatars of yaggui.
+sidebar:
+  order: 1
+sources:
+  - src/features/preferences/AppearanceTab.tsx
+  - src/app/appearance.ts
+  - src/app/preferences.ts
+  - src/theme/**
+  - src/i18n/i18n.ts
+  - public/boot-theme.js
+  - src/features/graph/Avatar.tsx
+  - src/features/graph/gravatar.ts
+  - src-tauri/src/system/avatars.rs
+  - src-tauri/src/commands/avatars.rs
+  - src-tauri/src/store/types.rs
+requirements: [F-320, F-321, F-033]
+---
+
+import Screenshot from '../../../../components/Screenshot.astro';
+
+Everything on this page lives in **Preferences › Appearance**. Changes apply as soon as you make them: there is no Save button.
+
+To open the preferences, click the gear button (**Preferences**) in the title bar, press <kbd>⌘,</kbd> (<kbd>Ctrl+,</kbd> on Windows and Linux), or run **Open preferences** from the [command palette](../../customize/palette-and-shortcuts/). On macOS, the **yaggui › Preferences…** menu item opens it too. The tab opens on **Appearance**.
+
+<Screenshot name="prefs-appearance" alt="The Appearance tab of the Preferences dialog with Theme, Style, High contrast, Gravatar avatars, Density, Language, fonts and Text size" />
+
+## Choose the theme and style
+
+yaggui has three looks:
+
+| Look | How to get it |
+|---|---|
+| **Graphite** (dark) | **Style**: **Graphite / Paper**, **Theme**: **Dark** (or **System** with a dark OS) |
+| **Paper** (light) | **Style**: **Graphite / Paper**, **Theme**: **Light** (or **System** with a light OS) |
+| **Terminal** (dense, monospace, dark) | **Style**: **Terminal** |
+
+- **Theme** takes **System**, **Light** or **Dark**. The default, **System**, follows the light or dark setting of your OS and switches live when the OS changes.
+- **Style** takes **Graphite / Paper** (default) or **Terminal**. The Terminal style is always dark, so the **Theme** setting has no effect while it is selected. The tab reminds you: "Dense, monospace and dark: the light / dark choice does not apply."
+
+You can also switch the theme from the command palette with **Theme: follow the system**, **Theme: light** and **Theme: dark**. The entry for the current theme is greyed out.
+
+yaggui applies the last theme before the window first paints, so a dark setup never flashes white at startup.
+
+<Screenshot name="style-terminal" alt="yaggui in the Terminal style: dense monospace rows on a near-black background" />
+
+## Turn on high contrast
+
+**High contrast** (off by default) makes text and borders stronger. It is a switch, not a separate theme: it works with Graphite, Paper and Terminal. In the [integrated terminal](../../repository/terminal/), it also enforces a minimum contrast ratio for the shell's colors.
+
+## Change the density
+
+**Density** takes **Comfortable** (default) or **Compact**. Compact lowers the height of rows (graph, lists, command log, palette and others) from 28 px to 22 px, so more of them fit on screen.
+
+## Change the fonts and text size
+
+| Setting | Default | What it does |
+|---|---|---|
+| **Interface font** | Empty: the bundled Inter font | Font of menus, labels and lists |
+| **Code font** | Empty: the bundled JetBrains Mono font | Font of diffs, the blame view, SHAs, the command log and the integrated terminal |
+| **Text size** | 13 px | Slider from 11 to 18 px. Scales every text in the app |
+
+For the two font fields:
+
+1. Type the name of a font installed on your system, for example `Fira Code`.
+2. Press <kbd>Enter</kbd> or leave the field. The font applies at once.
+
+An empty field restores the bundled font. If the font is not installed, the system falls back to the bundled one. A name longer than 200 characters, or one that contains control characters or any of `; { } < > \ " '`, is refused with "“name” is not a valid font name." and the field goes back to its previous value.
+
+## Change the language
+
+**Language** takes **System** (default), **English** or **Français**. **System** uses the first language of your OS that yaggui supports, otherwise English. The change applies immediately, without a restart; on macOS the menu bar is rebuilt in the new language.
+
+The language covers the whole interface, including yaggui's error messages. The raw output of Git shown in the [command log](../../reference/command-log/) stays in English.
+
+## Show author avatars (Gravatar)
+
+By default, yaggui shows each author's initials in the graph, the commit details and the compare panel. It makes no network request for avatars.
+
+Turn on **Gravatar avatars** to show the authors' [Gravatar](https://gravatar.com) pictures instead:
+
+- **What is sent**: for each author, yaggui computes the SHA-256 hash of the e-mail address on your machine and requests `https://www.gravatar.com/avatar/<hash>?s=40&d=404` over HTTPS, without a referrer. The e-mail address itself never leaves your machine.
+- **No picture**: when an address has no Gravatar, the initials stay. yaggui remembers this for 2 days so it does not ask again on every redraw.
+- **Cache**: downloaded pictures are stored in an `avatars-v1` folder of yaggui's cache directory (see [Data and privacy](../../reference/data-and-privacy/)) and refreshed after 7 days. The cache is capped at 20 MB and 10,000 entries; the oldest entries go first. When you are offline, an expired picture is still shown.
+- **Clear the avatar cache** deletes every downloaded picture ("Avatar cache cleared"). They are downloaded again the next time they are shown, if the switch is on.
+
+Turning the switch off stops all requests at once; the pictures already in the cache stay on disk until they expire or you clear them.
+
+## Reduced motion
+
+yaggui has no setting of its own for animations. It follows the reduced-motion setting of your OS (`prefers-reduced-motion`): when it is on, transitions are instant and the indeterminate progress bar stops sliding.
+
+## Related
+
+- Every preference with its default: [Preferences reference](../../reference/preferences/).
+- Where preferences are stored: [Data and privacy](../../reference/data-and-privacy/).
