@@ -1,4 +1,8 @@
+import { readFileSync } from 'node:fs';
+
 import { expect, test, type Page } from '@playwright/test';
+
+const { version } = JSON.parse(readFileSync('package.json', 'utf8')) as { version: string };
 
 /** W-5: the app on the mocked backend, as served at /demo/ by the built website. */
 
@@ -46,6 +50,9 @@ for (const { name: theme, colorScheme } of THEMES) {
     await expect(graph.getByRole('option').first()).toBeVisible();
     await expect(page.getByRole('tab', { selected: true })).toHaveAccessibleName(/yaggui/);
 
+    // No fake window controls, and the real version instead of the mock's.
+    await expect(page.getByRole('button', { name: 'Minimize' })).toHaveCount(0);
+    await expect(page.getByText(`yaggui ${version}`)).toBeVisible();
     await page.evaluate(() => document.fonts.ready);
     await page.screenshot({ path: test.info().outputPath(`demo-${theme}.png`) });
     expect(problems).toEqual([]);

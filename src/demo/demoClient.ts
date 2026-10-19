@@ -38,5 +38,9 @@ const overrides: Partial<YagguiCommands> = {
 
 /** Wraps the mock backend of the demo: what cannot work in a browser says so instead of faking. */
 export function demoClient(client: YagguiClient): YagguiClient {
-  return { ...client, commands: { ...client.commands, ...overrides } };
+  const appInfo: YagguiCommands['appInfo'] = async () => ({
+    ...(await client.commands.appInfo()),
+    appVersion: import.meta.env.VITE_APP_VERSION ?? 'demo',
+  });
+  return { ...client, commands: { ...client.commands, ...overrides, appInfo } };
 }

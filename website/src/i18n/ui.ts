@@ -25,8 +25,6 @@ const en = {
   'placeholder.lead':
     'yaggui is a fast, native Git client for macOS, Windows and Linux. This page is a placeholder: the landing page comes next.',
   'placeholder.docs': 'Read the docs',
-  'demo.title': 'Live demo',
-  'demo.lead': 'The yaggui interface on sample data, right in your browser. Coming soon.',
 };
 
 type Strings = typeof en;
@@ -54,8 +52,6 @@ const fr: Strings = {
   'placeholder.lead':
     'yaggui est un client Git rapide et natif pour macOS, Windows et Linux. Cette page est provisoire : la page d’accueil arrive.',
   'placeholder.docs': 'Lire la documentation',
-  'demo.title': 'Démo en ligne',
-  'demo.lead': 'L’interface de yaggui sur des données d’exemple, dans votre navigateur. Bientôt.',
 };
 
 const strings: Record<Locale, Strings> = { en, fr };
