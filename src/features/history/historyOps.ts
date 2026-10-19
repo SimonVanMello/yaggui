@@ -493,6 +493,13 @@ const ABORT_COMMANDS: Record<OperationName, string> = {
   applyMailbox: 'git am --abort',
 };
 
+/** A squash merge records no MERGE_HEAD: the backend resets instead of `merge --abort`. */
+export function abortCommand(operation: RepoOperation): string {
+  return operation.kind === 'merge' && operation.squash
+    ? 'git reset -q --merge'
+    : ABORT_COMMANDS[operation.kind];
+}
+
 /** Aborts the operation in progress after a confirmation that says what comes back. */
 export async function abortOperation(repoId: number): Promise<boolean> {
   const operation = operationOf(repoId);
@@ -500,7 +507,7 @@ export async function abortOperation(repoId: number): Promise<boolean> {
   const confirmed = await confirm({
     title: t(`operation.${operation.kind}.abortTitle`),
     description: t(`operation.${operation.kind}.abortText`),
-    command: ABORT_COMMANDS[operation.kind],
+    command: abortCommand(operation),
     confirmLabel: t(`operation.${operation.kind}.abort`),
     danger: true,
   });

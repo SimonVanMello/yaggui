@@ -10,7 +10,7 @@ vi.mock('../graph/graphSource', () => ({
   invalidateGraph: vi.fn(),
 }));
 
-const { reportHistoryError } = await import('./historyOps');
+const { abortCommand, reportHistoryError } = await import('./historyOps');
 
 function error(code: YagguiError['code'], payload: YagguiError['payload'] = null): YagguiError {
   return {
@@ -95,5 +95,12 @@ describe('reportHistoryError', () => {
   it('falls back to the generic typed error toast', () => {
     reportHistoryError(1, error('internal'), { op: 'reset' });
     expect(toasts()[0]).toMatchObject({ variant: 'error', title: 'Reset failed' });
+  });
+});
+
+describe('abortCommand', () => {
+  it('shows the reset a squash merge really runs', () => {
+    expect(abortCommand({ kind: 'merge', squash: true })).toBe('git reset -q --merge');
+    expect(abortCommand({ kind: 'merge', squash: false })).toBe('git merge --abort');
   });
 });
