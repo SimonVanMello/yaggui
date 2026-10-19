@@ -1,3 +1,4 @@
+import type { MessageKey } from '../../i18n/i18n';
 import { defaultShortcutOf, execShellAction, type ShellAction } from '../../app/shellActions';
 import { useThemeStore, type ThemePreference } from '../../theme/themeStore';
 import { queryClient, queryKeys } from '../../app/queryClient';
@@ -37,6 +38,10 @@ const inOperation = () => {
 };
 /** History actions start something new: they wait for the operation in progress to end. */
 const canStartHistory = () => hasRepo() && !inOperation();
+const noRepoOr = (reason: MessageKey) => (): MessageKey =>
+  hasRepo() ? reason : 'palette.disabled.noRepo';
+const historyBlocked = noRepoOr('palette.disabled.operationRunning');
+const noOperation = noRepoOr('palette.disabled.noOperation');
 
 /** Runs `work` on the active repository, if any. */
 function onRepo(work: (repoId: number) => unknown): () => void {
@@ -81,6 +86,7 @@ function theme(preference: ThemePreference, title: PaletteAction['title']): Pale
     title,
     group: 'view',
     enabled: () => useThemeStore.getState().preference !== preference,
+    disabledReason: () => 'palette.disabled.alreadyActive',
     run: () => {
       useThemeStore.getState().setPreference(preference);
     },
@@ -190,6 +196,7 @@ const BUILTIN: readonly PaletteAction[] = [
     title: 'palette.action.git.rebaseInteractive',
     group: 'git',
     enabled: canStartHistory,
+    disabledReason: historyBlocked,
     run: onRepo((repoId) => {
       const state = queryClient.getQueryData<RepoState>(queryKeys.repoState(repoId));
       const head = state?.head.kind === 'unborn' ? null : (state?.head.oid ?? null);
@@ -205,6 +212,7 @@ const BUILTIN: readonly PaletteAction[] = [
     title: 'palette.action.git.merge',
     group: 'git',
     enabled: canStartHistory,
+    disabledReason: historyBlocked,
     run: onRepo((repoId) => {
       openHistoryDialog({ kind: 'merge', repoId, source: null, target: null });
     }),
@@ -214,6 +222,7 @@ const BUILTIN: readonly PaletteAction[] = [
     title: 'palette.action.git.rebase',
     group: 'git',
     enabled: canStartHistory,
+    disabledReason: historyBlocked,
     run: onRepo((repoId) => {
       openHistoryDialog({ kind: 'rebase', repoId, branch: null, onto: null });
     }),
@@ -223,6 +232,7 @@ const BUILTIN: readonly PaletteAction[] = [
     title: 'palette.action.git.cherryPick',
     group: 'git',
     enabled: canStartHistory,
+    disabledReason: historyBlocked,
     run: onRepo(cherryPickSelection),
   },
   {
@@ -230,6 +240,7 @@ const BUILTIN: readonly PaletteAction[] = [
     title: 'palette.action.git.revert',
     group: 'git',
     enabled: canStartHistory,
+    disabledReason: historyBlocked,
     run: onRepo(revertSelection),
   },
   {
@@ -237,6 +248,7 @@ const BUILTIN: readonly PaletteAction[] = [
     title: 'palette.action.git.reset',
     group: 'git',
     enabled: canStartHistory,
+    disabledReason: historyBlocked,
     run: onRepo(resetToSelection),
   },
   {
@@ -244,6 +256,7 @@ const BUILTIN: readonly PaletteAction[] = [
     title: 'palette.action.git.continue',
     group: 'git',
     enabled: inOperation,
+    disabledReason: noOperation,
     run: onRepo(startContinue),
   },
   {
@@ -251,6 +264,7 @@ const BUILTIN: readonly PaletteAction[] = [
     title: 'palette.action.git.skip',
     group: 'git',
     enabled: inOperation,
+    disabledReason: noOperation,
     run: onRepo(skipOperation),
   },
   {
@@ -258,6 +272,7 @@ const BUILTIN: readonly PaletteAction[] = [
     title: 'palette.action.git.abort',
     group: 'git',
     enabled: inOperation,
+    disabledReason: noOperation,
     run: onRepo(abortOperation),
   },
   {

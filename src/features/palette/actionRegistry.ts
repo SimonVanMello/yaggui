@@ -1,4 +1,5 @@
 import type { MessageKey } from '../../i18n/i18n';
+import { activeRepoId } from '../repo/repoSessions';
 
 export type ActionGroup = 'tabs' | 'view' | 'repo' | 'git' | 'app';
 
@@ -21,6 +22,11 @@ export interface PaletteAction {
   group: ActionGroup;
   /** Evaluated each time the palette opens. A disabled action is listed greyed out. */
   enabled?: () => boolean;
+  /**
+   * Why the action cannot run right now, shown in the palette instead of its detail while it
+   * is disabled. Default: no repository open, else "not available here".
+   */
+  disabledReason?: () => MessageKey;
   run: () => void;
   /**
    * The keyboard shortcut runs the action even while it is disabled: it answers (undo explains
@@ -55,6 +61,12 @@ export function listActions(): PaletteAction[] {
 
 export function getAction(id: string): PaletteAction | undefined {
   return actions.get(id);
+}
+
+/** What the palette says about a disabled action. */
+export function disabledReasonOf(action: PaletteAction): MessageKey {
+  if (action.disabledReason) return action.disabledReason();
+  return activeRepoId() === null ? 'palette.disabled.noRepo' : 'palette.disabled.unavailable';
 }
 
 export function isActionEnabled(action: PaletteAction): boolean {

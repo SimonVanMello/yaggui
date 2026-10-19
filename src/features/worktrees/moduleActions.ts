@@ -32,6 +32,7 @@ export function registerModuleActions(): () => void {
       title: 'palette.action.submodule.update',
       group: 'git',
       enabled: () => (refsOfActive()?.submodules.length ?? 0) > 0,
+      disabledReason: () => 'palette.disabled.noSubmodules',
       run: onRepo((repoId) =>
         updateSubmodules(repoId, { paths: [], init: false, recursive: false }),
       ),
@@ -41,6 +42,7 @@ export function registerModuleActions(): () => void {
       title: 'palette.action.submodule.init',
       group: 'git',
       enabled: () => (refsOfActive()?.submodules.length ?? 0) > 0,
+      disabledReason: () => 'palette.disabled.noSubmodules',
       run: onRepo((repoId) => updateSubmodules(repoId, { paths: [], init: true, recursive: true })),
     },
     {
@@ -57,6 +59,7 @@ export function registerModuleActions(): () => void {
       title: 'palette.action.worktree.prune',
       group: 'git',
       enabled: () => refsOfActive()?.worktrees.some((w) => w.prunable) ?? false,
+      disabledReason: () => 'palette.disabled.nothingToPrune',
       run: onRepo(pruneWorktrees),
     },
     {

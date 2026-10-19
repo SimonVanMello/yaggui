@@ -48,6 +48,8 @@ export const GRAPH_TOOL_ACTIONS: readonly PaletteAction[] = [
       const repoId = activeRepoId();
       return repoId !== null && isFilterActive(filterOf(repoId));
     },
+    disabledReason: () =>
+      activeRepoId() === null ? 'palette.disabled.noRepo' : 'palette.disabled.noFilter',
     run: () => {
       const repoId = activeRepoId();
       if (repoId !== null) void showAll(repoId);
@@ -82,6 +84,7 @@ export const GRAPH_TOOL_ACTIONS: readonly PaletteAction[] = [
     title: 'palette.action.graph.goToMergeBase',
     group: 'repo',
     enabled: () => twoPicked() !== null,
+    disabledReason: () => 'palette.disabled.pickTwoCommits',
     run: () => {
       const two = twoPicked();
       const [a, b] = two?.picked ?? [];
@@ -93,6 +96,7 @@ export const GRAPH_TOOL_ACTIONS: readonly PaletteAction[] = [
     title: 'palette.action.graph.compareSelected',
     group: 'repo',
     enabled: () => twoPicked() !== null,
+    disabledReason: () => 'palette.disabled.pickTwoCommits',
     run: () => {
       const two = twoPicked();
       if (two) compareCommits(two.repoId, two.picked);
@@ -123,6 +127,7 @@ export const GRAPH_TOOL_ACTIONS: readonly PaletteAction[] = [
     title: 'palette.action.diff.externalTool',
     group: 'repo',
     enabled: () => openDiff() !== null,
+    disabledReason: () => 'palette.disabled.noDiff',
     run: () => {
       const diff = openDiff();
       if (!diff) return;
