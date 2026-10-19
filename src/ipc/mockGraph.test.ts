@@ -137,6 +137,10 @@ describe('mock graph', () => {
       mock.searchCommits(2, { ...query, text: null, path: 'src/theme' }, 0),
     );
     expect(byPath.matches.length).toBeGreaterThan(0);
+    const upper = await unwrap(
+      mock.searchCommits(2, { ...query, text: null, path: 'SRC/Theme' }, 0),
+    );
+    expect(upper.matches).toEqual(byPath.matches);
   });
 
   it('describes a commit', async () => {

@@ -812,7 +812,11 @@ export class MockGraph {
     const total = this.order.length;
     const text = query.text?.trim().toLowerCase() || null;
     const author = query.author?.trim().toLowerCase() || null;
-    const path = query.path?.trim().replace(/^\/+|\/+$/g, '') || null;
+    const path =
+      query.path
+        ?.trim()
+        .replace(/^\/+|\/+$/g, '')
+        .toLowerCase() || null;
     const end = Math.min(total, fromRow + budget);
     const matches: number[] = [];
     for (let row = fromRow; row < end; row++) {
@@ -830,7 +834,14 @@ export class MockGraph {
       if (author && !who.includes(author)) continue;
       if (query.since !== null && c.authorTime < query.since) continue;
       if (query.until !== null && c.authorTime > query.until) continue;
-      if (path && !c.files.some((f) => f === path || f.startsWith(`${path}/`))) continue;
+      if (
+        path &&
+        !c.files.some((f) => {
+          const lower = f.toLowerCase();
+          return lower === path || lower.startsWith(`${path}/`);
+        })
+      )
+        continue;
       matches.push(row);
     }
     return {

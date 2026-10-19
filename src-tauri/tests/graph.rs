@@ -474,6 +474,15 @@ fn searches_commits() {
         search(&b, id, by_path("/index.html")),
         ["pages 2", "pages 1"]
     );
+    // File and folder names match regardless of case, like the other fields.
+    assert_eq!(
+        search(&b, id, by_path("B.TXT")),
+        ["Merge feat/a", "a 2", "a 1"]
+    );
+    assert_eq!(
+        search(&b, id, by_path("/Index.HTML")),
+        ["pages 2", "pages 1"]
+    );
     // Dates: the first three commits (one minute apart from the base date).
     let early = CommitSearch {
         until: Some(1_767_268_800.0 + 180.0),
