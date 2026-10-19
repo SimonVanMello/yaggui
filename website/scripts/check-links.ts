@@ -14,7 +14,7 @@ function htmlFiles(dir: string): string[] {
   });
 }
 
-/** Built file a site path resolves to, as GitHub Pages serves it. */
+/** Built file a site path resolves to, as Cloudflare Pages serves it. */
 function resolveFile(urlPath: string): string | undefined {
   const local = path.join(dist, decodeURIComponent(urlPath));
   const candidates = urlPath.endsWith('/')

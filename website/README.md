@@ -13,7 +13,7 @@ pnpm preview   # serves dist/
 pnpm check     # astro check (strict TypeScript, content schema) + Prettier
 ```
 
-`.github/workflows/website.yml` runs `pnpm check` and `pnpm build` on pull requests that touch the site, and deploys `dist/` to GitHub Pages from `master`.
+`.github/workflows/website.yml` runs `pnpm check` and `pnpm build` on pull requests that touch the site, and deploys `dist/` to Cloudflare Pages: a preview per pull request, production from `master`.
 
 ## Layout
 
@@ -27,9 +27,9 @@ pnpm check     # astro check (strict TypeScript, content schema) + Prettier
 | `src/styles/theme.css`                         | Theme adapter: every color of the site comes from the app's `src/theme/graphite.css` and `paper.css` through it         |
 | `src/i18n/ui.ts`                               | Strings of the site outside the docs content, EN and FR                                                                 |
 | `src/lib/`                                     | Docs versions, latest release lookup                                                                                    |
-| `versions.json`                                | Published docs versions                                                                                                 |
-| `scripts/`                                     | Version extraction, `add-version.ts` (release workflow), link check                                                     |
-| `public/CNAME`                                 | Custom domain                                                                                                           |
+| `versions.json`                                | Optional overrides of the docs versions found in git tags                                                               |
+| `scripts/`                                     | Version extraction, link check                                                                                          |
+| `public/_headers`                              | Cloudflare Pages headers (cache of `/_astro/`)                                                                          |
 
 ## Docs pages
 
@@ -78,12 +78,14 @@ The component shows the image of the current theme and opens it in a lightbox on
 
 The visitor picks the version in the docs header; the latest release is the default.
 
-- `versions.json` lists the published versions: `[{ "version": "0.5.0", "ref": "<commit sha>" }]`.
-- At config time (`astro dev`, `build`, `check`), `scripts/versions.ts` extracts `website/src/content/docs/`, `website/src/assets/` and `docs/assets/` of each ref with `git archive` into `.cache/versions/<version>/` (gitignored, re-extracted when the ref changes). This needs the full history: `fetch-depth: 0` in CI, no shallow clone locally.
+- Versions come from git tags: every `vX.Y.Z` tag whose tree has `website/src/content/docs/` is a docs version, read from the tag (`src/lib/docs-versions.ts`). Releasing needs nothing else.
+- `versions.json` holds optional overrides, empty by default: `{ "version": "0.5.0", "ref": "<sha or vX.Y.Z>" }` serves a version from another ref (or adds an untagged one), `{ "version": "0.5.0", "hidden": true }` hides one, e.g. a tag cut while the docs were still placeholders.
+- At config time (`astro dev`, `build`, `check`), `scripts/versions.ts` extracts `website/src/content/docs/`, `website/src/assets/` and `docs/assets/` of each version's ref with `git archive` into `.cache/versions/<version>/` (gitignored, re-extracted when the ref points to another commit). This needs the tags and the full history: `fetch-depth: 0` in CI; a shallow clone or one without tags builds `master` only.
 - One content collection holds every version, under ids that encode locale and version (`src/content.config.ts`). URLs: latest release at `/docs/…`, `master` at `/docs/next/…` (labelled "Next (unreleased)"), older releases at `/docs/<version>/…`; the same under `/fr/docs/`.
 - `src/route-middleware.ts` gives each page the sidebar and previous / next links of its own version, keeps the search index to the default version, and points "Edit page" at the file on `master` when it still exists there.
 - The switcher (`src/components/starlight/VersionSelect.astro`) links each version to the same page when it exists there, otherwise to that version's docs home.
-- **Bootstrap**: while `versions.json` is empty, `master` is served at `/docs/` and the switcher shows only it. Once the docs are complete, add the first entry by hand: the commit that merges them, labelled with the app version current at that time. From then on, publishing a release opens a pull request that adds it (`.github/workflows/docs-version.yml`, see [`docs/RELEASING.md`](../docs/RELEASING.md#website-docs)).
+- **Bootstrap**: until a tag has the docs, `master` is served at `/docs/` and the switcher shows only it.
+- **Search** covers the default version only (known limitation): results never send a visitor to another version, and older versions and `next` are not searchable.
 
 ### Why not `starlight-versions`
 
@@ -105,19 +107,24 @@ The custom approach is about 400 lines, comments included (`src/lib/docs-version
 
 ## Deployment
 
-GitHub Pages, from `website.yml`: on push to `master`, on `workflow_dispatch`, and when a release is published (through a dispatch on `master`, as the `github-pages` environment only accepts the default branch). The artifact is `dist/`, with `public/CNAME`. `/apt/` and `/rpm/` are left free for M6-3, which adds them to the same artifact.
+Cloudflare Pages, project `yaggui`, uploaded by `website.yml` with `cloudflare/wrangler-action` and the `wrangler` of this package (`pages deploy dist --project-name=yaggui --branch=<branch>`). Cloudflare's Git integration is not used: the build needs the full git history for the versioned docs.
 
-One-time setup: Settings → Pages → Source: **GitHub Actions**; DNS: `CNAME yaggui.tropico.dev → simonvanmello.github.io`, then set the custom domain in Settings → Pages and enable HTTPS.
+- Pull requests: a preview deployment on the branch alias (`<branch>.yaggui.pages.dev`), its URLs in the job summary. Skipped, with the build still run, when the secrets are missing (pull requests from forks).
+- Production (`--branch=master`): on push to `master`, on `workflow_dispatch`, and when a release is published (built from `master`, so the download links follow the release).
+- Headers in `public/_headers`; redirects, if ever needed, in `public/_redirects`.
+
+One-time setup: create the Cloudflare Pages project `yaggui` (Direct Upload, production branch `master`); add the repository secrets `CLOUDFLARE_API_TOKEN` (permission: Cloudflare Pages, Edit) and `CLOUDFLARE_ACCOUNT_ID`; attach the custom domain `yaggui.tropico.dev` to the project in the Cloudflare dashboard.
 
 ## Dependencies
 
-| Package                                                             | Why                                                                                                         |
-| ------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `astro`, `@astrojs/starlight`                                       | Site generator and docs theme, chosen in the brief (Starlight brings MDX, Pagefind search, Expressive Code) |
-| `sharp`                                                             | Image optimization of `astro:assets` (screenshots to WebP)                                                  |
-| `@fontsource-variable/inter`, `@fontsource-variable/jetbrains-mono` | Self-hosted fonts, same as the app                                                                          |
-| `@astrojs/check`, `typescript`                                      | `astro check`                                                                                               |
-| `prettier`, `prettier-plugin-astro`                                 | Formatting, `.astro` included                                                                               |
-| `@types/node`                                                       | Types of the build scripts                                                                                  |
+| Package                                                             | Why                                                                                                                              |
+| ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `astro`, `@astrojs/starlight`                                       | Site generator and docs theme, chosen in the brief (Starlight brings MDX, Pagefind search, Expressive Code)                      |
+| `sharp`                                                             | Image optimization of `astro:assets` (screenshots to WebP)                                                                       |
+| `@fontsource-variable/inter`, `@fontsource-variable/jetbrains-mono` | Self-hosted fonts, same as the app                                                                                               |
+| `@astrojs/check`, `typescript`                                      | `astro check`                                                                                                                    |
+| `prettier`, `prettier-plugin-astro`                                 | Formatting, `.astro` included                                                                                                    |
+| `@types/node`                                                       | Types of the build scripts                                                                                                       |
+| `wrangler`                                                          | Upload to Cloudflare Pages from CI (`cloudflare/wrangler-action` uses it); only its CLI is used, its build scripts stay disabled |
 
 No ESLint: `astro check` in strict mode covers the TypeScript, and the site has little logic.
