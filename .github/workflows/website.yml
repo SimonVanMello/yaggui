@@ -1,6 +1,7 @@
-# Builds the website (website/: landing, every docs version in both locales) on pull requests that
-# touch it, and deploys it to GitHub Pages from master: on push, by hand, and when a release is
-# published (the download links follow the latest release). See website/README.md.
+# Builds the website (website/: landing, every docs version in both locales) and deploys it to
+# Cloudflare Pages: a preview for each pull request that touches it, production from master (on
+# push, when a release is published so the download links follow it, and by hand). See
+# website/README.md.
 name: Website
 
 on:
@@ -12,7 +13,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: website-${{ github.event_name == 'pull_request' && github.ref || 'deploy' }}
+  group: website-${{ github.event_name == 'pull_request' && github.ref || 'production' }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
@@ -42,29 +43,22 @@ jobs:
             echo 'site=false' >> "$GITHUB_OUTPUT"
           fi
 
-  # A release event runs on its tag, which the `github-pages` environment refuses (default branch
-  # only): it redeploys through a manual run on master instead.
-  release:
-    if: github.event_name == 'release'
-    runs-on: ubuntu-latest
-    permissions:
-      actions: write
-    steps:
-      - env:
-          GH_TOKEN: ${{ github.token }}
-          BRANCH: ${{ github.event.repository.default_branch }}
-        run: gh workflow run website.yml --repo "$GITHUB_REPOSITORY" --ref "$BRANCH"
-
   build:
     needs: changes
-    if: github.event_name != 'release' && needs.changes.outputs.site == 'true'
+    if: needs.changes.outputs.site == 'true'
     runs-on: ubuntu-latest
+    env:
+      PRODUCTION: ${{ github.event_name != 'pull_request' }}
+      # Absent on pull requests from forks: the site is built but not deployed.
+      CAN_DEPLOY: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
     defaults:
       run:
         working-directory: website
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          # A published release would check out its tag: production is always built from master.
+          ref: ${{ github.event_name == 'release' && github.event.repository.default_branch || '' }}
           # The docs of each released version are extracted from its commit (website/versions.json).
           fetch-depth: 0
           persist-credentials: false
@@ -83,23 +77,39 @@ jobs:
         env:
           # Raises the GitHub API rate limit for the latest release lookup.
           GITHUB_TOKEN: ${{ github.token }}
-      # M6-3 adds the apt and dnf repositories here, as `dist/apt/` and `dist/rpm/`: a Pages
-      # deployment replaces the whole site, so they must be part of this artifact.
-      - if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
-        with:
-          path: website/dist
 
-  deploy:
-    needs: build
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
-    steps:
+      # Cloudflare branch alias of the deployment: `master` is production, anything else a preview.
+      - id: branch
+        if: env.CAN_DEPLOY == 'true'
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          if [ "$PRODUCTION" = true ]; then
+            echo 'name=master' >> "$GITHUB_OUTPUT"
+          else
+            # The branch name comes from the pull request: keep it to safe characters.
+            echo "name=$(printf '%s' "$HEAD_REF" | tr -c 'A-Za-z0-9-' '-' | cut -c1-60)" >> "$GITHUB_OUTPUT"
+          fi
       - id: deploy
-        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+        if: env.CAN_DEPLOY == 'true'
+        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4.1.3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: website
+          packageManager: pnpm
+          # The wrangler of website/package.json, installed above.
+          command: pages deploy dist --project-name=yaggui --branch=${{ steps.branch.outputs.name }} --commit-dirty=true
+      - if: env.CAN_DEPLOY == 'true'
+        env:
+          URL: ${{ steps.deploy.outputs.deployment-url }}
+          ALIAS: ${{ steps.deploy.outputs.pages-deployment-alias-url }}
+        run: |
+          {
+            echo '### Website deployed'
+            if [ "$PRODUCTION" = true ]; then echo "- Production: https://yaggui.tropico.dev"; fi
+            echo "- Deployment: $URL"
+            if [ -n "$ALIAS" ]; then echo "- Branch preview: $ALIAS"; fi
+          } >> "$GITHUB_STEP_SUMMARY"
+      - if: env.CAN_DEPLOY != 'true'
+        run: echo '::notice::No Cloudflare secrets (pull request from a fork?), built but not deployed.'

@@ -13,7 +13,7 @@ pnpm preview   # serves dist/
 pnpm check     # astro check (strict TypeScript, content schema) + Prettier
 ```
 
-`.github/workflows/website.yml` runs `pnpm check` and `pnpm build` on pull requests that touch the site, and deploys `dist/` to GitHub Pages from `master`.
+`.github/workflows/website.yml` runs `pnpm check` and `pnpm build` on pull requests that touch the site, and deploys `dist/` to Cloudflare Pages: a preview per pull request, production from `master`.
 
 ## Layout
 
@@ -29,7 +29,7 @@ pnpm check     # astro check (strict TypeScript, content schema) + Prettier
 | `src/lib/`                                     | Docs versions, latest release lookup                                                                                    |
 | `versions.json`                                | Published docs versions                                                                                                 |
 | `scripts/`                                     | Version extraction, `add-version.ts` (release workflow), link check                                                     |
-| `public/CNAME`                                 | Custom domain                                                                                                           |
+| `public/_headers`                              | Cloudflare Pages headers (cache of `/_astro/`)                                                                          |
 
 ## Docs pages
 
@@ -105,19 +105,24 @@ The custom approach is about 400 lines, comments included (`src/lib/docs-version
 
 ## Deployment
 
-GitHub Pages, from `website.yml`: on push to `master`, on `workflow_dispatch`, and when a release is published (through a dispatch on `master`, as the `github-pages` environment only accepts the default branch). The artifact is `dist/`, with `public/CNAME`. `/apt/` and `/rpm/` are left free for M6-3, which adds them to the same artifact.
+Cloudflare Pages, project `yaggui`, uploaded by `website.yml` with `cloudflare/wrangler-action` and the `wrangler` of this package (`pages deploy dist --project-name=yaggui --branch=<branch>`). Cloudflare's Git integration is not used: the build needs the full git history for the versioned docs.
 
-One-time setup: Settings → Pages → Source: **GitHub Actions**; DNS: `CNAME yaggui.tropico.dev → simonvanmello.github.io`, then set the custom domain in Settings → Pages and enable HTTPS.
+- Pull requests: a preview deployment on the branch alias (`<branch>.yaggui.pages.dev`), its URLs in the job summary. Skipped, with the build still run, when the secrets are missing (pull requests from forks).
+- Production (`--branch=master`): on push to `master`, on `workflow_dispatch`, and when a release is published (built from `master`, so the download links follow the release).
+- Headers in `public/_headers`; redirects, if ever needed, in `public/_redirects`.
+
+One-time setup: create the Cloudflare Pages project `yaggui` (Direct Upload, production branch `master`); add the repository secrets `CLOUDFLARE_API_TOKEN` (permission: Cloudflare Pages, Edit) and `CLOUDFLARE_ACCOUNT_ID`; attach the custom domain `yaggui.tropico.dev` to the project in the Cloudflare dashboard.
 
 ## Dependencies
 
-| Package                                                             | Why                                                                                                         |
-| ------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `astro`, `@astrojs/starlight`                                       | Site generator and docs theme, chosen in the brief (Starlight brings MDX, Pagefind search, Expressive Code) |
-| `sharp`                                                             | Image optimization of `astro:assets` (screenshots to WebP)                                                  |
-| `@fontsource-variable/inter`, `@fontsource-variable/jetbrains-mono` | Self-hosted fonts, same as the app                                                                          |
-| `@astrojs/check`, `typescript`                                      | `astro check`                                                                                               |
-| `prettier`, `prettier-plugin-astro`                                 | Formatting, `.astro` included                                                                               |
-| `@types/node`                                                       | Types of the build scripts                                                                                  |
+| Package                                                             | Why                                                                                                                              |
+| ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `astro`, `@astrojs/starlight`                                       | Site generator and docs theme, chosen in the brief (Starlight brings MDX, Pagefind search, Expressive Code)                      |
+| `sharp`                                                             | Image optimization of `astro:assets` (screenshots to WebP)                                                                       |
+| `@fontsource-variable/inter`, `@fontsource-variable/jetbrains-mono` | Self-hosted fonts, same as the app                                                                                               |
+| `@astrojs/check`, `typescript`                                      | `astro check`                                                                                                                    |
+| `prettier`, `prettier-plugin-astro`                                 | Formatting, `.astro` included                                                                                                    |
+| `@types/node`                                                       | Types of the build scripts                                                                                                       |
+| `wrangler`                                                          | Upload to Cloudflare Pages from CI (`cloudflare/wrangler-action` uses it); only its CLI is used, its build scripts stay disabled |
 
 No ESLint: `astro check` in strict mode covers the TypeScript, and the site has little logic.
