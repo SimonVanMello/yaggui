@@ -1,6 +1,6 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 
-import { capture, MOCK_NOW_MS, openRepo, start } from './capture';
+import { capture, frenchUi, lang, MOCK_NOW_MS, openRepo, start } from './capture';
 import { around } from './crop';
 
 /** Screenshots of the "Everyday work" pages: staging, committing, stash, diff. */
@@ -93,9 +93,15 @@ test('staging-line-selection', async ({ page }, testInfo) => {
 
 test('staging-discard-confirm', async ({ page }, testInfo) => {
   await openYaggui(page);
-  await page.getByRole('button', { name: 'Discard all changes' }).click();
-  const dialog = page.getByRole('dialog', { name: 'Discard all unstaged changes?' });
-  await expect(dialog).toContainText('untracked, deleted');
+  const discardAll = await page
+    .getByRole('button', { name: 'Discard all changes' })
+    .elementHandle();
+  await frenchUi(page);
+  await discardAll.click();
+  const dialog = page.getByRole('dialog', {
+    name: lang('Discard all unstaged changes?', 'Annuler tous les changements non indexés ?'),
+  });
+  await expect(dialog).toBeVisible();
   await capture(page, testInfo, 'staging-discard-confirm', dialog);
 });
 

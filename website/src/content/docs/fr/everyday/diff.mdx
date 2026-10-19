@@ -1,0 +1,202 @@
+---
+title: Consulter les diffs
+description: Lisez les diffs de fichiers dans yaggui, passez de la disposition unifiée à la disposition côte à côte, réglez les options du diff, naviguez au clavier, comparez des images et du Markdown, puis modifiez ou ouvrez des fichiers hors de yaggui.
+sidebar:
+  order: 4
+sources:
+  - src/features/diff/**
+  - src-tauri/src/git/read/diff/**
+  - src-tauri/src/git/read/image.rs
+  - src-tauri/src/commands/diff.rs
+  - src-tauri/src/repo/graph_tools.rs
+  - src-tauri/src/commands/graph_tools.rs
+  - src-tauri/src/system/editor.rs
+  - src-tauri/src/repo/write.rs
+requirements: [F-080, F-081, F-082, F-083, F-084, F-085, F-086, F-087, F-088, F-089]
+---
+
+import Screenshot from '~/components/Screenshot.astro';
+import diffSplitDark from '../../../../assets/screens/diff-split-fr-dark.png';
+import diffSplitLight from '../../../../assets/screens/diff-split-fr-light.png';
+import diffImageOnionDark from '../../../../assets/screens/diff-image-onion-fr-dark.png';
+import diffImageOnionLight from '../../../../assets/screens/diff-image-onion-fr-light.png';
+import diffMarkdownPreviewDark from '../../../../assets/screens/diff-markdown-preview-fr-dark.png';
+import diffMarkdownPreviewLight from '../../../../assets/screens/diff-markdown-preview-fr-light.png';
+
+Le visualiseur de diff montre les changements d’un fichier : dans votre arbre de travail, dans l’index, dans un commit, dans un stash ou entre deux révisions comparées. Cette page explique comment l’ouvrir et le lire, ses options et sa navigation au clavier, ainsi que les cas particuliers (fichiers binaires, images, Markdown, gros fichiers). L’indexation de blocs et de lignes depuis le diff est décrite dans [Indexer les changements](../../everyday/staging/#indexer-une-partie-du-fichier).
+
+## Ouvrir et fermer un diff
+
+Cliquez sur un fichier dans n’importe quelle liste de fichiers pour ouvrir son diff à la place du graphe ; le panneau de droite reste tel quel. Des listes de fichiers apparaissent dans :
+
+- Les listes **Non indexés** et **Indexés** du [panneau des changements](../../everyday/staging/).
+- Le panneau de détails d’un commit, quand un commit est sélectionné (voir [Le graphe des commits](../../history/commit-graph/)). Un commit de merge est comparé à son premier parent.
+- Le panneau **Détails du stash** (voir [Stash](../../everyday/stash/#prévisualiser-un-stash)).
+- L’onglet **Modifications** d’une [comparaison](../../inspect/compare/).
+- L’[historique d’un fichier](../../inspect/file-history-and-blame/).
+
+Pour revenir au graphe, cliquez sur **Graphe** à gauche de la barre d’outils du diff, appuyez sur <kbd>Esc</kbd>, ou cliquez à nouveau sur le fichier ouvert dans sa liste. Dans un diff de l’arbre de travail avec des lignes sélectionnées, le premier <kbd>Esc</kbd> efface la sélection et le second ferme le diff. Un diff de l’arbre de travail se ferme tout seul quand son fichier quitte la liste (par exemple une fois indexé ou annulé).
+
+## La barre d’outils du diff
+
+De gauche à droite :
+
+| Élément                                     | Description                                                                                                                              |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| **Graphe**                                  | Retour au graphe (<kbd>Esc</kbd>)                                                                                                        |
+| Lettre de statut                            | Mêmes lettres et mêmes couleurs que dans les listes de fichiers                                                                          |
+| Chemin                                      | Le chemin du fichier, `ancien → nouveau` pour un renommage                                                                               |
+| Nombre de lignes                            | `+ajoutées −supprimées`                                                                                                                  |
+| Position                                    | `{index} / {total}` dans la liste de fichiers (masquée quand la zone du diff fait moins de 760 px de large)                              |
+| **Fichier précédent** / **Fichier suivant** | Se déplacer dans la liste de fichiers (<kbd>K</kbd> / <kbd>J</kbd>) ; désactivés à chaque extrémité                                      |
+| **Modifier**                                | Modifier le fichier sur place (diffs non indexés uniquement, voir [Modifier un fichier dans le diff](#modifier-un-fichier-dans-le-diff)) |
+| **Ouvrir hors de yaggui**                   | Menu : outil de diff, éditeur, gestionnaire de fichiers                                                                                  |
+| **Historique du fichier**, **Blame**        | Ouvrent l’[historique ou le blame](../../inspect/file-history-and-blame/) du fichier (**Blame à ce commit** pour un diff de commit)      |
+| **Disposition du diff**                     | **Unifié**, **Côte à côte**, ainsi que **Aperçu** pour les fichiers Markdown                                                             |
+| **Options du diff**                         | Le menu des options (icône d’engrenage)                                                                                                  |
+
+<Screenshot
+  dark={diffSplitDark}
+  light={diffSplitLight}
+  alt="Un diff côte à côte avec la barre d’outils du diff, la coloration syntaxique et les mots modifiés mis en évidence dans les lignes modifiées"
+/>
+
+## Unifié ou côte à côte
+
+**Côte à côte** (par défaut) montre l’ancienne version à gauche et la nouvelle à droite, défilant ensemble. **Unifié** montre les deux dans une seule colonne. Basculez avec le contrôle **Disposition du diff** ou avec <kbd>⌘D</kbd> (<kbd>Ctrl+D</kbd> sous Windows et Linux). Le choix est enregistré et s’applique à tous les dépôts. <kbd>⌘D</kbd> est fixe et ne peut pas être réassigné.
+
+## Options du diff
+
+Le menu **Options du diff** contient :
+
+| Option                       | Par défaut | Effet                                                                                                                                                                                          |
+| ---------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Retour à la ligne**        | Désactivé  | Replie les longues lignes au lieu de faire défiler horizontalement. Les rangées du côte à côte restent alignées                                                                                |
+| **Ignorer les espaces**      | Désactivé  | Masque les changements qui ne concernent que les espaces, comme `git diff -w`, y compris les changements de fin de ligne. Désactive l’indexation de blocs et de lignes tant qu’elle est active |
+| **Afficher tout le fichier** | Désactivé  | Affiche tout le fichier comme un seul bloc                                                                                                                                                     |
+| **Lignes de contexte**       | 3 lignes   | Lignes inchangées autour de chaque changement : 0, 3, 10 ou 25                                                                                                                                 |
+
+Ces options sont enregistrées et s’appliquent à tous les diffs de tous les dépôts. Elles ne figurent pas dans la boîte de dialogue des préférences ; voir [Préférences](../../reference/preferences/) pour savoir où elles sont stockées.
+
+Si **Ignorer les espaces** masque tout ce qui a changé, le diff affiche **Seuls des espaces ont changé** ou **Seules les fins de ligne ont changé** et propose **Afficher les changements d'espaces**, qui désactive l’option.
+
+## Lire le diff
+
+- La **coloration syntaxique** suit le langage déduit du nom du fichier et apparaît un instant après le diff.
+- Les **mots modifiés** sont mis en évidence dans les lignes modifiées. Les très longues lignes, et les lignes presque entièrement modifiées, sont affichées comme entièrement modifiées.
+- Les **en-têtes de bloc** affichent `@@ -a,b +c,d @@` suivi de la ligne de la fonction ou de la section englobante la plus proche.
+- **Pas de retour à la ligne en fin de fichier** est indiqué quand la dernière ligne d’un fichier n’a pas de saut de ligne.
+
+yaggui calcule lui-même les diffs (aucun processus `git diff`). Il respecte `diff.algorithm` et les attributs `binary` et `-diff` de `.gitattributes`, mais n’exécute pas de pilotes de diff externes (`diff.<driver>.command`) ni de conversions de texte (`textconv`).
+
+## Naviguer au clavier
+
+Ces touches fonctionnent quand le focus n’est pas dans un champ de texte :
+
+| Touche                                                  | Action                                                                                                                                                                                     |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| <kbd>N</kbd> / <kbd>P</kbd>                             | Changement suivant / précédent. Chaque suite de lignes modifiées est un point d’arrêt ; le changement courant est mis en évidence                                                          |
+| <kbd>J</kbd> / <kbd>K</kbd>                             | Fichier suivant / précédent de la même liste (dans l’historique d’un fichier : commit plus ancien / plus récent)                                                                           |
+| <kbd>⌘D</kbd> (<kbd>Ctrl+D</kbd> sous Windows et Linux) | Bascule entre unifié et côte à côte                                                                                                                                                        |
+| <kbd>Esc</kbd>                                          | Efface la sélection de lignes, sinon retourne au graphe                                                                                                                                    |
+| <kbd>↑</kbd> / <kbd>↓</kbd>                             | Dans la liste de fichiers : fichier précédent / suivant. Dans un diff de l’arbre de travail : déplace le curseur de ligne (voir [Indexer les changements](../../everyday/staging/#lignes)) |
+
+Tous les raccourcis sont listés dans [Raccourcis clavier](../../reference/keyboard-shortcuts/).
+
+## Avis
+
+Une barre d’avis au-dessus du code signale les changements qui ne sont pas visibles sous forme de lignes :
+
+| Avis                                                                                 | Signification                                                                            |
+| ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| **Renommé depuis \{from\} (similaire à \{similarity\} %)**                           | Renommage ou copie détecté ; la similarité est de 100 % pour un fichier identique        |
+| **Mode du fichier modifié : 100644 → 100755**                                        | Le bit exécutable (ou un autre mode) a changé                                            |
+| **Fins de ligne modifiées : LF → CRLF. Ignore les espaces pour masquer ces lignes.** | Chaque ligne n’a changé que par sa fin ; `CRLF + LF` indique des fins de ligne mélangées |
+| **Fins de ligne mélangées (CRLF et LF)**                                             | La nouvelle version mélange les deux fins de ligne                                       |
+| **Pas en UTF-8 : affiché en Windows-1252 (encodage supposé)**                        | Le fichier n’est pas de l’UTF-8 valide                                                   |
+
+Les renommages et les copies sont détectés comme avec `git diff -M -C`. Sans aucun changement de contenu, un changement de mode seul affiche **Seul le mode du fichier a changé**.
+
+Certains fichiers affichent un texte de remplacement à la place du code :
+
+- **Commit du submodule modifié** : l’ancien et le nouveau commit d’un [submodule](../../repository/submodules/).
+- **Fichier stocké avec Git LFS** : « Seul un pointeur est versionné : pas de diff texte. », avec les tailles et les identifiants d’objet (voir [Git LFS](../../repository/git-lfs/)).
+- **Conflit de fusion** : résolvez-le dans l’éditeur de conflits (voir [Conflits](../../history/conflicts/)).
+- **Aucune modification de contenu**.
+
+## Fichiers volumineux
+
+Pour rester rapide, yaggui n’affiche pas les diffs de plus de 5 000 lignes ni les fichiers de plus de 1 Mo. Il affiche **Diff volumineux non affiché** avec le nombre de lignes (« Ce diff fait \{lines\} lignes. L'afficher peut ralentir yaggui. ») ou la taille (« Ce fichier pèse \{size\}. Il n'a pas été chargé, pour garder yaggui rapide. »). Cliquez sur **Afficher quand même** pour l’afficher ; yaggui s’en souvient pour ce fichier jusqu’à ce que vous quittiez l’application.
+
+## Fichiers binaires
+
+Un fichier binaire qui n’est pas une image affiche **Fichier binaire** avec sa taille **Avant** et **Après** (un tiret pour un côté absent).
+
+## Images
+
+Les fichiers PNG, JPEG, GIF, WebP, BMP, ICO, SVG et AVIF sont affichés comme des images, titrées **Image modifiée**, **Image ajoutée** ou **Image supprimée**, avec les dimensions et la taille de chaque côté dans le mode **Côte à côte**. Quand les deux versions existent, **Comparaison d'images** propose :
+
+| Mode                         | Usage                                                                                                                    |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| **Côte à côte** (par défaut) | Les deux versions l’une à côté de l’autre                                                                                |
+| **Superposition**            | La nouvelle version par-dessus l’ancienne ; le curseur **Opacité de la nouvelle version** fait passer de l’une à l’autre |
+| **Glissière**                | Une image coupée par un séparateur ; le curseur **Position du séparateur** le déplace                                    |
+
+Le mode reste sélectionné pour les autres images jusqu’à ce que vous quittiez l’application. Les images de plus de 8 Mo ne sont pas prévisualisées (« Cette image est trop grande pour l'aperçu (8 Mo au plus). »). Pour un SVG, **Afficher la source SVG** passe à un diff texte, et **Afficher comme image** dans la barre d’outils revient à l’image. Les SVG sont affichés comme des images : leurs scripts ne s’exécutent donc jamais.
+
+<Screenshot
+  dark={diffImageOnionDark}
+  light={diffImageOnionLight}
+  alt="Un diff d’image en mode Superposition avec le curseur d’opacité"
+/>
+
+## Aperçu Markdown
+
+Pour les fichiers Markdown (`.md`, `.markdown`, `.mdx` et similaires), le contrôle **Disposition du diff** propose un troisième choix, **Aperçu**. Il affiche le rendu de la nouvelle version du document et marque les changements :
+
+- Les blocs modifiés, ajoutés et supprimés sont marqués dans la marge ; les mots insérés sont surlignés et les mots supprimés barrés sur place.
+- Un bandeau compte les blocs : **\{count\} blocs ajoutés**, **supprimés** et **modifiés**. <kbd>N</kbd> et <kbd>P</kbd>, ou **Modification suivante** et **Modification précédente**, permettent de passer d’un changement à l’autre (**Modification \{index\} / \{total\}**).
+- **Afficher le texte supprimé** (activé par défaut) masque ou affiche le texte supprimé.
+- Renuméroter une liste ordonnée n’est pas compté comme un changement. Si seuls des espaces ou des retours à la ligne ont changé : « Aucun changement dans le texte rendu (espaces ou retours à la ligne seulement) ».
+
+L’aperçu est un réglage enregistré pour tous les fichiers Markdown ; choisir **Unifié** ou **Côte à côte**, ou appuyer sur <kbd>⌘D</kbd>, le quitte. Le HTML brut est affiché comme du code, les liens ne naviguent pas et les images sont affichées sous la forme de leur texte alternatif. Un document très volumineux affiche « Ce document est trop volumineux pour être rendu. » avec **Le rendre quand même**.
+
+<Screenshot
+  dark={diffMarkdownPreviewDark}
+  light={diffMarkdownPreviewLight}
+  alt="L’aperçu Markdown d’un document, avec les mots insérés surlignés et les mots supprimés barrés"
+/>
+
+## Modifier un fichier dans le diff
+
+Dans le diff non indexé d’un fichier texte, **Modifier** transforme le diff en éditeur du fichier de l’arbre de travail, avec les lignes qui diffèrent de l’index marquées.
+
+1. Faites vos modifications. La barre d’outils affiche **Modifications non enregistrées**.
+2. Cliquez sur **Enregistrer** ou appuyez sur <kbd>⌘S</kbd> (<kbd>Ctrl+S</kbd> sous Windows et Linux). La barre d’outils affiche **Enregistré**.
+3. Cliquez sur **Terminer** pour revenir au diff. S’il reste des modifications non enregistrées, **Abandonner tes modifications ?** demande d’abord confirmation.
+
+Si vous quittez le fichier sans enregistrer, vos modifications sont conservées jusqu’à ce que vous quittiez l’application et reviennent quand vous rouvrez le fichier. Si le fichier change sur le disque alors que vous avez des modifications non enregistrées, yaggui affiche « \{path\} a changé sur le disque pendant que tu le modifiais. » et propose **Recharger depuis le disque** ou **Garder ma version**.
+
+La modification n’est pas proposée pour les diffs indexés ou de commit, et elle est refusée pour les fichiers LFS, les fichiers de plus de 1 Mo, les fichiers non UTF-8 ou binaires et les fichiers qui mélangent fins de ligne LF et CRLF (« Ce fichier ne peut pas être modifié »).
+
+:::caution
+L’enregistrement écrit directement le fichier. Il n’est pas consigné dans l’historique d’annulation : utilisez l’annulation propre à l’éditeur avant d’enregistrer.
+:::
+
+## Ouvrir hors de yaggui
+
+Le menu **Ouvrir hors de yaggui** de la barre d’outils du diff propose :
+
+| Élément                                       | Effet                                                                                                                                                                                                                                                                         |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Ouvrir dans l'outil de diff externe**       | Exécute `git difftool --no-prompt --tool=<tool>` (`--gui` quand seul `diff.guitool` est défini) sur ce fichier et attend la fermeture de l’outil. Les diffs indexés ajoutent `--cached` ; les diffs de commit passent les deux commits. Désactivé tant que l’outil est ouvert |
+| **Ouvrir dans l'éditeur**                     | Ouvre le fichier de l’arbre de travail dans votre éditeur (préférence **Éditeur**, sinon celui du système)                                                                                                                                                                    |
+| **Afficher dans le gestionnaire de fichiers** | Révèle le fichier dans le Finder ou l’Explorateur ; sous Linux, ouvre son dossier                                                                                                                                                                                             |
+
+Les entrées de l’éditeur et du gestionnaire de fichiers agissent toujours sur le fichier de l’arbre de travail, même depuis un diff de commit, et sont désactivées quand le fichier n’y existe plus. L’outil de diff est la préférence **Outil de diff**, sinon le `diff.tool` de Git, sinon `diff.guitool`. L’action de la palette **Ouvrir le fichier courant dans l'outil de diff externe** fait la même chose que la première entrée. Configurez ces outils dans [Outils externes](../../customize/external-tools/).
+
+Erreurs :
+
+- Aucun outil de diff externe n'est configuré : choisis-en un dans les préférences (Outils) ou renseigne diff.tool dans ta configuration Git.
+- L'outil de diff « \{tool\} » n'a pas pu être lancé. Vérifie qu'il est installé et configuré (difftool.\{tool\}.cmd). Le [journal des commandes](../../reference/command-log/) montre la sortie de Git.
+- L'éditeur « \{name\} » n'a pas pu être lancé. Vérifie son nom dans les préférences.

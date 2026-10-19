@@ -1,0 +1,254 @@
+---
+title: Fetch, pull et push
+description: Récupérez depuis vos remotes et envoyez vers eux dans yaggui, avec auto-fetch, stratégies de pull, premier push, force push avec lease, progression et annulation.
+sidebar:
+  order: 1
+sources:
+  - src/features/network/**
+  - src/features/toolbar/NetworkButtons.tsx
+  - src/features/statusbar/StatusBar.tsx
+  - src/features/preferences/BehaviorTab.tsx
+  - src/features/preferences/ProtectedBranchesField.tsx
+  - src/features/sidebar/RefContextMenu.tsx
+  - src/features/sidebar/RemoteContextMenu.tsx
+  - src/app/shellActions.ts
+  - src-tauri/src/repo/network.rs
+  - src-tauri/src/commands/network.rs
+  - src-tauri/src/git/errors.rs
+requirements: [F-120, F-121, F-122, F-123, F-124, F-126, F-127]
+---
+
+import Screenshot from '~/components/Screenshot.astro';
+import pullStrategyMenuDark from '../../../../assets/screens/pull-strategy-menu-fr-dark.png';
+import pullStrategyMenuLight from '../../../../assets/screens/pull-strategy-menu-fr-light.png';
+import forcePushConfirmDark from '../../../../assets/screens/force-push-confirm-fr-dark.png';
+import forcePushConfirmLight from '../../../../assets/screens/force-push-confirm-fr-light.png';
+import networkProgressDark from '../../../../assets/screens/network-progress-fr-dark.png';
+import networkProgressLight from '../../../../assets/screens/network-progress-fr-light.png';
+
+Cette page présente les trois boutons réseau de la barre d’outils, **Fetch**, **Pull** et **Push**, ainsi que l’auto-fetch, le force push, la progression des opérations et les erreurs que vous pouvez rencontrer. Les remotes eux-mêmes se gèrent sur la page [Gérer les remotes](../../remotes/remotes/), et les identifiants sur la page [Authentification](../../remotes/authentication/).
+
+Chaque commande réseau s’exécute en arrière-plan dans la file d’opérations du dépôt : la fenêtre reste utilisable. Chaque commande lancée par yaggui est consignée dans le [journal des commandes](../../reference/command-log/). Les raccourcis ci-dessous sont les raccourcis par défaut ; vous pouvez les réassigner ([Palette de commandes et raccourcis](../../customize/palette-and-shortcuts/)).
+
+## Fetch
+
+Un fetch télécharge les nouveaux commits et les nouvelles branches d’un remote sans toucher à vos branches ni à vos fichiers ([git fetch](https://git-scm.com/docs/git-fetch)).
+
+| Point d’entrée                                                                    | Ce qui est récupéré  |
+| --------------------------------------------------------------------------------- | -------------------- |
+| Bouton **Fetch** de la barre d’outils                                             | Tous les remotes     |
+| Flèche du bouton **Fetch** (**Options du fetch**) → **Fetch de tous les remotes** | Tous les remotes     |
+| Flèche du bouton **Fetch** → **Fetch de origin** (une entrée par remote)          | Ce remote uniquement |
+| <kbd>⌘⇧F</kbd> (<kbd>Ctrl+Shift+F</kbd> sous Windows et Linux)                    | Tous les remotes     |
+| Palette (<kbd>⌘K</kbd>) → **Fetch**                                               | Tous les remotes     |
+| Barre latérale, clic droit sur un dossier de remote sous **Remote** → **Fetch**   | Ce remote uniquement |
+
+yaggui exécute :
+
+```bash
+git fetch --progress --prune --all      # tous les remotes
+git fetch --progress --prune origin     # un seul remote
+```
+
+Une fois l’opération terminée, une notification **Fetch terminé** apparaît et la barre d’état affiche **Fetch terminé** avec l’heure. Les branches distantes de la barre latérale et du graphe se mettent à jour d’elles-mêmes.
+
+### Nettoyer au fetch
+
+Quand **Nettoyer au fetch** est activé (c’est le cas par défaut), chaque fetch ajoute `--prune` : les branches de suivi supprimées sur le serveur disparaissent de la barre latérale et du graphe. Vos branches locales ne sont jamais supprimées. Le réglage se trouve dans **Préférences → Comportement** et s’applique à tous les fetch, auto-fetch compris. Voir [Préférences](../../reference/preferences/).
+
+:::note
+L’info-bulle du bouton de la barre d’outils et l’indication de **Fetch de tous les remotes** affichent toujours `--all --prune`, même quand **Nettoyer au fetch** est désactivé. La commande réellement exécutée suit le réglage : vérifiez-la dans le journal des commandes.
+:::
+
+Un fetch avec prune ne peut pas être annulé (voir [Ce qui ne peut pas être annulé](#ce-qui-ne-peut-pas-être-annulé)).
+
+## Auto-fetch
+
+yaggui fait un fetch de tous les remotes du dépôt actif en arrière-plan, à intervalle régulier.
+
+| Réglage (Préférences → Comportement) | Par défaut | Effet                                                                    |
+| ------------------------------------ | ---------- | ------------------------------------------------------------------------ |
+| **Fetch automatique**                | Activé     | Active ou désactive l’auto-fetch                                         |
+| **Toutes les (minutes)**             | 10         | Intervalle, de 1 à 240 minutes. Inactif quand l’auto-fetch est désactivé |
+
+Fonctionnement :
+
+- Seul l’onglet visible fait un fetch. Les onglets en arrière-plan mettent leur minuteur en pause ; quand vous revenez sur l’un d’eux, son minuteur repart pour un intervalle complet.
+- Aucun fetch n’est lancé à l’ouverture d’un dépôt : le premier a lieu après un intervalle complet.
+- Un déclenchement est ignoré si une autre opération est en cours dans ce dépôt.
+- L’auto-fetch est silencieux : aucune notification en cas de succès ou d’échec. La barre d’état affiche tout de même la progression, puis **Fetch terminé** ou **Fetch a échoué**. Si un fetch échoue, ouvrez le journal des commandes pour en connaître la raison.
+- Le pied du menu **Fetch** indique l’état actuel : **Auto-fetch toutes les 10 min** ou **L'auto-fetch est désactivé**.
+
+Pour le désactiver, décochez **Fetch automatique** dans **Préférences → Comportement**.
+
+## Pull
+
+Un pull récupère l’upstream de la branche courante et en intègre les commits ([git pull](https://git-scm.com/docs/git-pull)). Le bouton **Pull** affiche un badge avec le nombre de commits dont vous êtes en retard ; il est désactivé quand HEAD est détaché.
+
+| Point d’entrée                                                                                           | Stratégie                                                                                                           |
+| -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Bouton **Pull** de la barre d’outils                                                                     | Stratégie par défaut                                                                                                |
+| Flèche du bouton **Pull** (**Stratégie du pull**) → **Fast-forward uniquement**, **Merge** ou **Rebase** | Celle que vous choisissez                                                                                           |
+| <kbd>⌘⇧L</kbd> (<kbd>Ctrl+Shift+L</kbd> sous Windows et Linux)                                           | Stratégie par défaut                                                                                                |
+| Palette → **Pull**                                                                                       | Stratégie par défaut                                                                                                |
+| Barre latérale, clic droit sur une branche locale ayant un upstream → **Pull**                           | Stratégie par défaut. Actif uniquement sur la branche courante (« Le pull ne s'applique qu'à la branche courante ») |
+
+<Screenshot
+  dark={pullStrategyMenuDark}
+  light={pullStrategyMenuLight}
+  alt="Le menu Stratégie du pull ouvert sous la barre d’outils, avec Fast-forward uniquement marqué par défaut, Merge et Rebase"
+/>
+
+Le menu **Pull avec…** signale la stratégie par défaut par la mention **par défaut**. Les trois stratégies exécutent :
+
+| Stratégie                   | Commande                                    | Résultat                                                                        |
+| --------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------- |
+| **Fast-forward uniquement** | `git pull --progress --no-rebase --ff-only` | Fait avancer votre branche. Échoue si votre branche et son upstream ont divergé |
+| **Merge**                   | `git pull --progress --no-rebase --ff`      | Avance en fast-forward quand c’est possible, sinon crée un commit de merge      |
+| **Rebase**                  | `git pull --progress --rebase`              | Rejoue vos commits locaux par-dessus ceux de l’upstream                         |
+
+### Stratégie par défaut
+
+La stratégie utilisée par le bouton **Pull** et par <kbd>⌘⇧L</kbd> est déterminée dans cet ordre :
+
+1. **Stratégie de pull par défaut** dans **Préférences → Comportement**, si elle vaut **Fast-forward seul**, **Merge** ou **Rebase**. La valeur par défaut, **Config Git**, passe aux étapes suivantes.
+2. `branch.<name>.rebase`, sinon `pull.rebase` : une valeur vraie (`true`, `merges`, `interactive`…) donne **Rebase**.
+3. `pull.ff=only` donne **Fast-forward uniquement** ; toute autre valeur de `pull.ff` donne **Merge**.
+4. `pull.rebase=false` sans `pull.ff` donne **Merge**.
+5. Rien de défini : **Fast-forward uniquement**.
+
+L’info-bulle du bouton **Pull** indique la stratégie retenue. Pour la changer côté Git, consultez [git config pull.rebase](https://git-scm.com/docs/git-config#Documentation/git-config.txt-pullrebase) ou réglez-la dans la [Binaire Git et configuration](../../customize/git-configuration/).
+
+### Résultats et erreurs du pull
+
+- Succès : **Pull terminé (fast-forward)**, **Pull terminé (merge)** ou **Pull terminé (rebase)**. Rien de nouveau : **Déjà à jour**.
+- Branches divergentes avec **Fast-forward uniquement** : « Ta branche et son upstream ont divergé : impossible d'avancer en fast-forward. Fais un pull en merge ou en rebase. » Choisissez **Merge** ou **Rebase** depuis la flèche du bouton.
+- Modifications locales gênantes : « Tes modifications locales seraient écrasées par le checkout. Mets-les d'abord de côté (stash, checkout puis pop). » Mettez-les de côté avec un [stash](../../everyday/stash/), faites le pull, puis récupérez-les (pop).
+- Conflits avec **Merge** ou **Rebase** : le pull s’arrête, une notification l’explique, et le bandeau d’opération ainsi que la vue des conflits s’ouvrent. Résolvez les fichiers, puis choisissez **Continuer** ou annulez l’opération (**Annuler le merge**, **Annuler le rebase**), comme décrit dans [Résoudre les conflits](../../history/conflicts/).
+- Pas d’upstream : « feature » n'a pas de branche amont (upstream). Publiez d’abord la branche avec un push (voir plus bas).
+
+Un pull qui a modifié votre branche ne peut pas être annulé (voir [Ce qui ne peut pas être annulé](#ce-qui-ne-peut-pas-être-annulé)).
+
+## Push
+
+Un push envoie les commits d’une branche locale vers son upstream ([git push](https://git-scm.com/docs/git-push)). Le bouton **Push** affiche un badge avec le nombre de commits dont vous êtes en avance ; il est désactivé quand HEAD est détaché.
+
+| Point d’entrée                                                 | Ce qui est poussé                                                                          |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Bouton **Push** de la barre d’outils                           | La branche courante                                                                        |
+| Flèche du bouton **Push** (**Options du push**) → **Push**     | La branche courante                                                                        |
+| <kbd>⌘⇧P</kbd> (<kbd>Ctrl+Shift+P</kbd> sous Windows et Linux) | La branche courante                                                                        |
+| Palette → **Push**                                             | La branche courante                                                                        |
+| Barre latérale, clic droit sur une branche locale → **Push**   | Cette branche, qu’elle soit extraite ou non                                                |
+| Zone de commit, case **Push après commit**                     | La branche courante, juste après un commit réussi ([Commiter](../../everyday/committing/)) |
+
+yaggui pousse la branche vers le remote et la branche désignés par sa configuration d’upstream (`branch.<name>.remote` et `branch.<name>.merge`) :
+
+```bash
+git push --progress --porcelain origin refs/heads/feature:refs/heads/feature
+```
+
+Résultats : **Poussé vers origin/feature**, ou **origin/feature est déjà à jour**.
+
+### Premier push d’une branche
+
+Quand la branche n’a pas encore d’upstream, yaggui demande confirmation avant de la publier :
+
+1. Une boîte de dialogue **Publier la branche ?** indique : « feature » n'a pas encore d'upstream. Elle sera poussée vers origin/feature, qui deviendra son upstream. Elle affiche la commande, `git push --set-upstream origin feature`.
+2. Cliquez sur **Publier**.
+
+Le remote est `origin` s’il existe, sinon le premier remote du dépôt. Si le dépôt n’a aucun remote, vous obtenez « Ce dépôt n'a aucun remote. » Ajoutez-en un d’abord ([Gérer les remotes](../../remotes/remotes/#ajouter-un-remote)).
+
+### Push rejeté
+
+Si la branche distante contient des commits que vous n’avez pas, le push échoue avec « Push rejeté : la branche distante contient des commits que tu n'as pas. » La notification d’erreur propose un bouton **Pull puis push** : il fait un pull avec la stratégie par défaut puis, si le pull réussit, repousse. Si le pull s’arrête sur des conflits, résolvez-les puis refaites le push vous-même.
+
+Un push réussi ne peut pas être annulé dans yaggui (voir [Ce qui ne peut pas être annulé](#ce-qui-ne-peut-pas-être-annulé)).
+
+## Force push avec lease
+
+Un force push remplace la branche distante par la vôtre, en supprimant les commits qui n’existent que là-bas. yaggui utilise toujours [`--force-with-lease`](https://git-scm.com/docs/git-push#Documentation/git-push.txt---force-with-leaseltrefnamegt), jamais `--force` : Git refuse le push si la branche distante a bougé depuis votre dernier fetch.
+
+Points d’entrée : flèche du bouton **Push** de la barre d’outils → **Force push (avec lease)…**, ou palette → **Force push (avec lease)**. Il n’y a pas de raccourci par défaut. L’entrée est désactivée quand HEAD est détaché ou que la branche n’a pas d’upstream.
+
+<Screenshot
+  dark={forcePushConfirmDark}
+  light={forcePushConfirmLight}
+  alt="La confirmation Écraser origin/main ?, qui liste les quatre commits que le force push supprimerait et la commande git push --force-with-lease"
+/>
+
+1. yaggui liste les commits de la branche distante qui ne sont pas dans la vôtre, d’après votre dernier fetch.
+2. Une confirmation intitulée **Écraser origin/feature ?** indique combien de commits seront supprimés (« Le force push va supprimer 2 commits de origin/feature (état du dernier fetch). Si la branche a bougé depuis, Git refusera. ») ou qu’aucun ne sera perdu (« Aucun commit de origin/feature ne sera perdu d'après le dernier fetch. Si la branche a bougé depuis, Git refusera. »), liste ces commits (jusqu’à 100) et affiche la commande :
+
+   ```bash
+   git push --force-with-lease=refs/heads/feature:<sha> origin HEAD
+   ```
+
+   `<sha>` est la branche distante telle qu’elle était à votre dernier fetch. La commande réellement exécutée pousse la branche par son nom complet : `git push --progress --porcelain --force-with-lease=refs/heads/feature:<sha> origin refs/heads/feature:refs/heads/feature`.
+
+3. Cliquez sur **Forcer le push**. La notification **origin/feature a été écrasé** le confirme.
+
+Cette confirmation est toujours demandée : on ne peut pas la désactiver dans les préférences.
+
+Si quelqu’un a poussé entre-temps, Git refuse : « Force push refusé : la branche distante a bougé depuis ton dernier fetch. Fais un fetch et vérifie ce qui serait écrasé. » Faites un fetch, examinez les nouveaux commits dans le graphe, puis décidez à nouveau.
+
+### Branches protégées
+
+Le force push vers une branche protégée est toujours refusé, sans possibilité de contournement : « main » est une branche protégée : le force push est refusé. Aucune commande n’est exécutée. La vérification porte sur le nom de la branche distante.
+
+La liste se trouve dans **Préférences → Comportement → Branches protégées**. Valeurs par défaut : `main`, `master`, `develop`, `release/*`.
+
+- Une entrée est un nom exact, ou un motif `préfixe/*` qui correspond à toute branche située sous `préfixe/` (à n’importe quelle profondeur), mais pas à `préfixe` lui-même.
+- Saisissez un nom dans **Ajouter une branche ou un motif** et cliquez sur **Ajouter**. Retirez-en un avec le bouton **Retirer** de sa pastille. **Rétablir les valeurs par défaut** restaure la liste par défaut.
+- Une liste vide (« Aucune branche protégée. ») ne protège rien.
+
+Cette même liste protège aussi la suppression de branches par lot ([Branches](../../history/branches/)).
+
+## Les tags sur le réseau
+
+Depuis la section **Tags** de la barre latérale ou depuis la palette (**Récupérer les tags**, **Pousser tous les tags**), vous pouvez récupérer les tags, pousser un tag ou tous les tags, et supprimer un tag sur un remote. Ces actions sont décrites sur la page [Tags](../../history/tags/).
+
+## Progression et annulation
+
+Pendant un fetch, un pull ou un push, la partie gauche de la barre d’état affiche l’opération (**Fetch**, **Pull** ou **Push**), la phase en cours de Git (par exemple « Receiving objects »), le pourcentage, la quantité transférée et le débit, avec une barre de progression et un bouton **Annuler**.
+
+<Screenshot
+  dark={networkProgressDark}
+  light={networkProgressLight}
+  alt="La barre d’état pendant un push : Push, Receiving objects, pourcentage, taille transférée et débit, une barre de progression et un bouton Annuler"
+/>
+
+Cliquez sur **Annuler** pour l’arrêter. La barre d’état affiche « Annulation de Push… », puis **Push annulé**, et une notification le confirme. yaggui arrête Git et ses processus enfants (comme `ssh`) en moins d’une seconde environ. L’annulation est proposée pour le fetch, le pull, le push, ainsi que pour les push, fetch et suppressions de tags sur un remote.
+
+Les opérations d’un même dépôt s’exécutent l’une après l’autre. Un fetch, un pull ou un push que vous lancez pendant qu’une autre opération est en cours attend la fin de celle-ci.
+
+## Erreurs
+
+Un fetch, un pull ou un push qui échoue affiche une notification d’erreur intitulée **Fetch a échoué**, **Pull a échoué** ou **Push a échoué**. Elle reste affichée jusqu’à ce que vous la fermiez, et contient :
+
+- un message qui dit ce qui s’est mal passé et ce qu’il faut faire,
+- **Détails**, replié, avec la sortie brute de Git,
+- au plus un bouton d’action, quand il y en a un d’utile.
+
+| Message                                                                                                  | Que faire                                                                                  | Bouton                          |
+| -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | ------------------------------- |
+| L'hôte distant est injoignable. Vérifie ta connexion et l'URL du remote.                                 | Vérifier le réseau ou l’URL ([Gérer les remotes](../../remotes/remotes/#modifier-les-url)) | **Réessayer**                   |
+| Authentification refusée. yaggui ne demande jamais de mot de passe : configure un credential helper Git… | Voir [Authentification](../../remotes/authentication/#https-utiliser-un-credential-helper) | —                               |
+| Authentification SSH refusée. Charge ta clé dans ssh-agent (ssh-add)…                                    | Voir [Authentification](../../remotes/authentication/#ssh-utiliser-ssh-agent)              | —                               |
+| Remote introuvable : vérifie son nom et son URL.                                                         | Corriger l’URL du remote                                                                   | —                               |
+| Push rejeté : la branche distante contient des commits que tu n'as pas.                                  | Faire un pull, puis pousser                                                                | **Pull puis push**              |
+| « feature » n'a pas de branche amont (upstream).                                                         | Publier la branche                                                                         | **Créer l'upstream et pousser** |
+| HEAD est détaché (aucune branche courante) : fais d'abord un checkout d'une branche.                     | Extraire une branche                                                                       | —                               |
+| La commande Git a échoué.                                                                                | Lire la sortie de Git                                                                      | **Ouvrir le journal**           |
+
+Les échecs de l’auto-fetch n’affichent aucune notification ; consultez la barre d’état et le journal des commandes. La liste complète des messages se trouve dans [Messages d’erreur](../../reference/error-messages/).
+
+## Ce qui ne peut pas être annulé
+
+L’annulation dans yaggui ne modifie que votre dépôt local. Ces opérations réseau sont enregistrées comme « non annulables » et empêchent d’annuler tout ce qui est plus ancien dans la même session :
+
+- un push, un force push, un push de tag, ou une suppression sur le remote,
+- un pull qui a modifié votre branche (faites plutôt un reset de la branche si besoin : [Reset](../../history/cherry-pick-revert-reset/#reset-de-la-branche-courante)),
+- un fetch avec prune (les branches de suivi supprimées reviennent au fetch suivant si elles existent encore sur le serveur).
+
+Un fetch sans prune, ainsi qu’un pull ou un push déjà à jour, ne sont pas enregistrés. Voir [Annuler et rétablir](../../history/undo-and-redo/).

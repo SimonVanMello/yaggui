@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-import { capture, openRepo, start } from './capture';
+import { capture, frenchUi, lang, openRepo, start } from './capture';
 import { around } from './crop';
 
 /** Screenshots of the "Start here" pages: introduction, tour, open a repository, updates. */
@@ -39,9 +39,15 @@ test('intro-main-window', async ({ page }, testInfo) => {
 // updates.mdx
 
 test('updates-notice', async ({ page }, testInfo) => {
-  await start(page, updateSetup('selfUpdate'));
-  const notice = page.getByRole('listitem').filter({ hasText: 'yaggui 0.2.0 is available' });
-  await expect(notice.getByRole('button', { name: 'Update and restart' })).toBeVisible();
+  await start(page, updateSetup('selfUpdate'), { french: true });
+  const notice = page
+    .getByRole('listitem')
+    .filter({ hasText: lang('yaggui 0.2.0 is available', 'yaggui 0.2.0 est disponible') });
+  await expect(
+    notice.getByRole('button', {
+      name: lang('Update and restart', 'Mettre à jour et redémarrer'),
+    }),
+  ).toBeVisible();
   await capture(page, testInfo, 'updates-notice', notice);
 });
 
@@ -150,9 +156,13 @@ test('tour-command-log', async ({ page }, testInfo) => {
 test('tour-error-toast', async ({ page }, testInfo) => {
   await openYaggui(page);
   await page.evaluate(() => window.__yagguiMock?.addOfflineRemote(1));
-  await toolbar(page).getByRole('button', { name: 'Fetch', exact: true }).click();
-  const toast = toastWith(page, 'Fetch failed');
-  await expect(toast.getByRole('button', { name: 'Retry' })).toBeVisible();
+  const fetch = await toolbar(page)
+    .getByRole('button', { name: 'Fetch', exact: true })
+    .elementHandle();
+  await frenchUi(page);
+  await fetch.click();
+  const toast = toastWith(page, lang('Fetch failed', 'Fetch a échoué'));
+  await expect(toast.getByRole('button', { name: lang('Retry', 'Réessayer') })).toBeVisible();
   await page.mouse.move(640, 400);
   await capture(page, testInfo, 'tour-error-toast', toast);
 });

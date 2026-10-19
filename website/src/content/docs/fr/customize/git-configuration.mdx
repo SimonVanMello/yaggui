@@ -1,0 +1,140 @@
+---
+title: Binaire Git et configuration
+description: Choisissez le Git que yaggui exécute, et modifiez votre configuration Git globale ou celle d’un dépôt depuis les préférences.
+sidebar:
+  order: 4
+sources:
+  - src/features/preferences/GitTab.tsx
+  - src/features/preferences/GitConfigTab.tsx
+  - src/features/preferences/ConfigFieldRow.tsx
+  - src/features/preferences/RawConfigEditor.tsx
+  - src/features/preferences/gitConfigLogic.ts
+  - src/features/preferences/useGitConfig.ts
+  - src-tauri/src/system/git_binary.rs
+  - src-tauri/src/git/cli.rs
+  - src-tauri/src/state.rs
+  - src-tauri/src/repo/config.rs
+  - src-tauri/src/git/ops/config.rs
+requirements: [F-322, F-325]
+---
+
+import Screenshot from '~/components/Screenshot.astro';
+import prefsGitDark from '../../../../assets/screens/prefs-git-fr-dark.png';
+import prefsGitLight from '../../../../assets/screens/prefs-git-fr-light.png';
+import gitconfigGlobalDark from '../../../../assets/screens/gitconfig-global-fr-dark.png';
+import gitconfigGlobalLight from '../../../../assets/screens/gitconfig-global-fr-light.png';
+
+yaggui exécute le programme `git` installé sur votre ordinateur pour chaque écriture. **Préférences › Git** choisit quel Git utiliser ; **Préférences › Configuration** modifie les réglages propres à Git (`~/.gitconfig` ou le fichier `.git/config` d’un dépôt) sans quitter l’application.
+
+## Choisir le binaire Git
+
+Par défaut, yaggui exécute le `git` de votre `PATH`. Le champ **Binaire Git** de l’onglet **Git** est vide (« Détecté automatiquement ») et la ligne située dessous indique ce que yaggui a trouvé, par exemple « Git 2.47.1 · /usr/bin/git ».
+
+<Screenshot
+  dark={prefsGitDark}
+  light={prefsGitLight}
+  alt="L’onglet Git des préférences, avec le champ Binaire Git, les boutons Appliquer et Détection automatique et la version de Git détectée"
+/>
+
+Pour utiliser un autre Git :
+
+1. Saisissez le chemin complet du binaire, par exemple `/opt/homebrew/bin/git` ou `C:\Program Files\Git\cmd\git.exe`.
+2. Attendez la ligne d’état : yaggui exécute `<chemin> --version` un instant après que vous avez cessé de taper. Rien n’est encore enregistré.
+3. Cliquez sur **Appliquer**. Le toast « Chemin de Git enregistré » le confirme, et toutes les commandes Git suivantes utilisent ce binaire.
+
+**Détection automatique** vide le champ et revient au `git` de votre `PATH`.
+
+### Signification de la ligne d’état
+
+| État                                                                                                                                 | Signification                                                                                                                                 |
+| ------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| « Git _version_ · _chemin_ »                                                                                                         | Un Git qui fonctionne. **Appliquer** est actif si le chemin diffère de celui qui est enregistré                                               |
+| « Git _version_ est plus ancien que 2.30, la plus ancienne version testée avec yaggui. Certaines fonctions peuvent ne pas marcher. » | Il fonctionne et peut être appliqué, mais certaines fonctions risquent d’échouer. Mettez Git à jour si possible                               |
+| « Ce n'est pas un Git utilisable : le fichier doit exister et répondre à --version. »                                                | Le fichier n’existe pas ou n’est pas Git. **Appliquer** reste désactivé                                                                       |
+| « Git est introuvable. Installe Git ou saisis son chemin. »                                                                          | Le champ est vide et aucun Git n’a été trouvé. Installez Git ([git-scm.com/downloads](https://git-scm.com/downloads)) ou saisissez son chemin |
+
+Si le chemin cesse de fonctionner entre la vérification et **Appliquer**, l’enregistrement est refusé et le message « « _chemin_ » n'est pas un Git utilisable : … » s’affiche sous le champ.
+
+### Comment Git est trouvé
+
+Avec un champ vide, la ligne d’état cherche Git dans cet ordre : `git` (ou `git.exe`) dans le `PATH`, puis `/usr/bin/git`, `/usr/local/bin/git`, `/opt/homebrew/bin/git`, `C:\Program Files\Git\cmd\git.exe` et `C:\Program Files (x86)\Git\cmd\git.exe`.
+
+Cette liste n’alimente que la ligne d’état : pour exécuter les commandes, yaggui utilise le `git` du `PATH` quand aucun chemin n’est enregistré.
+
+:::tip
+Sous macOS, une application lancée depuis le Dock ou le Finder ne voit pas le `PATH` de votre shell. Si votre seul Git vient de Homebrew, saisissez `/opt/homebrew/bin/git` (Apple silicon) ou `/usr/local/bin/git` (Intel) et cliquez sur **Appliquer**.
+:::
+
+La barre d’état d’un dépôt affiche la version de Git utilisée (`git 2.47.1`). Son info-bulle avertit quand la version est antérieure à 2.30 (« Git 2.30 ou plus récent est recommandé »), et elle affiche « git introuvable » quand aucun Git ne peut être lancé.
+
+Si un chemin enregistré cesse de fonctionner (Git désinstallé ou déplacé), yaggui se rabat sur le `git` du `PATH` au démarrage suivant pour que l’application s’ouvre quand même. Corrigez ou videz le chemin dans l’onglet **Git**.
+
+## Modifier la configuration Git
+
+L’onglet **Configuration** lit et écrit les fichiers de configuration de Git avec `git config`. Choisissez le fichier avec **Fichier de configuration** :
+
+- **Global** : « Ton ~/.gitconfig : s'applique à tous les dépôts. »
+- **Ce dépôt** : « .git/config de _dépôt_ : prend le pas sur la configuration globale. » Ce choix n’existe que si les préférences ont été ouvertes depuis un onglet de dépôt.
+
+L’onglet s’ouvre toujours sur **Global**. Un `~/.gitconfig` absent est simplement affiché comme vide ; il est créé lors de la première modification.
+
+<Screenshot
+  dark={gitconfigGlobalDark}
+  light={gitconfigGlobalLight}
+  alt="L’onglet Configuration, avec les champs de Réglages courants et le tableau Toutes les entrées de la configuration Git globale"
+/>
+
+### Réglages courants
+
+| Champ                                       | Valeurs                                              | Remarques                                                                               |
+| ------------------------------------------- | ---------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| **Nom (user.name)**                         | Texte libre                                          | Nom d’auteur de vos commits                                                             |
+| **E-mail (user.email)**                     | Texte libre                                          | Adresse e-mail d’auteur de vos commits                                                  |
+| **Stratégie de pull (pull.rebase)**         | Non défini, `false`, `true`, `merges`, `interactive` | « true rebase les commits locaux au pull, false fait un merge. »                        |
+| **Fins de ligne (core.autocrlf)**           | Non défini, `false`, `true`, `input`                 | « true : CRLF dans le dossier de travail, LF dans les commits. input : LF uniquement. » |
+| **Branche par défaut (init.defaultBranch)** | Texte libre                                          | « Nom de la première branche des nouveaux dépôts. »                                     |
+| **Signer les commits (commit.gpgsign)**     | Non défini, `true`, `false`                          | « Demande une clé de signature. »                                                       |
+| **Format de signature (gpg.format)**        | Non défini, `openpgp`, `ssh`, `x509`                 |                                                                                         |
+| **Clé de signature (user.signingkey)**      | Texte libre                                          | « Un identifiant de clé GPG, ou le chemin d'une clé SSH. »                              |
+
+- Les champs de texte s’enregistrent quand vous appuyez sur <kbd>Enter</kbd> ou quittez le champ. Vider un champ supprime la clé.
+- Choisir **Non défini** dans une liste supprime la clé.
+- Dans **Ce dépôt**, un champ non défini affiche la valeur globale héritée : comme texte indicatif d’un champ de texte, ou sous la forme « Non défini (global : _valeur_) » dans une liste.
+- Une clé définie plusieurs fois dans le fichier est en lecture seule ici ; utilisez **Toutes les entrées** ou modifiez le fichier.
+
+La **Stratégie de pull** de cet onglet correspond au `pull.rebase` de Git. yaggui a aussi sa propre **Stratégie de pull par défaut** dans **Préférences › Comportement**, qui l’emporte lorsqu’elle est définie ; voir [Fetch, pull et push](../../remotes/fetch-pull-push/).
+
+### Toutes les entrées
+
+**Toutes les entrées** liste chaque clé du fichier choisi, avec **Filtrer les entrées** pour chercher dans les clés et les valeurs.
+
+- **Ajouter une entrée** : saisissez la clé (`section.nom` ou `section.sous-section.nom`) et la valeur, puis cliquez sur **Ajouter**.
+- **Modifier une valeur** : cliquez sur **Modifier** sur la ligne, changez la valeur, puis appuyez sur <kbd>Enter</kbd> pour enregistrer ou sur <kbd>Esc</kbd> pour annuler.
+- **Retirer une clé** : cliquez sur **Retirer**, puis confirmez avec **Retirer** sur la ligne (ou **Annuler**).
+- Une clé sans valeur affiche « (sans valeur) ».
+
+Les clés à valeurs multiples (une clé définie plusieurs fois, comme plusieurs lignes `remote.origin.fetch`) ne peuvent pas être modifiées ici : **Modifier** est désactivé, avec l’info-bulle « Défini plusieurs fois : modifie le fichier ou retire toutes ses valeurs. », et la confirmation de suppression affiche **Retirer toutes les valeurs**.
+
+### Ce que yaggui exécute
+
+Chaque modification correspond à une commande `git config`, enregistrée dans le [journal des commandes](../../reference/command-log/) :
+
+```bash
+git config --global --replace-all -- user.email ada@example.com
+git config --local --unset-all -- core.autocrlf
+```
+
+Les modifications du fichier global sont appliquées une par une, et celles d’un dépôt attendent la fin de toute opération en cours dans ce dépôt. Elles prennent effet immédiatement et ne peuvent pas être annulées depuis yaggui : pour revenir en arrière, redéfinissez l’ancienne valeur.
+
+### Erreurs
+
+Si Git refuse une modification, le champ retrouve sa valeur précédente et un toast « Impossible de modifier la configuration Git » en indique la raison. yaggui vérifie d’abord la saisie :
+
+- « « _clé_ » n'est pas une clé de configuration Git valide (section.nom ou section.sous-section.nom). » La section et le nom utilisent des lettres, des chiffres et `-`, le nom commence par une lettre, et la clé compte au plus 200 caractères.
+- « La valeur est trop longue ou contient un caractère NUL. » Les valeurs sont limitées à 16 Kio.
+
+Si le fichier ne peut pas être lu (par exemple à cause d’une erreur de syntaxe), l’onglet affiche « Impossible de lire la configuration Git. » Corrigez le fichier dans un éditeur ; `git config --list` dans un terminal montre où Git s’arrête.
+
+## Identité et profils d’identité
+
+Votre identité de commit est `user.name` et `user.email`. Vous pouvez la définir ici, depuis le formulaire qui apparaît dans la zone de commit quand Git ne sait pas qui vous êtes, ou avec des **profils d’identité** : des couples nom / e-mail enregistrés que vous appliquez à un dépôt en un clic. Voir [Commiter](../../everyday/committing/) pour les deux. Modifier `user.name` ou `user.email` ici met à jour l’identité affichée dans la zone de commit.
