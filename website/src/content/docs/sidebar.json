@@ -32,7 +32,7 @@
   },
   {
     "label": "Remotes",
-    "translations": { "fr": "Dépôts distants" },
+    "translations": { "fr": "Remotes" },
     "items": ["remotes/fetch-pull-push", "remotes/remotes", "remotes/authentication"]
   },
   {
@@ -42,7 +42,7 @@
   },
   {
     "label": "Repository features",
-    "translations": { "fr": "Fonctions du dépôt" },
+    "translations": { "fr": "Fonctionnalités du dépôt" },
     "items": [
       "repository/submodules",
       "repository/worktrees",
@@ -52,7 +52,7 @@
   },
   {
     "label": "Tabs and workspaces",
-    "translations": { "fr": "Onglets et espaces de travail" },
+    "translations": { "fr": "Onglets et workspaces" },
     "items": ["workspaces/tabs", "workspaces/workspaces"]
   },
   {
