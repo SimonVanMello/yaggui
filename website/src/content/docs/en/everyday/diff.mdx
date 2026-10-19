@@ -41,7 +41,7 @@ From left to right:
 | Status letter | Same letters and colors as in the file lists |
 | Path | The file path, `old → new` for a rename |
 | Line counts | `+added −removed` |
-| Position | `{index} / {total}` in the file list |
+| Position | `{index} / {total}` in the file list (hidden when the diff area is narrower than 760 px) |
 | **Previous file** / **Next file** | Move in the file list (<kbd>K</kbd> / <kbd>J</kbd>); disabled at either end |
 | **Edit** | Edit the file in place (unstaged diffs only, see [Edit a file in the diff](#edit-a-file-in-the-diff)) |
 | **Open outside yaggui** | Menu: diff tool, editor, file manager |
@@ -124,7 +124,7 @@ A binary file that is not an image shows **Binary file** with its size **Before*
 
 ## Images
 
-PNG, JPEG, GIF, WebP, BMP, ICO, SVG and AVIF files are shown as pictures, titled **Image changed**, **Image added** or **Image deleted**, with each side's dimensions and size. When both versions exist, **Image comparison** offers:
+PNG, JPEG, GIF, WebP, BMP, ICO, SVG and AVIF files are shown as pictures, titled **Image changed**, **Image added** or **Image deleted**, with each side's dimensions and size in the **Side by side** mode. When both versions exist, **Image comparison** offers:
 
 | Mode | Use |
 |---|---|
