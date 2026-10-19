@@ -3,6 +3,7 @@
 pub mod avatars;
 pub mod editor;
 pub mod git_binary;
+pub mod keyboard;
 pub mod paths;
 pub mod pty;
 pub mod terminal;
