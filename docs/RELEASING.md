@@ -73,6 +73,17 @@ One-time setup:
 
 To publish an existing release by hand (first publication, or after a fix to the generator): Actions → Homebrew → Run workflow, keep "Use workflow from: master", enter the tag (`vX.Y.Z`). A run that produces the same cask as the tap pushes nothing.
 
+## Website docs
+
+The site serves the docs of the latest release at `/docs/` and those of `master` at `/docs/next/` ([`website/README.md`](../website/README.md#versioned-docs)). [`Docs version`](../.github/workflows/docs-version.yml) runs when a release is published: it adds the version and the commit of its tag to [`website/versions.json`](../website/versions.json) and opens a pull request `docs(website): publish the docs of <version>`. Merging it redeploys the site with that version as the default. Run it by hand (Actions → Docs version → Run workflow, tag `vX.Y.Z`) for a release published before it existed.
+
+While `versions.json` is empty, the workflow does nothing: the first entry is added by hand once the docs are complete. Publishing a release also redeploys the site, so the download links follow it.
+
+One-time setup:
+
+1. Settings → Actions → General → Workflow permissions: check **Allow GitHub Actions to create and approve pull requests**.
+2. Pull requests opened with the default `GITHUB_TOKEN` do not trigger workflows, so their checks stay pending. Optionally, add a `WEBSITE_PR_TOKEN` repository secret (a fine-grained token with Contents and Pull requests write access on this repository): the workflow then uses it and CI runs on the pull request. Without it, close and reopen the pull request to run CI.
+
 ## Updates
 
 The app can check for a newer version (opt-in: asked once at first launch, then in Preferences → Behavior, and "Check for updates" in the palette). It reads `https://github.com/SimonVanMello/yaggui/releases/latest/download/latest.json`, which always points to the newest **published** release. What it offers depends on how the copy was installed ([`system/updates.rs`](../src-tauri/src/system/updates.rs)):
