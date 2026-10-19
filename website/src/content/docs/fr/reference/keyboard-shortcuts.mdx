@@ -1,0 +1,22 @@
+---
+title: Raccourcis clavier
+description: Tous les raccourcis clavier par défaut de yaggui, sur macOS, Windows et Linux.
+sources:
+  - src/features/keybindings/**
+  - src/features/palette/builtinActions.ts
+  - src/app/shellActions.ts
+  - src/ui/platform.ts
+requirements: [F-281]
+---
+
+import ShortcutTable from '~/components/ShortcutTable.astro';
+import data from '../../_data/shortcuts.json';
+
+Ce sont les raccourcis par défaut. Chacun peut être modifié dans **Préférences → Raccourcis**,
+et <kbd>⌘</kbd> <kbd>K</kbd> (<kbd>Ctrl</kbd> <kbd>K</kbd> sous Windows et Linux) ouvre la palette de
+commandes, qui liste chaque commande avec son raccourci actuel.
+
+Ce tableau est généré à partir de la liste des commandes de l'application elle-même : il correspond
+toujours à la version de la documentation que vous lisez.
+
+<ShortcutTable data={data} />

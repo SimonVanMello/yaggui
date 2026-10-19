@@ -3,5 +3,10 @@
     "label": "Start here",
     "translations": { "fr": "Pour commencer" },
     "items": ["index"]
+  },
+  {
+    "label": "Reference",
+    "translations": { "fr": "Référence" },
+    "items": ["reference/keyboard-shortcuts"]
   }
 ]
