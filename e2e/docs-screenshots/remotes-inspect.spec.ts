@@ -74,6 +74,15 @@ async function commitFileAction(page: Page, path: RegExp, action: RegExp) {
   await page.getByRole('menuitem', { name: action }).click();
 }
 
+async function addRemote(page: Page, name: string, url: string) {
+  await palette(page, 'Add a remote');
+  const dialog = page.getByRole('dialog', { name: 'Add a remote' });
+  await dialog.getByLabel('Name').fill(name);
+  await dialog.getByLabel('Fetch URL').fill(url);
+  await dialog.getByRole('button', { name: 'Add', exact: true }).click();
+  await expect(page.getByText(`Remote ${name} added`, { exact: true })).toBeVisible();
+}
+
 async function openReflog(page: Page) {
   await openYaggui(page);
   await palette(page, 'reflog');
@@ -101,11 +110,14 @@ test('pull-strategy-menu', async ({ page }, testInfo) => {
 });
 
 test('force-push-confirm', async ({ page }, testInfo) => {
-  await openYaggui(page);
+  // `blog` is behind origin/main: overwriting it drops commits, which the dialog lists. `main`
+  // is protected by default (force push refused): empty the list, as the preference allows.
+  await start(page, '(mock) => mock.seedPreferences({ protectedBranches: [] })');
+  await openRepo(page, /^blog\b/);
   await toolbar(page).getByRole('button', { name: 'Push options' }).click();
   await page.getByRole('menuitem', { name: /Force push/ }).click();
   const dialog = page.getByRole('alertdialog').or(page.getByRole('dialog'));
-  await expect(dialog).toContainText('Overwrite origin/feat/graph-lanes?');
+  await expect(dialog).toContainText('Overwrite origin/main?');
   await expect(dialog).toContainText('--force-with-lease');
   await capture(page, testInfo, 'force-push-confirm', dialog);
 });
@@ -118,13 +130,16 @@ test('network-progress', async ({ page }, testInfo) => {
   await expect(status).toContainText('Receiving objects', { timeout: 15_000 });
   await expect(status).toContainText('/s');
   await captureUnion(page, testInfo, 'network-progress', [footer, status], (edges) => ({
+    // Status bar only: no margin above it, where the graph rows are.
     ...edges,
+    top: edges.top + 12,
     right: Math.min(edges.right, edges.left + 720),
   }));
 });
 
 test('remotes-manage', async ({ page }, testInfo) => {
   await openYaggui(page);
+  await addRemote(page, 'upstream', 'https://github.com/yaggui/yaggui.git');
   await palette(page, 'Manage remotes');
   const dialog = page.getByRole('dialog', { name: 'Remotes' });
   await expect(dialog.getByRole('list', { name: 'Remotes' })).toContainText('origin');
@@ -149,14 +164,21 @@ test('remote-add-dialog', async ({ page }, testInfo) => {
 
 test('remote-remove-confirm', async ({ page }, testInfo) => {
   await openYaggui(page);
-  await tree(page)
-    .getByRole('treeitem', { name: /^origin\b/ })
-    .first()
-    .click({ button: 'right' });
+  // The page shows `upstream` with tracking branches: rename `origin`, which has them.
+  const folder = (name: string) =>
+    tree(page)
+      .getByRole('treeitem', { name: new RegExp(`^${name}\\b`) })
+      .first();
+  await folder('origin').click({ button: 'right' });
+  await page.getByRole('menuitem', { name: 'Edit the remote…' }).click();
+  await page.getByRole('dialog').getByLabel('Name').fill('upstream');
+  await page.getByRole('dialog').getByRole('button', { name: 'Save' }).click();
+  await expect(page.getByText('Remote origin renamed to upstream', { exact: true })).toBeVisible();
+  await folder('upstream').click({ button: 'right' });
   await page.getByRole('menuitem', { name: 'Remove the remote…' }).click();
   const confirm = page.getByRole('alertdialog').or(page.getByRole('dialog'));
-  await expect(confirm).toContainText('Remove the remote origin?');
-  await expect(confirm).toContainText('git remote remove -- origin');
+  await expect(confirm).toContainText('Remove the remote upstream?');
+  await expect(confirm).toContainText('git remote remove -- upstream');
   await capture(page, testInfo, 'remote-remove-confirm', confirm);
 });
 

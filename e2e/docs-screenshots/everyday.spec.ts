@@ -1,6 +1,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 
 import { capture, MOCK_NOW_MS, openRepo, start } from './capture';
+import { around } from './crop';
 
 /** Screenshots of the "Everyday work" pages: staging, committing, stash, diff. */
 
@@ -35,37 +36,6 @@ async function widenRightPanel(page: Page, steps: number) {
 /** The status bar sits right under the changes panel: hidden so a crop does not cut its text. */
 async function hideStatusBar(page: Page) {
   await page.addStyleTag({ content: 'footer { visibility: hidden; }' });
-}
-
-/**
- * An invisible box laid over the union of `parts`, to crop several elements that share no
- * container (a popover and the toolbar button it opens from).
- */
-async function around(page: Page, parts: Locator[]): Promise<Locator> {
-  const boxes = await Promise.all(parts.map((part) => part.boundingBox()));
-  const visible = boxes.filter((box) => box !== null);
-  if (visible.length !== parts.length) throw new Error('crop part not visible');
-  const left = Math.min(...visible.map((box) => box.x));
-  const top = Math.min(...visible.map((box) => box.y));
-  const right = Math.max(...visible.map((box) => box.x + box.width));
-  const bottom = Math.max(...visible.map((box) => box.y + box.height));
-  await page.evaluate(
-    ({ left, top, width, height }) => {
-      const box = document.createElement('div');
-      box.id = 'docs-crop';
-      Object.assign(box.style, {
-        position: 'fixed',
-        left: `${left}px`,
-        top: `${top}px`,
-        width: `${width}px`,
-        height: `${height}px`,
-        pointerEvents: 'none',
-      });
-      document.body.append(box);
-    },
-    { left, top, width: right - left, height: bottom - top },
-  );
-  return page.locator('#docs-crop');
 }
 
 async function openYaggui(page: Page) {

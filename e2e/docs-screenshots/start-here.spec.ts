@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 import { capture, openRepo, start } from './capture';
+import { around } from './crop';
 
 /** Screenshots of the "Start here" pages: introduction, tour, open a repository, updates. */
 
@@ -137,7 +138,13 @@ test('tour-command-log', async ({ page }, testInfo) => {
   await log.getByRole('button', { name: /git commit -F -/ }).click();
   await expect(log).toContainText('3 files changed, 142 insertions(+)');
   await page.mouse.move(640, 10);
-  await capture(page, testInfo, 'tour-command-log', log);
+  // With the status bar under it, where its Log button is.
+  await capture(
+    page,
+    testInfo,
+    'tour-command-log',
+    await around(page, [log, page.locator('footer')]),
+  );
 });
 
 test('tour-error-toast', async ({ page }, testInfo) => {
