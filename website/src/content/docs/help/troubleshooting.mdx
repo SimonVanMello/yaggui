@@ -128,7 +128,7 @@ When a `pre-commit`, `prepare-commit-msg` or `commit-msg` hook fails, the commit
 
 If the hook works in a terminal but fails in yaggui:
 
-- **A command is not found** (`node`, `npx`, `python`…): on macOS, apps started from the Dock or Finder do not get your shell's `PATH`. Start yaggui from a terminal (`open -a yaggui`) or make the hook use full paths.
+- **A command is not found** (`node`, `npx`, `python`…): on macOS, apps started from the Dock or Finder do not get your shell's `PATH`. Make the hook use full paths, or start yaggui from a terminal with `/Applications/yaggui.app/Contents/MacOS/yaggui` so it inherits your shell's `PATH`.
 - **The hook waits for input**: hooks run without a terminal and without input, so interactive prompts fail. Make the hook non-interactive.
 - **The hook hangs**: cancel the commit with **Cancel** in the status bar. yaggui stops the hook too.
 
@@ -172,8 +172,6 @@ This screen appears when the interface itself hit a bug: "The window could not b
 
 1. Click **Reload**. yaggui reloads its window and reopens your tabs.
 2. If it happens again, expand **Details**, copy the text and [report it](#report-a-bug) with what you were doing.
-
-Operations already running in the background are not stopped by the crash screen.
 
 ## Preferences, recents or tabs are gone
 

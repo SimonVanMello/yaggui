@@ -1,0 +1,85 @@
+---
+title: FAQ
+description: Short answers about yaggui's license, data, Git requirements, platforms, settings and what it does to your repositories.
+sidebar:
+  order: 2
+sources:
+  - README.md
+  - package.json
+  - src-tauri/Cargo.toml
+  - src-tauri/src/state.rs
+  - src-tauri/src/git/cli.rs
+  - src-tauri/src/repo/mod.rs
+  - src-tauri/src/repo/journal.rs
+requirements: []
+---
+
+Short answers to common questions. Each one links to the page with the details.
+
+## Is yaggui free and open source?
+
+Yes. yaggui is free software under the GPL-3.0-or-later license. The source code is on [GitHub](https://github.com/SimonVanMello/yaggui).
+
+## Do I need an account?
+
+No. yaggui has no account, no sign-in and no server of its own. Your remotes (GitHub, GitLab, your own server) use your usual Git credentials.
+
+## Does yaggui send data anywhere?
+
+Only what you allow. Besides the Git operations that talk to your remotes (including the automatic fetch, which you can turn off), yaggui can check for updates on github.com and download Gravatar pictures, and both are off unless you turn them on. There is no telemetry or crash reporting. See [Data and privacy](../../reference/data-and-privacy/).
+
+## Which Git version do I need?
+
+Git 2.30 or later, installed on your system: yaggui runs your own `git` and does not ship one. An older Git gets a warning in the status bar. See [Git not found or too old](../../help/troubleshooting/#git-not-found-or-too-old).
+
+## Does yaggui store my passwords?
+
+No. yaggui never asks for a password, token or passphrase and never stores one. Credentials come from your Git credential helper or your SSH agent. See [Authentication](../../remotes/authentication/).
+
+## Does yaggui change my repositories or my Git configuration?
+
+Only through Git, and only for what you ask, plus two things done in the background: a commit-graph file that speeds up large histories, and Git objects that make undo possible. It adds no file of its own to your repositories.
+
+Your global Git configuration changes only when you ask: **Trust this folder…** (`safe.directory`, after a confirmation), your identity when you save it for all repositories, or edits in the Git configuration editor. Every command yaggui runs is in the [command log](../../reference/command-log/). See [What yaggui writes to your repositories](../../reference/data-and-privacy/#what-yaggui-writes-to-your-repositories).
+
+## Can I use yaggui and the terminal at the same time?
+
+Yes. yaggui watches the repository and shows changes made in a terminal or an editor within a second. Since both use the same Git, everything you do on one side is visible on the other. If a terminal command is running, yaggui may show that another Git process holds the lock; wait for it to finish. yaggui also has an [integrated terminal](../../repository/terminal/).
+
+## Can I undo a push?
+
+No. Undo works on local operations (commits, checkouts, resets, discards, branch changes…). A push changed a remote, so yaggui refuses to undo it: "This operation changed a remote: it cannot be undone locally." To take back pushed commits, [revert](../../history/cherry-pick-revert-reset/) them and push again. See [Undo and redo](../../history/undo-and-redo/).
+
+## Which platforms are supported?
+
+| OS | Architectures | Packages |
+|---|---|---|
+| macOS | Apple Silicon and Intel (separate builds) | Homebrew cask, `.dmg` |
+| Windows 10 and 11 | x64 | `.exe` installer, `.msi` |
+| Linux | x86_64 | `.AppImage`, `.deb`, `.rpm`, AUR `yaggui-bin` |
+
+There are no ARM builds for Windows or Linux. See [Install](../../start-here/install/).
+
+## Can I open a bare repository?
+
+Not yet. yaggui needs a working tree, and shows "Bare repositories are not supported yet." Clone the bare repository and open the clone.
+
+## Can I open several windows?
+
+No. yaggui has one window, with one [tab](../../workspaces/tabs/) per repository. Use tabs, or [workspaces](../../workspaces/workspaces/) to open a group of repositories at once. Starting yaggui a second time starts a separate copy that shares the same settings database; this is not a supported way to work.
+
+## Where are my settings stored?
+
+In a SQLite database, `yaggui.db`, in yaggui's config folder (`~/Library/Application Support/dev.tropico.yaggui` on macOS, `%APPDATA%\dev.tropico.yaggui` on Windows, `~/.config/dev.tropico.yaggui` on Linux). Changed shortcuts are in `keybindings.json` next to it. See [Data and privacy](../../reference/data-and-privacy/#where-yaggui-stores-its-data).
+
+## How do I reset yaggui?
+
+Quit yaggui and delete `yaggui.db` (preferences, recents, tabs, workspaces) and `keybindings.json` (shortcuts) from the config folder. Your repositories are not affected. See [Reset yaggui](../../reference/data-and-privacy/#reset-yaggui).
+
+## How do I report a bug or ask for a feature?
+
+Open an issue on [GitHub](https://github.com/SimonVanMello/yaggui/issues). For a bug, include the versions shown in the status bar and the command log entry of the failing command. See [Report a bug](../../help/troubleshooting/#report-a-bug).
+
+## Is yaggui built with AI?
+
+Yes. yaggui is written by [Claude](https://claude.com/claude-code), Anthropic's AI, through Claude Code: specification, architecture, code, tests and documentation. A human sets the direction, reviews the work and tests the app. The instructions the agents follow are in the repository's [`CLAUDE.md`](https://github.com/SimonVanMello/yaggui/blob/master/CLAUDE.md).
