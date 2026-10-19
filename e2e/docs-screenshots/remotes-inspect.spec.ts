@@ -93,7 +93,9 @@ test('pull-strategy-menu', async ({ page }, testInfo) => {
   const menu = page.getByRole('menu');
   await expect(menu.getByRole('menuitem', { name: /Fast-forward only/ })).toContainText('default');
   await captureUnion(page, testInfo, 'pull-strategy-menu', [
-    toolbar(page).getByRole('button', { name: /^Pull/ }).first(),
+    // The toolbar is aria-hidden behind the menu: reach the split button by its label.
+    page.locator('[role="toolbar"] [aria-label="Pull strategy"]'),
+    page.locator('[role="toolbar"] [aria-label^="Pull"]').first(),
     menu,
   ]);
 });

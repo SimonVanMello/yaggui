@@ -72,7 +72,7 @@ A local branch and a remote branch on the same commit share one label when the r
 
 Labels are ordered HEAD, local branches (current first), remote branches, tags, stashes. Long names are shortened in the middle. When labels do not fit, a `+N` chip shows the number of hidden refs; hover it to list them.
 
-Double-click a branch label to check the branch out. A remote branch label checks out a local tracking branch. See [Check out a branch](../branches/#check-out-a-branch). Double-clicking a tag, stash or HEAD label does nothing. You can also drag a branch label onto another local branch label to merge, rebase or fast-forward, see [Merge and rebase](../merge-and-rebase/).
+Double-click a branch label to check the branch out. A remote branch label checks out a local tracking branch. See [Check out a branch](../../history/branches/#check-out-a-branch). Double-clicking a tag, stash or HEAD label does nothing. You can also drag a branch label onto another local branch label to merge, rebase or fast-forward, see [Merge and rebase](../../history/merge-and-rebase/).
 
 ### Signed commits
 
@@ -112,7 +112,7 @@ The selection is kept while the repository is open but is not saved when you clo
 
 When two or more commits are selected, a bar appears at the bottom of the graph with the number of selected commits and:
 
-- **Cherry-pick N commits onto *branch***: applies the selected commits to the checked-out branch, oldest first. Unavailable while a merge, rebase, cherry-pick or revert is in progress. See [Cherry-pick, revert and reset](../cherry-pick-revert-reset/).
+- **Cherry-pick N commits onto *branch***: applies the selected commits to the checked-out branch, oldest first. Unavailable while a merge, rebase, cherry-pick or revert is in progress. See [Cherry-pick, revert and reset](../../history/cherry-pick-revert-reset/).
 - **Compare** and **Merge-base** (exactly two commits): open the [Compare panel](../../inspect/compare/) or jump to the commits' common ancestor.
 - **Clear selection**: keeps only the main commit selected.
 
@@ -164,20 +164,20 @@ Right-click a commit, or press the context menu key or <kbd>⇧F10</kbd> on the 
 
 | Item | Available | What it does |
 |---|---|---|
-| **Checkout this commit** | Always | Detaches HEAD at the commit (`git switch --detach <sha>`), without confirmation; if local changes are in the way, the local changes dialog opens first. Toast: "HEAD is now detached at *abc1234*". See [Check out a commit](../branches/#check-out-a-commit-or-a-remote-branch). |
-| **Create branch here…** | Always | [Create a branch](../branches/#create-a-branch) starting at the commit |
-| **Create tag here…** | Always | [Create a tag](../tags/#create-a-tag) on the commit |
-| **Cherry-pick onto *branch*** | No operation in progress | [Cherry-pick](../cherry-pick-revert-reset/) the commit onto the checked-out branch |
-| **Revert this commit** | No operation in progress | [Revert](../cherry-pick-revert-reset/) the commit. For a merge commit, you first choose the parent. |
-| **Reset *branch* to here** ▸ **Soft** / **Mixed** / **Hard** | No operation in progress | Opens the [reset dialog](../cherry-pick-revert-reset/) with that mode |
-| **Interactive rebase from here…** | No operation in progress | Opens the [interactive rebase](../interactive-rebase/) editor with this commit as the base |
+| **Checkout this commit** | Always | Detaches HEAD at the commit (`git switch --detach <sha>`), without confirmation; if local changes are in the way, the local changes dialog opens first. Toast: "HEAD is now detached at *abc1234*". See [Check out a commit](../../history/branches/#check-out-a-commit-or-a-remote-branch). |
+| **Create branch here…** | Always | [Create a branch](../../history/branches/#create-a-branch) starting at the commit |
+| **Create tag here…** | Always | [Create a tag](../../history/tags/#create-a-tag) on the commit |
+| **Cherry-pick onto *branch*** | No operation in progress | [Cherry-pick](../../history/cherry-pick-revert-reset/) the commit onto the checked-out branch |
+| **Revert this commit** | No operation in progress | [Revert](../../history/cherry-pick-revert-reset/) the commit. For a merge commit, you first choose the parent. |
+| **Reset *branch* to here** ▸ **Soft** / **Mixed** / **Hard** | No operation in progress | Opens the [reset dialog](../../history/cherry-pick-revert-reset/) with that mode |
+| **Interactive rebase from here…** | No operation in progress | Opens the [interactive rebase](../../history/interactive-rebase/) editor with this commit as the base |
 | **Create fixup commit…** | Never | Shown disabled, "Planned for V2" |
 | **Compare with HEAD** | Always | Opens the [Compare panel](../../inspect/compare/) between the commit and HEAD |
 | **Go to the merge-base with HEAD** | Always | [Jumps](#jump-to-a-commit) to the common ancestor of the commit and HEAD |
 | **Copy SHA** | Always | Copies the full SHA. Toast: "SHA copied". |
 | **Copy message** | Always | Copies the summary line. Toast: "Message copied". |
 
-While an operation is in progress, the disabled items say "Finish or abort the operation in progress first". See [Conflicts](../conflicts/).
+While an operation is in progress, the disabled items say "Finish or abort the operation in progress first". See [Conflicts](../../history/conflicts/).
 
 ### Several commits
 
@@ -190,7 +190,7 @@ Right-clicking inside a selection of two or more commits shows:
 | **Go to their merge-base** | Exactly 2 selected | Jumps to their common ancestor |
 | **Copy SHAs** | Always | Copies the SHAs, one per line. Toast: "N SHAs copied". |
 
-You can also drag selected commits onto a local branch label (graph or sidebar) to cherry-pick them there, see [Cherry-pick, revert and reset](../cherry-pick-revert-reset/).
+You can also drag selected commits onto a local branch label (graph or sidebar) to cherry-pick them there, see [Cherry-pick, revert and reset](../../history/cherry-pick-revert-reset/).
 
 ## Search the history
 
@@ -244,7 +244,7 @@ Filters are saved per repository and survive a restart. If saving fails, a toast
 
 | To | How |
 |---|---|
-| HEAD | <kbd>⌘⇧H</kbd> (<kbd>Ctrl+Shift+H</kbd> on Windows and Linux), or pick the current branch in the toolbar's [branch selector](../branches/#switch-branches-from-the-toolbar) |
+| HEAD | <kbd>⌘⇧H</kbd> (<kbd>Ctrl+Shift+H</kbd> on Windows and Linux), or pick the current branch in the toolbar's [branch selector](../../history/branches/#switch-branches-from-the-toolbar) |
 | A branch or tag | Click it in the sidebar, or type `@` and its name in the command palette (<kbd>⌘K</kbd>, <kbd>Ctrl+K</kbd> on Windows and Linux) |
 | A parent | Click a short SHA under **Parents** in the commit details |
 | The merge-base of two commits | Select two commits, then **Merge-base** in the selection bar, **Go to their merge-base** in the context menu, or the palette action **Go to the merge-base of the 2 selected commits** |

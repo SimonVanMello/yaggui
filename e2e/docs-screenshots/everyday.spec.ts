@@ -213,7 +213,12 @@ test('stash-preview', async ({ page }, testInfo) => {
   const details = page.getByRole('region', { name: 'Stash details' });
   await expect(details).toBeVisible();
   await page.mouse.move(0, 0);
-  await capture(page, testInfo, 'stash-preview', details);
+  // The file list scrolls past 360 px: the crop stops under it, not at the bottom of the panel.
+  const crop = await around(page, [
+    details.getByText('WIP on feat/graph-lanes: lanes', { exact: true }),
+    details.getByRole('listbox'),
+  ]);
+  await capture(page, testInfo, 'stash-preview', crop);
 });
 
 test('stash-conflict', async ({ page }, testInfo) => {
@@ -243,7 +248,7 @@ test('diff-split', async ({ page }, testInfo) => {
 });
 
 test('diff-image-onion', async ({ page }, testInfo) => {
-  await page.setViewportSize({ width: 1280, height: 420 });
+  await page.setViewportSize({ width: 1280, height: 360 });
   await openDemo(page, 'screenshot.png');
   await page.getByRole('radio', { name: 'Onion skin' }).click();
   await expect(page.getByRole('slider', { name: /Opacity/ })).toBeVisible();

@@ -49,7 +49,7 @@ Branch names are grouped into folders by prefix: `feat/graph-lanes` sits in a `f
 - `↑2 ↓5`: the branch has 2 commits its upstream does not have, and is 5 commits behind it. See [git status](https://git-scm.com/docs/git-status) for the concept.
 - "upstream deleted": the upstream branch no longer exists on the remote (Git reports it as `[gone]`).
 - A worktree mark when the branch is checked out in another worktree, see [Worktrees](../../repository/worktrees/).
-- An eye icon or a target icon when the branch is hidden from, or the only one shown in, the [commit graph](../commit-graph/#hide-solo-and-filter-branches).
+- An eye icon or a target icon when the branch is hidden from, or the only one shown in, the [commit graph](../../history/commit-graph/#hide-solo-and-filter-branches).
 
 The row of the commit selected in the graph is highlighted too.
 
@@ -68,9 +68,9 @@ Type in **Filter refs** at the top, or press <kbd>⌘⇧R</kbd> (<kbd>Ctrl+Shift
 |---|---|
 | Click a branch, tag or stash | Selects its commit in the graph and scrolls to it. A stash also opens its details on the right. |
 | Double-click a branch | [Checks it out](#check-out-a-branch) |
-| Double-click a tag | Opens the [tag checkout dialog](../tags/#check-out-a-tag) |
+| Double-click a tag | Opens the [tag checkout dialog](../../history/tags/#check-out-a-tag) |
 | Right-click | Opens the context menu of the row |
-| Drag a local or remote branch onto a local branch | Merge, rebase or fast-forward, see [Merge and rebase](../merge-and-rebase/) |
+| Drag a local or remote branch onto a local branch | Merge, rebase or fast-forward, see [Merge and rebase](../../history/merge-and-rebase/) |
 
 With the list focused: <kbd>↑</kbd> <kbd>↓</kbd>, <kbd>Home</kbd> <kbd>End</kbd>, <kbd>Page Up</kbd> <kbd>Page Down</kbd> move; <kbd>→</kbd> expands or goes to the first child; <kbd>←</kbd> collapses or goes to the parent; <kbd>Enter</kbd> or <kbd>Space</kbd> acts like a click (it does not check out); typing a letter starts filtering; <kbd>⌘C</kbd> (<kbd>Ctrl+C</kbd> on Windows and Linux) copies the ref name; the context menu key or <kbd>⇧F10</kbd> opens the menu.
 
@@ -85,17 +85,17 @@ Disabled items show why. In the labels, *current* is the checked-out branch (or 
 | **Check out *name*** | Not on the checked-out branch. Disabled when checked out in another worktree. | [Check out the branch](#check-out-a-branch) |
 | **Check out in a new worktree…** | Disabled on a branch checked out here or in another worktree | See [Worktrees](../../repository/worktrees/) |
 | **Create a branch here…** | Always | [Create a branch](#create-a-branch) at its tip |
-| **Create a tag here…** | Always | [Create a tag](../tags/#create-a-tag) at its tip |
+| **Create a tag here…** | Always | [Create a tag](../../history/tags/#create-a-tag) at its tip |
 | **Reflog** | Always | The branch's reflog, see [Reflog](../../inspect/reflog/) |
-| **Merge *name* into *current*…**, **Rebase *name* onto *current***, **Fast-forward *current* to *name*** | Not on the checked-out branch, and a branch is checked out. Disabled during an operation. | See [Merge and rebase](../merge-and-rebase/) |
+| **Merge *name* into *current*…**, **Rebase *name* onto *current***, **Fast-forward *current* to *name*** | Not on the checked-out branch, and a branch is checked out. Disabled during an operation. | See [Merge and rebase](../../history/merge-and-rebase/) |
 | **Pull** | The branch has an upstream. Works only on the checked-out branch: "Pull only applies to the checked-out branch". | See [Fetch, pull and push](../../remotes/fetch-pull-push/) |
 | **Push** | Always | Pushes this branch, see [Fetch, pull and push](../../remotes/fetch-pull-push/) |
 | **Rename…** | Always | [Rename the branch](#rename-a-branch) |
 | **Set upstream…** / **Change upstream…** | Always | [Upstream dialog](#set-change-or-remove-the-upstream) |
 | **Remove upstream** | The branch has an upstream | Removes it at once, without confirmation |
 | **Delete *name*…** | Disabled on the checked-out branch: "Check out another branch first" | [Delete the branch](#delete-a-branch) |
-| **Hide from the graph** / **Show in the graph** | Disabled on the checked-out branch | See [Commit graph](../commit-graph/#hide-solo-and-filter-branches) |
-| **Show only this branch** / **Show every branch again** | Always | See [Commit graph](../commit-graph/#hide-solo-and-filter-branches) |
+| **Hide from the graph** / **Show in the graph** | Disabled on the checked-out branch | See [Commit graph](../../history/commit-graph/#hide-solo-and-filter-branches) |
+| **Show only this branch** / **Show every branch again** | Always | See [Commit graph](../../history/commit-graph/#hide-solo-and-filter-branches) |
 | **Compare with *current*** | Disabled on the checked-out branch or when HEAD is detached: "Check out another branch to compare with" | See [Compare](../../inspect/compare/) |
 | **Compare with…** | Always | See [Compare](../../inspect/compare/#compare-two-branches) |
 | **Clean up merged and gone branches…** | Always | [Branch cleanup](#clean-up-merged-and-gone-branches) |
@@ -108,14 +108,14 @@ Disabled items show why. In the labels, *current* is the checked-out branch (or 
 | **Create a local branch tracking it** | [Checks out a local tracking branch](#check-out-a-commit-or-a-remote-branch) |
 | **Create a branch here…** | [Create a branch](#create-a-branch) at its tip |
 | **Reflog** | The remote-tracking branch's reflog |
-| **Merge *name* into *current*…**, **Fast-forward *current* to *name*** | See [Merge and rebase](../merge-and-rebase/). **Rebase** is disabled: "A remote branch cannot be rebased". |
+| **Merge *name* into *current*…**, **Fast-forward *current* to *name*** | See [Merge and rebase](../../history/merge-and-rebase/). **Rebase** is disabled: "A remote branch cannot be rebased". |
 | **Delete on the remote…** | [Deletes the branch on the remote](#delete-a-branch-on-the-remote) |
-| **Hide from the graph**, **Show only this branch** | See [Commit graph](../commit-graph/#hide-solo-and-filter-branches) |
+| **Hide from the graph**, **Show only this branch** | See [Commit graph](../../history/commit-graph/#hide-solo-and-filter-branches) |
 | **Compare with *current***, **Compare with…** | See [Compare](../../inspect/compare/) |
 | **Clean up merged and gone branches…** | [Branch cleanup](#clean-up-merged-and-gone-branches) |
 | **Copy name**, **Copy SHA** | Copies to the clipboard |
 
-Other rows have their own menus: tags in [Tags](../tags/), stashes in [Stash](../../everyday/stash/), remotes in [Remotes](../../remotes/remotes/), submodules and worktrees in [Submodules](../../repository/submodules/) and [Worktrees](../../repository/worktrees/). The detached HEAD row offers **Create a branch here…**, **Create a tag here…**, **Reflog** and **Copy name**.
+Other rows have their own menus: tags in [Tags](../../history/tags/), stashes in [Stash](../../everyday/stash/), remotes in [Remotes](../../remotes/remotes/), submodules and worktrees in [Submodules](../../repository/submodules/) and [Worktrees](../../repository/worktrees/). The detached HEAD row offers **Create a branch here…**, **Create a tag here…**, **Reflog** and **Copy name**.
 
 ## Check out a branch
 
@@ -130,15 +130,15 @@ yaggui runs `git switch --no-guess <branch>` and shows "Switched to *name*". The
 
 - Double-clicking the checked-out branch in the sidebar only shows "*name* is already checked out"; in the graph it does nothing.
 - A branch checked out in another worktree cannot be checked out here; yaggui tells you which worktree has it.
-- If files are still in conflict, the checkout is refused: "Some files are still in conflict: resolve them (and stage them) first." See [Conflicts](../conflicts/).
+- If files are still in conflict, the checkout is refused: "Some files are still in conflict: resolve them (and stage them) first." See [Conflicts](../../history/conflicts/).
 
-Checkout can be undone with **Undo** (<kbd>⌘Z</kbd>, <kbd>Ctrl+Z</kbd> on Windows and Linux): yaggui switches back to the previous branch and keeps your local changes. See [Undo and redo](../undo-and-redo/).
+Checkout can be undone with **Undo** (<kbd>⌘Z</kbd>, <kbd>Ctrl+Z</kbd> on Windows and Linux): yaggui switches back to the previous branch and keeps your local changes. See [Undo and redo](../../history/undo-and-redo/).
 
 ### Check out a commit or a remote branch
 
 - **A remote branch**: double-click it in the sidebar or its label in the graph, or use **Create a local branch tracking it**. For `origin/feat/x`, yaggui checks out a local `feat/x` that tracks it, creating it if needed: `git switch --create feat/x --track refs/remotes/origin/feat/x`. The toast reads "Created feat/x and switched to it". If a local `feat/x` already exists, yaggui checks it out as it is, whatever it tracks.
 - **A commit**: right-click it in the graph, then **Checkout this commit**. yaggui runs `git switch --detach <sha>` with no warning and shows "HEAD is now detached at *abc1234*". New commits made there belong to no branch: [create a branch](#create-a-branch) to keep them.
-- **A tag**: see [Check out a tag](../tags/#check-out-a-tag).
+- **A tag**: see [Check out a tag](../../history/tags/#check-out-a-tag).
 
 ### When you have local changes
 
@@ -162,7 +162,7 @@ If your stashed changes conflict with the new branch after **Stash, check out, t
 2. Stage the resolved files.
 3. Once everything is right, drop the stash from the sidebar: it is not dropped automatically.
 
-Click **Understood** to close it. See [Conflicts](../conflicts/) and [Stash](../../everyday/stash/).
+Click **Understood** to close it. See [Conflicts](../../history/conflicts/) and [Stash](../../everyday/stash/).
 
 ## Switch branches from the toolbar
 
@@ -286,4 +286,4 @@ The toast reads "N branches deleted. Undo restores them all." One **Undo** resto
 | Clean up branches | Yes, all branches in one step |
 | Set or remove an upstream | No (not recorded) |
 
-Undo is refused if the branches moved since, for example after a commit from a terminal. See [Undo and redo](../undo-and-redo/). Every command above appears in the [command log](../../reference/command-log/), and error messages are explained in [Error messages](../../reference/error-messages/).
+Undo is refused if the branches moved since, for example after a commit from a terminal. See [Undo and redo](../../history/undo-and-redo/). Every command above appears in the [command log](../../reference/command-log/), and error messages are explained in [Error messages](../../reference/error-messages/).

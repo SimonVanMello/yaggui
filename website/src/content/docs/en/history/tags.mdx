@@ -19,7 +19,7 @@ import Screenshot from '../../../../components/Screenshot.astro';
 
 Tags mark a commit with a permanent name, usually a release (`v1.0.0`). This page covers creating, deleting, pushing, fetching and checking out tags. For what tags are, see [Git Basics - Tagging](https://git-scm.com/book/en/v2/Git-Basics-Tagging).
 
-Tags appear as labels on their commit in the [commit graph](../commit-graph/) and in the **Tags** section of the sidebar, which is collapsed by default. An info icon marks annotated tags.
+Tags appear as labels on their commit in the [commit graph](../../history/commit-graph/) and in the **Tags** section of the sidebar, which is collapsed by default. An info icon marks annotated tags.
 
 ## Create a tag
 
@@ -120,7 +120,7 @@ The **Check out the tag *name*** dialog warns that commits made in detached HEAD
 | **Continue in detached HEAD** | `git switch --detach <commit>`, for looking at the code only. You can create a branch later from the HEAD row of the sidebar. |
 | **Cancel** | Nothing |
 
-If you have local changes, the [local changes dialog](../branches/#when-you-have-local-changes) appears before the switch. With **Create and check out**, the branch is created even if you then cancel the switch.
+If you have local changes, the [local changes dialog](../../history/branches/#when-you-have-local-changes) appears before the switch. With **Create and check out**, the branch is created even if you then cancel the switch.
 
 ## Undo
 
@@ -132,4 +132,4 @@ If you have local changes, the [local changes dialog](../branches/#when-you-have
 | Push a tag, push all tags, delete a tag on a remote | No: the remote changed |
 | Fetch tags | No (not recorded) |
 
-See [Undo and redo](../undo-and-redo/). Every command appears in the [command log](../../reference/command-log/).
+See [Undo and redo](../../history/undo-and-redo/). Every command appears in the [command log](../../reference/command-log/).
