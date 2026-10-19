@@ -1,4 +1,10 @@
-import { expect, type Locator, type Page, type TestInfo } from '@playwright/test';
+import {
+  expect,
+  type ElementHandle,
+  type Locator,
+  type Page,
+  type TestInfo,
+} from '@playwright/test';
 
 /**
  * Shared helpers for the docs screenshots: each test runs once per theme (projects `dark`,
@@ -22,19 +28,21 @@ export function screenPath(testInfo: TestInfo, name: string): string {
   return `${SCREENS}/${name}${locale}-${testInfo.project.name}.png`;
 }
 
+async function setLocale(page: Page, locale: string) {
+  await page.evaluate(async (next) => {
+    // Same module instance as the app's: the dev server serves it under this URL.
+    const url = '/src/i18n/i18n.ts';
+    const i18n = (await import(url)) as {
+      useI18nStore: { setState: (state: { locale: string }) => void };
+    };
+    i18n.useI18nStore.setState({ locale: next });
+    document.documentElement.lang = next;
+  }, locale);
+}
+
 /** Switches the UI language, then waits for fonts, the canvas graph and lists to settle. */
 export async function settle(page: Page) {
-  if (LOCALE !== 'en') {
-    await page.evaluate(async (locale) => {
-      // Same module instance as the app's: the dev server serves it under this URL.
-      const url = '/src/i18n/i18n.ts';
-      const i18n = (await import(url)) as {
-        useI18nStore: { setState: (state: { locale: string }) => void };
-      };
-      i18n.useI18nStore.setState({ locale });
-      document.documentElement.lang = locale;
-    }, LOCALE);
-  }
+  if (LOCALE !== 'en') await setLocale(page, LOCALE);
   await page.evaluate(() => document.fonts.ready);
   // Let the canvas graph, virtualized lists and transitions settle after the last interaction.
   await page.waitForTimeout(400);
@@ -52,13 +60,30 @@ export async function capture(
   target?: Locator,
   { pad = PAD }: { pad?: number } = {},
 ) {
+  // Targets are English-named locators: resolve them before the UI switches language.
+  const handle = target ? await target.elementHandle() : null;
   await settle(page);
   const path = screenPath(testInfo, name);
-  if (!target) {
+  try {
+    await shoot(page, path, name, handle, pad);
+  } finally {
+    // Later steps of the test keep driving the app through its English labels.
+    if (LOCALE !== 'en') await setLocale(page, 'en');
+  }
+}
+
+async function shoot(
+  page: Page,
+  path: string,
+  name: string,
+  handle: ElementHandle | null,
+  pad: number,
+) {
+  if (!handle) {
     await page.screenshot({ path, animations: 'disabled' });
     return;
   }
-  const box = await target.boundingBox();
+  const box = await handle.boundingBox();
   if (!box) throw new Error(`${name}: crop target is not visible`);
   const viewport = page.viewportSize() ?? { width: 1280, height: 800 };
   const x = Math.max(0, box.x - pad);
