@@ -4,6 +4,8 @@ import type { Locale } from '../lib/docs-versions';
 
 const en = {
   'site.description': 'A fast, native Git client for macOS, Windows and Linux.',
+  'nav.main': 'Main',
+  'nav.footer': 'Footer',
   'nav.features': 'Features',
   'nav.docs': 'Docs',
   'nav.faq': 'FAQ',
@@ -31,6 +33,8 @@ type Strings = typeof en;
 
 const fr: Strings = {
   'site.description': 'Un client Git rapide et natif pour macOS, Windows et Linux.',
+  'nav.main': 'Principale',
+  'nav.footer': 'Pied de page',
   'nav.features': 'Fonctionnalités',
   'nav.docs': 'Docs',
   'nav.faq': 'FAQ',

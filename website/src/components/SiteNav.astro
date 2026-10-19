@@ -7,7 +7,7 @@ const locale = localeOf(Astro.url);
 ---
 
 <div class="nav-wrap gut">
-  <nav class="nav wrap">
+  <nav class="nav wrap" aria-label={t(locale, 'nav.main')}>
     <a class="brand" href={localePath(locale, '/')} aria-label={t(locale, 'nav.home')}>
       <img src="/favicon.svg" alt="" width="24" height="24" />
       yaggui
