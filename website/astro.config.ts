@@ -15,27 +15,23 @@ extractVersions(root, versions);
 type SidebarItem = NonNullable<StarlightUserConfig['sidebar']>[number];
 
 /** `sidebar.json` slugs are relative to the docs root of their version: prefix them. */
-function prefixItem(prefix: string, item: SidebarItem): SidebarItem {
+function prefixItem(file: string, prefix: string, item: SidebarItem): SidebarItem {
   const slug = (s: string) => (s === 'index' || s === '' ? prefix : `${prefix}/${s}`);
   if (typeof item === 'string') return slug(item);
   if ('slug' in item) return { ...item, slug: slug(item.slug) };
-  if ('items' in item) return { ...item, items: item.items.map((i) => prefixItem(prefix, i)) };
-  if ('autogenerate' in item) {
-    return {
-      ...item,
-      autogenerate: { ...item.autogenerate, directory: slug(item.autogenerate.directory) },
-    };
-  }
+  if ('items' in item)
+    return { ...item, items: item.items.map((i) => prefixItem(file, prefix, i)) };
+  // Starlight autogenerates from file paths, which differ between versions: list the slugs.
+  if ('autogenerate' in item) throw new Error(`${file}: \`autogenerate\` is not supported`);
   return item;
 }
 
 /** One group per version; the route middleware keeps only the group of the page's version. */
 function versionSidebar(v: DocsVersion): SidebarItem {
-  const file = `${root}${contentDir(v)}/sidebar.json`;
-  const label = sidebarGroupLabel(v);
-  if (!existsSync(file)) return { label, items: [{ autogenerate: { directory: idPrefix(v) } }] };
-  const items = JSON.parse(readFileSync(file, 'utf8')) as SidebarItem[];
-  return { label, items: items.map((i) => prefixItem(idPrefix(v), i)) };
+  const file = `${contentDir(v)}/sidebar.json`;
+  if (!existsSync(`${root}${file}`)) throw new Error(`docs ${v.id}: ${file} is missing`);
+  const items = JSON.parse(readFileSync(`${root}${file}`, 'utf8')) as SidebarItem[];
+  return { label: sidebarGroupLabel(v), items: items.map((i) => prefixItem(file, idPrefix(v), i)) };
 }
 
 /**

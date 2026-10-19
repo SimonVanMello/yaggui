@@ -78,6 +78,15 @@ xvfb-run pnpm tauri dev   # Run the real app in a headless container
 pnpm tauri build --debug --no-bundle   # Built front + CSP with nonces (absent under `tauri dev`): check every new screen with this binary. A lib that injects <style> must receive the page nonce.
 ```
 
+Website (`website/`, standalone package, see `website/README.md` and `docs/WEBSITE.md`):
+
+```bash
+cd website && pnpm install
+cd website && pnpm dev     # Site with every docs version, http://localhost:4321
+cd website && pnpm build   # dist/ (all versions, both locales) + internal link check
+cd website && pnpm check   # astro check (strict TS, docs frontmatter) + Prettier; run by website.yml
+```
+
 ## Architecture rules (non-negotiable)
 
 1. **Every Git write goes through `git/cli.rs`** via `OpQueue` (serialized per repo). Never `git2`/`gix` for writes, never `Command::new("git")` anywhere else.
