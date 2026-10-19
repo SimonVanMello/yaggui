@@ -53,6 +53,8 @@ const github = 'https://github.com/SimonVanMello/yaggui';
 
 export default defineConfig({
   site: 'https://yaggui.tropico.dev',
+  // The demo (`public/demo/`, built from the app) has its own language preference.
+  redirects: { '/fr/demo': '/demo/?lang=fr' },
   vite: {
     css: { postcss: { plugins: [appThemeSelectors] } },
     // The theme files are read from the app (`../src/theme/`).

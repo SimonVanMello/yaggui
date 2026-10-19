@@ -1,3 +1,5 @@
+import { demoClient } from '../demo/demoClient';
+import { isDemo } from '../demo/isDemo';
 import type { YagguiClient } from './client';
 import { mockBackend, mockClient, type MockBackend } from './mockClient';
 import { tauriClient } from './tauriClient';
@@ -64,4 +66,8 @@ if (isMock) {
 }
 
 /** The only entry point to the backend for the rest of the frontend. */
-export const ipc: YagguiClient = isMock ? mockClient : tauriClient;
+export const ipc: YagguiClient = isMock
+  ? isDemo
+    ? demoClient(mockClient)
+    : mockClient
+  : tauriClient;

@@ -34,9 +34,10 @@ jobs:
       - id: files
         if: github.event_name == 'pull_request'
         run: |
-          # The site, the docs, and what the site reads from the app (themes, version, screenshots).
+          # The site, the docs, and what the site reads from the app (themes, version, screenshots)
+          # or builds from it (the live demo is the frontend itself).
           if git diff --name-only 'HEAD^1' HEAD | grep -qE \
-            '^(website/|src/theme/|docs/assets/|package\.json$|\.github/workflows/website\.yml$)'; then
+            '^(website/|src/|public/|index\.html$|vite|\.env\.demo$|docs/assets/|package\.json$|\.github/workflows/website\.yml$)'; then
             echo 'site=true' >> "$GITHUB_OUTPUT"
           else
             echo 'site=false' >> "$GITHUB_OUTPUT"
@@ -75,8 +76,13 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-          cache-dependency-path: website/pnpm-lock.yaml
+          cache-dependency-path: |
+            website/pnpm-lock.yaml
+            pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
+      # The live demo is built from the app's frontend (`pnpm build:demo` at the root).
+      - run: pnpm install --frozen-lockfile
+        working-directory: .
       - run: pnpm check
       # Also checks the internal links of the built site.
       - run: pnpm build

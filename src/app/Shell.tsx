@@ -15,6 +15,8 @@ import { PreferencesDialog } from '../features/preferences/PreferencesDialog';
 import { OpenRepoDialog } from '../features/welcome/OpenRepoDialog';
 import { WorkspaceDialogs } from '../features/workspaces/WorkspaceDialogs';
 import { ModuleDialogs } from '../features/worktrees/ModuleDialogs';
+import { DemoBanner } from '../demo/DemoBanner';
+import { isDemo } from '../demo/isDemo';
 import { nativeWindow } from '../ipc';
 import { DropOverlay } from './DropOverlay';
 import styles from './Shell.module.css';
@@ -65,6 +67,7 @@ export function Shell() {
 
   return (
     <div className={styles.shell}>
+      {isDemo && <DemoBanner />}
       <TitleBar />
       <div className={styles.content}>{ready && <TabContent />}</div>
       {logOpen && <CommandLogPanel />}
