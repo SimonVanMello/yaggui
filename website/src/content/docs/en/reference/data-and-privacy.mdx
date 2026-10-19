@@ -36,7 +36,7 @@ Nothing else leaves your computer: no usage statistics, no crash reports, no ana
 
 yaggui never asks for, sees or stores a password, token or passphrase. Git runs without a terminal and with `GIT_TERMINAL_PROMPT=0`, so credentials come only from your Git credential helper or your SSH agent. See [Authentication](../../remotes/authentication/).
 
-One exception to keep in mind: a URL typed with a token inside it (`https://user:token@host/…`) is shown as typed in the [command log](../../reference/command-log/#privacy), which lives in memory only.
+One thing to keep in mind: a URL typed with a token inside it (`https://user:token@host/…`) is stored as typed in `.git/config`, where Git needs it. yaggui masks the secret as `***` in the [command log](../../reference/command-log/#privacy), in error details and in the remote lists.
 
 ## Where yaggui stores its data
 

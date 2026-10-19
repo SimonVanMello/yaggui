@@ -63,7 +63,7 @@ git remote set-url --push -- upstream git@github.com:me/repo.git   # only with a
 
 A **Remote upstream added** toast confirms it. If **Fetch it once added** is checked, the fetch follows, with its progress in the status bar ([Fetch](../../remotes/fetch-pull-push/#fetch)). If that fetch fails, for example on credentials, the remote stays added: fix the problem and fetch again.
 
-yaggui never asks for a password. The URL only says where the repository is; credentials come from your Git credential helper or ssh-agent ([Authentication](../../remotes/authentication/)).
+yaggui never asks for a password. The URL only says where the repository is; credentials come from your Git credential helper or ssh-agent ([Authentication](../../remotes/authentication/)). If you put a password or token in an HTTPS URL anyway, yaggui shows it masked (`https://user:***@host/…`) everywhere: in the **Remotes** dialog, in the sidebar, in **Copy the URL**, in the command log and in errors.
 
 ### Validation
 
@@ -82,7 +82,7 @@ The **Add** or **Save** button stays disabled until the name and URL are filled 
 2. Change **Fetch URL**, and **Push URL** if **Push to a different URL** is checked. Uncheck it to push to the fetch URL again.
 3. Click **Save**. **Save** stays disabled while nothing changed.
 
-yaggui runs `git remote set-url -- <name> <url>`, then `git remote set-url --push -- <name> <push url>`, or `git config --unset-all remote.<name>.pushurl` when you uncheck **Push to a different URL**. The toast says **URLs of origin saved**. Remote-tracking branches are not touched; the next fetch uses the new URL.
+yaggui runs `git remote set-url -- <name> <url>`, then `git remote set-url --push -- <name> <push url>`, or `git config --unset-all remote.<name>.pushurl` when you uncheck **Push to a different URL**. A URL shown masked can be saved as it is: yaggui then keeps the secret already stored for that remote. To change the secret, type the whole URL again. The toast says **URLs of origin saved**. Remote-tracking branches are not touched; the next fetch uses the new URL.
 
 ## Rename a remote
 

@@ -98,6 +98,8 @@ Cliquez sur **Vider le journal** (l’icône de corbeille dans l’en-tête du p
 
 ## Confidentialité
 
-Le journal montre les commandes exactement telles qu’elles ont été exécutées. Si vous avez saisi une URL contenant un jeton ou un mot de passe (par exemple `https://user:token@example.com/repo.git`) en clonant ou en ajoutant un remote, elle apparaît en clair dans le journal. Elle reste en mémoire et disparaît quand vous quittez, mais toute personne qui voit votre écran peut la lire. Préférez un [assistant d’identifiants](../../remotes/authentication/) aux jetons dans les URL.
+Le journal montre les commandes telles qu’elles ont été exécutées, sauf les identifiants contenus dans les URL. Si vous avez saisi une URL contenant un mot de passe ou un jeton (par exemple `https://user:token@example.com/repo.git`) en clonant ou en ajoutant un remote, le secret est remplacé par `***` dans la commande, dans la sortie et dans les détails d’erreur : `https://user:***@example.com/repo.git`, ou `https://***@example.com/repo.git` quand l’URL ne contient qu’un jeton. Les adresses SSH (`git@host:owner/repo.git`) ne contiennent aucun secret et sont affichées telles quelles. Git, lui, reçoit toujours l’URL réelle.
+
+Par conséquent, **Copier la commande** et **Copier la sortie** copient la forme masquée : une commande copiée depuis le journal ne s’authentifie pas quand vous l’exécutez dans un terminal. Les secrets qui ne font pas partie d’une URL, comme un jeton passé dans un réglage `http.extraHeader`, ne sont pas masqués. Préférez un [assistant d’identifiants](../../remotes/authentication/) aux jetons dans les URL.
 
 yaggui n’ajoute jamais lui-même d’identifiants au journal : il ne demande ni ne stocke jamais de mots de passe. Voir [Données et confidentialité](../../reference/data-and-privacy/).

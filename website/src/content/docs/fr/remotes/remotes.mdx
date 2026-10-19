@@ -63,7 +63,7 @@ git remote set-url --push -- upstream git@github.com:me/repo.git   # seulement a
 
 Une notification **Remote upstream ajouté** le confirme. Si **Faire un fetch après l'ajout** est coché, le fetch suit, avec sa progression dans la barre d’état ([Fetch](../../remotes/fetch-pull-push/#fetch)). Si ce fetch échoue, par exemple à cause des identifiants, le remote reste ajouté : corrigez le problème et refaites un fetch.
 
-yaggui ne demande jamais de mot de passe. L’URL indique seulement où se trouve le dépôt ; les identifiants viennent de votre credential helper Git ou de ssh-agent ([Authentification](../../remotes/authentication/)).
+yaggui ne demande jamais de mot de passe. L’URL indique seulement où se trouve le dépôt ; les identifiants viennent de votre credential helper Git ou de ssh-agent ([Authentification](../../remotes/authentication/)). Si vous mettez malgré tout un mot de passe ou un jeton dans une URL HTTPS, yaggui l’affiche masqué (`https://user:***@host/…`) partout : dans la boîte de dialogue **Remotes**, dans la barre latérale, dans **Copier l'URL**, dans le journal des commandes et dans les erreurs.
 
 ### Validation
 
@@ -82,7 +82,7 @@ Le bouton **Ajouter** ou **Enregistrer** reste désactivé tant que le nom et l�
 2. Changez **URL de fetch**, et **URL de push** si **Pousser vers une autre URL** est coché. Décochez cette case pour pousser de nouveau vers l’URL de fetch.
 3. Cliquez sur **Enregistrer**. **Enregistrer** reste désactivé tant que rien n’a changé.
 
-yaggui exécute `git remote set-url -- <name> <url>`, puis `git remote set-url --push -- <name> <push url>`, ou `git config --unset-all remote.<name>.pushurl` quand vous décochez **Pousser vers une autre URL**. La notification indique **URL de origin enregistrées**. Les branches de suivi ne sont pas touchées ; le prochain fetch utilise la nouvelle URL.
+yaggui exécute `git remote set-url -- <name> <url>`, puis `git remote set-url --push -- <name> <push url>`, ou `git config --unset-all remote.<name>.pushurl` quand vous décochez **Pousser vers une autre URL**. Une URL affichée masquée peut être enregistrée telle quelle : yaggui conserve alors le secret déjà enregistré pour ce remote. Pour changer le secret, saisissez de nouveau l’URL complète. La notification indique **URL de origin enregistrées**. Les branches de suivi ne sont pas touchées ; le prochain fetch utilise la nouvelle URL.
 
 ## Renommer un remote
 

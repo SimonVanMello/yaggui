@@ -46,7 +46,7 @@ Pour le configurer une fois pour toutes :
 4. De retour dans yaggui, refaites un fetch.
 
 :::caution
-Ne mettez pas de jeton dans l’URL du remote (`https://user:token@host/...`). Cela fonctionne, mais l’URL apparaît en clair dans le [journal des commandes](../../reference/command-log/) et dans `.git/config`. Utilisez plutôt un credential helper.
+Ne mettez pas de jeton dans l’URL du remote (`https://user:token@host/...`). Cela fonctionne, et yaggui masque le secret sous la forme `***` dans le [journal des commandes](../../reference/command-log/), dans les détails d’erreur et dans les listes de remotes, mais il reste en clair dans `.git/config`. Utilisez plutôt un credential helper.
 :::
 
 ## SSH : utiliser ssh-agent

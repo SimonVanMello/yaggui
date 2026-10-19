@@ -36,7 +36,7 @@ Rien d’autre ne quitte votre ordinateur : pas de statistiques d’usage, pas 
 
 yaggui ne demande, ne voit et ne stocke jamais de mot de passe, de jeton ni de phrase secrète. Git s’exécute sans terminal et avec `GIT_TERMINAL_PROMPT=0` : les identifiants ne viennent donc que de votre assistant d’identifiants Git ou de votre agent SSH. Voir [Authentification](../../remotes/authentication/).
 
-Une exception à garder en tête : une URL saisie avec un jeton à l’intérieur (`https://user:token@host/…`) est affichée telle quelle dans le [journal des commandes](../../reference/command-log/#confidentialité), qui n’existe qu’en mémoire.
+Un point à garder en tête : une URL saisie avec un jeton à l’intérieur (`https://user:token@host/…`) est enregistrée telle quelle dans `.git/config`, où Git en a besoin. yaggui masque le secret sous la forme `***` dans le [journal des commandes](../../reference/command-log/#confidentialité), dans les détails d’erreur et dans les listes de remotes.
 
 ## Où yaggui stocke ses données
 

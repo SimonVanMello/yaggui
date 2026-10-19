@@ -46,7 +46,7 @@ To set it up once:
 4. Back in yaggui, fetch again.
 
 :::caution
-Do not put a token in the remote URL (`https://user:token@host/...`). It works, but the URL appears in clear in the [command log](../../reference/command-log/) and in `.git/config`. Use a credential helper instead.
+Do not put a token in the remote URL (`https://user:token@host/...`). It works, and yaggui masks the secret as `***` in the [command log](../../reference/command-log/), in error details and in the remote lists, but it stays in clear in `.git/config`. Use a credential helper instead.
 :::
 
 ## SSH: use ssh-agent
