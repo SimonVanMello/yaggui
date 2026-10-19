@@ -176,7 +176,7 @@ Exit: `https://yaggui.tropico.dev` serves the landing page, the versioned docs (
 | ID | Task | Depends on | Requirements |
 |---|---|---|---|
 | W-1 🟨 | Website scaffold: Astro + Starlight in `website/` (standalone package), app theme tokens through one adapter, EN / FR routing, versioned docs built from git refs (`website/versions.json`), lightbox, placeholder pages; `ci.yml` skips app jobs on site-only PRs, `website.yml` builds PRs (Cloudflare Pages preview) and deploys to Cloudflare Pages on `master` and on release | — | — |
-| W-2 ⬜ | Landing page from the mockup, EN and FR: OS-aware download, install commands, features, undo, transparency, themes, FAQ, final call to action | W-1 | — |
+| W-2 🟨 | Landing page from the mockup, EN and FR: OS-aware download, install commands, features, undo, transparency, themes, FAQ, final call to action | W-1 | — |
 | W-3 🟦 | Docs content in English from an analysis of the app (features, flows, UI wording, edge cases, undo), information architecture, `sources` / `requirements` frontmatter, docs screenshots in both themes | — | — |
 | W-4 ⬜ | Docs upkeep: `CLAUDE.md` rules and Definition of done, PR template, `docs-impact` warning job, keyboard shortcut reference generated from the action registry | W-1 | — |
 | W-5 ⬜ | Live demo: mocked frontend built into `/demo/` with a demo banner | W-1 | — |

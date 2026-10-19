@@ -11,7 +11,7 @@ const locale = localeOf(Astro.url);
       <img src="/favicon.svg" alt="" width="24" height="24" />
       yaggui
     </span>
-    <nav>
+    <nav aria-label={t(locale, 'nav.footer')}>
       <a href={localePath(locale, '/docs/')}>{t(locale, 'nav.docs')}</a>
       <a href={CHANGELOG_URL}>{t(locale, 'nav.changelog')}</a>
       <a href={RELEASES_URL}>{t(locale, 'nav.releases')}</a>
