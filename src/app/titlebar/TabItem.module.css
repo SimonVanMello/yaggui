@@ -130,6 +130,8 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-0);
+  /* Names and paths have no spaces to wrap at: break anywhere rather than overflow the box. */
+  overflow-wrap: anywhere;
 }
 
 .tooltipName {
