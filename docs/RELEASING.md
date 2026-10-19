@@ -73,6 +73,10 @@ One-time setup:
 
 To publish an existing release by hand (first publication, or after a fix to the generator): Actions → Homebrew → Run workflow, keep "Use workflow from: master", enter the tag (`vX.Y.Z`). A run that produces the same cask as the tap pushes nothing.
 
+## Website docs
+
+The site serves the docs of the latest release at `/docs/` and those of `master` at `/docs/next/` ([`website/README.md`](../website/README.md#versioned-docs)). Every `vX.Y.Z` tag whose tree has `website/src/content/docs/` is a docs version: pushing the tag is enough, nothing to merge. Publishing the release redeploys the site, so `/docs/` and the download links follow it. To hide a version or serve it from another commit, add an override to [`website/versions.json`](../website/versions.json).
+
 ## Updates
 
 The app can check for a newer version (opt-in: asked once at first launch, then in Preferences → Behavior, and "Check for updates" in the palette). It reads `https://github.com/SimonVanMello/yaggui/releases/latest/download/latest.json`, which always points to the newest **published** release. What it offers depends on how the copy was installed ([`system/updates.rs`](../src-tauri/src/system/updates.rs)):
