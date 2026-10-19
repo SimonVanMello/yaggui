@@ -17,6 +17,8 @@ describe('summary counter', () => {
   it('counts characters, not UTF-16 units', () => {
     expect(summaryLength('abc')).toBe(3);
     expect(summaryLength('a😀b')).toBe(3);
+    expect(summaryLength('e\u0301e\u0301')).toBe(2);
+    expect(summaryLength('👨‍👩‍👧')).toBe(1);
   });
 
   it('warns past 72 characters only', () => {

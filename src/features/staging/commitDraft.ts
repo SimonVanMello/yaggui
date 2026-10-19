@@ -18,9 +18,11 @@ export const EMPTY_DRAFT: CommitDraft = {
   prefilled: null,
 };
 
-/** Characters as the user counts them (a surrogate pair or an emoji is one). */
+const GRAPHEMES = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
+
+/** Characters as the user counts them: an emoji or a letter with combining accents is one. */
 export function summaryLength(summary: string): number {
-  return Array.from(summary).length;
+  return Array.from(GRAPHEMES.segment(summary)).length;
 }
 
 export type SummaryLevel = 'ok' | 'over';
