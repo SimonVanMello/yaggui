@@ -8,7 +8,12 @@ export default defineConfig({
   // Measurements run on a production build (`pnpm perf:*`, playwright.perf.config.ts); README
   // screenshots, docs screenshots and the live demo have their own configs (`pnpm screenshots`,
   // `pnpm screenshots:docs`, `pnpm test:demo`).
-  testIgnore: ['perf*.spec.ts', 'readme-screenshots.spec.ts', 'demo.spec.ts', 'docs-screenshots/**'],
+  testIgnore: [
+    'perf*.spec.ts',
+    'readme-screenshots.spec.ts',
+    'demo.spec.ts',
+    'docs-screenshots/**',
+  ],
   outputDir: './test-results',
   fullyParallel: true,
   reporter: [['list']],
