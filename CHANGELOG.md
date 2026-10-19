@@ -17,7 +17,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
   terminal (the package is checked against the release checksums first), and the Homebrew cask now
   updates itself like the `.dmg` (#21).
 - "What's new" view with this changelog, opened from the installed version in the status bar, the
-  command palette, Preferences or the Help menu on macOS.
+  command palette, Preferences or the Help menu on macOS (#24).
 
 ### Fixed
 
@@ -25,6 +25,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
   line) (#22).
 - Welcome screen: the highlighted repository row keeps its border and no longer stays highlighted
   after the pointer leaves (#22).
+- Discarding, staging or reverting the file whose diff is open closes the diff instead of showing a
+  "no changes" error (#23).
 
 ## [0.3.0] - 2026-10-16
 
