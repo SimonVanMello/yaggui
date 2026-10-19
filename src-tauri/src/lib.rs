@@ -74,12 +74,14 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             commands::create::init_repo,
             commands::diff::changed_files,
             commands::diff::file_diff,
+            commands::diff::worktree_file,
             commands::write::stage_paths,
             commands::write::unstage_paths,
             commands::write::stage_hunks,
             commands::write::unstage_hunks,
             commands::write::discard_hunks,
             commands::write::discard_paths,
+            commands::write::save_worktree_file,
             commands::write::commit,
             commands::write::last_commit_message,
             commands::write::git_identity,
@@ -305,6 +307,9 @@ pub fn run() {
             EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")),
         )
         .init();
+
+    // Before the webview reads its text input settings.
+    system::keyboard::enable_key_repeat();
 
     let builder = specta_builder();
 

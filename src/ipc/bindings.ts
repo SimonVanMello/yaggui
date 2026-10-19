@@ -174,6 +174,12 @@ export const commands = {
 	/**  Diff of one file of `target`. `old_path` is the source of a rename or copy. */
 	fileDiff: (repoId: number, target: DiffTarget, path: string, oldPath: string | null, options: DiffOptions) => typedError<FileDiff, YagguiError>(__TAURI_INVOKE("file_diff", { repoId, target, path, oldPath, options })),
 	/**
+	 *  Working tree content of an unstaged text file and its index version, for the diff view's
+	 *  editor. Refused for files it could not write back as they are (binary, not UTF-8, mixed
+	 *  line endings, LFS, symlinks).
+	 */
+	worktreeFile: (repoId: number, path: string) => typedError<WorktreeFile, YagguiError>(__TAURI_INVOKE("worktree_file", { repoId, path })),
+	/**
 	 *  Stages whole files (`git add`), untracked and deleted ones included. `all`: every
 	 *  unstaged change. Staging a conflicted file marks it resolved.
 	 */
@@ -195,6 +201,11 @@ export const commands = {
 	 *  index (files added since HEAD are then deleted).
 	 */
 	discardPaths: (repoId: number, paths: PathSelection, includeStaged: boolean) => typedError<DiscardResult, YagguiError>(__TAURI_INVOKE("discard_paths", { repoId, paths, includeStaged })),
+	/**
+	 *  Saves a file edited in the diff view, unless it changed on disk since `version` was read.
+	 *  Returns the version written.
+	 */
+	saveWorktreeFile: (repoId: number, path: string, content: string, version: string) => typedError<string, YagguiError>(__TAURI_INVOKE("save_worktree_file", { repoId, path, content, version })),
 	/**
 	 *  Commits the index (or amends HEAD), running the hooks unless `skip_hooks`. Cancellable
 	 *  (`cancel_op`): a hanging hook and the processes it started are killed.
@@ -1411,6 +1422,8 @@ export type ErrorCode =
 "hookFailed" | 
 /**  The file changed since its diff was shown: the hunk selection no longer applies. */
 "staleDiff" | 
+/**  The file changed on disk since the editor loaded it: saving would overwrite that. */
+"fileChanged" | 
 /**  Unmerged paths prevent the operation (resolve the conflicts first). */
 "unresolvedConflicts" | 
 /**  The operation needs a branch and HEAD is detached. */
@@ -2237,6 +2250,8 @@ export type OpKind = "fetch" | "pull" | "push" | "checkout" | "commit" |
 "config" | 
 /**  Background write of the commit-graph; silent in the UI, reloads the graph when done. */
 "commitGraph" | 
+/**  Save of a file edited in the diff view. */
+"editFile" | 
 /**  Undo of a journaled operation. */
 "undo" | 
 /**  Redo of an undone operation. */
@@ -3090,6 +3105,16 @@ export type WorktreeBranch =
 { kind: "existing"; name: string } | 
 /**  A new branch created at `start` (a revision: branch, tag, SHA). */
 { kind: "new"; name: string; start: string };
+
+export type WorktreeFile = {
+	/**  Content on disk, line breaks as they are. */
+	text: string,
+	/**  Index version the editor diffs against, decoded for display; `None` when untracked. */
+	original: string | null,
+	/**  Identifies the content read, so a save does not overwrite a newer one. */
+	version: string,
+	lineEnding: LineEnding,
+};
 
 export type WorktreeRef = {
 	/**  Absolute path of the worktree. */

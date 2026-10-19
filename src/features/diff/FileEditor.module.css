@@ -1,0 +1,140 @@
+.editor {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.bar,
+.changed {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3) var(--space-1) var(--space-4);
+  border-bottom: var(--border-width) solid var(--border-subtle);
+  background: var(--bg-panel);
+  font-size: var(--text-sm);
+}
+
+.status {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  color: var(--fg-secondary);
+}
+
+.dot {
+  width: var(--dot-size);
+  height: var(--dot-size);
+  border-radius: var(--radius-full);
+  background: var(--warning);
+}
+
+.changed {
+  background: var(--bg-elevated);
+  color: var(--fg-primary);
+}
+
+.changed > svg {
+  color: var(--warning);
+}
+
+.changedText {
+  flex: 1;
+  min-width: 0;
+}
+
+.centered {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6);
+}
+
+.code {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  background: var(--bg-app);
+}
+
+.code[hidden] {
+  display: none;
+}
+
+/* CodeMirror: classes from fileEditorView.ts, styled with the theme tokens only. */
+.code :global(.cm-editor) {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  color: var(--fg-primary);
+  font-size: var(--text-sm);
+}
+
+.code :global(.cm-editor.cm-focused) {
+  outline: none;
+}
+
+.code :global(.cm-scroller) {
+  font-family: var(--font-code);
+  font-variant-ligatures: none;
+  line-height: var(--leading-normal);
+}
+
+.code :global(.cm-content) {
+  padding: 0;
+  caret-color: var(--fg-primary);
+}
+
+.code :global(.cm-cursor) {
+  border-left-color: var(--fg-primary);
+}
+
+.code :global(.cm-line) {
+  padding: 0 var(--space-3);
+}
+
+.code :global(.cm-selectionBackground),
+.code :global(.cm-content ::selection) {
+  background: var(--accent-soft);
+}
+
+.code :global(.cm-focused .cm-selectionBackground) {
+  background: var(--accent-soft);
+}
+
+.code :global(.cm-gutters) {
+  border-right: var(--border-width) solid var(--border-subtle);
+  background: var(--bg-panel);
+  color: var(--fg-muted);
+  user-select: none;
+}
+
+.code :global(.cm-lineNumbers .cm-gutterElement) {
+  padding: 0 var(--space-2) 0 var(--space-3);
+}
+
+.code :global(.yaggui-edit-add) {
+  background: var(--diff-add-bg);
+  box-shadow: inset var(--space-0) 0 0 var(--success);
+}
+
+.code :global(.yaggui-edit-removed-above) {
+  box-shadow: inset 0 var(--space-0) 0 var(--danger);
+}
+
+.code :global(.yaggui-edit-removed-below) {
+  box-shadow: inset 0 calc(-1 * var(--space-0)) 0 var(--danger);
+}
+
+.code :global(.yaggui-edit-add.yaggui-edit-removed-above) {
+  box-shadow:
+    inset var(--space-0) 0 0 var(--success),
+    inset 0 var(--space-0) 0 var(--danger);
+}

@@ -5,6 +5,7 @@ import { useT } from '../../i18n/useT';
 import { YagguiIpcError } from '../../ipc';
 import { matchShortcut } from '../../ui/shortcuts';
 import { Button } from '../../ui/Button';
+import { Icon } from '../../ui/Icon';
 import { Spinner } from '../../ui/Spinner';
 import { ErrorPanel } from '../../app/errors/ErrorPanel';
 import type { CodeDiffHandle } from './CodeDiff';
@@ -30,6 +31,8 @@ import { applyHunks } from '../staging/stagingActions';
 import { DiffPlaceholder } from './DiffPlaceholder';
 import { ModuleDiffActions } from '../submodules/ModuleDiffActions';
 import { DiffToolbar } from './DiffToolbar';
+import { FileEditorLoader } from './FileEditorLoader';
+import { startEditing, useEditing } from './fileEditStore';
 import { isMarkdown } from './markdown/isMarkdown';
 import { MarkdownPreview } from './markdown/MarkdownPreview';
 import styles from './DiffView.module.css';
@@ -136,6 +139,16 @@ export function DiffView({ selection, onClose, onSelect, stepper, actions }: Dif
   const current = diff && diff.path === path ? diff : undefined;
   const worktree = target.kind === 'commits' ? null : target.kind;
 
+  // Plain UTF-8 text the editor can write back as it is (the backend checks it again).
+  const editable =
+    worktree === 'unstaged' &&
+    current !== undefined &&
+    (current.newMode === 'regular' || current.newMode === 'executable') &&
+    current.content.kind === 'text' &&
+    current.content.newEncoding === 'utf8' &&
+    current.content.newLineEnding !== 'mixed';
+  const editing = useEditing(repoId, path) && worktree === 'unstaged';
+
   const isImage = IMAGE.test(path);
   const placeholder = current ? (
     <DiffPlaceholder
@@ -159,7 +172,9 @@ export function DiffView({ selection, onClose, onSelect, stepper, actions }: Dif
   ) : null;
 
   let body;
-  if (query.error) {
+  if (editing && (editable || !current)) {
+    body = <FileEditorLoader key={path} repoId={repoId} path={path} wrap={options.wrap} />;
+  } else if (query.error) {
     const error =
       query.error instanceof YagguiIpcError
         ? query.error.error
@@ -292,6 +307,18 @@ export function DiffView({ selection, onClose, onSelect, stepper, actions }: Dif
         stepLabels={stepper?.labels}
         actions={
           <>
+            {editable && !editing && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  startEditing(repoId, path);
+                }}
+              >
+                <Icon name="pencil" size="sm" />
+                {t('diff.edit.button')}
+              </Button>
+            )}
             {isImage && sourceOf === path && (
               <Button
                 size="sm"

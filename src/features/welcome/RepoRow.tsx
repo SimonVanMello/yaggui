@@ -13,11 +13,14 @@ interface RepoRowProps {
   repo: KnownRepo;
   id: string;
   selected: boolean;
+  /** Shows the selection: while the pointer is on the row or after the arrow keys moved it. */
+  active: boolean;
   nameIndices: readonly number[];
   pathIndices: readonly number[];
   now: number;
   onOpen: () => void;
   onHover: () => void;
+  onLeave: () => void;
 }
 
 /** A known repository in the welcome screen list (option of the search listbox). */
@@ -25,11 +28,13 @@ export function RepoRow({
   repo,
   id,
   selected,
+  active,
   nameIndices,
   pathIndices,
   now,
   onOpen,
   onHover,
+  onLeave,
 }: RepoRowProps) {
   const t = useT();
   const locale = useI18nStore((state) => state.locale);
@@ -40,10 +45,12 @@ export function RepoRow({
       id={id}
       role="option"
       aria-selected={selected}
+      data-active={active || undefined}
       data-missing={!repo.exists || undefined}
       className={styles.row}
       onClick={onOpen}
       onMouseMove={onHover}
+      onMouseLeave={onLeave}
     >
       <span className={styles.dot} style={{ background: repoColor(repo.name) }} />
       <span className={styles.text}>

@@ -40,6 +40,8 @@ function isQuietWrite(kind: OpKind): boolean {
     isHistoryKind(kind) ||
     // The conflict view toasts whether the tool resolved the file.
     kind === 'mergeTool' ||
+    // The file editor shows the save.
+    kind === 'editFile' ||
     isNetworkOp(kind)
   );
 }
@@ -57,6 +59,8 @@ function shownInline(kind: OpKind, error: YagguiError): boolean {
   if (kind === 'pull' && error.code === 'conflicts') return true;
   // The conflict view reports the external tool's failures (`conflictOps.runMergeTool`).
   if (kind === 'mergeTool') return true;
+  // The file editor reports a failed save (and reloads a file changed on disk).
+  if (kind === 'editFile') return true;
   // The remote dialogs show their errors next to the field; a removal toasts its own.
   if (kind === 'remote') return true;
   // Undo and redo explain their refusals (blocked, diverged, local changes) themselves.

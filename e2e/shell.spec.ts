@@ -76,6 +76,33 @@ for (const { name: theme, colorScheme } of THEMES) {
       await capture(page, theme, 'welcome');
     });
 
+    test('welcome rows: highlighted with a border while hovered, nothing left after', async ({
+      page,
+    }) => {
+      const rows = page.getByRole('option');
+      const row = rows.nth(3);
+      const look = () =>
+        row.evaluate((el) => {
+          const style = getComputedStyle(el);
+          return `${style.borderTopColor} ${style.backgroundColor}`;
+        });
+      const rest = await look();
+      await expect(page.locator('[role="option"][data-active]')).toHaveCount(0);
+
+      await row.hover();
+      await expect(row).toHaveAttribute('data-active', 'true');
+      expect(await look()).not.toBe(rest);
+      await capture(page, theme, 'welcome-row-hover');
+
+      await page.mouse.move(0, 0);
+      await expect(page.locator('[role="option"][data-active]')).toHaveCount(0);
+      expect(await look()).toBe(rest);
+
+      await page.getByRole('combobox').press('ArrowUp');
+      await expect(rows.nth(2)).toHaveAttribute('data-active', 'true');
+      await capture(page, theme, 'welcome-row-keyboard');
+    });
+
     test('repository open', async ({ page }) => {
       await openFromWelcome(page, 'yaggui');
       await expect(

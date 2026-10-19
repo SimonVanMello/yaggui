@@ -221,6 +221,20 @@ impl RepoManager {
         })
     }
 
+    /// Writes a file edited in the diff view (see `diff::edit::save`). Queued like the Git
+    /// writes, so it never lands in the middle of a checkout or a stash.
+    pub fn save_worktree_file(
+        &self,
+        repo_id: u32,
+        path: String,
+        content: String,
+        version: String,
+    ) -> Result<String, YagguiError> {
+        self.write_op(repo_id, OpKind::EditFile, false, move |ctx| {
+            diff::edit::save(ctx.repo, &path, &content, &version)
+        })
+    }
+
     pub fn discard_paths(
         &self,
         repo_id: u32,

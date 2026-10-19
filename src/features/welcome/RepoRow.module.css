@@ -4,11 +4,14 @@
   gap: var(--space-3);
   min-height: calc(var(--row-height) + var(--space-5));
   padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
+  /* Transparent at rest so the hover border does not shift the layout. */
+  border: var(--border-width) solid transparent;
   border-radius: var(--radius-md);
   cursor: pointer;
 }
 
-.row[aria-selected='true'] {
+.row[data-active] {
+  border-color: var(--border-subtle);
   background: var(--bg-selected);
   box-shadow: inset var(--focus-ring-width) 0 0 var(--accent);
 }
@@ -89,7 +92,7 @@
 }
 
 .row:hover .action,
-.row[aria-selected='true'] .action,
+.row[data-active] .action,
 .action[data-favorite] {
   opacity: 1;
 }

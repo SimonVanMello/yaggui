@@ -17,10 +17,10 @@ use yaggui_lib::git::log::CommandLog;
 use yaggui_lib::git::ops::types::{
     CommitRequest, ConfigScope, HunkChange, HunkSelection, PathSelection,
 };
-use yaggui_lib::git::read::diff::file_diff;
 use yaggui_lib::git::read::diff::types::{
-    DiffContent, DiffOptions, DiffTarget, FileDiff, TextDiff,
+    DiffContent, DiffOptions, DiffTarget, FileDiff, LineEnding, TextDiff,
 };
+use yaggui_lib::git::read::diff::{edit, file_diff};
 use yaggui_lib::repo::RepoManager;
 use yaggui_lib::store::Store;
 
@@ -1169,4 +1169,91 @@ fn long_paths_are_read_and_written() {
     e.repos.stage_paths(e.id, paths(&[&path])).unwrap();
     e.repos.commit(e.id, commit_request("Long path")).unwrap();
     assert_eq!(e.head(&path).unwrap(), b"long\n");
+}
+
+#[test]
+fn saves_a_file_edited_in_the_diff_view() {
+    let env = env();
+    env.commit_files(&[("notes.txt", b"one\ntwo\n")]);
+    env.write("notes.txt", b"one\ntwo\nthree\n");
+    let repo = gix::open(env.fx.repo()).unwrap();
+    let file = edit::read(&repo, "notes.txt").unwrap();
+    assert_eq!(file.text, "one\ntwo\nthree\n");
+    assert_eq!(file.original.as_deref(), Some("one\ntwo\n"));
+    assert_eq!(file.line_ending, LineEnding::Lf);
+
+    let save = |content: &str, version: &str| {
+        env.repos
+            .save_worktree_file(env.id, "notes.txt".into(), content.into(), version.into())
+    };
+    let saved = save("one\n2\nthree\n", &file.version).unwrap();
+    assert_eq!(env.read("notes.txt").unwrap(), b"one\n2\nthree\n");
+    // The index is left alone: the edit shows as an unstaged change.
+    assert_eq!(env.index("notes.txt").unwrap(), b"one\ntwo\n");
+    assert_eq!(edit::read(&repo, "notes.txt").unwrap().version, saved);
+
+    // Saved from the content read before: refused, what is on disk is kept.
+    let stale = save("lost\n", &file.version).unwrap_err();
+    assert_eq!(stale.code, ErrorCode::FileChanged);
+    assert_eq!(env.read("notes.txt").unwrap(), b"one\n2\nthree\n");
+
+    // Changed by another program: kept until the newer version is the one replaced.
+    env.write("notes.txt", b"formatted\n");
+    assert_eq!(
+        save("mine\n", &saved).unwrap_err().code,
+        ErrorCode::FileChanged
+    );
+    let newer = edit::read(&repo, "notes.txt").unwrap().version;
+    save("mine\n", &newer).unwrap();
+    assert_eq!(env.read("notes.txt").unwrap(), b"mine\n");
+}
+
+#[test]
+fn edits_untracked_and_crlf_files_as_they_are() {
+    let env = env();
+    env.write("new.txt", b"a\r\nb\r\n");
+    let repo = gix::open(env.fx.repo()).unwrap();
+    let file = edit::read(&repo, "new.txt").unwrap();
+    assert_eq!(file.original, None);
+    assert_eq!(file.text, "a\r\nb\r\n");
+    assert_eq!(file.line_ending, LineEnding::Crlf);
+    env.repos
+        .save_worktree_file(env.id, "new.txt".into(), "a\r\nc\r\n".into(), file.version)
+        .unwrap();
+    assert_eq!(env.read("new.txt").unwrap(), b"a\r\nc\r\n");
+    assert_eq!(env.index("new.txt"), None);
+}
+
+#[test]
+fn refuses_files_the_editor_cannot_write_back() {
+    let env = env();
+    env.commit_files(&[("gone.txt", b"bye\n")]);
+    std::fs::remove_file(env.fx.repo().join("gone.txt")).unwrap();
+    env.write("binary.dat", b"a\0b");
+    env.write("latin1.txt", b"caf\xe9\n");
+    env.write("mixed.txt", b"a\r\nb\n");
+    let repo = gix::open(env.fx.repo()).unwrap();
+    for path in [
+        "gone.txt",
+        "binary.dat",
+        "latin1.txt",
+        "mixed.txt",
+        "../outside.txt",
+    ] {
+        let err = edit::read(&repo, path).unwrap_err();
+        assert_eq!(err.code, ErrorCode::InvalidArgument, "{path}");
+        let err = env
+            .repos
+            .save_worktree_file(env.id, path.into(), "x\n".into(), "0".repeat(40))
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::InvalidArgument, "{path}");
+    }
+    assert_eq!(env.read("binary.dat").unwrap(), b"a\0b");
+    assert_eq!(env.read("gone.txt"), None);
+    #[cfg(unix)]
+    {
+        std::os::unix::fs::symlink("latin1.txt", env.fx.repo().join("link.txt")).unwrap();
+        let err = edit::read(&repo, "link.txt").unwrap_err();
+        assert_eq!(err.code, ErrorCode::InvalidArgument);
+    }
 }

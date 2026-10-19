@@ -12,6 +12,7 @@ const PATHS = {
   check: 'm5 12 5 5 9-10',
   close: 'M6 6l12 12M18 6 6 18',
   trash: 'M4 7h16M10 11v6m4-6v6M6 7l1 13h10l1-13M9 7V4h6v3',
+  pencil: 'M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4Zm9.5-13.5 4 4',
   merge:
     'M18 15a3 3 0 1 1 0 6 3 3 0 0 1 0-6ZM6 3a3 3 0 1 1 0 6 3 3 0 0 1 0-6Zm0 6v12m0-12a9 9 0 0 0 9 9',
   chevronDown: 'm6 9 6 6 6-6',

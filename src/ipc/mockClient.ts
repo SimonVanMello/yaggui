@@ -154,7 +154,14 @@ import {
   setRemoteUrls,
   type MockRemoteTags,
 } from './mock/remotes';
-import { MockWip, unresolvedConflicts, type MockStashState } from './mock/wip';
+import {
+  blobId,
+  fileChanged,
+  lineEndingOf,
+  MockWip,
+  unresolvedConflicts,
+  type MockStashState,
+} from './mock/wip';
 import {
   checkWorkspaceName,
   createMockWorkspaces,
@@ -903,6 +910,7 @@ export class MockBackend {
       steps,
       journal,
       note,
+      logged = true,
     }: {
       cancellable?: boolean;
       delayMs?: number;
@@ -915,6 +923,8 @@ export class MockBackend {
       journal?: (result: T) => MockJournalSpec | null;
       /** `op-finished` note of a success that did not complete (paused, aborted). */
       note?: (result: T) => OpNote | null;
+      /** A Git command, recorded in the log (a file save is not). */
+      logged?: boolean;
     } = {},
   ): Promise<IpcResult<T>> {
     const repo = this.find(repoId);
@@ -945,18 +955,20 @@ export class MockBackend {
         timers.forEach(clearTimeout);
         this.runningOps.delete(opId);
         const failed = result !== 'cancelled' && 'error' in result ? result.error : null;
-        this.logCommand({
-          repoId,
-          args,
-          cwd: repo.known.path,
-          startedAt: MOCK_NOW,
-          durationMs: delayMs + 8,
-          exitCode: result === 'cancelled' ? null : failed ? 1 : 0,
-          status: result === 'cancelled' ? 'cancelled' : failed ? 'failed' : 'success',
-          stdout: failed?.payload?.kind === 'hook' ? failed.payload.stdout : '',
-          stderr: failed?.payload?.kind === 'hook' ? failed.payload.stderr : (failed?.detail ?? ''),
-          truncated: false,
-        });
+        if (logged)
+          this.logCommand({
+            repoId,
+            args,
+            cwd: repo.known.path,
+            startedAt: MOCK_NOW,
+            durationMs: delayMs + 8,
+            exitCode: result === 'cancelled' ? null : failed ? 1 : 0,
+            status: result === 'cancelled' ? 'cancelled' : failed ? 'failed' : 'success',
+            stdout: failed?.payload?.kind === 'hook' ? failed.payload.stdout : '',
+            stderr:
+              failed?.payload?.kind === 'hook' ? failed.payload.stderr : (failed?.detail ?? ''),
+            truncated: false,
+          });
         const wip = this.wips.get(repoId);
         if (wip) repo.state = { ...repo.state, dirty: wip.dirty() };
         if (result === 'cancelled') {
@@ -3102,6 +3114,32 @@ export class MockBackend {
       );
       return 'error' in result ? fail(result.error) : ok(result.ok);
     },
+    worktreeFile: (repoId, path) => {
+      const wip = this.wip(repoId);
+      if (!wip) return fail(this.notOpen(repoId));
+      const file = wip.editableFile(path);
+      if ('error' in file) return fail(file.error);
+      const { text, original } = file.ok;
+      return ok({ text, original, version: blobId(text) ?? '', lineEnding: lineEndingOf(text) });
+    },
+    saveWorktreeFile: (repoId, path, content, version) =>
+      this.runWrite(
+        repoId,
+        'editFile',
+        [],
+        () => {
+          const wip = this.wip(repoId);
+          if (!wip) return { error: this.notOpen(repoId) };
+          const file = wip.editableFile(path);
+          if ('error' in file) return file;
+          if (blobId(file.ok.text) !== version) {
+            return { error: fileChanged(path) };
+          }
+          wip.saveFile(path, content);
+          return { ok: blobId(content) ?? '' };
+        },
+        { logged: false },
+      ),
     fileHistory: (repoId, path, rev, cursor, limit) => {
       const graph = this.graph(repoId);
       if (!graph) return fail(this.notOpen(repoId));
