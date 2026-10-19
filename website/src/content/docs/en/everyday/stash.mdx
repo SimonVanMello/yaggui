@@ -1,0 +1,183 @@
+---
+title: Stashing changes
+description: Put local changes aside with a quick or partial stash, preview stashes, and apply, pop, drop, rename or branch from them.
+sidebar:
+  order: 3
+sources:
+  - src/features/toolbar/StashButton.tsx
+  - src/features/toolbar/Toolbar.tsx
+  - src/app/shellActions.ts
+  - src/features/staging/StashFilesDialog.tsx
+  - src/features/staging/WorktreeFileMenu.tsx
+  - src/features/sidebar/RefTree.tsx
+  - src/features/sidebar/RefContextMenu.tsx
+  - src/features/refs/StashPreviewPanel.tsx
+  - src/features/refs/stashPreview.ts
+  - src/features/refs/refOps.ts
+  - src/features/refs/StashRenameDialog.tsx
+  - src/features/refs/StashConflictDialog.tsx
+  - src/features/refs/CreateBranchDialog.tsx
+  - src-tauri/src/repo/ref_ops.rs
+  - src-tauri/src/repo/commit_tools.rs
+  - src-tauri/src/git/read/refs.rs
+requirements: [F-180, F-181, F-182, F-183, F-184]
+---
+
+import Screenshot from '~/components/Screenshot.astro';
+import stashPopoverDark from '../../../../assets/screens/stash-popover-dark.png';
+import stashPopoverLight from '../../../../assets/screens/stash-popover-light.png';
+import stashFilesDialogDark from '../../../../assets/screens/stash-files-dialog-dark.png';
+import stashFilesDialogLight from '../../../../assets/screens/stash-files-dialog-light.png';
+import stashPreviewDark from '../../../../assets/screens/stash-preview-dark.png';
+import stashPreviewLight from '../../../../assets/screens/stash-preview-light.png';
+import stashConflictDark from '../../../../assets/screens/stash-conflict-dark.png';
+import stashConflictLight from '../../../../assets/screens/stash-conflict-light.png';
+
+A stash saves your uncommitted changes and gives you a clean working tree, so you can switch to something else and bring the changes back later ([git stash](https://git-scm.com/docs/git-stash)). This page covers stashing everything or only some files, finding your stashes, and applying or removing them.
+
+## Stash all your changes
+
+Open the stash form with any of:
+
+- The **Stash** button in the toolbar.
+- <kbd>⌘⇧S</kbd> (<kbd>Ctrl+Shift+S</kbd> on Windows and Linux).
+- The palette action **Stash changes**.
+
+The form offers:
+
+| Field                                | Default | Effect                                                                       |
+| ------------------------------------ | ------- | ---------------------------------------------------------------------------- |
+| **Message (optional)**               | Empty   | The stash name. Without one, Git names it `WIP on <branch>: <sha> <summary>` |
+| **Include untracked files**          | Off     | Also stashes untracked files (`--include-untracked`)                         |
+| **Keep staged changes in the index** | Off     | Stashes everything but leaves the staged changes in place (`--keep-index`)   |
+
+The message starts empty each time you open the form. Click **Stash** (or **Cancel**). With a clean working tree the form says "No local changes to stash." and **Stash** is disabled.
+
+<Screenshot
+  dark={stashPopoverDark}
+  light={stashPopoverLight}
+  alt="The stash form under the toolbar Stash button, with the message field and the Include untracked files and Keep staged changes in the index checkboxes"
+/>
+
+yaggui runs:
+
+```bash
+git stash push -q [--include-untracked] [--keep-index] [--message=<message>]
+```
+
+The toast says "Changes stashed". If Git found nothing to stash, the form closes and the toast says "Nothing to stash: no local changes". A quick stash is not recorded in the undo history: to get the changes back, pop the stash.
+
+## Stash only some files
+
+1. In the **Local changes** panel, select the files (<kbd>⌘</kbd>-click or <kbd>Shift</kbd>-click; <kbd>Ctrl</kbd>-click on Windows and Linux).
+2. Right-click one of them and choose **Stash this file…** or **Stash \{count\} files…**. Conflicted files are left out.
+3. The **Stash \{count\} files** dialog lists the files. Add a **Message (optional)**. If the selection contains untracked files, **Include the untracked files** is shown and checked; uncheck it to leave them in place (they are then marked "untracked, left as is").
+4. Click **Stash \{count\} files**.
+
+Both the staged and unstaged changes of these files go into the stash; every other change stays where it is. yaggui backs the files up first, then runs:
+
+```bash
+git --literal-pathspecs stash push -q [--include-untracked] [--message=<message>] --pathspec-from-file=- --pathspec-file-nul
+```
+
+The toast says "\{count\} files stashed". A partial stash can be undone ("stash of \{count\} files"): undo writes the files back and removes the stash entry. See [Undo and redo](../../history/undo-and-redo/).
+
+<Screenshot
+  dark={stashFilesDialogDark}
+  light={stashFilesDialogLight}
+  alt="The Stash 2 files dialog listing the selected files, with a message field and the Stash 2 files button"
+/>
+
+## Find your stashes
+
+- **Sidebar**: the **Stashes** section lists every stash with its count, newest first, named by its message (**No stash** when empty). The ref filter at the top of the sidebar also matches stash messages.
+- **Graph**: each stash appears as a `stash@{n}` label on the commit it was made from, not as a separate row. To hide these labels, use **Hide stashes** in the graph filter menu or the palette action **Graph: hide or show stashes** (see [The commit graph](../../history/commit-graph/)).
+
+## Preview a stash
+
+Click a stash in the sidebar. The graph selects and scrolls to the stash's base commit, and the right panel shows **Stash details**:
+
+- The message, `stash@{n}` and **on \{sha\}** (the base commit).
+- **Apply**, **Pop** and **Drop…** buttons.
+- **Stashed files**: the changes compared to the base commit, and **Untracked files** if the stash contains some.
+
+Click a file to open its diff in place of the graph. The diff is read-only: no hunk or line actions. Selecting a commit in the graph closes the preview. Clicking the `stash@{n}` label in the graph does not open the preview.
+
+<Screenshot
+  dark={stashPreviewDark}
+  light={stashPreviewLight}
+  alt="The Stash details panel with the stash message, its base commit, the Apply, Pop and Drop buttons and the list of stashed files"
+/>
+
+## Apply, pop, drop, rename
+
+Right-click a stash in the sidebar. Items, in order:
+
+| Item                        | Effect                                                                             | Git                                 | Undo |
+| --------------------------- | ---------------------------------------------------------------------------------- | ----------------------------------- | ---- |
+| **Apply**                   | Applies the changes, keeps the stash                                               | `git stash apply stash@{n}`         | No   |
+| **Pop**                     | Applies the changes and removes the stash                                          | `git stash pop stash@{n}`           | No   |
+| **Create a branch here…**   | Creates a branch on the base commit, checks it out, applies the stash and drops it | `git stash branch <name> stash@{n}` | No   |
+| **Rename…**                 | Changes the stash message                                                          | see below                           | No   |
+| **Drop…**                   | Deletes the stash                                                                  | `git stash drop -q stash@{n}`       | Yes  |
+| **Copy name**, **Copy SHA** | Copy to the clipboard                                                              |                                     |      |
+
+**Apply**, **Pop** and **Drop…** are also in the Stash details panel.
+
+Apply and pop do not pass `--index`, so changes that were staged when you stashed come back as unstaged changes.
+
+Before any of these actions, yaggui checks that the stash is still at the same position. If the list changed in the meantime (for example, you stashed from a terminal), nothing happens and a warning says **The list changed**: check the refreshed list and try again.
+
+### Pop the latest stash
+
+Use the toolbar **Pop** button, <kbd>⌘⇧⌥S</kbd> (<kbd>Ctrl+Shift+Alt+S</kbd> on Windows and Linux), or the palette action **Pop the latest stash**. They pop `stash@{0}`. The toolbar button is disabled when there is no stash; the shortcut then says "No stash to pop".
+
+### Drop a stash
+
+**Drop…** asks for confirmation: **Drop this stash?**, "The stash leaves the list and its changes are no longer applicable from yaggui.", the stash message and `stash@{n}`, the command `git stash drop stash@{n}`, and **Drop the stash**. You can turn this confirmation off in **Preferences › Behavior › Confirmations** (**Drop a stash**).
+
+The toast says "Stash dropped" and gives the stash commit's SHA. To get the stash back, undo ("drop of stash \"\{message\}\""): yaggui runs `git stash store`, which puts it back at the top of the list.
+
+### Rename a stash
+
+Git cannot rename a stash, so **Rename…** re-creates it with the new **Message** at the top of the list:
+
+```bash
+git stash store -q --message=<message> <sha>
+git stash drop -q stash@{n+1}
+```
+
+The message must be non-empty and different from the current one.
+
+### Create a branch from a stash
+
+**Create a branch here…** opens **Create a branch** with **Check it out after creating it** forced on. Enter a **Branch name** (checked with `git check-ref-format`) and confirm. See [Branches](../../history/branches/).
+
+## When the stash conflicts
+
+If applying, popping or branching from a stash leaves conflicts, or an untracked file in the stash already exists in the working tree, the dialog **The stash conflicts** opens:
+
+- "Applying the stash left conflicts in your files. The stash is kept: nothing is lost."
+- **Conflicted files**: the list.
+- **What to do**: resolve the conflict markers in the Changes panel, stage the resolved files, then drop the stash from the sidebar. yaggui does not drop it for you, even after a pop.
+
+Click **Understood**, then resolve as described in [Conflicts](../../history/conflicts/).
+
+If the stash would overwrite local changes, nothing is applied and the toast says "Your local changes would be overwritten by the checkout. Stash them first (stash, checkout, then pop)." Commit or stash your current changes, then try again.
+
+<Screenshot
+  dark={stashConflictDark}
+  light={stashConflictLight}
+  alt="The stash conflicts dialog listing the conflicted files and the three steps to follow"
+/>
+
+## What can be undone
+
+| Action                              | Undoable                   |
+| ----------------------------------- | -------------------------- |
+| Quick stash                         | No (pop the stash instead) |
+| Partial stash                       | Yes                        |
+| Apply, pop, rename, create a branch | No                         |
+| Drop                                | Yes                        |
+
+See [Undo and redo](../../history/undo-and-redo/).

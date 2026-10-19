@@ -1,0 +1,196 @@
+---
+title: Command palette and shortcuts
+description: Run any action from the command palette, see your shortcuts, rebind them in the preferences or in keybindings.json, and navigate yaggui with the keyboard.
+sidebar:
+  order: 2
+sources:
+  - src/features/palette/**
+  - src/features/keybindings/**
+  - src/app/shellActions.ts
+  - src/app/useShortcuts.ts
+  - src/ui/shortcuts.ts
+  - src/ui/platform.ts
+  - src-tauri/src/store/keybindings.rs
+  - src-tauri/src/commands/settings.rs
+requirements: [F-280, F-281, F-282, F-283]
+---
+
+import Screenshot from '~/components/Screenshot.astro';
+import paletteDark from '../../../../assets/screens/palette-dark.png';
+import paletteLight from '../../../../assets/screens/palette-light.png';
+import keybindingsDark from '../../../../assets/screens/keybindings-dark.png';
+import keybindingsLight from '../../../../assets/screens/keybindings-light.png';
+import keybindingsConflictDark from '../../../../assets/screens/keybindings-conflict-dark.png';
+import keybindingsConflictLight from '../../../../assets/screens/keybindings-conflict-light.png';
+
+The command palette gives you every yaggui action plus the branches, tags, commits, changed files and tabs of the window from one search field. Every action and most global keys have a stable identifier and a shortcut you can change.
+
+## Open the command palette
+
+Press <kbd>⌘K</kbd> (<kbd>Ctrl+K</kbd> on Windows and Linux). The same shortcut closes it, and so do <kbd>Esc</kbd> and a click outside. It works from anywhere, including the integrated terminal.
+
+<Screenshot
+  dark={paletteDark}
+  light={paletteLight}
+  alt="The command palette open over the graph, with actions, branches and commits matching the query"
+/>
+
+Type to filter. The search is fuzzy: `fpu` finds **Force push (with lease)**. Use <kbd>↑</kbd> and <kbd>↓</kbd> to move (the list wraps), <kbd>Home</kbd> and <kbd>End</kbd> when the field is empty, and <kbd>Enter</kbd> to run the highlighted entry. The footer shows the number of results.
+
+## What the palette searches
+
+| Kind       | What you get                                                                                                                              | What <kbd>Enter</kbd> does                                                                   |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| **Action** | Every command of yaggui: open, clone, fetch, push, create a branch, toggle panels, open preferences…                                      | Runs it                                                                                      |
+| **Branch** | Local and remote branches of the active repository                                                                                        | Selects its commit in the graph and adds it to the recent branches. It does not check it out |
+| **Tag**    | Tags, with the tag message as detail                                                                                                      | Selects its commit in the graph                                                              |
+| **Commit** | Commits whose message, author or SHA prefix matches, with `<short SHA> · <author>` as detail                                              | Selects the commit in the graph                                                              |
+| **File**   | The files of the commit selected in the graph or, with no selection, your staged and unstaged changes (detail `staged` or `working tree`) | Opens the file's diff                                                                        |
+| **Tab**    | The other tabs of the window                                                                                                              | Switches to it                                                                               |
+
+The file search does not cover every file in the repository, only the changed files listed above. Commit search runs in the background and starts once the query has 2 characters; "Searching…" shows while it runs, and up to 12 commits are listed. At most 50 results show at once.
+
+Actions that cannot run right now (no repository open, no commit selected, no operation in progress…) stay listed, greyed out, with the detail "Coming soon", and do nothing.
+
+### Narrow the search with a prefix
+
+Start the query with one of these characters to search a single kind. The footer recalls them.
+
+| Prefix | Searches                           |
+| ------ | ---------------------------------- |
+| `>`    | Actions only                       |
+| `@`    | Branches and tags                  |
+| `#`    | Commits (from the first character) |
+| `/`    | Changed files                      |
+
+Without a prefix, every kind is searched, and tabs only appear in this mode.
+
+### Recents and order
+
+With an empty query, your 8 most recently run entries come first, then actions grouped as Repository, Tabs, View, Application and Git, then tabs, branches and tags, and files. Recents are stored on this computer only. When you type, the best matches come first; recents and the current branch get a small boost, and disabled actions sink to the bottom.
+
+### Shortcuts in the results
+
+An action that has a shortcut shows it on the right of its row, with your current binding. Other rows show their kind there: Action, Branch, Tag, Commit, File or Tab.
+
+## See every shortcut
+
+Press <kbd>⌘/</kbd> (<kbd>Ctrl+/</kbd> on Windows and Linux) or run **Show keyboard shortcuts** to open the **Keyboard shortcuts** sheet. It lists every bound command with your current shortcut, grouped as Repository, Tabs, View, Application, Git and Graph. **Edit shortcuts…** opens the preferences on the **Shortcuts** tab.
+
+On macOS, shortcuts use the symbols ⌘ ⌃ ⌥ ⇧ ↵; on Windows and Linux they read `Ctrl`, `Alt`, `Shift`, `Enter`.
+
+:::note
+On keyboard layouts where `/` needs <kbd>Shift</kbd> (AZERTY, for example), the default <kbd>⌘/</kbd> does not fire. Rebind **Show keyboard shortcuts** or use the palette. Letters and digits are matched by their physical position, so they work on every layout.
+:::
+
+The complete list of default shortcuts is in the [keyboard shortcuts reference](../../reference/keyboard-shortcuts/).
+
+## Rebind a shortcut
+
+1. Open **Preferences › Shortcuts** (or click **Edit shortcuts…** in the cheat sheet).
+2. Find the command. **Filter commands or shortcuts** matches the label, the action id or the shortcut text.
+3. Click **Edit** on its row. The button reads "Press the shortcut… (Esc to cancel)".
+4. Press the new combination. Pressing only modifiers keeps waiting; <kbd>Esc</kbd> or clicking elsewhere cancels.
+
+The shortcut is saved at once and applies everywhere: palette hints, the cheat sheet, tooltips and, on macOS, the menu bar.
+
+<Screenshot
+  dark={keybindingsDark}
+  light={keybindingsLight}
+  alt="The Shortcuts tab of the preferences, with commands grouped by section and Edit, Remove and Default buttons on each row"
+/>
+
+### Rules for a shortcut
+
+- It needs at least one of <kbd>⌘</kbd>, <kbd>Ctrl</kbd> or <kbd>Alt</kbd> (<kbd>⌥</kbd>) plus a key. <kbd>Shift</kbd> alone does not count. Function keys <kbd>F1</kbd> to <kbd>F12</kbd> are the exception: they can be used alone.
+- The Windows key cannot be used on Windows and Linux.
+- Otherwise you see "Use a modifier (⌘, Ctrl, Alt) with a key, or a function key." and the capture waits for another combination.
+- On macOS, <kbd>⌘</kbd> and <kbd>⌃</kbd> are distinct. On Windows and Linux, <kbd>Ctrl</kbd> plays the role of <kbd>⌘</kbd>.
+- yaggui does not detect shortcuts reserved by your OS or window manager. If a shortcut never reaches yaggui, pick another.
+
+### Resolve a conflict
+
+If the combination already belongs to another command, the row shows "Already used by: _command_" with two buttons:
+
+- **Reassign** gives the shortcut to this command and removes it from the other one, in one save.
+- **Cancel** keeps everything as it was.
+
+<Screenshot
+  dark={keybindingsConflictDark}
+  light={keybindingsConflictLight}
+  alt="A shortcut capture showing Already used by: New tab, with the Reassign and Cancel buttons"
+/>
+
+Conflicts that come from a hand-edited file show on each affected row as "Same shortcut as: _command_".
+
+### Remove or reset shortcuts
+
+- **Remove** leaves the command without a shortcut ("No shortcut"). It stays available in the palette.
+- **Default** restores the command's default shortcut. It is enabled only for commands you changed; changed shortcuts are highlighted.
+- **Reset all to defaults** in the toolbar removes all your changes.
+
+## Edit keybindings.json
+
+Your changes are stored in `keybindings.json`, in yaggui's configuration folder (see [Data and privacy](../../reference/data-and-privacy/)). The full path is shown under **Stored in** at the bottom of the Shortcuts tab. The file only holds what differs from the defaults:
+
+```json
+{
+  "git.push": "Mod+Alt+P",
+  "graph.copyMessage": null,
+  "view.log": "F2"
+}
+```
+
+- Keys are action ids. The Shortcuts tab shows them when you filter, and the [reference](../../reference/keyboard-shortcuts/) lists them all.
+- A string sets the shortcut; `null` removes it; a missing id keeps the default.
+- Shortcut syntax: modifiers among `Mod`, `Ctrl`, `Alt` and `Shift`, each at most once, then one key, joined by `+`. `Mod` is ⌘ on macOS and Ctrl on Windows and Linux; `Ctrl` is the physical Control key everywhere. Keys: `A` to `Z`, digits, `F1` to `F12`, `Space`, `Enter`, `Escape`, `Tab`, `ArrowLeft`, `ArrowRight`, `ArrowUp`, `ArrowDown`, `` ` ``, and punctuation such as `,` and `/`.
+
+yaggui reads the file at startup and again each time you open the Shortcuts tab, so hand edits take effect there without a restart. When yaggui saves a change, it rewrites the whole file (sorted, pretty-printed).
+
+If the file cannot be read or is not valid JSON, yaggui uses the default shortcuts and the Shortcuts tab shows a banner "keybindings.json has a problem: _detail_". If only some entries are wrong, the others apply and the banner reads "Ignored entries: _ids_". yaggui does not touch the file until you change a shortcut in the tab; at that point it is rewritten with the shortcuts the tab shows, which drops the invalid content.
+
+:::caution
+If the banner reports a parse error, fix the file by hand before changing a shortcut in the tab, or the overrides yaggui could not read are lost.
+:::
+
+## Keys that cannot be rebound
+
+Some keys only make sense inside one panel and are fixed:
+
+| Where              | Keys                                                                                                                                                                                                                              |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Graph (focused)    | <kbd>↑</kbd> <kbd>↓</kbd> move, with <kbd>Shift</kbd> to extend the selection; <kbd>Page Up</kbd> <kbd>Page Down</kbd>; <kbd>Home</kbd> <kbd>End</kbd>; <kbd>Shift+F10</kbd> or the Menu key for the context menu; <kbd>Esc</kbd> |
+| Diff view          | <kbd>n</kbd> / <kbd>p</kbd> next or previous hunk; <kbd>j</kbd> / <kbd>k</kbd> next or previous file; <kbd>⌘D</kbd> (<kbd>Ctrl+D</kbd>) split or unified; <kbd>Esc</kbd> clears the line selection, then closes the diff          |
+| Diff lines         | <kbd>↑</kbd> <kbd>↓</kbd> (with <kbd>Shift</kbd> to extend); <kbd>Space</kbd> selects a line; <kbd>Enter</kbd> stages (unstages in the staged diff); <kbd>Backspace</kbd> or <kbd>Delete</kbd> discards the selected lines        |
+| Changed files      | <kbd>↑</kbd> <kbd>↓</kbd> select and open the diff (with <kbd>Shift</kbd> to extend); <kbd>Space</kbd> stages or unstages                                                                                                         |
+| Refs sidebar       | Arrow keys, <kbd>Home</kbd> <kbd>End</kbd>, <kbd>Page Up</kbd> <kbd>Page Down</kbd>, <kbd>Enter</kbd> or <kbd>Space</kbd> to activate, type-ahead letters, <kbd>⌘C</kbd> (<kbd>Ctrl+C</kbd>) copies the ref name                  |
+| Tab strip          | <kbd>←</kbd> <kbd>→</kbd> previous or next tab, <kbd>Home</kbd> <kbd>End</kbd>, <kbd>Delete</kbd> closes the focused tab                                                                                                          |
+| Conflict view      | <kbd>⌥↓</kbd> / <kbd>⌥↑</kbd> (<kbd>Alt+↓</kbd> / <kbd>Alt+↑</kbd>) next or previous conflict, <kbd>⌘S</kbd> (<kbd>Ctrl+S</kbd>) saves                                                                                            |
+| Interactive rebase | <kbd>⌥↑</kbd> / <kbd>⌥↓</kbd> moves a commit; <kbd>p</kbd> <kbd>r</kbd> <kbd>s</kbd> <kbd>f</kbd> <kbd>d</kbd> <kbd>e</kbd> set the action                                                                                        |
+
+The complete list is in the [keyboard shortcuts reference](../../reference/keyboard-shortcuts/).
+
+## How shortcuts behave
+
+- While a dialog is open, global shortcuts and menu commands are ignored. The palette shortcut still closes the palette.
+- In a text field, <kbd>⌘Z</kbd> and <kbd>⌘⇧Z</kbd> (<kbd>Ctrl+Z</kbd>, <kbd>Ctrl+Shift+Z</kbd>, <kbd>Ctrl+Y</kbd>) undo and redo the typing, not the last Git operation. See [Undo and redo](../../history/undo-and-redo/).
+- When the integrated terminal has focus, it receives every key except the palette shortcut and the two terminal shortcuts (<kbd>⌃`</kbd> and <kbd>⌃⇧`</kbd>, which use Control on macOS too).
+- A shortcut for an action that cannot run does nothing. Undo and redo are the exception: they explain why nothing can be undone.
+- <kbd>⌘C</kbd> and <kbd>⌘⇧C</kbd> (<kbd>Ctrl+C</kbd>, <kbd>Ctrl+Shift+C</kbd>) copy the SHA or
+  message of the selected commits only when the graph has focus.
+
+## Navigate with the keyboard
+
+Every control shows a visible focus ring. <kbd>Tab</kbd> and <kbd>Shift+Tab</kbd> move between the toolbar, the refs sidebar, the graph, the details panel and the changes lists; arrow keys then move inside the list or tree that has focus. A few global shortcuts jump straight to a place:
+
+| Shortcut                                                                             | Goes to                                |
+| ------------------------------------------------------------------------------------ | -------------------------------------- |
+| <kbd>⌘K</kbd> (<kbd>Ctrl+K</kbd>)                                                    | Command palette                        |
+| <kbd>⌘F</kbd> (<kbd>Ctrl+F</kbd>)                                                    | Graph search                           |
+| <kbd>⌘⇧H</kbd> (<kbd>Ctrl+Shift+H</kbd>)                                             | HEAD in the graph                      |
+| <kbd>⌘⇧R</kbd> (<kbd>Ctrl+Shift+R</kbd>)                                             | Filter field of the refs sidebar       |
+| <kbd>⌘⌥B</kbd> / <kbd>⌘⌥I</kbd> (<kbd>Ctrl+Alt+B</kbd> / <kbd>Ctrl+Alt+I</kbd>)      | Show or hide the refs or details panel |
+| <kbd>⌘1</kbd> to <kbd>⌘9</kbd> (<kbd>Ctrl+1</kbd> to <kbd>Ctrl+9</kbd>)              | Tab 1 to 9                             |
+| <kbd>⌃Tab</kbd> / <kbd>⌃⇧Tab</kbd> (<kbd>Ctrl+Tab</kbd> / <kbd>Ctrl+Shift+Tab</kbd>) | Next or previous tab                   |
+
+Panel resizers can be focused and moved with the arrow keys.

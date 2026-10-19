@@ -1,0 +1,82 @@
+---
+// A shell command with a copy button. Without JavaScript the command stays selectable.
+import { localeOf } from '../i18n/ui';
+import { tl } from '../i18n/landing';
+
+interface Props {
+  command: string;
+}
+
+const { command } = Astro.props;
+const locale = localeOf(Astro.url);
+---
+
+<div class="copy">
+  <code tabindex="0">{command}</code>
+  <button
+    type="button"
+    data-copy={command}
+    data-done={tl(locale, 'copy.done')}
+    aria-label={tl(locale, 'copy.label')}
+  >
+    {tl(locale, 'copy.copy')}
+  </button>
+</div>
+
+<script>
+  for (const button of document.querySelectorAll<HTMLButtonElement>('.copy button[data-copy]')) {
+    const label = button.textContent;
+    button.addEventListener('click', async () => {
+      const code = button.previousElementSibling;
+      try {
+        await navigator.clipboard.writeText(button.dataset.copy ?? '');
+      } catch {
+        // No clipboard access (insecure context, permission): select the text so Ctrl+C works.
+        if (code) getSelection()?.selectAllChildren(code);
+        return;
+      }
+      button.textContent = button.dataset.done ?? label;
+      setTimeout(() => (button.textContent = label), 1400);
+    });
+  }
+</script>
+
+<style is:global>
+  .copy {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    max-width: 100%;
+    padding: 8px 8px 8px 14px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--card);
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--fg2);
+  }
+  .copy code {
+    overflow-x: auto;
+    white-space: nowrap;
+    min-width: 0;
+    font-size: inherit;
+  }
+  .copy code::before {
+    content: '$ ';
+    color: var(--muted);
+  }
+  .copy button {
+    font: inherit;
+    font-size: 11.5px;
+    border: 1px solid var(--line2);
+    background: var(--elev);
+    color: var(--fg2);
+    border-radius: 6px;
+    padding: 4px 9px;
+    cursor: pointer;
+    flex: none;
+  }
+  .copy button:hover {
+    color: var(--fg);
+  }
+</style>

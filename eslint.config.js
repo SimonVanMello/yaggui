@@ -12,6 +12,8 @@ export default tseslint.config(
       'test-results',
       'playwright-report',
       'docs',
+      // Standalone package with its own checks (`cd website && pnpm check`).
+      'website',
       'src/ipc/bindings.ts',
     ],
   },

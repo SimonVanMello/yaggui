@@ -1,0 +1,179 @@
+---
+title: Visite de la fenêtre
+description: Les zones de la fenêtre de yaggui, ce que chacune affiche et où en lire davantage.
+sidebar:
+  order: 5
+sources:
+  - src/app/**
+  - src/features/repo/RepoBanners.tsx
+  - src/features/statusbar/**
+  - src/features/command-log/**
+  - src/features/toolbar/**
+  - src/ui/Toaster.tsx
+  - src/ui/toastStore.ts
+  - src/ipc/nativeMenu.ts
+  - src-tauri/src/store/repo_ui_state.rs
+requirements: [F-004, F-300, F-301, F-302, F-322]
+---
+
+import Screenshot from '~/components/Screenshot.astro';
+import tourWindowDark from '../../../../assets/screens/tour-window-fr-dark.png';
+import tourWindowLight from '../../../../assets/screens/tour-window-fr-light.png';
+import tourCommandLogDark from '../../../../assets/screens/tour-command-log-fr-dark.png';
+import tourCommandLogLight from '../../../../assets/screens/tour-command-log-fr-light.png';
+import tourErrorToastDark from '../../../../assets/screens/tour-error-toast-fr-dark.png';
+import tourErrorToastLight from '../../../../assets/screens/tour-error-toast-fr-light.png';
+import indexLockBannerDark from '../../../../assets/screens/index-lock-banner-fr-dark.png';
+import indexLockBannerLight from '../../../../assets/screens/index-lock-banner-fr-light.png';
+
+Cette page parcourt la fenêtre de yaggui de haut en bas, et renvoie chaque zone vers la page qui la détaille.
+
+<Screenshot
+  dark={tourWindowDark}
+  light={tourWindowLight}
+  alt="La fenêtre de yaggui avec un dépôt ouvert : barre d’onglets, barre d’outils, panneau des références, graphe des commits, panneau des changements et barre d’état"
+/>
+
+## Barre de titre et onglets
+
+La barre du haut contient un onglet par dépôt ouvert.
+
+- Chaque onglet de dépôt affiche un point de couleur, le nom du dépôt et, s’il y a des modifications non commitées, leur nombre. Un indicateur d’activité signifie que le dépôt est en cours d’ouverture ou qu’une opération s’exécute ; une icône d’avertissement signifie qu’un merge, un rebase ou une opération similaire est en cours, ou qu’il y a des conflits ; une icône rouge signifie que le dépôt n’a pas pu être ouvert. Survolez un onglet pour voir son chemin complet et son état.
+- **+** (**Nouvel onglet**, <kbd>⌘T</kbd>, <kbd>Ctrl+T</kbd> sous Windows et Linux) ouvre un onglet d’accueil.
+- Le bouton en forme d’engrenage à droite, **Préférences**, ouvre les préférences (<kbd>⌘,</kbd>, <kbd>Ctrl+,</kbd> sous Windows et Linux).
+- Sous Windows et Linux, yaggui dessine ses propres boutons **Réduire**, **Agrandir** et **Fermer** à droite. Sous macOS, les boutons de fenêtre habituels sont à gauche.
+- Faites glisser une partie vide de la barre pour déplacer la fenêtre ; double-cliquez dessus pour l’agrandir ou la restaurer.
+
+Le changement d’onglet, leur réorganisation, leur fermeture et leurs raccourcis sont décrits dans [Onglets](../../workspaces/tabs/).
+
+## Barre d’outils
+
+La barre d’outils se trouve en haut d’un onglet de dépôt. Survolez un bouton pour voir ce qu’il fait, la commande Git qu’il lance et son raccourci.
+
+| Bouton                                                                         | Ce qu’il fait                                                                                                     | Pour en savoir plus                                                               |
+| ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| **Annuler** / **Rétablir**                                                     | Annule ou rétablit la dernière opération locale ; la flèche à côté en liste l’historique                          | [Annuler et rétablir](../../history/undo-and-redo/)                               |
+| **Pull**                                                                       | Fait un fetch puis intègre la branche amont ; la flèche choisit la stratégie. Le badge compte les commits à tirer | [Fetch, pull et push](../../remotes/fetch-pull-push/)                             |
+| **Push**                                                                       | Pousse la branche courante ; la flèche propose le force push avec lease. Le badge compte les commits à pousser    | [Fetch, pull et push](../../remotes/fetch-pull-push/)                             |
+| **Fetch**                                                                      | Récupère tous les remotes ; la flèche récupère un seul remote                                                     | [Fetch, pull et push](../../remotes/fetch-pull-push/)                             |
+| **Branche**                                                                    | Crée une branche à partir du commit courant                                                                       | [Branches](../../history/branches/)                                               |
+| **Tag**                                                                        | Crée un tag sur le commit courant                                                                                 | [Tags](../../history/tags/)                                                       |
+| **Stash**                                                                      | Met vos modifications en stash                                                                                    | [Stash](../../everyday/stash/)                                                    |
+| **Pop**                                                                        | Applique puis supprime le dernier stash                                                                           | [Stash](../../everyday/stash/)                                                    |
+| **Terminal**                                                                   | Affiche ou masque le terminal intégré, ou ouvre votre terminal externe, selon vos préférences                     | [Terminal](../../repository/terminal/)                                            |
+| **Fichiers**                                                                   | Ouvre le dossier du dépôt dans le gestionnaire de fichiers                                                        | —                                                                                 |
+| Branche courante                                                               | Affiche la branche extraite ; cliquez dessus pour changer de branche                                              | [Branches](../../history/branches/)                                               |
+| **Afficher/masquer le panneau gauche** / **Afficher/masquer le panneau droit** | Masquent ou affichent les panneaux latéraux                                                                       | [Redimensionner et masquer les panneaux](#redimensionner-et-masquer-les-panneaux) |
+
+## Panneau gauche : les références
+
+Le panneau gauche liste les branches locales, les branches distantes, les tags, les stashes, les sous-modules et les worktrees du dépôt, avec un champ de filtre en haut. Cliquez sur une entrée pour afficher son commit dans le graphe ; faites un clic droit pour ses actions. Voir [Branches](../../history/branches/), [Tags](../../history/tags/), [Stash](../../everyday/stash/), [Sous-modules](../../repository/submodules/) et [Worktrees](../../repository/worktrees/).
+
+## Centre : le graphe des commits et les vues qui le remplacent
+
+Le centre affiche le graphe des commits : chaque commit, avec les branches dessinées sous forme de lignes colorées. La rangée du haut, quand vous avez des modifications non commitées, représente votre arbre de travail. Voir [Graphe des commits](../../history/commit-graph/).
+
+Certaines vues prennent la place du graphe :
+
+- le diff d’un fichier : [Diff](../../everyday/diff/) ;
+- l’éditeur de conflits : [Conflits](../../history/conflicts/) ;
+- l’historique d’un fichier, son blame, ou le reflog : [Historique et blame d’un fichier](../../inspect/file-history-and-blame/), [Reflog](../../inspect/reflog/) ;
+- la liste du rebase interactif : [Rebase interactif](../../history/interactive-rebase/).
+
+Appuyez sur <kbd>Esc</kbd> ou cliquez sur **Graphe** dans la barre d’outils de la vue pour revenir au graphe. Dans un diff où vous avez sélectionné des lignes, le premier appui sur <kbd>Esc</kbd> efface la sélection. La liste du rebase interactif n’a pas de bouton **Graphe** : <kbd>Esc</kbd> l’annule.
+
+## Panneau droit : les détails
+
+Ce que le panneau droit affiche dépend de ce que vous avez sélectionné :
+
+| Sélection                                   | Panneau droit                                                                                                                                                                                            | Pour en savoir plus                                                                                                |
+| ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Votre arbre de travail, ou rien             | Le panneau des changements : fichiers non indexés et indexés, et la zone de commit. Pendant un merge, un rebase ou une autre opération, ou en cas de conflits, une liste de conflits s’affiche au-dessus | [Indexation](../../everyday/staging/), [Commits](../../everyday/committing/), [Conflits](../../history/conflicts/) |
+| Un commit                                   | Les détails du commit : message, auteur, fichiers                                                                                                                                                        | [Graphe des commits](../../history/commit-graph/)                                                                  |
+| Un stash dans le panneau gauche             | Les détails du stash                                                                                                                                                                                     | [Stash](../../everyday/stash/)                                                                                     |
+| Une comparaison de deux branches ou commits | La comparaison                                                                                                                                                                                           | [Comparer](../../inspect/compare/)                                                                                 |
+
+## Barre d’état
+
+La barre en bas de la fenêtre affiche :
+
+- **À gauche**, dans un onglet de dépôt : l’opération en cours, avec son nom, sa phase, son pourcentage, les données transférées et une petite barre de progression. Cliquez sur **Annuler** pour arrêter une opération qui peut l’être. Quand elle se termine, la barre conserve un court résultat comme « Fetch terminé » ou « Push a échoué » avec l’heure.
+- **yaggui \<version\>** : ouvre **Nouveautés**. Voir [Mises à jour](../updates/#nouveautés).
+- **git \<version\>** : la version de Git utilisée par yaggui. Une icône d’avertissement apparaît quand elle est antérieure à 2.30, et **git introuvable** la remplace quand il n’y a pas de Git. Voir [Installer yaggui](../install/#prérequis).
+- **Journal (\<nombre\>)** : affiche ou masque le journal des commandes. Le nombre compte les commandes qu’il contient, comme dans **Journal (12)**.
+
+## Journal des commandes
+
+Le journal des commandes liste chaque commande Git lancée par yaggui, de la plus récente à la plus ancienne, avec son état de sortie, sa durée et son heure. Ouvrez-le avec <kbd>⌘J</kbd> (<kbd>Ctrl+J</kbd> sous Windows et Linux), avec le bouton **Journal** de la barre d’état, ou avec **Ouvrir le journal** sur une erreur. Cliquez sur une commande pour voir son dossier et sa sortie, et pour copier la commande ou sa sortie.
+
+<Screenshot
+  dark={tourCommandLogDark}
+  light={tourCommandLogLight}
+  alt="Le panneau du journal des commandes ouvert en bas de la fenêtre, avec une commande dépliée pour montrer sa sortie"
+/>
+
+Le journal est conservé en mémoire et vidé quand yaggui se ferme. Voir [Journal des commandes](../../reference/command-log/).
+
+## Notifications et erreurs
+
+Les notifications apparaissent en bas à droite.
+
+- Les notifications d’information et de succès se ferment toutes seules au bout de quelques secondes.
+- Les notifications d’erreur restent affichées jusqu’à ce que vous les fermiez avec **×** (ou que vous les fassiez glisser vers la droite).
+- **Détails** déplie le texte technique derrière un message, en général la sortie de Git elle-même.
+- Une notification peut porter un bouton qui agit sur le problème, par exemple **Réessayer**, **Ouvrir le journal**, **Faire confiance au dossier…**, **Supprimer le verrou…**, **Renseigner mon identité** ou **Pull puis push**.
+
+<Screenshot
+  dark={tourErrorToastDark}
+  light={tourErrorToastLight}
+  alt="Une notification d’erreur avec son message, une section Détails et un bouton Réessayer"
+/>
+
+Dans une boîte de dialogue ou un panneau, les erreurs apparaissent sur place, avec le même message, **Détails** et le bouton d’action.
+
+Chaque message et la marche à suivre sont listés dans [Messages d’erreur](../../reference/error-messages/).
+
+## Bannières
+
+Les bannières apparaissent au-dessus du graphe quand le dépôt demande votre attention.
+
+- **Opération en cours** : un merge, un rebase, un cherry-pick, un revert, un bisect ou un `git am` est interrompu, par exemple à cause de conflits. La bannière affiche la progression (comme « Rebase 3/7 ») et, selon l’état, **Voir les conflits**, **Continuer**, **Passer** et un bouton d’annulation tel que **Annuler le rebase** ou **Arrêter le bisect**. Voir [Conflits](../../history/conflicts/).
+- **index.lock** : un fichier `.git/index.lock` existe. Quand il est récent, la bannière indique **Un autre processus Git utilise ce dépôt** et disparaît quand ce processus se termine. Quand il date de plus de 10 secondes, la bannière indique **Un processus Git a probablement planté et laissé index.lock** et propose **Supprimer le verrou…**. Assurez-vous qu’aucun autre programme Git ne travaille sur le dépôt, puis confirmez avec **Supprimer le verrou**.
+- **Rafraîchissement automatique indisponible** : yaggui ne peut pas surveiller le dossier pour détecter les modifications, souvent parce que la limite du système sur les fichiers surveillés est atteinte. Les modifications faites en dehors de yaggui apparaissent après un clic sur **Actualiser**. Voir [Dépannage](../../help/troubleshooting/).
+
+<Screenshot
+  dark={indexLockBannerDark}
+  light={indexLockBannerLight}
+  alt="Bannière au-dessus du graphe indiquant qu’un processus Git a probablement planté et laissé index.lock, avec un bouton Supprimer le verrou"
+/>
+
+## Redimensionner et masquer les panneaux
+
+Faites glisser la bordure entre deux panneaux pour les redimensionner. Le panneau gauche peut mesurer de 160 à 480 pixels de large, le panneau droit de 260 à 600. Faites glisser un panneau en dessous d’environ la moitié de sa largeur minimale pour le réduire.
+
+Les bordures fonctionnent aussi au clavier : donnez-leur le focus avec <kbd>Tab</kbd>, puis utilisez <kbd>←</kbd> et <kbd>→</kbd> pour redimensionner par pas de 16 pixels, et <kbd>Enter</kbd> ou <kbd>Space</kbd> pour réduire ou développer. Un double-clic sur une bordure réduit ou développe aussi le panneau.
+
+| Panneau               | Bouton de la barre d’outils            | Raccourci                                                    |
+| --------------------- | -------------------------------------- | ------------------------------------------------------------ |
+| Gauche                | **Afficher/masquer le panneau gauche** | <kbd>⌥⌘B</kbd> (<kbd>Ctrl+Alt+B</kbd> sous Windows et Linux) |
+| Droit                 | **Afficher/masquer le panneau droit**  | <kbd>⌥⌘I</kbd> (<kbd>Ctrl+Alt+I</kbd> sous Windows et Linux) |
+| Journal des commandes | **Journal** dans la barre d’état       | <kbd>⌘J</kbd> (<kbd>Ctrl+J</kbd> sous Windows et Linux)      |
+
+Sur une fenêtre étroite, yaggui garde le graphe à une largeur d’au moins 320 pixels en réduisant d’abord le panneau droit, puis le gauche. Les tailles que vous avez choisies reviennent quand la fenêtre redevient large.
+
+yaggui mémorise, pour chaque dépôt, la taille des panneaux, les panneaux réduits, les sections du panneau gauche et les colonnes du graphe. Rouvrir un dépôt, dans n’importe quel onglet, restaure sa disposition. La hauteur du journal des commandes n’est pas mémorisée.
+
+## Barre de menus macOS
+
+Sous macOS, yaggui a une barre de menus. Windows et Linux n’en ont pas : utilisez la barre d’outils, la palette de commandes (<kbd>Ctrl+K</kbd>) et les raccourcis.
+
+| Menu             | Éléments                                                                                                                                                                                     |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **yaggui**       | À propos de yaggui, **Préférences…**, **Réglage du terminal…**, Services, Masquer yaggui, Masquer les autres, Tout afficher, Quitter yaggui                                                  |
+| **Fichier**      | **Nouvel onglet** (<kbd>⌘T</kbd>), **Ouvrir un dépôt…** (<kbd>⌘O</kbd>), **Cloner un dépôt…**, **Initialiser un dépôt…**, **Fermer l'onglet** (<kbd>⌘W</kbd>)                                |
+| **Édition**      | **Annuler** (<kbd>⌘Z</kbd>), **Rétablir** (<kbd>⇧⌘Z</kbd>), Couper, Copier, Coller, Tout sélectionner                                                                                        |
+| **Présentation** | **Afficher ou masquer le panneau gauche** (<kbd>⌥⌘B</kbd>), **Afficher ou masquer le panneau droit** (<kbd>⌥⌘I</kbd>), **Journal des commandes** (<kbd>⌘J</kbd>), Passer en mode plein écran |
+| **Fenêtre**      | Placer dans le Dock, Réduire/agrandir, **Afficher l'onglet suivant**, **Afficher l'onglet précédent**, Tout ramener au premier plan                                                          |
+| **Aide**         | **Nouveautés de yaggui**, **Journal des commandes**                                                                                                                                          |
+
+**Annuler** et **Rétablir** annulent des opérations de yaggui, sauf quand un champ de texte a le focus : ils annulent alors la saisie. **Fermer l'onglet** ferme l’onglet, jamais la fenêtre. Les entrées de menu ne font rien tant qu’une boîte de dialogue est ouverte. Si vous modifiez un raccourci, le menu affiche le nouveau.

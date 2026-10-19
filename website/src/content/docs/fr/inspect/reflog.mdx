@@ -1,0 +1,114 @@
+---
+title: Reflog
+description: Parcourez les positions successives de HEAD et de chaque branche dans yaggui, et retrouvez un état perdu avec une nouvelle branche ou un reset.
+sidebar:
+  order: 3
+sources:
+  - src/features/inspect/ReflogView.tsx
+  - src/features/inspect/reflogModel.ts
+  - src/features/refs/CreateBranchDialog.tsx
+  - src/features/history/ResetDialog.tsx
+  - src/features/sidebar/RefContextMenu.tsx
+  - src-tauri/src/repo/inspect.rs
+  - src-tauri/src/git/read/reflog.rs
+requirements: [F-222]
+---
+
+import Screenshot from '~/components/Screenshot.astro';
+import reflogDark from '../../../../assets/screens/reflog-fr-dark.png';
+import reflogLight from '../../../../assets/screens/reflog-fr-light.png';
+import reflogResetDark from '../../../../assets/screens/reflog-reset-fr-dark.png';
+import reflogResetLight from '../../../../assets/screens/reflog-reset-fr-light.png';
+
+Le reflog est le journal local où Git enregistre chaque position prise par une référence : chaque commit, checkout, reset, merge ou rebase déplace HEAD ou une branche et ajoute une entrée ([git reflog](https://git-scm.com/docs/git-reflog)). yaggui l’affiche dans une vue qui remplace le graphe, et vous permet de retrouver n’importe quel état enregistré, par exemple une branche perdue après un reset ou un rebase.
+
+## Ouvrir le reflog
+
+| Point d’entrée                                                                                   | Reflog affiché         |
+| ------------------------------------------------------------------------------------------------ | ---------------------- |
+| Palette (<kbd>⌘K</kbd>, <kbd>Ctrl+K</kbd> sous Windows et Linux) → **Afficher le reflog (HEAD)** | HEAD                   |
+| Barre latérale, clic droit sur la ligne HEAD (attaché ou détaché) → **Reflog**                   | HEAD                   |
+| Barre latérale, clic droit sur une branche locale → **Reflog**                                   | Cette branche          |
+| Barre latérale, clic droit sur une branche distante → **Reflog**                                 | Cette branche de suivi |
+
+Dans la vue, le bouton de référence de l’en-tête (**Référence**) permet de passer de HEAD à vos branches locales. Les branches de suivi ne sont accessibles que depuis la barre latérale.
+
+Appuyez sur <kbd>Esc</kbd> ou cliquez sur **Graphe** pour revenir au graphe.
+
+## Lire le reflog
+
+<Screenshot
+  dark={reflogDark}
+  light={reflogLight}
+  alt="La vue Reflog pour HEAD : des entrées avec HEAD@{n}, SHA court, pastilles d’action colorées comme commit, checkout et reset, une entrée commit disparu, et la barre Entrée sélectionnée avec Créer une branche ici…, Reset de feat/graph-lanes ici… et Voir dans le graphe"
+/>
+
+La liste affiche les **Positions de la référence, de la plus récente à la plus ancienne**, avec le nombre d’entrées dans l’en-tête. Chaque entrée comporte :
+
+- son sélecteur, `HEAD@{2}` ou `main@{2}`, le nom que Git lui donne,
+- le SHA court sur lequel pointait la référence,
+- une pastille d’action colorée selon le type (commit, checkout, reset, merge, rebase…) et le détail enregistré par Git,
+- **commit disparu** quand Git a depuis supprimé ce commit,
+- l’auteur du déplacement et le moment où il a eu lieu.
+
+Cliquez sur une entrée, ou déplacez-vous avec <kbd>↑</kbd> / <kbd>↓</kbd> / <kbd>Home</kbd> / <kbd>End</kbd>, pour la sélectionner : le commit est aussi sélectionné dans le graphe. Les longs reflogs se chargent par pages de 500 au fil du défilement. La liste se met à jour quand des références bougent ; un nouveau déplacement décale tous les `@{n}`, la sélection est donc effacée.
+
+Si la référence n’a pas de reflog, la vue indique « Pas de reflog pour cette référence (core.logAllRefUpdates est désactivé, ou elle n'a jamais bougé). » Voir [core.logAllRefUpdates](https://git-scm.com/docs/git-config#Documentation/git-config.txt-corelogAllRefUpdates).
+
+yaggui lit directement les fichiers du reflog : aucune commande Git n’est exécutée.
+
+## Restaurer un état
+
+La barre **Entrée sélectionnée** en bas affiche le sélecteur et le message complet du reflog, avec trois boutons. Les mêmes actions figurent dans le menu du clic droit sur l’entrée, qui propose en plus **Copier le SHA**.
+
+| Bouton                          | Effet                                                                 |
+| ------------------------------- | --------------------------------------------------------------------- |
+| **Créer une branche ici…**      | Une nouvelle branche à ce commit. Votre branche courante ne bouge pas |
+| **Reset de** _branche_ **ici…** | Déplace la branche courante (ou HEAD s’il est détaché) sur ce commit  |
+| **Voir dans le graphe**         | Ferme le reflog et affiche le commit dans le graphe                   |
+
+Une entrée marquée **commit disparu** affiche « Git a supprimé ce commit : il ne peut plus être restauré. » et aucun bouton.
+
+### Créer une branche ici
+
+C’est le moyen le plus sûr de retrouver un état perdu : rien d’autre ne change.
+
+1. Sélectionnez l’entrée, puis cliquez sur **Créer une branche ici…**.
+2. La boîte de dialogue **Créer une branche** affiche **À partir de** `HEAD@{2}`. Saisissez le **Nom de la branche**.
+3. **Basculer dessus après la création** est coché par défaut. Laissez-le pour passer sur la nouvelle branche, ou décochez-le pour rester où vous êtes.
+4. Cliquez sur **Créer et basculer** (ou **Créer la branche**).
+
+yaggui exécute `git switch --create <name> <sha>`, ou `git branch -- <name> <sha>` sans basculer. Git doit accepter le nom de la branche ([git check-ref-format](https://git-scm.com/docs/git-check-ref-format)) ; voir [Branches](../../history/branches/).
+
+### Reset d’une branche ici
+
+**Reset de** _branche_ **ici…** déplace la branche sur le commit de l’entrée. Il est disponible dans le reflog de HEAD et dans celui de la branche courante. Dans le reflog d’une autre branche, y compris une branche de suivi, il est désactivé, avec « Fais un checkout de cette branche pour la reset, ou crée une branche ici ».
+
+<Screenshot
+  dark={reflogResetDark}
+  light={reflogResetLight}
+  alt="La boîte de dialogue Reset ouverte depuis le reflog, intitulée Reset de feat/graph-lanes sur HEAD@{2}, avec les modes Soft, Mixed et Hard et l’aperçu des commits perdus ou gagnés"
+/>
+
+1. Sélectionnez l’entrée, puis cliquez sur **Reset de** _branche_ **ici…**.
+2. La boîte de dialogue, intitulée **Reset de feature sur HEAD@\{2\} (a1b2c3d)**, prévisualise ce qui change : les commits que la branche perd (« toujours dans le reflog ») ou gagne, et, pour **Hard**, les fichiers qui perdent leur contenu local.
+3. Choisissez le mode. **Mixed** est le mode par défaut :
+
+   | Mode      | Branche    | Index                                               | Répertoire de travail                                                       |
+   | --------- | ---------- | --------------------------------------------------- | --------------------------------------------------------------------------- |
+   | **Soft**  | Se déplace | Conservé : les changements restent indexés          | Conservé                                                                    |
+   | **Mixed** | Se déplace | Réinitialisé : les changements ne sont plus indexés | Conservé                                                                    |
+   | **Hard**  | Se déplace | Réinitialisé                                        | Prend le contenu du commit. Les changements locaux sont d’abord sauvegardés |
+
+4. Cliquez sur **Reset (mixed)** (ou soft, hard). yaggui exécute `git reset -q --mixed <sha> --`.
+
+La boîte de dialogue de reset elle-même est décrite dans [Cherry-pick, revert et reset](../../history/cherry-pick-revert-reset/).
+
+## Annuler
+
+Les deux actions de restauration sont enregistrées dans l’historique d’annulation. Appuyez sur <kbd>⌘Z</kbd> (<kbd>Ctrl+Z</kbd> sous Windows et Linux) ou cliquez sur **Annuler** dans la barre d’outils :
+
+- **Créer une branche ici…** : l’annulation supprime la nouvelle branche, après être repassée sur la branche précédente si vous aviez basculé dessus.
+- **Reset** : l’annulation ramène la branche en arrière. Après un reset mixed, l’index est lui aussi restauré. Après un reset hard, les fichiers que le reset a écrasés sont restaurés depuis la sauvegarde.
+
+L’annulation est refusée si la branche ou les fichiers ont changé depuis. Voir [Annuler et rétablir](../../history/undo-and-redo/). Le reflog conserve aussi la position précédant le reset : vous pouvez donc toujours revenir dans cette vue et la restaurer.

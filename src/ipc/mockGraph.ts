@@ -1,3 +1,4 @@
+import { isDemo } from '../demo/isDemo';
 import type {
   CommitDetail,
   CommitSearch,
@@ -389,13 +390,13 @@ export function createMockHistory(
   };
   if (head.kind === 'unborn') return { ...empty, head: { kind: 'unborn', name: head.name } };
 
-  const stress = /many-refs/.test(path);
+  const stress = !isDemo && /many-refs/.test(path);
   // A path containing `huge-history` simulates a history taller than the browser can lay out.
-  const huge = /huge-history/.test(path);
+  const huge = !isDemo && /huge-history/.test(path);
   const sizes: Record<number, Partial<GenOptions>> = {
     1: { size: 640, maxFeatures: 6, octopus: true, orphan: true },
     // A huge history to exercise the virtualization (100k rows).
-    2: { size: 100_000, maxFeatures: 10, octopus: true, orphan: false },
+    2: { size: isDemo ? 2_000 : 100_000, maxFeatures: 10, octopus: true, orphan: false },
     3: { size: 120, maxFeatures: 1, octopus: false, orphan: false },
   };
   const history = generateHistory({

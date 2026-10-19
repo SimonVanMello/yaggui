@@ -1,0 +1,140 @@
+---
+title: Git binary and configuration
+description: Choose which Git yaggui runs, and edit your global or repository Git configuration from the preferences.
+sidebar:
+  order: 4
+sources:
+  - src/features/preferences/GitTab.tsx
+  - src/features/preferences/GitConfigTab.tsx
+  - src/features/preferences/ConfigFieldRow.tsx
+  - src/features/preferences/RawConfigEditor.tsx
+  - src/features/preferences/gitConfigLogic.ts
+  - src/features/preferences/useGitConfig.ts
+  - src-tauri/src/system/git_binary.rs
+  - src-tauri/src/git/cli.rs
+  - src-tauri/src/state.rs
+  - src-tauri/src/repo/config.rs
+  - src-tauri/src/git/ops/config.rs
+requirements: [F-322, F-325]
+---
+
+import Screenshot from '~/components/Screenshot.astro';
+import prefsGitDark from '../../../../assets/screens/prefs-git-dark.png';
+import prefsGitLight from '../../../../assets/screens/prefs-git-light.png';
+import gitconfigGlobalDark from '../../../../assets/screens/gitconfig-global-dark.png';
+import gitconfigGlobalLight from '../../../../assets/screens/gitconfig-global-light.png';
+
+yaggui runs the `git` program installed on your computer for every write. **Preferences › Git** chooses which Git that is; **Preferences › Configuration** edits Git's own settings (`~/.gitconfig` or a repository's `.git/config`) without leaving the app.
+
+## Choose the Git binary
+
+By default yaggui runs `git` from your `PATH`. The **Git binary** field of the **Git** tab is empty ("Detected automatically") and the line under it shows what yaggui found, for example "Git 2.47.1 · /usr/bin/git".
+
+<Screenshot
+  dark={prefsGitDark}
+  light={prefsGitLight}
+  alt="The Git tab of the preferences with the Git binary field, the Apply and Auto-detect buttons and the detected Git version"
+/>
+
+To use another Git:
+
+1. Type the full path of the binary, for example `/opt/homebrew/bin/git` or `C:\Program Files\Git\cmd\git.exe`.
+2. Wait for the status line: yaggui runs `<path> --version` a moment after you stop typing. Nothing is saved yet.
+3. Click **Apply**. The toast "Git path saved" confirms it, and every following Git command uses this binary.
+
+**Auto-detect** clears the field and goes back to `git` from your `PATH`.
+
+### What the status line means
+
+| Status                                                                                                    | Meaning                                                                                                                         |
+| --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| "Git _version_ · _path_"                                                                                  | A working Git. **Apply** is enabled if the path differs from the saved one                                                      |
+| "Git _version_ is older than 2.30, the oldest version yaggui is tested with. Some features may not work." | It works and can be applied, but some features may fail. Update Git if you can                                                  |
+| "This is not a working Git: the file must exist and answer to --version."                                 | The file does not exist or is not Git. **Apply** stays disabled                                                                 |
+| "Git was not found. Install Git or enter its path."                                                       | The field is empty and no Git was found. Install Git ([git-scm.com/downloads](https://git-scm.com/downloads)) or enter its path |
+
+If the path stops working between the check and **Apply**, the save is refused and the message ""_path_" is not a working Git: …" shows under the field.
+
+### How Git is found
+
+With an empty field, the status line looks for Git in this order: `git` (or `git.exe`) on the `PATH`, then `/usr/bin/git`, `/usr/local/bin/git`, `/opt/homebrew/bin/git`, `C:\Program Files\Git\cmd\git.exe` and `C:\Program Files (x86)\Git\cmd\git.exe`.
+
+This list only feeds the status line: to run commands, yaggui uses `git` from the `PATH` when no path is saved.
+
+:::tip
+On macOS, an app started from the Dock or Finder does not see the `PATH` of your shell. If your only Git comes from Homebrew, enter `/opt/homebrew/bin/git` (Apple silicon) or `/usr/local/bin/git` (Intel) and click **Apply**.
+:::
+
+The status bar of a repository shows the Git version in use (`git 2.47.1`). Its tooltip warns when the version is older than 2.30, and it reads "git not found" when no Git can be started.
+
+If a saved path stops working (Git uninstalled or moved), yaggui falls back to `git` from the `PATH` at the next start so the app still opens. Fix or clear the path in the **Git** tab.
+
+## Edit the Git configuration
+
+The **Configuration** tab reads and writes Git's configuration files with `git config`. Choose the file with **Configuration file**:
+
+- **Global**: "Your ~/.gitconfig: applies to every repository."
+- **This repository**: ".git/config of _repo_: overrides the global configuration." This choice exists only when the preferences were opened from a repository tab.
+
+The tab always opens on **Global**. A missing `~/.gitconfig` is simply shown as empty; it is created on the first change.
+
+<Screenshot
+  dark={gitconfigGlobalDark}
+  light={gitconfigGlobalLight}
+  alt="The Configuration tab with the Common settings fields and the All entries table of the global Git configuration"
+/>
+
+### Common settings
+
+| Field                                   | Values                                            | Notes                                                           |
+| --------------------------------------- | ------------------------------------------------- | --------------------------------------------------------------- |
+| **Name (user.name)**                    | Free text                                         | Author name of your commits                                     |
+| **Email (user.email)**                  | Free text                                         | Author e-mail of your commits                                   |
+| **Pull strategy (pull.rebase)**         | Not set, `false`, `true`, `merges`, `interactive` | "true rebases local commits on pull, false merges."             |
+| **Line endings (core.autocrlf)**        | Not set, `false`, `true`, `input`                 | "true: CRLF in the working tree, LF committed. input: LF only." |
+| **Default branch (init.defaultBranch)** | Free text                                         | "Name of the first branch of new repositories."                 |
+| **Sign commits (commit.gpgsign)**       | Not set, `true`, `false`                          | "Needs a signing key."                                          |
+| **Signature format (gpg.format)**       | Not set, `openpgp`, `ssh`, `x509`                 |                                                                 |
+| **Signing key (user.signingkey)**       | Free text                                         | "A GPG key id, or the path of an SSH key."                      |
+
+- Text fields save when you press <kbd>Enter</kbd> or leave the field. Emptying a field removes the key.
+- Choosing **Not set** in a list removes the key.
+- In **This repository**, an unset field shows the inherited global value: as the placeholder of a text field, or as "Not set (global: _value_)" in a list.
+- A key that is set several times in the file is read-only here; use **All entries** or edit the file.
+
+The **Pull strategy** here is Git's `pull.rebase`. yaggui also has its own **Default pull strategy** in **Preferences › Behavior**, which wins when set; see [Fetch, pull and push](../../remotes/fetch-pull-push/).
+
+### All entries
+
+**All entries** lists every key of the chosen file, with **Filter entries** to search keys and values.
+
+- **Add an entry**: type the key (`section.name` or `section.subsection.name`) and the value, then click **Add**.
+- **Edit a value**: click **Edit** on the row, change the value, press <kbd>Enter</kbd> to save or <kbd>Esc</kbd> to cancel.
+- **Remove a key**: click **Remove**, then confirm with **Remove** on the row (or **Cancel**).
+- A bare key without a value shows "(no value)".
+
+Multi-valued keys (a key set several times, such as several `remote.origin.fetch` lines) cannot be edited here: **Edit** is disabled with the tooltip "Set several times: edit the file or remove all its values.", and the remove confirmation reads **Remove all values**.
+
+### What yaggui runs
+
+Each change is one `git config` command, recorded in the [command log](../../reference/command-log/):
+
+```bash
+git config --global --replace-all -- user.email ada@example.com
+git config --local --unset-all -- core.autocrlf
+```
+
+Changes to the global file are applied one at a time, and changes to a repository wait for any operation running in that repository. They take effect at once and cannot be undone from yaggui: to go back, set the old value again.
+
+### Errors
+
+If Git refuses a change, the field goes back to its previous value and a toast "Could not change the Git configuration" shows the reason. yaggui checks the input first:
+
+- ""_key_" is not a valid Git configuration key (section.name or section.subsection.name)." The section and name use letters, digits and `-`, the name starts with a letter, and the key is at most 200 characters.
+- "The value is too long or contains a NUL character." Values are limited to 16 KiB.
+
+If the file cannot be read (for example a syntax error in it), the tab shows "Could not read the Git configuration." Fix the file in an editor; `git config --list` in a terminal shows where Git stops.
+
+## Identity and identity profiles
+
+Your commit identity is `user.name` and `user.email`. You can set it here, from the form that appears in the commit box when Git does not know who you are, or with **identity profiles**: saved name and e-mail pairs you apply to a repository in one click. See [Committing](../../everyday/committing/) for both. Changing `user.name` or `user.email` here updates the identity shown in the commit box.

@@ -1,0 +1,114 @@
+---
+title: Reflog
+description: Browse where HEAD and each branch pointed over time in yaggui, and bring back a lost state with a new branch or a reset.
+sidebar:
+  order: 3
+sources:
+  - src/features/inspect/ReflogView.tsx
+  - src/features/inspect/reflogModel.ts
+  - src/features/refs/CreateBranchDialog.tsx
+  - src/features/history/ResetDialog.tsx
+  - src/features/sidebar/RefContextMenu.tsx
+  - src-tauri/src/repo/inspect.rs
+  - src-tauri/src/git/read/reflog.rs
+requirements: [F-222]
+---
+
+import Screenshot from '~/components/Screenshot.astro';
+import reflogDark from '../../../../assets/screens/reflog-dark.png';
+import reflogLight from '../../../../assets/screens/reflog-light.png';
+import reflogResetDark from '../../../../assets/screens/reflog-reset-dark.png';
+import reflogResetLight from '../../../../assets/screens/reflog-reset-light.png';
+
+The reflog is Git's local record of every position a reference took: each commit, checkout, reset, merge or rebase moves HEAD or a branch and adds an entry ([git reflog](https://git-scm.com/docs/git-reflog)). yaggui shows it in a view that replaces the graph, and lets you bring back any recorded state, for example a branch lost after a reset or a rebase.
+
+## Open the reflog
+
+| Entry point                                                                                  | Reflog shown                |
+| -------------------------------------------------------------------------------------------- | --------------------------- |
+| Palette (<kbd>⌘K</kbd>, <kbd>Ctrl+K</kbd> on Windows and Linux) → **Show the reflog (HEAD)** | HEAD                        |
+| Sidebar, right-click the HEAD row (attached or detached) → **Reflog**                        | HEAD                        |
+| Sidebar, right-click a local branch → **Reflog**                                             | That branch                 |
+| Sidebar, right-click a remote branch → **Reflog**                                            | That remote-tracking branch |
+
+In the view, the reference button in the header (**Reference**) switches between HEAD and your local branches. Remote-tracking branches are only reachable from the sidebar.
+
+Press <kbd>Esc</kbd> or click **Graph** to go back to the graph.
+
+## Read the reflog
+
+<Screenshot
+  dark={reflogDark}
+  light={reflogLight}
+  alt="The Reflog view for HEAD: entries with HEAD@{n}, short SHA, colored action chips such as commit, checkout and reset, a commit gone entry, and the Selected entry bar with Create a branch here…, Reset feat/graph-lanes here… and Show in graph"
+/>
+
+The list shows the **Positions of the reference, newest first**, with the number of entries in the header. Each entry has:
+
+- its selector, `HEAD@{2}` or `main@{2}`, the name Git uses for it,
+- the short SHA the reference pointed to,
+- an action chip colored by kind (commit, checkout, reset, merge, rebase…) and the detail Git recorded,
+- **commit gone** when Git has since deleted that commit,
+- who made the move and when.
+
+Click an entry, or move with <kbd>↑</kbd> / <kbd>↓</kbd> / <kbd>Home</kbd> / <kbd>End</kbd>, to select it: the commit is also selected in the graph. Long reflogs load by pages of 500 as you scroll. The list updates when references move; a new move shifts every `@{n}`, so the selection is cleared.
+
+If the reference has no reflog, the view says "No reflog for this reference (core.logAllRefUpdates is off, or it never moved)." See [core.logAllRefUpdates](https://git-scm.com/docs/git-config#Documentation/git-config.txt-corelogAllRefUpdates).
+
+yaggui reads the reflog files directly: no Git command runs.
+
+## Restore a state
+
+The **Selected entry** bar at the bottom shows the selector and the full reflog message, with three buttons. The same actions are in the entry's right-click menu, which also has **Copy SHA**.
+
+| Button                       | Effect                                                          |
+| ---------------------------- | --------------------------------------------------------------- |
+| **Create a branch here…**    | A new branch at that commit. Your current branch does not move  |
+| **Reset** _branch_ **here…** | Moves the current branch (or HEAD when detached) to that commit |
+| **Show in graph**            | Closes the reflog and shows the commit in the graph             |
+
+An entry marked **commit gone** shows "This commit was pruned by Git: it cannot be restored." and no button.
+
+### Create a branch here
+
+This is the safest way to get a lost state back: nothing else changes.
+
+1. Select the entry, click **Create a branch here…**.
+2. The **Create a branch** dialog shows **Starting from** `HEAD@{2}`. Type the **Branch name**.
+3. **Check it out after creating it** is checked by default. Leave it to switch to the new branch, or uncheck it to stay where you are.
+4. Click **Create and check out** (or **Create branch**).
+
+yaggui runs `git switch --create <name> <sha>`, or `git branch -- <name> <sha>` without checkout. Git must accept the branch name ([git check-ref-format](https://git-scm.com/docs/git-check-ref-format)); see [Branches](../../history/branches/).
+
+### Reset a branch here
+
+**Reset** _branch_ **here…** moves the branch to the entry's commit. It is available in the HEAD reflog and in the reflog of the checked-out branch. In the reflog of another branch, including a remote-tracking branch, it is disabled with "Check out this branch to reset it, or create a branch here".
+
+<Screenshot
+  dark={reflogResetDark}
+  light={reflogResetLight}
+  alt="The Reset dialog opened from the reflog, titled Reset feat/graph-lanes to HEAD@{2}, with Soft, Mixed and Hard modes and the preview of commits lost or gained"
+/>
+
+1. Select the entry, click **Reset** _branch_ **here…**.
+2. The dialog, titled **Reset feature to HEAD@\{2\} (a1b2c3d)**, previews what changes: commits the branch loses ("still in the reflog") or gains, and for **Hard**, the files that lose their local content.
+3. Pick the mode. **Mixed** is the default:
+
+   | Mode      | Branch | Index                           | Working tree                                                          |
+   | --------- | ------ | ------------------------------- | --------------------------------------------------------------------- |
+   | **Soft**  | Moves  | Kept: the changes stay staged   | Kept                                                                  |
+   | **Mixed** | Moves  | Reset: the changes are unstaged | Kept                                                                  |
+   | **Hard**  | Moves  | Reset                           | Takes the commit's content. Local changes are saved to a backup first |
+
+4. Click **Reset (mixed)** (or soft, hard). yaggui runs `git reset -q --mixed <sha> --`.
+
+The reset dialog itself is described in [Cherry-pick, revert and reset](../../history/cherry-pick-revert-reset/).
+
+## Undo
+
+Both restore actions are recorded in the undo history. Press <kbd>⌘Z</kbd> (<kbd>Ctrl+Z</kbd> on Windows and Linux) or click **Undo** in the toolbar:
+
+- **Create a branch here…**: undo deletes the new branch, and switches back first if you checked it out.
+- **Reset**: undo moves the branch back. After a mixed reset, the index is restored too. After a hard reset, the files the reset overwrote are restored from the backup.
+
+Undo is refused if the branch or the files changed since. See [Undo and redo](../../history/undo-and-redo/). The reflog itself also keeps the position before the reset, so you can always come back to this view and restore it.

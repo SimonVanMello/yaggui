@@ -20,10 +20,13 @@
     "vite.config.ts",
     "vite",
     "playwright.config.ts",
+    "playwright.demo.config.ts",
     "playwright.perf.config.ts",
     "playwright.screenshots.config.ts",
+    "playwright.docs-screenshots.config.ts",
     "eslint.config.js",
     "e2e",
+    "src/vite-env.d.ts",
     "src/**/*.node.test.ts"
   ]
 }

@@ -1,0 +1,261 @@
+---
+title: Open a repository
+description: The welcome screen, opening an existing repository, cloning, initializing a new one, and fixing moved or untrusted folders.
+sidebar:
+  order: 4
+sources:
+  - src/features/welcome/**
+  - src/features/clone/**
+  - src/features/repo/repoSessions.ts
+  - src/features/repo/knownRepoActions.ts
+  - src/features/workspaces/MissingRepoDialog.tsx
+  - src/app/startup.ts
+  - src/app/errors/**
+  - src-tauri/src/repo/mod.rs
+  - src-tauri/src/repo/create.rs
+  - src-tauri/src/commands/repo.rs
+  - src-tauri/src/commands/create.rs
+  - src-tauri/src/commands/app.rs
+requirements: [F-001, F-002, F-003, F-005, F-009]
+---
+
+import Screenshot from '~/components/Screenshot.astro';
+import openWelcomeDark from '../../../../assets/screens/open-welcome-dark.png';
+import openWelcomeLight from '../../../../assets/screens/open-welcome-light.png';
+import openCloneDialogDark from '../../../../assets/screens/open-clone-dialog-dark.png';
+import openCloneDialogLight from '../../../../assets/screens/open-clone-dialog-light.png';
+import openInitDialogDark from '../../../../assets/screens/open-init-dialog-dark.png';
+import openInitDialogLight from '../../../../assets/screens/open-init-dialog-light.png';
+
+Each repository opens in its own tab. A new tab starts on the welcome screen, where you open an existing repository, clone one, or create one. This page covers every way to open a repository and what can go wrong.
+
+## The welcome screen
+
+The welcome screen appears in a new tab (<kbd>⌘T</kbd>, <kbd>Ctrl+T</kbd> on Windows and Linux) and when you close the last tab.
+
+<Screenshot
+  dark={openWelcomeDark}
+  light={openWelcomeLight}
+  alt="Welcome screen with the Open, Clone and Init tiles, the workspaces section, the search field and the lists of favorite and recent repositories"
+/>
+
+From top to bottom:
+
+- **Open**, **Clone** and **Init** tiles. See [Open an existing repository](#open-an-existing-repository), [Clone a repository](#clone-a-repository) and [Initialize a repository](#initialize-a-repository).
+- **Workspaces**: your groups of repositories, with **Scan a folder…** and **Manage**. Click a workspace to open all its repositories in tabs. See [Workspaces](../../workspaces/workspaces/).
+- **Search repositories by name or path**: a search field, focused when the screen opens.
+- **Favorites**, then **Recent**: the repositories yaggui knows. Recent ones are sorted by the last time you opened them.
+- At the bottom, a reminder that you can drop a folder on the window, and **Enter a path…**.
+
+### Search
+
+Type part of a repository's name or path. The match is fuzzy: the letters you type must appear in order, not necessarily side by side. Matches in the name rank higher, and the matched letters are highlighted. While you search, the results form a single **Results** list.
+
+| Key                         | Effect                          |
+| --------------------------- | ------------------------------- |
+| <kbd>↑</kbd> / <kbd>↓</kbd> | Move through the list           |
+| <kbd>Enter</kbd>            | Open the highlighted repository |
+| <kbd>Esc</kbd>              | Clear the search                |
+
+### Each repository row
+
+A row shows the repository's color dot, name, path, and when you last opened it. **Never opened** marks a repository added by a folder scan and not opened yet. **Folder not found** marks a repository whose folder is gone (see [A repository was moved or deleted](#a-repository-was-moved-or-deleted)).
+
+Click a row, or highlight it and press <kbd>Enter</kbd>, to open it in this tab. If the repository is already open in another tab, yaggui switches to that tab instead: a repository never has two tabs.
+
+Hover a row to show its buttons:
+
+- The star, **Add to favorites** or **Remove from favorites**, moves the repository to or from **Favorites**.
+- **×**, **Remove from recents**, removes the repository from yaggui's list, and from every workspace that contains it, at once and without confirmation. The folder on disk is not touched. It also closes the repository's integrated terminals. To bring it back, open the folder again.
+
+## Open an existing repository
+
+| Entry point     | How                                                    |
+| --------------- | ------------------------------------------------------ |
+| Welcome screen  | The **Open** tile, or **Enter a path…** at the bottom  |
+| Keyboard        | <kbd>⌘O</kbd> (<kbd>Ctrl+O</kbd> on Windows and Linux) |
+| Command palette | **Open a repository…**                                 |
+| macOS menu      | **File** > **Open Repository…**                        |
+| Drag and drop   | Drop a folder anywhere on the window                   |
+| Command line    | `yaggui <path>`                                        |
+
+From a welcome tab, the repository opens in that tab; from a repository tab, it opens in a new tab.
+
+**Open**, <kbd>⌘O</kbd> and the palette show your system's folder picker, **Choose a repository folder**. Pick a folder and yaggui opens it; cancel and nothing happens.
+
+**Enter a path…** opens the **Open a repository** dialog instead. Paste the path in **Folder** and click **Open**, or click **Browse…** to pick it. If the folder cannot be opened, the error appears in the dialog, which stays open so you can fix the path. If the folder picker is not available on your system, yaggui shows this dialog too.
+
+### Drag and drop
+
+Drag a folder from your file manager onto the window. **Drop to open the repository** covers the window while you drag. Drop several folders to open each in its own tab; the first one reuses the current welcome tab.
+
+### From the command line
+
+```bash
+yaggui /home/me/projects/website
+```
+
+Give an absolute path. To open the current folder, use `yaggui "$PWD"` (on Windows, `yaggui "%CD%"` in Command Prompt). A relative path such as `yaggui .` fails with "Expected an absolute folder path".
+
+The path is read only when yaggui starts. If yaggui is already running, the command starts a second, separate instance of yaggui.
+
+Where the `yaggui` command lives depends on how you installed it: `/usr/bin/yaggui` for the `.deb`, `.rpm` and AUR packages, `/Applications/yaggui.app/Contents/MacOS/yaggui` on macOS, and the installation folder on Windows.
+
+### Which folder to open
+
+- **A subfolder** of a repository opens the whole repository: yaggui looks upward for the repository root, as Git does.
+- **A bare repository** (one without a working tree) cannot be opened: "Bare repositories are not supported yet."
+- **A folder outside any repository** fails with "\<path\> is not a Git repository." To make it one, use [Initialize a repository](#initialize-a-repository).
+- **A folder that does not exist** fails with "The folder \<path\> does not exist."
+
+When opening fails from the welcome screen, a notification titled **Could not open the repository** stays until you close it. **Details** shows the technical cause. See [Error messages](../../reference/error-messages/).
+
+## Clone a repository
+
+Open the **Clone a repository** dialog from:
+
+- the **Clone** tile of the welcome screen;
+- the command palette: **Clone a repository…**;
+- on macOS, **File** > **Clone Repository…**.
+
+There is no default shortcut; you can assign one in [Palette and shortcuts](../../customize/palette-and-shortcuts/).
+
+<Screenshot
+  dark={openCloneDialogDark}
+  light={openCloneDialogLight}
+  alt="The Clone a repository dialog with the address, target folder, folder name, branch, shallow clone and submodule options"
+/>
+
+| Field                  | What to enter                                                                                                                            | Default                                                              |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| **Repository address** | An HTTPS or SSH URL, such as `https://github.com/owner/repo.git` or `git@host:owner/repo.git`. A local path or `file://` URL also works. | empty                                                                |
+| **Clone into**         | The folder that will contain the new repository. **Browse…** opens the folder picker.                                                    | the folder you last cloned or initialized into, if it still exists   |
+| **Folder name**        | The name of the new folder.                                                                                                              | taken from the address (`…/repo.git` gives `repo`) until you edit it |
+| **Branch (optional)**  | A branch or tag to check out after cloning.                                                                                              | empty: the remote's default branch                                   |
+| **Shallow clone**      | Downloads only the latest commits: faster, but the history is truncated. Turning it on shows **Depth (commits)**.                        | off; depth 1                                                         |
+| **Clone submodules**   | Clones the submodules too, recursively.                                                                                                  | off                                                                  |
+
+Under the fields, **Created at \<path\>** shows where the repository will be created.
+
+yaggui never asks for a password. HTTPS credentials come from your Git credential helper, and SSH keys from `ssh-agent`. Set them up before cloning a private repository; see [Authentication](../../remotes/authentication/).
+
+### Validation
+
+When you click **Clone**, empty or invalid fields turn red and nothing starts:
+
+- **Repository address**, **Clone into** and **Folder name** are required.
+- **Folder name** cannot be `.` or `..`, nor contain `/` or `\`: "The folder name cannot contain / or \\."
+- **Depth (commits)** must be a whole number from 1 to 1,000,000: "The depth must be a whole number, 1 or more."
+- **Branch (optional)** is checked with `git check-ref-format --branch` before the clone starts.
+
+### Progress and cancellation
+
+While the clone runs, the dialog title becomes **Cloning \<name\>…** and shows a progress bar, the current phase (**Connecting…**, **Counting objects**, **Receiving objects**, **Resolving deltas**, **Updating files**…) and a percentage.
+
+Click **Cancel clone** to stop. yaggui stops Git and removes the folder it created (or empties it, if it existed and was empty before). No error is shown. While the clone runs, <kbd>Esc</kbd> and clicking outside the dialog do not close it.
+
+yaggui runs:
+
+```bash
+git -c protocol.ext.allow=never clone --progress [--branch <branch>] [--depth <n>] [--recurse-submodules [--shallow-submodules]] -- <address> <folder>
+```
+
+The command appears in the [command log](../../reference/command-log/) under the **All** filter.
+
+### Result and errors
+
+When the clone succeeds, the dialog closes, a **Cloned \<name\>** notification appears and the repository opens: in the current tab if you started from the welcome screen, otherwise in a new tab.
+
+If it fails, **Clone failed** appears in the dialog with the reason, and any partial folder is removed. The common reasons:
+
+| Message                                                                                                                                                      | What to do                                                                                  |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| "Authentication failed. yaggui never asks for passwords: configure a Git credential helper (git config credential.helper) and sign in once from a terminal." | Set up HTTPS credentials; see [Authentication](../../remotes/authentication/).              |
+| "SSH authentication failed. Load your key in ssh-agent (ssh-add) and check that the remote knows it."                                                        | Run `ssh-add`, and add your public key to your account on the server.                       |
+| "The remote host can't be reached. Check your connection and the remote URL."                                                                                | Check the address and your network, then click **Retry**.                                   |
+| "Remote not found: check its name and URL."                                                                                                                  | The address is wrong, or the repository is private and your credentials do not give access. |
+| "The branch "\<name\>" does not exist on the remote."                                                                                                        | Fix **Branch (optional)** or leave it empty.                                                |
+| "The folder \<path\> already exists and is not empty. Choose another folder, or an empty one."                                                               | Change **Clone into** or **Folder name**.                                                   |
+| "A path is too long for Windows. …"                                                                                                                          | Run `git config --global core.longpaths true`, then retry.                                  |
+
+A clone cannot be undone from yaggui. To get rid of it, close its tab, remove it from the welcome screen, and delete the folder.
+
+## Initialize a repository
+
+Open the **Initialize a repository** dialog from:
+
+- the **Init** tile of the welcome screen;
+- the command palette: **Initialize a repository…**;
+- on macOS, **File** > **Initialize Repository…**.
+
+<Screenshot
+  dark={openInitDialogDark}
+  light={openInitDialogLight}
+  alt="The Initialize a repository dialog with the folder, default branch, .gitignore templates and README options"
+/>
+
+| Field                    | What it does                                                                                                                                         | Default                                      |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| **Folder**               | The folder of the new repository. It is created if it does not exist; files already in it are left as they are. **Browse…** opens the folder picker. | empty                                        |
+| **Default branch**       | The name of the first branch.                                                                                                                        | your `init.defaultBranch` setting, or `main` |
+| **.gitignore templates** | Node, Rust, .NET, Python, macOS, Windows. Click several to combine them.                                                                             | none                                         |
+| **Add a README.md**      | Writes a `README.md` with a title that is the folder name.                                                                                           | off                                          |
+
+Click **Initialize**. yaggui runs `git init --initial-branch <branch> -- <folder>`, then writes the chosen files:
+
+- `.gitignore` is written only if the folder has none: an existing one is never replaced. Each template starts with a `# <name>` comment.
+- `README.md` is written only if the folder has no file whose name starts with "readme", in any case.
+
+No commit is made: the repository opens with **No commit yet**, ready for your first commit. A notification says **Initialized \<name\>**.
+
+If **Folder** or **Default branch** is empty, the field turns red and nothing runs. Errors appear in the dialog under **Initialization failed**:
+
+- "\<path\> already is a Git repository." Open it instead.
+- "\<path\> already exists and is not empty…" when the path is a file.
+- An invalid branch name, with the naming rules.
+
+If Git fails, a folder that yaggui created for the repository is removed again. Initializing cannot be undone from yaggui: delete the `.git` folder to undo it.
+
+## A repository was moved or deleted
+
+When a known repository's folder is gone, its welcome-screen row shows **Folder not found**. Click it to open the **\<name\> was moved or deleted** dialog:
+
+- **Locate…** opens the folder picker. Choose the repository's new root folder (not a subfolder). yaggui updates its list and shows **\<name\> located**. If that folder was already in the list, the two entries are merged. If the folder is not the root of a Git repository, **Could not locate the repository** appears with the reason.
+- **Remove from yaggui** removes it from the list. Removing never deletes files: only yaggui's list changes.
+- **Cancel** closes the dialog.
+
+A tab restored at startup for a repository that cannot be opened shows **Could not open \<name\>**, with **Retry** and **Close tab**. When the folder is gone, it also offers **Locate…** and **Remove from recents** (which also closes the tab).
+
+## Trust a folder owned by another user
+
+Git refuses to work in a repository that belongs to another user account, for example one on a shared drive or created with `sudo`. yaggui then shows "Git refuses to use \<path\> because it belongs to another user. Add it to safe.directory only if you trust it." with the button **Trust this folder…**.
+
+1. Click **Trust this folder…**. The **Trust this folder?** dialog explains the risk and shows the exact command.
+2. Click **Trust folder**. yaggui runs:
+
+   ```bash
+   git config --global --add safe.directory <path>
+   ```
+
+3. yaggui opens the repository again.
+
+:::caution
+Only trust folders you know. Git hooks in a trusted repository run with your account's permissions when yaggui runs Git there.
+:::
+
+This cannot be undone from yaggui. To revoke it, remove the `safe.directory` line from your global Git configuration, for example with `git config --global --unset safe.directory <path>`. See [safe.directory](https://git-scm.com/docs/git-config#Documentation/git-config.txt-safedirectory) in the Git documentation.
+
+## What happens when a repository opens
+
+- A spinner and **Opening \<name\>…** show while yaggui reads the repository. yaggui reads it directly, without a `git` process, except `git rev-parse --git-dir` when the folder belongs to another user.
+- The repository moves to the top of **Recent**.
+- yaggui starts watching the folder, so changes made outside yaggui (an editor, a terminal) show up on their own. If the system cannot watch it, for example because the Linux limit on watched files is reached, the repository still opens with the **Automatic refresh unavailable** banner and a **Refresh** button. See [Troubleshooting](../../help/troubleshooting/).
+- If the repository's commit-graph file is missing 1,000 or more reachable commits, yaggui rewrites it in the background to speed up the graph (not in shallow clones, nor when `core.commitGraph` is `false`):
+
+  ```bash
+  git commit-graph write --reachable --changed-paths --no-progress
+  ```
+
+  This shows no notification or progress, but it appears in the command log.
+
+- yaggui saves the open tabs and reopens them at the next launch. See [Tabs](../../workspaces/tabs/).

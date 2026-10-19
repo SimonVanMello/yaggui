@@ -1,0 +1,196 @@
+---
+title: Palette de commandes et raccourcis
+description: Lancez n’importe quelle action depuis la palette de commandes, consultez vos raccourcis, modifiez-les dans les préférences ou dans keybindings.json, et naviguez dans yaggui au clavier.
+sidebar:
+  order: 2
+sources:
+  - src/features/palette/**
+  - src/features/keybindings/**
+  - src/app/shellActions.ts
+  - src/app/useShortcuts.ts
+  - src/ui/shortcuts.ts
+  - src/ui/platform.ts
+  - src-tauri/src/store/keybindings.rs
+  - src-tauri/src/commands/settings.rs
+requirements: [F-280, F-281, F-282, F-283]
+---
+
+import Screenshot from '~/components/Screenshot.astro';
+import paletteDark from '../../../../assets/screens/palette-fr-dark.png';
+import paletteLight from '../../../../assets/screens/palette-fr-light.png';
+import keybindingsDark from '../../../../assets/screens/keybindings-fr-dark.png';
+import keybindingsLight from '../../../../assets/screens/keybindings-fr-light.png';
+import keybindingsConflictDark from '../../../../assets/screens/keybindings-conflict-fr-dark.png';
+import keybindingsConflictLight from '../../../../assets/screens/keybindings-conflict-fr-light.png';
+
+La palette de commandes réunit, dans un seul champ de recherche, toutes les actions de yaggui ainsi que les branches, les tags, les commits, les fichiers modifiés et les onglets de la fenêtre. Chaque action et la plupart des touches globales ont un identifiant stable et un raccourci que vous pouvez changer.
+
+## Ouvrir la palette de commandes
+
+Appuyez sur <kbd>⌘K</kbd> (<kbd>Ctrl+K</kbd> sous Windows et Linux). Le même raccourci la referme, tout comme <kbd>Esc</kbd> et un clic à l’extérieur. Elle fonctionne partout, y compris depuis le terminal intégré.
+
+<Screenshot
+  dark={paletteDark}
+  light={paletteLight}
+  alt="La palette de commandes ouverte au-dessus du graphe, avec les actions, les branches et les commits correspondant à la recherche"
+/>
+
+Tapez pour filtrer. La recherche est approximative : `fpu` trouve **Force push (avec lease)**. Utilisez <kbd>↑</kbd> et <kbd>↓</kbd> pour vous déplacer (la liste est circulaire), <kbd>Home</kbd> et <kbd>End</kbd> lorsque le champ est vide, et <kbd>Enter</kbd> pour lancer l’entrée en surbrillance. Le pied de la palette indique le nombre de résultats.
+
+## Ce que la palette recherche
+
+| Type        | Ce que vous obtenez                                                                                                                                  | Effet de <kbd>Enter</kbd>                                                                                   |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| **Action**  | Toutes les commandes de yaggui : ouvrir, cloner, fetch, push, créer une branche, afficher ou masquer des panneaux, ouvrir les préférences…           | La lance                                                                                                    |
+| **Branche** | Les branches locales et distantes du dépôt actif                                                                                                     | Sélectionne son commit dans le graphe et l’ajoute aux branches récentes. Elle n’est pas extraite (checkout) |
+| **Tag**     | Les tags, avec le message du tag en détail                                                                                                           | Sélectionne son commit dans le graphe                                                                       |
+| **Commit**  | Les commits dont le message, l’auteur ou le début du SHA correspond, avec `<SHA court> · <auteur>` en détail                                         | Sélectionne le commit dans le graphe                                                                        |
+| **Fichier** | Les fichiers du commit sélectionné dans le graphe ou, sans sélection, vos changements indexés et non indexés (détail `indexé` ou `copie de travail`) | Ouvre le diff du fichier                                                                                    |
+| **Onglet**  | Les autres onglets de la fenêtre                                                                                                                     | Bascule vers cet onglet                                                                                     |
+
+La recherche de fichiers ne couvre pas tous les fichiers du dépôt, seulement les fichiers modifiés décrits ci-dessus. La recherche de commits s’exécute en arrière-plan et démarre dès que la requête compte 2 caractères ; « Recherche… » s’affiche pendant son exécution, et 12 commits au plus sont listés. 50 résultats au maximum s’affichent à la fois.
+
+Les actions qui ne peuvent pas s’exécuter pour le moment (aucun dépôt ouvert, aucun commit sélectionné, aucune opération en cours…) restent listées, grisées, avec le détail « Bientôt disponible », et ne font rien.
+
+### Restreindre la recherche avec un préfixe
+
+Commencez la requête par l’un de ces caractères pour ne chercher qu’un seul type. Le pied de la palette les rappelle.
+
+| Préfixe | Recherche                              |
+| ------- | -------------------------------------- |
+| `>`     | Les actions uniquement                 |
+| `@`     | Les branches et les tags               |
+| `#`     | Les commits (dès le premier caractère) |
+| `/`     | Les fichiers modifiés                  |
+
+Sans préfixe, tous les types sont recherchés, et les onglets n’apparaissent que dans ce mode.
+
+### Récents et ordre
+
+Avec une requête vide, vos 8 dernières entrées lancées arrivent en tête, puis les actions regroupées en Dépôt, Onglets, Affichage, Application et Git, puis les onglets, les branches et les tags, et enfin les fichiers. Les récents ne sont conservés que sur cet ordinateur. Quand vous tapez, les meilleures correspondances passent en premier ; les récents et la branche courante bénéficient d’un léger bonus, et les actions désactivées descendent en bas de liste.
+
+### Les raccourcis dans les résultats
+
+Une action qui a un raccourci l’affiche à droite de sa ligne, avec votre raccourci actuel. Les autres lignes y affichent leur type : Action, Branche, Tag, Commit, Fichier ou Onglet.
+
+## Voir tous les raccourcis
+
+Appuyez sur <kbd>⌘/</kbd> (<kbd>Ctrl+/</kbd> sous Windows et Linux) ou lancez **Afficher les raccourcis clavier** pour ouvrir l’aide-mémoire **Raccourcis clavier**. Elle liste chaque commande associée à un raccourci, avec votre raccourci actuel, regroupées en Dépôt, Onglets, Affichage, Application, Git et Graphe. **Modifier les raccourcis…** ouvre les préférences sur l’onglet **Raccourcis**.
+
+Sous macOS, les raccourcis utilisent les symboles ⌘ ⌃ ⌥ ⇧ ↵ ; sous Windows et Linux, ils s’écrivent `Ctrl`, `Alt`, `Shift`, `Enter`.
+
+:::note
+Sur les dispositions de clavier où `/` demande <kbd>Shift</kbd> (AZERTY, par exemple), le raccourci par défaut <kbd>⌘/</kbd> ne se déclenche pas. Modifiez le raccourci de **Afficher les raccourcis clavier** ou passez par la palette. Les lettres et les chiffres sont reconnus par leur position physique sur le clavier, ils fonctionnent donc avec toutes les dispositions.
+:::
+
+La liste complète des raccourcis par défaut figure dans la [référence des raccourcis clavier](../../reference/keyboard-shortcuts/).
+
+## Modifier un raccourci
+
+1. Ouvrez **Préférences › Raccourcis** (ou cliquez sur **Modifier les raccourcis…** dans l’aide-mémoire).
+2. Repérez la commande. **Filtrer les commandes ou les raccourcis** compare votre saisie au libellé, à l’identifiant de l’action et au texte du raccourci.
+3. Cliquez sur **Modifier** sur sa ligne. Le bouton affiche « Tape le raccourci… (Échap pour annuler) ».
+4. Appuyez sur la nouvelle combinaison. Si vous n’appuyez que sur des modificateurs, l’attente continue ; <kbd>Esc</kbd> ou un clic ailleurs annule.
+
+Le raccourci est enregistré immédiatement et s’applique partout : indications de la palette, aide-mémoire, info-bulles et, sous macOS, barre de menus.
+
+<Screenshot
+  dark={keybindingsDark}
+  light={keybindingsLight}
+  alt="L’onglet Raccourcis des préférences, avec les commandes regroupées par section et les boutons Modifier, Retirer et Défaut sur chaque ligne"
+/>
+
+### Règles pour un raccourci
+
+- Il faut au moins une des touches <kbd>⌘</kbd>, <kbd>Ctrl</kbd> ou <kbd>Alt</kbd> (<kbd>⌥</kbd>), plus une touche. <kbd>Shift</kbd> seule ne compte pas. Les touches de fonction <kbd>F1</kbd> à <kbd>F12</kbd> font exception : elles peuvent être utilisées seules.
+- La touche Windows ne peut pas être utilisée sous Windows et Linux.
+- Sinon, le message « Utilise un modificateur (⌘, Ctrl, Alt) avec une touche, ou une touche de fonction. » s’affiche et la capture attend une autre combinaison.
+- Sous macOS, <kbd>⌘</kbd> et <kbd>⌃</kbd> sont distinctes. Sous Windows et Linux, <kbd>Ctrl</kbd> joue le rôle de <kbd>⌘</kbd>.
+- yaggui ne détecte pas les raccourcis réservés par votre OS ou votre gestionnaire de fenêtres. Si un raccourci n’atteint jamais yaggui, choisissez-en un autre.
+
+### Résoudre un conflit
+
+Si la combinaison appartient déjà à une autre commande, la ligne affiche « Déjà utilisé par : _commande_ » avec deux boutons :
+
+- **Réassigner** donne le raccourci à cette commande et le retire à l’autre, en un seul enregistrement.
+- **Annuler** conserve tout comme avant.
+
+<Screenshot
+  dark={keybindingsConflictDark}
+  light={keybindingsConflictLight}
+  alt="Une capture de raccourci affichant Déjà utilisé par : Nouvel onglet, avec les boutons Réassigner et Annuler"
+/>
+
+Les conflits issus d’un fichier modifié à la main apparaissent sur chaque ligne concernée sous la forme « Même raccourci que : _commande_ ».
+
+### Retirer ou réinitialiser des raccourcis
+
+- **Retirer** laisse la commande sans raccourci (« Aucun raccourci »). Elle reste disponible dans la palette.
+- **Défaut** rétablit le raccourci par défaut de la commande. Le bouton n’est actif que pour les commandes que vous avez modifiées ; les raccourcis modifiés sont mis en évidence.
+- **Tout remettre par défaut**, dans la barre d’outils, annule toutes vos modifications.
+
+## Modifier keybindings.json
+
+Vos modifications sont stockées dans `keybindings.json`, dans le dossier de configuration de yaggui (voir [Données et confidentialité](../../reference/data-and-privacy/)). Le chemin complet s’affiche sous **Enregistré dans**, en bas de l’onglet Raccourcis. Le fichier ne contient que ce qui diffère des valeurs par défaut :
+
+```json
+{
+  "git.push": "Mod+Alt+P",
+  "graph.copyMessage": null,
+  "view.log": "F2"
+}
+```
+
+- Les clés sont des identifiants d’action. L’onglet Raccourcis les affiche lorsque vous filtrez, et la [référence](../../reference/keyboard-shortcuts/) les liste tous.
+- Une chaîne définit le raccourci ; `null` le retire ; un identifiant absent conserve la valeur par défaut.
+- Syntaxe d’un raccourci : des modificateurs parmi `Mod`, `Ctrl`, `Alt` et `Shift`, chacun au plus une fois, puis une touche, le tout relié par `+`. `Mod` est ⌘ sous macOS et Ctrl sous Windows et Linux ; `Ctrl` est la touche Contrôle physique partout. Touches possibles : `A` à `Z`, les chiffres, `F1` à `F12`, `Space`, `Enter`, `Escape`, `Tab`, `ArrowLeft`, `ArrowRight`, `ArrowUp`, `ArrowDown`, `` ` ``, et la ponctuation comme `,` et `/`.
+
+yaggui lit le fichier au démarrage, puis à chaque ouverture de l’onglet Raccourcis : vos modifications manuelles y prennent donc effet sans redémarrage. Quand yaggui enregistre un changement, il réécrit le fichier en entier (trié, mis en forme).
+
+Si le fichier est illisible ou n’est pas du JSON valide, yaggui utilise les raccourcis par défaut et l’onglet Raccourcis affiche un bandeau « keybindings.json pose problème : _détail_ ». Si seules certaines entrées sont erronées, les autres s’appliquent et le bandeau affiche « Ignored entries: _ids_ ». yaggui ne touche pas au fichier tant que vous ne modifiez pas un raccourci dans l’onglet ; à ce moment-là, il est réécrit avec les raccourcis que l’onglet affiche, ce qui supprime le contenu invalide.
+
+:::caution
+Si le bandeau signale une erreur d’analyse, corrigez le fichier à la main avant de modifier un raccourci dans l’onglet, faute de quoi les personnalisations que yaggui n’a pas pu lire seront perdues.
+:::
+
+## Touches non modifiables
+
+Certaines touches n’ont de sens que dans un panneau précis et sont fixes :
+
+| Où                     | Touches                                                                                                                                                                                                                                                        |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Graphe (avec le focus) | <kbd>↑</kbd> <kbd>↓</kbd> pour se déplacer, avec <kbd>Shift</kbd> pour étendre la sélection ; <kbd>Page Up</kbd> <kbd>Page Down</kbd> ; <kbd>Home</kbd> <kbd>End</kbd> ; <kbd>Shift+F10</kbd> ou la touche Menu pour le menu contextuel ; <kbd>Esc</kbd>       |
+| Vue diff               | <kbd>n</kbd> / <kbd>p</kbd> bloc suivant ou précédent ; <kbd>j</kbd> / <kbd>k</kbd> fichier suivant ou précédent ; <kbd>⌘D</kbd> (<kbd>Ctrl+D</kbd>) côte à côte ou unifié ; <kbd>Esc</kbd> efface la sélection de lignes, puis ferme le diff                  |
+| Lignes du diff         | <kbd>↑</kbd> <kbd>↓</kbd> (avec <kbd>Shift</kbd> pour étendre) ; <kbd>Space</kbd> sélectionne une ligne ; <kbd>Enter</kbd> indexe (désindexe dans le diff des changements indexés) ; <kbd>Backspace</kbd> ou <kbd>Delete</kbd> annule les lignes sélectionnées |
+| Fichiers modifiés      | <kbd>↑</kbd> <kbd>↓</kbd> sélectionnent et ouvrent le diff (avec <kbd>Shift</kbd> pour étendre) ; <kbd>Space</kbd> indexe ou désindexe                                                                                                                         |
+| Panneau des refs       | Touches fléchées, <kbd>Home</kbd> <kbd>End</kbd>, <kbd>Page Up</kbd> <kbd>Page Down</kbd>, <kbd>Enter</kbd> ou <kbd>Space</kbd> pour activer, saisie des premières lettres pour se placer, <kbd>⌘C</kbd> (<kbd>Ctrl+C</kbd>) copie le nom de la ref            |
+| Barre d’onglets        | <kbd>←</kbd> <kbd>→</kbd> onglet précédent ou suivant, <kbd>Home</kbd> <kbd>End</kbd>, <kbd>Delete</kbd> ferme l’onglet qui a le focus                                                                                                                         |
+| Vue des conflits       | <kbd>⌥↓</kbd> / <kbd>⌥↑</kbd> (<kbd>Alt+↓</kbd> / <kbd>Alt+↑</kbd>) conflit suivant ou précédent, <kbd>⌘S</kbd> (<kbd>Ctrl+S</kbd>) enregistre                                                                                                                 |
+| Rebase interactif      | <kbd>⌥↑</kbd> / <kbd>⌥↓</kbd> déplace un commit ; <kbd>p</kbd> <kbd>r</kbd> <kbd>s</kbd> <kbd>f</kbd> <kbd>d</kbd> <kbd>e</kbd> définissent l’action                                                                                                           |
+
+La liste complète figure dans la [référence des raccourcis clavier](../../reference/keyboard-shortcuts/).
+
+## Comportement des raccourcis
+
+- Tant qu’une boîte de dialogue est ouverte, les raccourcis globaux et les commandes de menu sont ignorés. Le raccourci de la palette continue de la fermer.
+- Dans un champ de texte, <kbd>⌘Z</kbd> et <kbd>⌘⇧Z</kbd> (<kbd>Ctrl+Z</kbd>, <kbd>Ctrl+Shift+Z</kbd>, <kbd>Ctrl+Y</kbd>) annulent et rétablissent la saisie, et non la dernière opération Git. Voir [Annuler et rétablir](../../history/undo-and-redo/).
+- Quand le terminal intégré a le focus, il reçoit toutes les touches, sauf le raccourci de la palette et les deux raccourcis du terminal (<kbd>⌃`</kbd> et <kbd>⌃⇧`</kbd>, qui utilisent Contrôle aussi sous macOS).
+- Un raccourci dont l’action ne peut pas s’exécuter ne fait rien. Annuler et rétablir font exception : ils expliquent pourquoi rien ne peut être annulé.
+- <kbd>⌘C</kbd> et <kbd>⌘⇧C</kbd> (<kbd>Ctrl+C</kbd>, <kbd>Ctrl+Shift+C</kbd>) copient le SHA ou le
+  message des commits sélectionnés uniquement quand le graphe a le focus.
+
+## Naviguer au clavier
+
+Chaque contrôle affiche un anneau de focus visible. <kbd>Tab</kbd> et <kbd>Shift+Tab</kbd> font passer de la barre d’outils au panneau des refs, au graphe, au panneau de détails et aux listes de changements ; les touches fléchées se déplacent ensuite dans la liste ou l’arbre qui a le focus. Quelques raccourcis globaux mènent directement à un endroit :
+
+| Raccourci                                                                            | Mène à                                                |
+| ------------------------------------------------------------------------------------ | ----------------------------------------------------- |
+| <kbd>⌘K</kbd> (<kbd>Ctrl+K</kbd>)                                                    | La palette de commandes                               |
+| <kbd>⌘F</kbd> (<kbd>Ctrl+F</kbd>)                                                    | La recherche dans le graphe                           |
+| <kbd>⌘⇧H</kbd> (<kbd>Ctrl+Shift+H</kbd>)                                             | HEAD dans le graphe                                   |
+| <kbd>⌘⇧R</kbd> (<kbd>Ctrl+Shift+R</kbd>)                                             | Le champ de filtre du panneau des refs                |
+| <kbd>⌘⌥B</kbd> / <kbd>⌘⌥I</kbd> (<kbd>Ctrl+Alt+B</kbd> / <kbd>Ctrl+Alt+I</kbd>)      | Afficher ou masquer le panneau des refs ou de détails |
+| <kbd>⌘1</kbd> à <kbd>⌘9</kbd> (<kbd>Ctrl+1</kbd> à <kbd>Ctrl+9</kbd>)                | L’onglet 1 à 9                                        |
+| <kbd>⌃Tab</kbd> / <kbd>⌃⇧Tab</kbd> (<kbd>Ctrl+Tab</kbd> / <kbd>Ctrl+Shift+Tab</kbd>) | L’onglet suivant ou précédent                         |
+
+Les séparateurs de panneaux peuvent recevoir le focus et se déplacer avec les touches fléchées.

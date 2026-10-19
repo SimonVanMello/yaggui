@@ -17,6 +17,7 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use crate::events::{BackendEvent, CommandLogged, EventSink};
 use crate::git::errors::{BackendError, YagguiError, classify_git_failure};
 use crate::git::log::{CommandLog, CommandLogEntry, CommandStatus, bounded_output};
+use crate::git::redact::redact_urls;
 
 /// Oldest Git version yaggui is tested against; older ones get a warning.
 pub const MIN_GIT_VERSION: &str = "2.30";
@@ -338,7 +339,7 @@ impl GitCli {
             args: command
                 .args
                 .iter()
-                .map(|a| a.to_string_lossy().into_owned())
+                .map(|a| redact_urls(&a.to_string_lossy()).into_owned())
                 .collect(),
             cwd: command.cwd.as_deref().map(|p| p.display().to_string()),
             started_at,
@@ -360,7 +361,7 @@ impl GitCli {
         let mut child = match self.build(command).spawn() {
             Ok(child) => child,
             Err(err) => {
-                entry.stderr = err.to_string();
+                entry.stderr = redact_urls(&err.to_string()).into_owned();
                 entry.duration_ms = elapsed_ms(start);
                 self.record(entry);
                 return Err(if err.kind() == std::io::ErrorKind::NotFound {
@@ -400,15 +401,20 @@ impl GitCli {
             forward_progress(&line, &mut on_progress);
         }
         let output_truncated = stdout_capture.dropped > 0 || stderr_capture.dropped > 0;
+        // Masked before truncation, so a cut cannot leave the start of a secret behind.
+        // `stdout` stays raw for callers: it is data (`git config` values), never displayed as is.
         let stdout_bytes = stdout_capture.into_bytes();
-        let stderr_bytes = stderr_capture.into_bytes();
+        let stderr_bytes = redact_urls(&String::from_utf8_lossy(&stderr_capture.into_bytes()))
+            .into_owned()
+            .into_bytes();
+        let stdout_logged = redact_urls(&String::from_utf8_lossy(&stdout_bytes)).into_owned();
         if let Some(writer) = stdin_writer
             && writer.is_finished()
         {
             let _ = writer.join();
         }
 
-        let (stdout, stdout_truncated) = bounded_output(&stdout_bytes);
+        let (stdout, stdout_truncated) = bounded_output(stdout_logged.as_bytes());
         let (mut stderr, stderr_truncated) = bounded_output(&stderr_bytes);
         if cancelled
             && let Some(lock) = &command.index_lock

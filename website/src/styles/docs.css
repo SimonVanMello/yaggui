@@ -1,0 +1,116 @@
+/* Starlight skin: the docs preview at the bottom of docs/ui/website.html. Colors come from theme.css. */
+:root {
+  --sl-nav-height: 3.5rem;
+  --sl-sidebar-width: 15rem;
+  --sl-content-width: 46rem;
+  --sl-text-h1: 2.125rem;
+  --sl-text-h2: 1.3125rem;
+  --sl-text-h3: 1.0625rem;
+  --sl-line-height: 1.65;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+}
+
+header.header {
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg) 85%, transparent);
+  backdrop-filter: blur(12px);
+}
+
+/* Sidebar: group titles small and strong, current page on the accent tint. */
+.sidebar-content .top-level .large {
+  font-size: 0.78125rem;
+  font-weight: 600;
+  color: var(--fg);
+}
+.sidebar-content a {
+  border-radius: 7px;
+  padding: 0.3125rem 0.625rem;
+  font-size: 0.875rem;
+  color: var(--fg2);
+}
+.sidebar-content a:hover,
+.sidebar-content a:focus-visible {
+  color: var(--fg);
+}
+.sidebar-content a[aria-current='page'],
+.sidebar-content a[aria-current='page']:hover,
+.sidebar-content a[aria-current='page']:focus {
+  color: var(--fg);
+  background: var(--accent-soft);
+  font-weight: 500;
+}
+.sidebar-content ul ul li {
+  border-inline-start: 0;
+}
+.sidebar-pane {
+  border-inline-end: 1px solid var(--line);
+}
+
+/* Content */
+h1#_top {
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: 1.1;
+}
+.sl-markdown-content :is(h2, h3) {
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.sl-markdown-content :is(p, li) {
+  color: var(--fg2);
+}
+.sl-markdown-content :not(pre) > code {
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: var(--elev);
+  border: 1px solid var(--line);
+  color: var(--fg);
+}
+.sl-markdown-content kbd,
+kbd {
+  font-family: var(--mono);
+  font-size: 0.75em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.75em;
+  height: 1.75em;
+  padding: 0 0.45em;
+  border: 1px solid var(--line2);
+  border-radius: 5px;
+  background: var(--elev);
+  color: var(--fg2);
+  line-height: 1;
+  vertical-align: 0.1em;
+}
+.sl-markdown-content table {
+  font-size: 0.90625rem;
+}
+.sl-markdown-content :is(th, td) {
+  border-color: var(--line);
+}
+
+/* Asides: hairline cards rather than colored blocks. */
+.starlight-aside {
+  border: 1px solid var(--line);
+  border-inline-start-width: 3px;
+  border-radius: 10px;
+  background: var(--card);
+}
+
+/* Table of contents: the current heading in the accent. */
+starlight-toc a[aria-current='true'],
+starlight-toc a[aria-current='true']:hover {
+  color: var(--accent);
+}
+.right-sidebar {
+  border-inline-start: 1px solid var(--line);
+}
+
+/* Inter is wider than Starlight's system font: "Français" would be cut. */
+starlight-lang-select label {
+  --sl-select-width: 7.5em !important;
+}

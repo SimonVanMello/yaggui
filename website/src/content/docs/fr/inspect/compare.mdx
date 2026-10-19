@@ -1,0 +1,95 @@
+---
+title: Comparer des commits et des branches
+description: Comparez deux commits ou deux branches pour voir les commits propres à chaque côté et toutes les modifications entre eux, et accédez à leur merge-base.
+sidebar:
+  order: 1
+sources:
+  - src/features/compare/**
+  - src/features/graph/SelectionBar.tsx
+  - src/features/graph/CommitContextMenu.tsx
+  - src-tauri/src/repo/graph_tools.rs
+  - src-tauri/src/commands/graph_tools.rs
+requirements: [F-029, F-030, F-104]
+---
+
+import Screenshot from '~/components/Screenshot.astro';
+import compareBranchesDialogDark from '../../../../assets/screens/compare-branches-dialog-fr-dark.png';
+import compareBranchesDialogLight from '../../../../assets/screens/compare-branches-dialog-fr-light.png';
+import comparePanelDark from '../../../../assets/screens/compare-panel-fr-dark.png';
+import comparePanelLight from '../../../../assets/screens/compare-panel-fr-light.png';
+
+Le panneau Comparer montre en quoi deux commits ou deux branches diffèrent : les commits qui ne se trouvent que d’un côté, et la modification d’ensemble entre les deux. Il s’ouvre à droite de l’onglet du dépôt, à la place du détail du commit.
+
+## Comparer deux commits
+
+1. Dans le [graphe des commits](../../history/commit-graph/), cliquez sur un commit, puis faites <kbd>⌘</kbd>-clic (<kbd>Ctrl</kbd>-clic sous Windows et Linux) sur un second.
+2. Au choix :
+   - Cliquez sur **Comparer** dans la barre de sélection qui apparaît en bas du graphe.
+   - Faites un clic droit sur l’un des deux commits, puis choisissez **Comparer ces 2 commits**.
+   - Lancez **Comparer les 2 commits sélectionnés** depuis la palette de commandes (<kbd>⌘K</kbd>, <kbd>Ctrl+K</kbd> sous Windows et Linux).
+
+Ces entrées ne sont disponibles que lorsque exactement deux commits sont sélectionnés. Le côté A est le commit le plus récent, le côté B le plus ancien, tous deux désignés par leur SHA court.
+
+Pour comparer un commit avec HEAD, faites un clic droit dessus, puis choisissez **Comparer avec HEAD**. Le côté A est le commit, le côté B est HEAD.
+
+## Comparer deux branches
+
+| Point d’entrée                                                                         | Ce qui est comparé                                                          |
+| -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| Barre latérale : clic droit sur une branche, puis **Comparer avec** _branche courante_ | Cette branche (A) avec la branche courante (B)                              |
+| Barre latérale : clic droit sur une branche, puis **Comparer avec…**                   | Ouvre la boîte de dialogue ci-dessous, avec cette branche comme **Branche** |
+| Palette de commandes : **Comparer deux branches…**                                     | Ouvre la boîte de dialogue ci-dessous                                       |
+
+**Comparer avec** _branche courante_ est désactivé sur la branche courante et quand HEAD est détaché : « Extrais une autre branche pour comparer ».
+
+La boîte de dialogue **Comparer deux branches** liste les branches locales et distantes :
+
+1. Choisissez une **Branche** (côté A).
+2. Choisissez dans **Comparée à** la branche à laquelle la comparer (côté B). Par défaut, c’est la branche courante.
+3. Cliquez sur **Comparer**. Le bouton reste désactivé tant que les deux branches sont identiques : « Choisis deux branches différentes. »
+
+<Screenshot
+  dark={compareBranchesDialogDark}
+  light={compareBranchesDialogLight}
+  alt="La boîte de dialogue Comparer deux branches avec les sélecteurs Branche et Comparée à"
+/>
+
+## Lire le panneau Comparer
+
+L’en-tête du panneau affiche les deux côtés, A ⇄ B. **Inverser les côtés** les échange. En dessous, **Merge-base :** donne le SHA court de l’ancêtre commun des deux côtés ([git merge-base](https://git-scm.com/docs/git-merge-base)) ; cliquez dessus pour sélectionner ce commit dans le graphe. Si les deux côtés n’ont aucun historique en commun, le panneau indique « Aucun ancêtre commun : historiques sans lien ».
+
+Passez d’une vue à l’autre avec **Commits** et **Modifications**.
+
+<Screenshot
+  dark={comparePanelDark}
+  light={comparePanelLight}
+  alt="Le panneau Comparer avec les sections Seulement dans pour les deux côtés et leurs commits, le lien vers le merge-base et le sélecteur Commits et Modifications"
+/>
+
+### Commits
+
+Deux listes, **Seulement dans _A_** et **Seulement dans _B_**, chacune avec un compteur. Elles contiennent les commits accessibles depuis un côté mais pas depuis l’autre, comme `git log B..A` et `git log A..B`. Un côté sans commit affiche **Aucun commit**.
+
+Chaque liste montre jusqu’à 1000 commits ; au-delà, « N commits de plus, non listés (1000 premiers affichés) ». Cliquez sur un commit pour le sélectionner dans le graphe.
+
+### Modifications
+
+La liste de fichiers « Modifications _B_ → _A_ » (les deux côtés sous forme de SHA courts) contient la différence d’ensemble entre les deux côtés, telle que l’afficherait `git diff B A` : ce que A a et que B n’a pas. Chaque fichier affiche son statut et ses nombres de lignes `+`/`−`. Cliquez sur un fichier pour ouvrir son diff au centre, avec toutes les fonctions du [visualiseur de diff](../../everyday/diff/). Si les deux côtés ont le même contenu, la liste indique « Aucune différence entre les deux ».
+
+Pour deux commits, B est le plus ancien : les modifications se lisent donc du plus ancien au plus récent.
+
+### Mises à jour et erreurs
+
+Le panneau se recalcule quand des branches ou des tags changent. En cas d’échec, il affiche « La comparaison n'a pas pu être chargée » avec **Réessayer**. La comparaison n’exécute aucune commande Git : yaggui lit directement l’historique.
+
+Fermez le panneau avec **Fermer la comparaison**. La comparaison n’est pas conservée quand vous fermez le dépôt.
+
+## Aller au merge-base
+
+Pour sélectionner dans le graphe l’ancêtre commun de deux commits :
+
+- Avec deux commits sélectionnés : **Merge-base** dans la barre de sélection, **Aller à leur merge-base** dans le menu contextuel, ou l’action de la palette **Aller au merge-base des 2 commits sélectionnés**.
+- Pour un commit et HEAD : faites un clic droit sur le commit, puis choisissez **Aller au merge-base avec HEAD**.
+- Pour deux branches : comparez-les, puis cliquez sur le SHA qui suit **Merge-base :** dans le panneau.
+
+Le merge-base est sélectionné et centré. Si les historiques n’ont aucun lien, une notification indique « Aucun ancêtre commun : ces historiques n'ont pas de lien ». Si un [filtre du graphe](../../history/commit-graph/#masquer-isoler-et-filtrer-des-branches) masque le merge-base, il reste sélectionné et son détail s’affiche, avec « Le merge-base _abc1234_ n'est pas affiché dans le graphe (filtre) ».

@@ -5,6 +5,7 @@ use specta::Type;
 
 use crate::git::ops::types::UndoBlock;
 use crate::git::read::state::RepoOperation;
+use crate::git::redact::redact_urls;
 
 /// Stable machine-readable error code; the frontend switches on it, never on messages.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
@@ -335,6 +336,7 @@ impl YagguiError {
 
     pub fn with_detail(mut self, detail: impl Into<String>) -> Self {
         let detail = detail.into();
+        let detail = redact_urls(&detail);
         let trimmed = detail.trim();
         if !trimmed.is_empty() {
             self.detail = Some(trimmed.to_owned());

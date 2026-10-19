@@ -1,0 +1,6 @@
+pnpm-lock.yaml
+dist
+.astro
+.cache
+src/content/docs/_data/
+public/demo

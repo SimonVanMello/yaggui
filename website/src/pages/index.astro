@@ -1,0 +1,9 @@
+---
+import Landing from '../components/Landing.astro';
+import SiteLayout from '../layouts/SiteLayout.astro';
+import { tl } from '../i18n/landing';
+---
+
+<SiteLayout title={tl('en', 'title')} description={tl('en', 'description')}>
+  <Landing />
+</SiteLayout>

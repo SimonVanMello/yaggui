@@ -1,0 +1,76 @@
+---
+// The keyboard shortcut reference. `data` is `_data/shortcuts.json` of the docs version being
+// rendered, generated from the app's action registry (`pnpm docs:shortcuts`), so every version of
+// the docs lists the shortcuts of its own release. Import the file relatively from the page.
+import { localeOf } from '../i18n/ui';
+
+interface Entry {
+  id: string;
+  title: Record<'en' | 'fr', string>;
+  mac: string[] | null;
+  other: string[] | null;
+}
+
+interface Props {
+  data: {
+    groups: { id: string; title: Record<'en' | 'fr', string>; shortcuts: Entry[] }[];
+  };
+}
+
+const { data } = Astro.props;
+const locale = localeOf(Astro.url);
+const labels = {
+  en: { command: 'Command', mac: 'macOS', other: 'Windows and Linux', none: 'Not available' },
+  fr: { command: 'Commande', mac: 'macOS', other: 'Windows et Linux', none: 'Non disponible' },
+}[locale];
+---
+
+{data.groups.map((group) => (
+  <section class="shortcut-group">
+    <h2 id={`shortcuts-${group.id}`}>{group.title[locale]}</h2>
+    <table>
+      <thead>
+        <tr>
+          <th scope="col">{labels.command}</th>
+          <th scope="col">{labels.mac}</th>
+          <th scope="col">{labels.other}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {group.shortcuts.map((entry) => (
+          <tr>
+            <td>{entry.title[locale]}</td>
+            {[entry.mac, entry.other].map((keys) => (
+              <td>
+                {keys ? (
+                  <span class="keys">
+                    {keys.map((key) => (
+                      <kbd>{key}</kbd>
+                    ))}
+                  </span>
+                ) : (
+                  <span class="none">{labels.none}</span>
+                )}
+              </td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </section>
+))}
+
+<style>
+  .keys {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+  /* Starlight's prose rules put a top margin on siblings: keycaps stay on one line. */
+  .shortcut-group .keys kbd {
+    margin: 0;
+  }
+  .none {
+    color: var(--sl-color-gray-3);
+  }
+</style>

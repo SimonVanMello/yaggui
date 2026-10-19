@@ -1,0 +1,34 @@
+---
+title: Documentation de yaggui
+description: Comment installer et utiliser yaggui, un client Git local et rapide pour macOS, Windows et Linux.
+sources: []
+requirements: []
+---
+
+import { CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+Ces pages expliquent comment fonctionne yaggui : d’où part chaque action, ce qu’elle affiche avant de s’exécuter, quelle commande Git elle lance, ce qui peut mal tourner et ce qui peut être annulé. Git lui-même est expliqué par la [documentation de Git](https://git-scm.com/doc) ; ces pages y renvoient quand un concept compte.
+
+Vous découvrez yaggui ? Lisez l’[introduction](start-here/introduction/), [installez-le](start-here/install/), puis faites la [visite de la fenêtre](start-here/tour/).
+
+## Tâches courantes
+
+<CardGrid>
+  <LinkCard title="Ouvrir, cloner ou créer un dépôt" href="start-here/open-a-repository/" />
+  <LinkCard title="Indexer des fichiers, des blocs ou des lignes" href="everyday/staging/" />
+  <LinkCard title="Commiter et amender" href="everyday/committing/" />
+  <LinkCard title="Changer de branche et gérer les branches" href="history/branches/" />
+  <LinkCard title="Fetch, pull et push" href="remotes/fetch-pull-push/" />
+  <LinkCard title="Merge et rebase" href="history/merge-and-rebase/" />
+  <LinkCard title="Résoudre les conflits" href="history/conflicts/" />
+  <LinkCard title="Annuler une opération" href="history/undo-and-redo/" />
+</CardGrid>
+
+## Quand quelque chose ne va pas
+
+<CardGrid>
+  <LinkCard title="Dépannage" href="help/troubleshooting/" />
+  <LinkCard title="Messages d’erreur" href="reference/error-messages/" />
+  <LinkCard title="Authentification (HTTPS et SSH)" href="remotes/authentication/" />
+  <LinkCard title="FAQ" href="help/faq/" />
+</CardGrid>

@@ -6,6 +6,7 @@ use specta::Type;
 
 use crate::git::errors::YagguiError;
 use crate::git::ops::types::DeletedRef;
+use crate::git::redact::redact_urls;
 
 /// What removing a remote takes away, for its confirmation. Read-only.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
@@ -65,15 +66,27 @@ pub fn check_remote_url(url: &str) -> Result<String, YagguiError> {
         ));
     }
     if url.starts_with('-') || url.chars().any(char::is_control) {
+        let shown = redact_urls(url);
         return Err(YagguiError::invalid_argument(
-            format!("\"{}\" is not a valid remote URL.", url.escape_default()),
+            format!("\"{}\" is not a valid remote URL.", shown.escape_default()),
             format!(
                 "« {} » n'est pas une URL de remote valide.",
-                url.escape_default()
+                shown.escape_default()
             ),
         ));
     }
     Ok(url.to_owned())
+}
+
+/// The URL to store for `submitted`: the lists show masked URLs, so an unchanged field comes
+/// back masked and must not overwrite the stored secret with `***`.
+pub fn keep_stored_secret(submitted: String, stored: Option<&str>) -> String {
+    match stored {
+        Some(stored) if stored != submitted && redact_urls(stored) == submitted => {
+            stored.to_owned()
+        }
+        _ => submitted,
+    }
 }
 
 /// One ref line of `git push --porcelain`: `<flag>\t<from>:<to>\t<summary>`.

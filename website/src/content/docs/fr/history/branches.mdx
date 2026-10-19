@@ -1,0 +1,307 @@
+---
+title: Branches
+description: Parcourir les refs dans la barre latérale, basculer sur une branche, en créer, en renommer et en supprimer, définir des upstreams, changer de branche depuis la barre d’outils et nettoyer les anciennes branches.
+sidebar:
+  order: 2
+sources:
+  - src/features/sidebar/**
+  - src/features/refs/**
+  - src/features/toolbar/BranchSelector.tsx
+  - src/features/toolbar/branchChoices.ts
+  - src/features/compare/CleanupDialog.tsx
+  - src/features/compare/cleanupModel.ts
+  - src/features/network/networkOps.ts
+  - src-tauri/src/repo/ref_ops.rs
+  - src-tauri/src/commands/refs.rs
+  - src-tauri/src/repo/graph_tools.rs
+  - src-tauri/src/repo/network.rs
+requirements: [F-040, F-041, F-042, F-043, F-044, F-045, F-100, F-101, F-102, F-103, F-105, F-106]
+---
+
+import Screenshot from '~/components/Screenshot.astro';
+import sidebarRefsDark from '../../../../assets/screens/sidebar-refs-fr-dark.png';
+import sidebarRefsLight from '../../../../assets/screens/sidebar-refs-fr-light.png';
+import branchDirtyCheckoutDark from '../../../../assets/screens/branch-dirty-checkout-fr-dark.png';
+import branchDirtyCheckoutLight from '../../../../assets/screens/branch-dirty-checkout-fr-light.png';
+import branchCleanupDark from '../../../../assets/screens/branch-cleanup-fr-dark.png';
+import branchCleanupLight from '../../../../assets/screens/branch-cleanup-fr-light.png';
+
+Cette page présente la barre latérale des refs, à gauche d’un onglet de dépôt, et tout ce que vous faites avec les branches : basculer dessus, les créer, les renommer, les supprimer, suivre une branche distante et nettoyer les branches dont vous n’avez plus besoin.
+
+## La barre latérale des refs
+
+La barre latérale liste toutes les références du dépôt dans des sections repliables. L’en-tête de chaque section affiche un compteur.
+
+| Section        | Contenu                                                                                                   | Repliée par défaut |
+| -------------- | --------------------------------------------------------------------------------------------------------- | ------------------ |
+| **Local**      | Les branches locales, plus une ligne HEAD quand HEAD est détaché ou que le dépôt n’a pas encore de commit | Non                |
+| **Remote**     | Un dossier par remote, avec ses branches                                                                  | Non                |
+| **Tags**       | Les tags (une icône d’information signale les tags annotés)                                               | Oui                |
+| **Stashes**    | Les stashes, par message                                                                                  | Non                |
+| **Submodules** | Les submodules                                                                                            | Oui                |
+| **Worktrees**  | Les autres worktrees                                                                                      | Oui                |
+
+Les en-têtes de section restent visibles pendant le défilement. Les sections et les dossiers développés ou repliés sont enregistrés par onglet.
+
+<Screenshot
+  dark={sidebarRefsDark}
+  light={sidebarRefsLight}
+  alt="La barre latérale des refs avec les sections Local, Remote, Tags et Stashes, des branches regroupées en dossiers par préfixe, et les compteurs d’avance et de retard à côté des branches locales"
+/>
+
+### Arborescence ou liste plate
+
+Les noms de branche sont regroupés en dossiers selon leur préfixe : `feat/graph-lanes` se trouve dans un dossier `feat`. Cliquez sur **Liste plate des branches**, en haut de la barre latérale, pour afficher plutôt les noms complets dans une seule liste. Ce choix est enregistré par onglet.
+
+### Ce que montre une ligne de branche
+
+- La branche courante est mise en évidence.
+- `↑2 ↓5` : la branche a 2 commits que son upstream n’a pas, et a 5 commits de retard sur lui. Pour le concept, voir [git status](https://git-scm.com/docs/git-status).
+- « upstream supprimé » : la branche upstream n’existe plus sur le remote (Git la signale par `[gone]`).
+- Une marque de worktree quand la branche est extraite dans un autre worktree, voir [Worktrees](../../repository/worktrees/).
+- Une icône d’œil ou de cible quand la branche est masquée du [graphe des commits](../../history/commit-graph/#masquer-isoler-et-filtrer-des-branches), ou est la seule à y être affichée.
+
+La ligne du commit sélectionné dans le graphe est elle aussi mise en évidence.
+
+### Filtrer la barre latérale
+
+Saisissez votre filtre dans **Filtrer les refs**, en haut, ou appuyez sur <kbd>⌘⇧R</kbd> (<kbd>Ctrl+Shift+R</kbd> sous Windows et Linux) pour y aller ; cela rouvre aussi une barre latérale repliée.
+
+- Séparez les mots par des espaces : chaque mot doit figurer dans le nom, dans n’importe quel ordre, sans tenir compte de la casse.
+- Le filtre s’applique aussi aux messages de stashes, aux chemins des submodules et des worktrees, et au SHA d’un HEAD détaché. Saisir le nom d’un remote garde toutes ses branches.
+- Pendant le filtrage, toutes les sections sont développées et le nombre de correspondances s’affiche. Sans correspondance, vous voyez « Rien ne correspond à « … » ».
+- <kbd>↓</kbd> ou <kbd>Enter</kbd> passe à la liste. <kbd>Esc</kbd> efface le filtre.
+
+### Souris et clavier
+
+| Action                                                              | Effet                                                                                        |
+| ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Cliquer sur une branche, un tag ou un stash                         | Sélectionne son commit dans le graphe et y défile. Un stash ouvre aussi son détail à droite. |
+| Double-cliquer sur une branche                                      | [Bascule dessus](#basculer-sur-une-branche)                                                  |
+| Double-cliquer sur un tag                                           | Ouvre la [boîte de dialogue de checkout du tag](../../history/tags/#basculer-sur-un-tag)     |
+| Clic droit                                                          | Ouvre le menu contextuel de la ligne                                                         |
+| Faire glisser une branche locale ou distante sur une branche locale | Merge, rebase ou fast-forward, voir [Merge et rebase](../../history/merge-and-rebase/)       |
+
+Quand la liste a le focus : <kbd>↑</kbd> <kbd>↓</kbd>, <kbd>Home</kbd> <kbd>End</kbd>, <kbd>Page Up</kbd> <kbd>Page Down</kbd> déplacent la sélection ; <kbd>→</kbd> développe ou va au premier enfant ; <kbd>←</kbd> replie ou va au parent ; <kbd>Enter</kbd> ou <kbd>Space</kbd> agit comme un clic (sans basculer sur la branche) ; taper une lettre lance le filtrage ; <kbd>⌘C</kbd> (<kbd>Ctrl+C</kbd> sous Windows et Linux) copie le nom de la ref ; la touche de menu contextuel ou <kbd>⇧F10</kbd> ouvre le menu.
+
+Si les références ne peuvent pas être lues, la barre latérale affiche « Impossible de lire les références » avec **Réessayer**.
+
+### Menu d’une branche locale
+
+Les éléments grisés indiquent pourquoi. Dans les libellés, _courante_ désigne la branche courante (ou « HEAD » quand HEAD est détaché).
+
+| Élément                                                                                                                  | Affiché ou disponible                                                                                                     | Effet                                                                                         |
+| ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| **Basculer sur _nom_**                                                                                                   | Pas sur la branche courante. Grisé quand la branche est extraite dans un autre worktree.                                  | [Bascule sur la branche](#basculer-sur-une-branche)                                           |
+| **Extraire dans un nouveau worktree…**                                                                                   | Grisé sur une branche extraite ici ou dans un autre worktree                                                              | Voir [Worktrees](../../repository/worktrees/)                                                 |
+| **Créer une branche ici…**                                                                                               | Toujours                                                                                                                  | [Crée une branche](#créer-une-branche) à sa pointe                                            |
+| **Créer un tag ici…**                                                                                                    | Toujours                                                                                                                  | [Crée un tag](../../history/tags/#créer-un-tag) à sa pointe                                   |
+| **Reflog**                                                                                                               | Toujours                                                                                                                  | Le reflog de la branche, voir [Reflog](../../inspect/reflog/)                                 |
+| **Merger _nom_ dans _courante_…**, **Rebaser _nom_ sur _courante_**, **Avancer _courante_ (fast-forward) jusqu’à _nom_** | Pas sur la branche courante, et une branche est extraite. Grisé pendant une opération.                                    | Voir [Merge et rebase](../../history/merge-and-rebase/)                                       |
+| **Pull**                                                                                                                 | La branche a un upstream. Ne fonctionne que sur la branche courante : « Le pull ne s'applique qu'à la branche courante ». | Voir [Fetch, pull et push](../../remotes/fetch-pull-push/)                                    |
+| **Push**                                                                                                                 | Toujours                                                                                                                  | Pousse cette branche, voir [Fetch, pull et push](../../remotes/fetch-pull-push/)              |
+| **Renommer…**                                                                                                            | Toujours                                                                                                                  | [Renomme la branche](#renommer-une-branche)                                                   |
+| **Définir l’upstream…** / **Changer l'upstream…**                                                                        | Toujours                                                                                                                  | [Boîte de dialogue de l’upstream](#définir-changer-ou-retirer-lupstream)                      |
+| **Retirer l'upstream**                                                                                                   | La branche a un upstream                                                                                                  | Le retire immédiatement, sans confirmation                                                    |
+| **Supprimer _nom_…**                                                                                                     | Grisé sur la branche courante : « Bascule d'abord sur une autre branche »                                                 | [Supprime la branche](#supprimer-une-branche)                                                 |
+| **Masquer du graphe** / **Afficher dans le graphe**                                                                      | Grisé sur la branche courante                                                                                             | Voir [Graphe des commits](../../history/commit-graph/#masquer-isoler-et-filtrer-des-branches) |
+| **Afficher seulement cette branche** / **Réafficher toutes les branches**                                                | Toujours                                                                                                                  | Voir [Graphe des commits](../../history/commit-graph/#masquer-isoler-et-filtrer-des-branches) |
+| **Comparer avec _courante_**                                                                                             | Grisé sur la branche courante ou quand HEAD est détaché : « Extrais une autre branche pour comparer »                     | Voir [Comparer](../../inspect/compare/)                                                       |
+| **Comparer avec…**                                                                                                       | Toujours                                                                                                                  | Voir [Comparer](../../inspect/compare/#comparer-deux-branches)                                |
+| **Nettoyer les branches mergées et disparues…**                                                                          | Toujours                                                                                                                  | [Nettoyage des branches](#nettoyer-les-branches-mergées-et-disparues)                         |
+| **Copier le nom**, **Copier le SHA**                                                                                     | Toujours                                                                                                                  | Copie dans le presse-papiers. Notification : « Nom copié » ou « SHA copié ».                  |
+
+### Menu d’une branche distante
+
+| Élément                                                                                | Effet                                                                                                                               |
+| -------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| **Créer une branche locale qui la suit**                                               | [Bascule sur une branche locale de suivi](#basculer-sur-un-commit-ou-une-branche-distante)                                          |
+| **Créer une branche ici…**                                                             | [Crée une branche](#créer-une-branche) à sa pointe                                                                                  |
+| **Reflog**                                                                             | Le reflog de la branche de suivi                                                                                                    |
+| **Merger _nom_ dans _courante_…**, **Avancer _courante_ (fast-forward) jusqu’à _nom_** | Voir [Merge et rebase](../../history/merge-and-rebase/). **Rebaser** est grisé : « Une branche distante ne peut pas être rebasée ». |
+| **Supprimer sur la remote…**                                                           | [Supprime la branche sur le remote](#supprimer-une-branche-sur-le-remote)                                                           |
+| **Masquer du graphe**, **Afficher seulement cette branche**                            | Voir [Graphe des commits](../../history/commit-graph/#masquer-isoler-et-filtrer-des-branches)                                       |
+| **Comparer avec _courante_**, **Comparer avec…**                                       | Voir [Comparer](../../inspect/compare/)                                                                                             |
+| **Nettoyer les branches mergées et disparues…**                                        | [Nettoyage des branches](#nettoyer-les-branches-mergées-et-disparues)                                                               |
+| **Copier le nom**, **Copier le SHA**                                                   | Copie dans le presse-papiers                                                                                                        |
+
+Les autres lignes ont leurs propres menus : les tags dans [Tags](../../history/tags/), les stashes dans [Stash](../../everyday/stash/), les remotes dans [Remotes](../../remotes/remotes/), les submodules et les worktrees dans [Submodules](../../repository/submodules/) et [Worktrees](../../repository/worktrees/). La ligne HEAD détaché propose **Créer une branche ici…**, **Créer un tag ici…**, **Reflog** et **Copier le nom**.
+
+## Basculer sur une branche
+
+Pour passer sur une branche locale, faites l’une des actions suivantes :
+
+- Double-cliquez dessus dans la barre latérale.
+- Double-cliquez sur son étiquette dans le graphe.
+- Faites un clic droit dessus dans la barre latérale, puis **Basculer sur _nom_**.
+- Choisissez-la dans le [sélecteur de branche](#changer-de-branche-depuis-la-barre-doutils) de la barre d’outils.
+
+yaggui exécute `git switch --no-guess <branch>` et affiche « Passé sur _nom_ ». La branche est ajoutée aux branches récentes de l’onglet.
+
+- Double-cliquer sur la branche courante dans la barre latérale affiche seulement « _nom_ est déjà la branche courante » ; dans le graphe, cela ne fait rien.
+- Une branche extraite dans un autre worktree ne peut pas être extraite ici ; yaggui vous indique quel worktree la détient.
+- Si des fichiers sont encore en conflit, le checkout est refusé : « Des fichiers sont encore en conflit : résous-les (et stage-les) d'abord. » Voir [Conflits](../../history/conflicts/).
+
+Un checkout peut être annulé avec **Annuler** (<kbd>⌘Z</kbd>, <kbd>Ctrl+Z</kbd> sous Windows et Linux) : yaggui rebascule sur la branche précédente et conserve vos modifications locales. Voir [Annuler et rétablir](../../history/undo-and-redo/).
+
+### Basculer sur un commit ou une branche distante
+
+- **Une branche distante** : double-cliquez dessus dans la barre latérale ou sur son étiquette dans le graphe, ou utilisez **Créer une branche locale qui la suit**. Pour `origin/feat/x`, yaggui bascule sur une branche locale `feat/x` qui la suit, en la créant au besoin : `git switch --create feat/x --track refs/remotes/origin/feat/x`. La notification indique « feat/x créée, tu es dessus ». Si une branche locale `feat/x` existe déjà, yaggui bascule dessus telle quelle, quel que soit son upstream.
+- **Un commit** : faites un clic droit dessus dans le graphe, puis **Checkout de ce commit**. yaggui exécute `git switch --detach <sha>` sans avertissement et affiche « HEAD est détaché sur _abc1234_ ». Les nouveaux commits faits à cet endroit n’appartiennent à aucune branche : [créez une branche](#créer-une-branche) pour les conserver.
+- **Un tag** : voir [Basculer sur un tag](../../history/tags/#basculer-sur-un-tag).
+
+### Quand vous avez des modifications locales
+
+Si des fichiers suivis ont des modifications non commitées, yaggui vous demande ce qu’il faut en faire avant de changer de branche. Les fichiers non suivis seuls ne déclenchent pas la boîte de dialogue, sauf si la branche cible contient des fichiers aux mêmes chemins.
+
+La boîte de dialogue **Des modifications locales bloquent _nom_** liste vos fichiers modifiés (jusqu’à 100). Les fichiers marqués d’un `!` diffèrent aussi sur la branche cible : le checkout les écraserait.
+
+<Screenshot
+  dark={branchDirtyCheckoutDark}
+  light={branchDirtyCheckoutLight}
+  alt="La boîte de dialogue Des modifications locales bloquent, qui liste les fichiers modifiés, avec les choix Mettre de côté, basculer, puis restaurer et Emporter les modifications"
+/>
+
+| Choix                                                     | Ce que yaggui exécute                                                                                                                                                                                                                              |
+| --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Mettre de côté, basculer, puis restaurer** (par défaut) | `git stash push --include-untracked --message="yaggui: before checkout of <name>"`, puis `git switch …`, puis `git stash pop --index stash@{0}`. Si le changement de branche échoue, vos modifications sont restaurées et l’erreur s’affiche.      |
+| **Emporter les modifications**                            | `git switch …`, en gardant vos modifications dans la copie de travail telles quelles. Indisponible quand un fichier marqué diffère sur la cible : « Indisponible : certaines de tes modifications touchent des fichiers qui diffèrent sur _nom_. » |
+| **Annuler**                                               | Rien                                                                                                                                                                                                                                               |
+
+### Quand le stash est en conflit
+
+Si vos modifications mises de côté entrent en conflit avec la nouvelle branche après **Mettre de côté, basculer, puis restaurer**, la boîte de dialogue **Le stash est en conflit** apparaît : « Le checkout est fait, mais tes modifications mises de côté entrent en conflit avec cette branche. Le stash est conservé : rien n'est perdu. » Elle liste les fichiers en conflit et ce qu’il faut faire :
+
+1. Ouvrez les fichiers en conflit dans le panneau Changements locaux et résolvez les marqueurs de conflit.
+2. Indexez les fichiers résolus.
+3. Quand tout est bon, supprimez le stash depuis la barre latérale : il n’est pas supprimé automatiquement.
+
+Cliquez sur **Compris** pour la fermer. Voir [Conflits](../../history/conflicts/) et [Stash](../../everyday/stash/).
+
+## Changer de branche depuis la barre d’outils
+
+Le sélecteur de branche se trouve à l’extrémité droite de la barre d’outils. Il affiche la branche courante, ses compteurs `↑`/`↓` et son upstream, « HEAD détaché sur _abc1234_ » quand HEAD est détaché, ou la branche en cours de rebase pendant un rebase.
+
+Cliquez dessus pour ouvrir la liste de toutes les branches locales et distantes (les branches distantes ont une icône de nuage) :
+
+- Saisissez votre recherche dans **Chercher une branche…** pour filtrer par correspondance approximative.
+- Sans saisie, les branches récentes viennent en premier (badge « récente »), puis les autres branches locales, puis les branches distantes. La branche courante porte le badge « actuelle ».
+- Jusqu’à 100 branches sont listées ; au-delà, « N de plus, continue à saisir pour affiner ».
+- <kbd>↑</kbd> <kbd>↓</kbd> déplacent la sélection, <kbd>Enter</kbd> valide, <kbd>Esc</kbd> ferme.
+
+Choisir une branche [bascule dessus](#basculer-sur-une-branche) ; une branche distante obtient une branche locale de suivi. Choisir la branche courante sélectionne son commit dans le graphe. Les 12 dernières branches choisies sont mémorisées par onglet. Le sélecteur n’a pas de raccourci par défaut.
+
+## Créer une branche
+
+Ouvrez la boîte de dialogue **Créer une branche** depuis :
+
+- Le bouton **Branche** de la barre d’outils, l’action de palette **Créer une branche…**, ou <kbd>⌘B</kbd> (<kbd>Ctrl+B</kbd> sous Windows et Linux) : part de HEAD.
+- **Créer une branche ici…** dans le menu d’un commit du graphe : part de ce commit.
+- **Créer une branche ici…** dans le menu de la barre latérale d’une branche locale, d’une branche distante, d’un tag, d’un stash ou d’un HEAD détaché.
+
+La boîte de dialogue affiche **À partir de** et le point de départ (branche, tag, SHA court ou `stash@{n}`).
+
+1. Saisissez le **Nom de la branche** (par exemple `feature/my-branch`). yaggui le vérifie pendant la saisie :
+   - « Ce nom est disponible. »
+   - « Une branche « _nom_ » existe déjà. »
+   - « « _nom_ » n'est pas un nom de branche valide : pas d'espace, ni `~ ^ : ? * [ \`, ni `..`, et il ne peut pas commencer par `-` ni finir par `/`, `.` ou `.lock`. »
+2. Laissez cochée **Basculer dessus après la création** pour passer sur la nouvelle branche, ou décochez-la.
+3. Cliquez sur **Créer et basculer** (ou **Créer la branche**).
+
+yaggui valide le nom avec `git check-ref-format --branch`, puis exécute `git switch --create <name> <start>` ou `git branch -- <name> <start>`. La notification indique « Branche _nom_ créée et activée » ou « Branche _nom_ créée ». Si des modifications locales gênent, la [boîte de dialogue des modifications locales](#quand-vous-avez-des-modifications-locales) apparaît.
+
+Depuis un stash, yaggui exécute `git stash branch <name> stash@{n}` : la branche est toujours activée, le stash lui est appliqué, puis supprimé. Si la liste des stashes a changé entre-temps, vous voyez « La liste a changé » et pouvez réessayer.
+
+Annuler supprime la nouvelle branche (et rebascule sur la précédente si elle était extraite). Une branche créée depuis un stash ne peut pas être annulée.
+
+## Renommer une branche
+
+1. Faites un clic droit sur une branche locale dans la barre latérale, puis **Renommer…**.
+2. Modifiez **Nouveau nom**. Le nom est vérifié pendant la saisie, comme à la création d’une branche.
+3. Cliquez sur **Renommer**.
+
+yaggui exécute `git branch -m -- <old> <new>` : « _ancien_ renommée en _nouveau_ ». Seule la branche locale est renommée ; son upstream sur le remote n’est pas touché. Changer uniquement la casse du nom est autorisé. Annuler lui rend son ancien nom.
+
+## Supprimer une branche
+
+1. Faites un clic droit sur une branche locale dans la barre latérale, puis **Supprimer _nom_…**. Vous ne pouvez pas supprimer la branche courante : basculez d’abord sur une autre.
+2. La boîte de dialogue **Supprimer _nom_ ?** affiche la commande qui sera exécutée, `git branch -d <name>`.
+3. Si la branche a un upstream, vous pouvez cocher **Supprimer aussi la branche distante _origin/nom_** (décochée par défaut). L’aperçu ajoute alors `git push <remote> --delete <branch>`.
+4. Cliquez sur **Supprimer la branche**.
+
+Si la branche a des commits non mergés, Git refuse et la boîte de dialogue affiche « _nom_ n'est pas mergée » : ses commits n’existent nulle part ailleurs et la supprimer les rend inaccessibles. Le bouton devient **Supprimer quand même**, qui exécute `git branch -D`.
+
+La notification indique « Branche _nom_ supprimée. Elle pointait sur _abc1234_ ; le commit reste dans le reflog pour l'instant. » Si la suppression sur le remote échoue, la branche locale est tout de même supprimée et un avertissement en donne la raison. Une branche extraite dans un worktree ne peut pas être supprimée.
+
+:::caution
+Annuler ne restaure qu’une branche supprimée localement, avec son réglage d’upstream. Si vous avez aussi supprimé la branche distante, l’opération ne peut pas être annulée dans yaggui. Les commits d’une branche supprimée de force restent un certain temps accessibles dans le [reflog](../../inspect/reflog/).
+:::
+
+### Supprimer une branche sur le remote
+
+Faites un clic droit sur une branche distante dans la barre latérale, puis **Supprimer sur la remote…**. La boîte de dialogue **Supprimer _origin/nom_ ?** prévient que la branche sera supprimée sur le remote pour tout le monde et que les branches locales ne bougent pas, et affiche :
+
+```bash
+git push origin --delete refs/heads/<name>
+```
+
+Cliquez sur **Supprimer sur le remote**. La notification indique « _origin/nom_ supprimée ». Si la branche avait déjà disparu du remote, yaggui retire simplement la branche de suivi. Vous pouvez l’annuler depuis la barre d’état pendant qu’elle s’exécute. Cette opération ne peut pas être annulée. Les problèmes d’authentification sont traités dans [Authentification](../../remotes/authentication/).
+
+## Définir, changer ou retirer l’upstream
+
+L’upstream est la branche distante que pull et push utilisent par défaut ([Pro Git](https://git-scm.com/book/en/v2/Git-Branching-Remote-Branches#_tracking_branches)).
+
+1. Faites un clic droit sur une branche locale dans la barre latérale, puis **Définir l’upstream…** (ou **Changer l'upstream…**).
+2. Dans **Branche distante**, choisissez une branche, groupée par remote, ou **Aucun upstream**.
+3. Cliquez sur **Définir l'upstream** (ou **Retirer l'upstream** si vous avez choisi **Aucun upstream**). Le bouton reste grisé tant que vous ne changez pas le choix.
+
+| Action             | Commande Git                                                            | Notification                               |
+| ------------------ | ----------------------------------------------------------------------- | ------------------------------------------ |
+| Définir ou changer | `git branch --set-upstream-to=refs/remotes/<remote>/<branch> -- <name>` | « _nom_ suit maintenant _origin/branche_ » |
+| Retirer            | `git branch --unset-upstream -- <name>`                                 | « _nom_ ne suit plus de branche distante » |
+
+**Retirer l'upstream** dans le menu de la barre latérale le retire immédiatement. Les changements d’upstream ne sont pas enregistrés pour l’annulation : redéfinissez l’ancien upstream à la main si besoin. Pour créer l’upstream en poussant une nouvelle branche, voir [Fetch, pull et push](../../remotes/fetch-pull-push/).
+
+## Nettoyer les branches mergées et disparues
+
+Ouvrez la boîte de dialogue **Nettoyer les branches** avec **Nettoyer les branches mergées et disparues…** dans le menu de la barre latérale de n’importe quelle branche, ou dans la palette de commandes.
+
+Elle liste les branches locales qui sont :
+
+- **mergées** : leur pointe est HEAD ou un ancêtre de HEAD ;
+- **disparues** : leur upstream a été supprimé sur le remote. Une branche disparue peut afficher « N commits non mergés ».
+
+La branche courante et les branches extraites dans un worktree ne sont jamais listées (« Extraites, laissées de côté : … »). Les branches protégées ne sont jamais proposées (« Protégées, jamais proposées : … »). La liste des branches protégées se règle dans **Préférences › Comportement › Branches protégées**, par défaut `main`, `master`, `develop`, `release/*`. Voir [Préférences](../../reference/preferences/).
+
+<Screenshot
+  dark={branchCleanupDark}
+  light={branchCleanupLight}
+  alt="La boîte de dialogue Nettoyer les branches, qui liste les branches avec les badges mergée et disparue, des cases à cocher, le résumé de l’effet et la commande git branch -D"
+/>
+
+1. Cochez les branches à supprimer. Les branches mergées, et les branches disparues sans commit non mergé, sont cochées par défaut. **Toutes (N)** coche ou décoche tout.
+2. Lisez l’encadré d’effet : combien de branches seront supprimées, et soit « Leurs commits restent dans l'historique de la branche courante. », soit un avertissement indiquant que certains commits ne sont sur aucune autre branche et que seul le reflog les garde. Les branches distantes ne sont pas touchées.
+3. Cliquez sur **Supprimer N branches**.
+
+yaggui vérifie d’abord chaque branche et ne supprime rien si l’une est refusée, puis exécute une seule commande :
+
+```bash
+git branch -D -- <branch> <branch> …
+```
+
+La notification indique « N branches supprimées. Annuler les restaure toutes. » Un seul **Annuler** restaure toutes les branches supprimées. Si rien ne convient, la boîte de dialogue affiche « Rien à nettoyer : aucune branche mergée, aucune branche dont la distante a disparu. »
+
+## Annulation
+
+| Opération                                                   | Annulation                                            |
+| ----------------------------------------------------------- | ----------------------------------------------------- |
+| Basculer sur une branche, une branche distante ou un commit | Oui : rebascule, en gardant les modifications locales |
+| Créer une branche                                           | Oui, sauf depuis un stash                             |
+| Renommer une branche                                        | Oui                                                   |
+| Supprimer une branche locale                                | Oui, avec son réglage d’upstream                      |
+| Supprimer une branche locale et sa branche distante         | Non                                                   |
+| Supprimer une branche sur le remote                         | Non                                                   |
+| Nettoyer les branches                                       | Oui, toutes les branches en une seule étape           |
+| Définir ou retirer un upstream                              | Non (non enregistré)                                  |
+
+L’annulation est refusée si les branches ont bougé depuis, par exemple après un commit fait depuis un terminal. Voir [Annuler et rétablir](../../history/undo-and-redo/). Chaque commande ci-dessus apparaît dans le [journal des commandes](../../reference/command-log/), et les messages d’erreur sont expliqués dans [Messages d’erreur](../../reference/error-messages/).
