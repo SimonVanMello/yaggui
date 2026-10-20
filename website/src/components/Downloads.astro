@@ -168,13 +168,18 @@ const groups: { title: LandingKey; items: { label: LandingKey; platform: Platfor
   .dl-packages li.pkg :global(.copy) {
     display: flex;
     margin: 0;
+    justify-content: space-between;
   }
   .dl-packages {
     margin-top: 16px;
   }
   .dl-packages ul {
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
-    gap: 4px 16px;
+    gap: 4px 40px;
+  }
+  .dl-packages li > a {
+    height: 100%;
+    align-content: start;
   }
   .signing {
     margin-top: 20px;
