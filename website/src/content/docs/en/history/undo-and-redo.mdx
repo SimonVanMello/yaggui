@@ -1,6 +1,6 @@
 ---
 title: Undo and redo
-description: Undo and redo yaggui operations with a shortcut or the toolbar, see the session history, and know which operations can be undone and why some cannot.
+description: Undo and redo yaggui operations with a shortcut or the toolbar, even after a restart, see the history, and know which operations can be undone and why some cannot.
 sidebar:
   order: 8
 sources:
@@ -8,14 +8,15 @@ sources:
   - src/features/toolbar/Toolbar.tsx
   - src-tauri/src/repo/journal.rs
   - src-tauri/src/commands/undo.rs
-requirements: [F-240, F-241, F-242, F-243]
+  - src-tauri/src/store/undo_journal.rs
+requirements: [F-240, F-241, F-242, F-243, F-244]
 ---
 
 import Screenshot from '~/components/Screenshot.astro';
 import undoHistoryDark from '../../../../assets/screens/undo-history-dark.png';
 import undoHistoryLight from '../../../../assets/screens/undo-history-light.png';
 
-yaggui records the operations you run in it and can undo them one by one, newest first, then redo them. This page lists what each undo restores, what cannot be undone, and the limits of the history.
+yaggui records the operations you run in it and can undo them one by one, newest first, then redo them, also after you close the repository or quit yaggui. This page lists what each undo restores, what cannot be undone, and the limits of the history.
 
 ## Undo and redo
 
@@ -45,7 +46,7 @@ Click the arrow next to **Redo** to open **Session history**.
   alt="Session history popover listing operations newest first, one struck through and marked undone, with their times"
 />
 
-- Operations are listed newest first, each with its time (hours, minutes, seconds).
+- Operations are listed newest first, each with its time (hours, minutes, seconds). Operations from earlier sessions of the repository follow those of this session.
 - Undone operations are struck through and marked **undone**.
 - Operations that cannot be undone are marked **not undoable**; hover the badge to see why.
 - The list is read only: undo and redo always act on the newest entries.
@@ -82,7 +83,7 @@ Redo applies the operation again, as it was.
 
 ## What cannot be undone
 
-Some operations are recorded but marked **not undoable**. Because undo always works from the newest entry, such an operation is a **barrier**: once it is the newest operation, nothing older can be undone for the rest of the session.
+Some operations are recorded but marked **not undoable**. Because undo always works from the newest entry, such an operation is a **barrier**: once it is the newest operation, nothing older can be undone, in this session or after a restart.
 
 | Operation                                                                                                                             | Why                                                                  |
 | ------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
@@ -93,7 +94,7 @@ Some operations are recorded but marked **not undoable**. Because undo always wo
 | Removing a worktree that had local changes                                                                                            | The worktree's local changes were deleted with it                    |
 | Any operation whose previous state could not be recorded                                                                              | Its previous state could not be recorded                             |
 
-For example, after you commit and then push in yaggui, the commit can no longer be undone in this session.
+For example, after you commit and then push in yaggui, the commit can no longer be undone.
 
 Other actions are not recorded at all: they never appear in the history, are not barriers, and <kbd>⌘Z</kbd> skips over them. They include staging and unstaging, saving a file, a full stash, stash apply/pop/rename, creating a branch from a stash, setting an upstream, rebases (including [interactive](../../history/interactive-rebase/)), **Continue**, **Skip** and **Abort** of an operation, [conflict](../../history/conflicts/) resolutions, fetches without prune, configuration changes, clone and init, and operations that failed or stopped on conflicts. A merge, cherry-pick or revert finished with **Continue** after conflicts is not undoable. To go back after one of these, use the [reflog](../../inspect/reflog/).
 
@@ -103,8 +104,9 @@ Redo re-applies the operation you last undid. Undo several operations, then redo
 
 ## Limits of the history
 
-- The history is kept in memory for the repository, for this session only. It is lost when you close the last tab of that repository or quit yaggui.
-- It holds the last 100 operations; older ones are dropped.
+- The history is saved per repository in yaggui's database (`yaggui.db`, see [Data and privacy](../../reference/data-and-privacy/)) after each operation, undo and redo, and comes back when you open the repository again, including which operations were undone and can be redone.
+- It holds the last 100 operations of each repository, and none older than 30 days; older ones are dropped.
+- Removing a repository from yaggui (**Remove from recents**) deletes its history.
 - Undo needs a quiet repository: while a merge, rebase, cherry-pick, revert or bisect is in progress, undo and redo are refused ("Another operation (merge, rebase, cherry-pick, revert or bisect) is in progress: continue or abort it first."), and while files are in conflict too ("Some files are still in conflict: resolve them (and stage them) first."). Discards, stashes of selected files, `.gitignore` and LFS tracking changes, stash drops and remote changes can still be undone meanwhile.
 - yaggui does not detect a push made from a terminal: if you push from a terminal and then undo a commit, only your local branch moves.
 
@@ -115,8 +117,16 @@ Before it undoes anything, yaggui checks that every branch the undo would move i
 - If a branch moved since (a commit in a terminal, for example), the button shows **Cannot undo \{op\}: \{refs\} moved since, outside yaggui**, and the shortcut opens **Cannot undo: the repository changed since**: "Branches or files changed after this operation, in a terminal or by an action yaggui does not record. Undoing it would lose those changes, so nothing was touched." It lists what moved or changed. Nothing is modified.
 - If your local changes are in the way (you edited a file after discarding it, or after a hard reset, or the files a merge undo would touch), yaggui asks **Local changes are in the way**: "Your local changes to the files below would be overwritten. Stash them, and the undo is retried right away; pop the stash afterwards to get them back." **Stash and retry** runs `git stash push --include-untracked`, then undoes. Pop the stash afterwards (see [Stash](../../everyday/stash/)).
 
+## After a restart
+
+An operation from an earlier session is undone exactly like a recent one, with the same checks (see above): if a branch moved while yaggui was closed, the undo is refused and nothing is touched.
+
+It also needs the Git objects it restores: the commits the branches pointed to and the saved contents of discarded or overwritten files. yaggui keeps these contents as Git objects that nothing references and adds nothing to your repository to keep them alive, so Git's garbage collection (`git gc`, also run automatically by Git from time to time) can delete them. yaggui then refuses the undo before changing anything: the button shows **Cannot undo \{op\}: what it needs was deleted by Git's garbage collection since**, and the shortcut a **Cannot undo** toast: "Git deleted what this undo needs (old commits or saved file contents, removed by a garbage collection since): it can no longer be undone. Nothing was changed; redo the change by hand if you still need it." The entry stays in the history, marked **not undoable**, and, like any such entry, is a barrier for older ones. The copies in `backups/` (below) may still have the files.
+
+An operation recorded by a different version of yaggui that this one cannot read is kept in the history but not undoable: **it was recorded by another version of yaggui**.
+
 ## Backups of discarded files
 
 Before discarding changes, before a hard reset, and before stashing selected files, adding to `.gitignore` or tracking an LFS pattern, yaggui copies the affected files to a backup folder (`backups/` in the yaggui configuration folder). Undo uses these copies to write the files back.
 
-The backups stay on disk after the session ends, even though the undo history does not; yaggui does not delete them. You can recover a file from them by hand, or delete the folder to free space. Its location is given in [Data and privacy](../../reference/data-and-privacy/).
+The backups stay on disk, even after the operation has left the undo history; yaggui does not delete them. You can recover a file from them by hand, or delete the folder to free space. Its location is given in [Data and privacy](../../reference/data-and-privacy/).
