@@ -192,17 +192,44 @@ fn commit_tree(repo: &gix::Repository, id: ObjectId) -> Result<ObjectId, YagguiE
         .detach())
 }
 
-/// Object id and mode of the entry at `path`, `None` if absent.
+/// Object id and mode of the entry at `path`, `None` if absent. Names match regardless of
+/// case like the other search fields; an exact match wins over a case variant.
 fn entry_at(
     repo: &gix::Repository,
     tree: ObjectId,
     path: &str,
 ) -> Result<Option<(ObjectId, u16)>, YagguiError> {
-    let tree = repo
-        .find_tree(tree)
-        .map_err(|err| BackendError::gix("read a tree", err))?;
-    let entry = tree
-        .lookup_entry_by_path(path)
-        .map_err(|err| BackendError::gix("read a tree", err))?;
-    Ok(entry.map(|e| (e.object_id(), e.mode().value())))
+    let mut current = tree;
+    let mut components = path.split('/').filter(|c| !c.is_empty()).peekable();
+    while let Some(name) = components.next() {
+        let tree = repo
+            .find_tree(current)
+            .map_err(|err| BackendError::gix("read a tree", err))?;
+        let mut found = None;
+        for entry in tree.iter() {
+            let entry = entry.map_err(|err| BackendError::gix("decode a tree", err))?;
+            if entry.filename() == name.as_bytes() {
+                found = Some((entry.oid().to_owned(), entry.mode().value()));
+                break;
+            }
+            if found.is_none() && same_name_ignoring_case(entry.filename(), name) {
+                found = Some((entry.oid().to_owned(), entry.mode().value()));
+            }
+        }
+        let Some((oid, mode)) = found else {
+            return Ok(None);
+        };
+        if components.peek().is_none() {
+            return Ok(Some((oid, mode)));
+        }
+        current = oid;
+    }
+    Ok(None)
+}
+
+fn same_name_ignoring_case(entry: &gix::bstr::BStr, name: &str) -> bool {
+    if entry.is_ascii() && name.is_ascii() {
+        return entry.eq_ignore_ascii_case(name.as_bytes());
+    }
+    entry.to_str_lossy().to_lowercase() == name.to_lowercase()
 }

@@ -136,6 +136,16 @@ for (const { name: theme, colorScheme } of THEMES) {
       await capture(page, theme, 'actions');
     });
 
+    test('disabled action says why', async ({ page }) => {
+      await openPalette(page);
+      await page.keyboard.type('>Continue');
+      const option = options(page).first();
+      await expect(option).toHaveAttribute('aria-disabled', 'true');
+      await expect(option).toContainText('No operation in progress');
+      await expect(option).not.toContainText('Coming soon');
+      await capture(page, theme, 'disabled-reason');
+    });
+
     test('filtered on commits', async ({ page }) => {
       await openPalette(page);
       await page.keyboard.type('#fix');

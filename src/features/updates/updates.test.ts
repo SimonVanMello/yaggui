@@ -73,6 +73,16 @@ describe('checkForUpdatesAtStartup', () => {
     expect(mockBackend.updateChecks).toBe(1);
   });
 
+  it('answers "up to date" after a yes, like a manual check', async () => {
+    savePreferences({ checkUpdates: null });
+    mockBackend.availableUpdate = null;
+    checkForUpdatesAtStartup();
+    toasts().at(-1)?.action?.onClick();
+    await vi.waitFor(() => {
+      expect(toasts().at(-1)?.variant).toBe('success');
+    });
+  });
+
   it('checks silently when on, and not at all when off', async () => {
     savePreferences({ checkUpdates: false });
     checkForUpdatesAtStartup();

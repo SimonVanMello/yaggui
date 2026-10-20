@@ -56,10 +56,6 @@ When it finishes, a **Fetch complete** toast appears and the status bar shows **
 
 With **Prune on fetch** on (the default), every fetch adds `--prune`: remote-tracking branches deleted on the server disappear from the sidebar and the graph. Your local branches are never deleted. The setting is in **Preferences → Behavior** and applies to every fetch, including auto-fetch. See [Preferences](../../reference/preferences/).
 
-:::note
-The toolbar tooltip and the **Fetch all remotes** hint always show `--all --prune`, even when **Prune on fetch** is off. The command that actually runs follows the setting: check it in the command log.
-:::
-
 A fetch with prune cannot be undone (see [What cannot be undone](#what-cannot-be-undone)).
 
 ## Auto-fetch
@@ -178,13 +174,13 @@ Entry points: toolbar **Push** chevron → **Force push (with lease)…**, or pa
 />
 
 1. yaggui lists the commits of the remote branch that are not in yours, as of your last fetch.
-2. A confirmation titled **Overwrite origin/feature?** says how many commits will be dropped ("The force push will drop 2 commits from origin/feature (as of the last fetch). If the branch moved since, Git will refuse.") or that none will be lost, lists those commits (up to 100) and shows the command:
+2. A confirmation titled **Overwrite origin/feature?** says how many commits will be dropped ("The force push will drop 2 commits from origin/feature (as of the last fetch). If the branch moved since, Git will refuse.") or that none will be lost, lists those commits (the first 100, then "… and N more" with the real count) and shows the command:
 
    ```bash
-   git push --force-with-lease=refs/heads/feature:<sha> origin HEAD
+   git push --force-with-lease=refs/heads/feature:<sha> origin refs/heads/feature:refs/heads/feature
    ```
 
-   `<sha>` is the remote branch as of your last fetch. What actually runs pushes the branch by its full name: `git push --progress --porcelain --force-with-lease=refs/heads/feature:<sha> origin refs/heads/feature:refs/heads/feature`.
+   `<sha>` is the remote branch as of your last fetch. The command is the same whether you start it from the toolbar or the palette; yaggui also adds `--progress --porcelain`.
 
 3. Click **Force push**. The toast **origin/feature was overwritten** confirms it.
 

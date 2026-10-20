@@ -1682,14 +1682,16 @@ export type FileStatus = "added" | "modified" | "deleted" | "renamed" | "copied"
 
 /**  What a force push of a branch would overwrite, for its confirmation. */
 export type ForcePushPreview = {
+	/**  The local branch that would be pushed. */
+	branch: string,
 	remote: string,
 	remoteBranch: string,
 	/**  Remote-tracking SHA (as of the last fetch); `None` if the branch is not on the remote. */
 	remoteSha: string | null,
 	/**  Commits on the remote branch that the push would drop (newest first, at most 100). */
 	overwritten: CommitSummary[],
-	/**  More than the listed commits would be dropped. */
-	truncated: boolean,
+	/**  How many more commits than the listed ones would be dropped. */
+	hidden: number,
 	/**  Force push is refused on this branch. */
 	protected: boolean,
 };

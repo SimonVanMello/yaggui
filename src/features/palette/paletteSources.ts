@@ -6,7 +6,12 @@ import { revealCommit } from '../repo/graphNavigation';
 import { revealRef } from '../sidebar/refActions';
 import { pushRecent } from '../sidebar/sidebarUiState';
 import { allChoices } from '../toolbar/branchChoices';
-import { isActionEnabled, type PaletteAction, ACTION_GROUPS } from './actionRegistry';
+import {
+  disabledReasonOf,
+  isActionEnabled,
+  type PaletteAction,
+  ACTION_GROUPS,
+} from './actionRegistry';
 import type { PaletteItem } from './paletteItems';
 
 export type Translate = (key: MessageKey, params?: MessageParams) => string;
@@ -31,6 +36,7 @@ export function buildActionItems(actions: readonly PaletteAction[], t: Translate
       label: title,
       shortcut: resolvedShortcut(action.id) ?? undefined,
       disabled: !enabled,
+      disabledReason: enabled ? undefined : disabledReasonOf(action),
       boost: enabled ? 0 : DISABLED_BOOST,
       activate: action.run,
     }));

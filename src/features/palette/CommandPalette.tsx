@@ -232,7 +232,9 @@ function PaletteBody() {
                 <Highlight text={item.label} indices={indices} />
               </span>
               <span className={styles.detail}>
-                {item.disabled ? t('palette.disabled') : item.detail}
+                {item.disabled
+                  ? t(item.disabledReason ?? 'palette.disabled.unavailable')
+                  : item.detail}
               </span>
               {item.shortcut ? (
                 <Kbd shortcut={item.shortcut} />

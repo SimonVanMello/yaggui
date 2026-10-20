@@ -197,21 +197,24 @@ impl RepoManager {
             Some(dir) => command.cwd(dir),
             None => command,
         };
+        let configured = |key: String| -> Result<Option<String>, YagguiError> {
+            let run = self.git.run_raw(
+                &with_cwd(GitCommand::new(["config", "--get", &key])),
+                None,
+                None,
+            )?;
+            let value = run.stdout.trim().to_owned();
+            Ok((run.success && !value.is_empty()).then_some(value))
+        };
+        // Same order as launching a diff (`diff_tool` in graph_tools.rs): the preference,
+        // `diff.tool`, then `diff.guitool`.
         let name = match name {
             Some(name) => Some(name),
-            None => {
-                let run = self.git.run_raw(
-                    &with_cwd(GitCommand::new([
-                        "config",
-                        "--get",
-                        &format!("{family}.tool"),
-                    ])),
-                    None,
-                    None,
-                )?;
-                let value = run.stdout.trim().to_owned();
-                (run.success && !value.is_empty()).then_some(value)
-            }
+            None => match configured(format!("{family}.tool"))? {
+                Some(name) => Some(name),
+                None if family == "diff" => configured("diff.guitool".to_owned())?,
+                None => None,
+            },
         };
         let Some(name) = name else {
             return Ok(ExternalToolCheck {

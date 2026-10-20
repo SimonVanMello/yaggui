@@ -66,7 +66,7 @@ Les dépôts gardent l’ordre dans lequel vous les avez ajoutés ; vous ne pou
 Cliquez sur la carte d’un workspace dans l’écran d’accueil, ou sur **Tout ouvrir** dans sa vue d’ensemble. yaggui ouvre les dépôts l’un après l’autre, dans l’ordre du workspace, chacun dans son propre onglet :
 
 - Un dépôt qui a déjà un onglet n’est pas ouvert deux fois : son onglet est réutilisé.
-- Depuis une carte de l’écran d’accueil, le premier dépôt s’ouvre dans l’onglet d’accueil d’où vous avez cliqué.
+- Depuis une carte de l’écran d’accueil, le premier dépôt qui n’a pas encore d’onglet s’ouvre dans l’onglet d’accueil d’où vous avez cliqué. Si tous les dépôts avaient déjà un onglet, l’onglet d’accueil est fermé.
 - À la fin, l’onglet du premier dépôt est actif.
 - Les dossiers introuvables sont ignorés. Un toast indique « 1 dépôt est introuvable » avec les noms, et un bouton **Voir** qui ouvre la vue d’ensemble.
 - Les dépôts dont l’ouverture échoue sont signalés dans un toast d’erreur.
@@ -142,7 +142,7 @@ Cliquez sur le dépôt dans l’écran d’accueil, ou sur **Localiser…** dans
 
 - **Localiser…** : indiquez le nouveau dossier du dépôt. Ce doit être la racine du dépôt, pas un sous-dossier. yaggui met à jour le chemin et le nom, rouvre ses onglets et affiche « `<name>` localisé ». Si ce dossier est déjà connu, les deux entrées fusionnent, en conservant les favoris et les appartenances aux workspaces.
 - **Retirer de `<workspace>`** (quand la boîte de dialogue a été ouverte depuis un workspace) : le retire de ce workspace uniquement.
-- **Retirer de yaggui** : oublie le dépôt partout (récents, favoris, tous les workspaces) et ferme ses terminaux intégrés.
+- **Retirer de yaggui** : oublie le dépôt partout (récents, favoris, tous les workspaces), ferme son onglet s’il est ouvert et ferme ses terminaux intégrés.
 
 Retirer ne supprime jamais de fichier : seule la liste de yaggui change. Aucune de ces deux actions ne peut être annulée.
 

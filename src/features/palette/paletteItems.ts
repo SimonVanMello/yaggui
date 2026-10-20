@@ -15,6 +15,8 @@ export interface PaletteItem {
   /** Shortcut in `Mod+K` notation (actions). */
   shortcut?: string;
   disabled?: boolean;
+  /** Shown instead of `detail` while the item is disabled. */
+  disabledReason?: MessageKey;
   /** Performs the item's effect; called once the palette has closed. */
   activate: () => void;
   /** Extra weight in ties: the active tab, the current branch. */

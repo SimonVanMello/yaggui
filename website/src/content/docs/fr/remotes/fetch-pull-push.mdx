@@ -56,10 +56,6 @@ Une fois l’opération terminée, une notification **Fetch terminé** apparaît
 
 Quand **Nettoyer au fetch** est activé (c’est le cas par défaut), chaque fetch ajoute `--prune` : les branches de suivi supprimées sur le serveur disparaissent de la barre latérale et du graphe. Vos branches locales ne sont jamais supprimées. Le réglage se trouve dans **Préférences → Comportement** et s’applique à tous les fetch, auto-fetch compris. Voir [Préférences](../../reference/preferences/).
 
-:::note
-L’info-bulle du bouton de la barre d’outils et l’indication de **Fetch de tous les remotes** affichent toujours `--all --prune`, même quand **Nettoyer au fetch** est désactivé. La commande réellement exécutée suit le réglage : vérifiez-la dans le journal des commandes.
-:::
-
 Un fetch avec prune ne peut pas être annulé (voir [Ce qui ne peut pas être annulé](#ce-qui-ne-peut-pas-être-annulé)).
 
 ## Auto-fetch
@@ -178,13 +174,13 @@ Points d’entrée : flèche du bouton **Push** de la barre d’outils → **Fo
 />
 
 1. yaggui liste les commits de la branche distante qui ne sont pas dans la vôtre, d’après votre dernier fetch.
-2. Une confirmation intitulée **Écraser origin/feature ?** indique combien de commits seront supprimés (« Le force push va supprimer 2 commits de origin/feature (état du dernier fetch). Si la branche a bougé depuis, Git refusera. ») ou qu’aucun ne sera perdu (« Aucun commit de origin/feature ne sera perdu d'après le dernier fetch. Si la branche a bougé depuis, Git refusera. »), liste ces commits (jusqu’à 100) et affiche la commande :
+2. Une confirmation intitulée **Écraser origin/feature ?** indique combien de commits seront supprimés (« Le force push va supprimer 2 commits de origin/feature (état du dernier fetch). Si la branche a bougé depuis, Git refusera. ») ou qu’aucun ne sera perdu (« Aucun commit de origin/feature ne sera perdu d'après le dernier fetch. Si la branche a bougé depuis, Git refusera. »), liste ces commits (les 100 premiers, puis « … et N autres » avec le nombre réel) et affiche la commande :
 
    ```bash
-   git push --force-with-lease=refs/heads/feature:<sha> origin HEAD
+   git push --force-with-lease=refs/heads/feature:<sha> origin refs/heads/feature:refs/heads/feature
    ```
 
-   `<sha>` est la branche distante telle qu’elle était à votre dernier fetch. La commande réellement exécutée pousse la branche par son nom complet : `git push --progress --porcelain --force-with-lease=refs/heads/feature:<sha> origin refs/heads/feature:refs/heads/feature`.
+   `<sha>` est la branche distante telle qu’elle était à votre dernier fetch. La commande est la même que vous la lanciez depuis la barre d’outils ou la palette ; yaggui ajoute aussi `--progress --porcelain`.
 
 3. Cliquez sur **Forcer le push**. La notification **origin/feature a été écrasé** le confirme.
 

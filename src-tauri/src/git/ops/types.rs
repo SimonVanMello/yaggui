@@ -768,14 +768,16 @@ pub struct CommitSummary {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct ForcePushPreview {
+    /// The local branch that would be pushed.
+    pub branch: String,
     pub remote: String,
     pub remote_branch: String,
     /// Remote-tracking SHA (as of the last fetch); `None` if the branch is not on the remote.
     pub remote_sha: Option<String>,
     /// Commits on the remote branch that the push would drop (newest first, at most 100).
     pub overwritten: Vec<CommitSummary>,
-    /// More than the listed commits would be dropped.
-    pub truncated: bool,
+    /// How many more commits than the listed ones would be dropped.
+    pub hidden: u32,
     /// Force push is refused on this branch.
     pub protected: bool,
 }

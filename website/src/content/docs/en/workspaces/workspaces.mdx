@@ -66,7 +66,7 @@ Repositories keep the order in which you added them; you cannot reorder them.
 Click a workspace card on the welcome screen, or **Open all** in its overview. yaggui opens the repositories one after the other, in workspace order, each in its own tab:
 
 - A repository that already has a tab is not opened twice: its tab is reused.
-- From a welcome card, the first repository opens in the welcome tab you clicked from.
+- From a welcome card, the first repository that has no tab yet opens in the welcome tab you clicked from. If every repository already had a tab, the welcome tab is closed.
 - At the end, the tab of the first repository is active.
 - Missing folders are skipped. A toast says "1 repository was not found" with the names, and a **Review** button that opens the overview.
 - Repositories that fail to open are reported in an error toast.
@@ -142,7 +142,7 @@ Click the repository on the welcome screen, or **Locate…** in its overview row
 
 - **Locate…**: pick the repository's new folder. It must be the root of the repository, not a subfolder. yaggui updates the path and name, reopens its tabs, and shows "`<name>` located". If that folder is already known, the two entries merge, keeping favorites and workspace memberships.
 - **Remove from `<workspace>`** (when opened from a workspace): removes it from that workspace only.
-- **Remove from yaggui**: forgets the repository everywhere (recents, favorites, all workspaces) and closes its integrated terminals.
+- **Remove from yaggui**: forgets the repository everywhere (recents, favorites, all workspaces), closes its tab if it is open, and closes its integrated terminals.
 
 Removing never deletes files: only yaggui's list changes. Neither action can be undone.
 

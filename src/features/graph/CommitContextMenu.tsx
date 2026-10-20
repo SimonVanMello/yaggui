@@ -156,6 +156,7 @@ export function CommitContextMenu({
         <ContextMenuItem
           icon="undo"
           disabled={busy}
+          hint={busyHint}
           onSelect={() => {
             if (target.parents.length > 1) {
               openHistoryDialog({
