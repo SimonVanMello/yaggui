@@ -1,4 +1,5 @@
 import type { RefLabel } from '../../ipc';
+import { stashTitle } from '../sidebar/sidebarRows';
 
 export type DisplayRefKind = 'head' | 'local' | 'remote' | 'tag' | 'stash';
 
@@ -6,7 +7,10 @@ export type DisplayRefKind = 'head' | 'local' | 'remote' | 'tag' | 'stash';
 export interface DisplayRef {
   key: string;
   kind: DisplayRefKind;
+  /** Identifies the ref: `main`, `origin/main`, `stash@{0}`. */
   name: string;
+  /** Text of the pill: the name, or a stash's message without Git's `On main:` prefix. */
+  text: string;
   /** Checked out branch, or detached HEAD. */
   isHead: boolean;
   /** Remote branch merged into this local label (`origin/main`). */
@@ -48,6 +52,7 @@ export function displayRefs(labels: readonly RefLabel[]): DisplayRef[] {
       key: label.fullName,
       kind: 'local',
       name: label.name,
+      text: label.name,
       isHead: label.isHead,
       remote: remote?.name ?? null,
       branch: label.name,
@@ -63,6 +68,7 @@ export function displayRefs(labels: readonly RefLabel[]): DisplayRef[] {
             key: label.fullName,
             kind: 'remote',
             name: label.name,
+            text: label.name,
             isHead: false,
             remote: null,
             branch: label.name,
@@ -74,6 +80,7 @@ export function displayRefs(labels: readonly RefLabel[]): DisplayRef[] {
           key: 'HEAD',
           kind: 'head',
           name: label.name,
+          text: label.name,
           isHead: true,
           remote: null,
           branch: null,
@@ -84,6 +91,7 @@ export function displayRefs(labels: readonly RefLabel[]): DisplayRef[] {
           key: label.fullName,
           kind: 'tag',
           name: label.name,
+          text: label.name,
           isHead: false,
           remote: null,
           branch: null,
@@ -94,6 +102,7 @@ export function displayRefs(labels: readonly RefLabel[]): DisplayRef[] {
           key: `${label.fullName}:${label.name}`,
           kind: 'stash',
           name: label.name,
+          text: label.message ? stashTitle(label.message) : label.name,
           isHead: false,
           remote: null,
           branch: null,

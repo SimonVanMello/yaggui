@@ -2567,6 +2567,11 @@ export type RefLabel = {
 	 *  remote labels when both point at the same commit.
 	 */
 	upstream: string | null,
+	/**
+	 *  Stashes: their message (`On main: my changes`), which names them better than
+	 *  `stash@{0}`. `null` for the other kinds.
+	 */
+	message?: string | null,
 };
 
 /**  Kind of ref a name is checked for (`validate_ref_name`). */

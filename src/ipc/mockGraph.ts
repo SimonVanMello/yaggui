@@ -643,6 +643,7 @@ export class MockGraph {
         fullName: 'refs/stash',
         isHead: false,
         upstream: null,
+        message: s.message,
       });
     });
     const head = this.headCommit();

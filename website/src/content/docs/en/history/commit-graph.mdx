@@ -68,14 +68,14 @@ Click it, or press <kbd>↑</kbd> on the first row, to open the Changes panel on
 
 Labels in the message column show which refs point at a commit:
 
-| Label               | Icon                                                |
-| ------------------- | --------------------------------------------------- |
-| Checked-out branch  | Dot, highlighted as current                         |
-| Local branch        | Laptop                                              |
-| Remote branch       | Cloud                                               |
-| Tag                 | Tag                                                 |
-| Stash (`stash@{n}`) | Stash, placed on the commit the stash was made from |
-| Detached HEAD       | Dot                                                 |
+| Label              | Icon                                                                                                                                                                        |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Checked-out branch | Dot, highlighted as current                                                                                                                                                 |
+| Local branch       | Laptop                                                                                                                                                                      |
+| Remote branch      | Cloud                                                                                                                                                                       |
+| Tag                | Tag                                                                                                                                                                         |
+| Stash              | Stash, placed on the commit the stash was made from. Shows the stash's message without Git's `On main:` / `WIP on main:` prefix, like the sidebar; hover it for `stash@{n}` |
+| Detached HEAD      | Dot                                                                                                                                                                         |
 
 A local branch and a remote branch on the same commit share one label when the remote branch is the local branch's upstream, or has the same short name (`origin/feat/x` and `feat/x`). The label then carries an extra cloud icon named after the remote.
 
@@ -131,7 +131,7 @@ When two or more commits are selected, a bar appears at the bottom of the graph 
 
 Selecting a commit opens the **Commit details** panel on the right. It shows:
 
-- The summary and the full message body.
+- The summary and the full message body. Click it, or the pencil that appears on hover (**Edit commit message**), to [edit the message](../../history/interactive-rebase/#edit-the-message-of-one-commit) in place.
 - **Author** (avatar, name, e-mail) and **Date** (date and time, then relative date).
 - **Committer**, only when it differs from the author (other e-mail or other time, for example after a rebase).
 - **SHA** with a copy button.

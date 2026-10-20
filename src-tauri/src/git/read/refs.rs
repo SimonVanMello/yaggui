@@ -235,6 +235,7 @@ fn label(kind: RefKind, name: String, full_name: String) -> RefLabel {
         full_name,
         is_head: false,
         upstream: None,
+        message: None,
     }
 }
 
@@ -323,14 +324,13 @@ pub fn graph_refs(repo: &gix::Repository) -> Result<GraphRefs, YagguiError> {
 
     for (index, stash) in read_stashes(repo)?.into_iter().enumerate() {
         if let Some(base) = stash.base {
-            labels.push((
-                base,
-                label(
-                    RefKind::Stash,
-                    format!("stash@{{{index}}}"),
-                    "refs/stash".into(),
-                ),
-            ));
+            let mut l = label(
+                RefKind::Stash,
+                format!("stash@{{{index}}}"),
+                "refs/stash".into(),
+            );
+            l.message = Some(stash.message);
+            labels.push((base, l));
         }
     }
     Ok(GraphRefs { tips, labels, head })
