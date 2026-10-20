@@ -21,7 +21,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 - Checking out a remote branch (double-click on its label in the graph or the sidebar) brings an
   existing local branch that is behind it up to it, without fetching; one with commits of its own
-  is left as it is (#45).
+  is left as it is (#46).
 
 ### Fixed
 
