@@ -425,10 +425,13 @@ Fonts: UI in **Inter** (bundled, system font fallback), code in **JetBrains Mono
 
 Stored in the OS application config folder (`~/Library/Application Support/dev.tropico.yaggui`, `%APPDATA%\dev.tropico.yaggui`, `$XDG_CONFIG_HOME/dev.tropico.yaggui`):
 
-- `yaggui.db` (SQLite): known repos (path, display name, color, favorite, last access), workspaces, tab and panel state, commit message history, persistent operation journal (for undo after a restart — V2).
-- `settings.json`: preferences (readable and editable by hand).
-- `keybindings.json`: custom shortcuts.
-- `cache/`: avatars, per-repo graph layout cache (invalidated by the list of refs).
+- `yaggui.db` (SQLite): known repos (path, display name, color, favorite, last access), workspaces, tab and panel state, per-repo layout, preferences (`preferences` table, one row per setting, JSON values), identity profiles, commit templates and message history. The preferences are edited in the Preferences window only; there is no `settings.json` (hand sync between machines: F-326).
+- `keybindings.json`: custom shortcuts (readable and editable by hand).
+- `backups/`: content saved before a discard, for undo.
+
+The operation journal (undo / redo) lives in memory for the session; a persistent journal, for undo after a restart, is V2.
+
+Downloaded avatars (opt-in, F-033) go to the OS cache folder (`avatars-v1/`), not the config folder.
 
 Nothing is written into the user's repos, except what Git writes itself.
 

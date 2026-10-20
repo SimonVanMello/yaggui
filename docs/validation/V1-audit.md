@@ -115,7 +115,7 @@ The evidence cites the code, the tests (`src-tauri/tests/*.rs` = Rust integratio
 
 **Summary**: 44 requirements marked V1, plus the high contrast of F-320 (planned in V1 by M4-6), i.e. 45 rows: 45 delivered, none partial or missing. F-066 moved to "delivered" in M5-1, F-033 in M5-2.
 
-Gap outside `F-xxx`, noted for the record: the spec §8 plans a hand-editable `settings.json`; the preferences are in `yaggui.db` (`preferences` table), only `keybindings.json` is a file.
+Gap outside `F-xxx`, closed: the spec §8 planned a hand-editable `settings.json`; it now describes what is built (preferences in `yaggui.db`, only `keybindings.json` is a file).
 
 ## 2. Major gaps (not handled in M4-8)
 
