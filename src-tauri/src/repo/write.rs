@@ -745,12 +745,14 @@ pub(super) enum SavedWorktree {
 }
 
 /// An index entry as the journal restores it.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(tag = "kind", rename_all = "camelCase")]
 pub(super) enum IndexSide {
     /// Not touched by the operation (or a submodule): left alone.
     Unmanaged,
     Absent,
     Blob {
+        #[serde(with = "super::journal::oid")]
         id: gix::ObjectId,
         mode: u32,
     },

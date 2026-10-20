@@ -331,7 +331,8 @@ fn upstreams_on(
 // --- Undo / redo ---------------------------------------------------------------------------
 
 /// What a remote operation changed, for its undo and redo (journal `Mode::Remote`).
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(tag = "kind", rename_all = "camelCase")]
 pub(super) enum RemoteChange {
     /// `config`: the remote's section once added, put back by the redo.
     Added {
