@@ -145,6 +145,33 @@ for (const { name: theme, colorScheme } of THEMES) {
       await expect(dialog(page)).toHaveCount(0);
     });
 
+    test('an entry of a previous session whose objects were pruned is refused', async ({
+      page,
+    }) => {
+      await openYaggui(page);
+      await createBranch(page, 'qa-restored', false);
+      // A restart with a `git gc` in between (M7-1).
+      await page.evaluate(async () => {
+        const mock = window.__yagguiMock;
+        const opened = await mock?.commands.openRepo('/Users/alex/dev/yaggui');
+        if (!mock || opened?.status !== 'ok') return;
+        mock.simulateRestoredJournal(opened.data.id, { pruned: true });
+        await mock.commands.closeRepo(opened.data.id);
+      });
+      const blocked = toolbar(page).getByRole('button', {
+        name: /^Undo: creation of branch qa-restored/,
+      });
+      await expect(blocked).toHaveAttribute('aria-disabled', 'true', { timeout: 5000 });
+      await blocked.hover();
+      await expect(page.getByRole('tooltip')).toContainText(
+        "Cannot undo creation of branch qa-restored: what it needs was deleted by Git's garbage collection since",
+      );
+      await page.keyboard.press('Control+z');
+      await expect(page.getByText('Cannot undo', { exact: true })).toBeVisible();
+      await expect(page.getByText(/^Git deleted what this undo needs/)).toBeVisible();
+      await capture(page, theme, 'objects-missing');
+    });
+
     test('local changes in the way are listed before anything is stashed', async ({ page }) => {
       await openYaggui(page);
       // A discard, then the same file edited again: the undo would overwrite it (M4-8: the

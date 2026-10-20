@@ -809,11 +809,16 @@ export class MockBackend {
   }
 
   /**
-   * Simulates a `git gc` between two sessions: the journal entries of a repository restored
-   * from a previous session lose what they need and are refused with `undoObjectsMissing`.
+   * Simulates a restart: the journal entries of a repository become entries of a previous
+   * session (`restored`). With `pruned`, a `git gc` ran meanwhile: they lose what they need
+   * and are refused with `undoObjectsMissing`.
    */
-  pruneJournal(repoId: number): void {
-    this.journals.get(repoId)?.prune();
+  simulateRestoredJournal(repoId: number, { pruned = false } = {}): void {
+    const journal = this.journals.get(repoId);
+    if (!journal) return;
+    journal.restore();
+    if (pruned) journal.prune();
+    this.emit('journalChanged', { repoId });
   }
 
   /**

@@ -161,9 +161,7 @@ describe('mock undo journal', () => {
     const { sha } = await unwrap(
       mock.commit(id, { summary: 'feat: x', description: '', amend: false, skipHooks: true }),
     );
-    await unwrap(mock.closeRepo(id));
-    await openYaggui();
-    mockBackend.pruneJournal(id);
+    mockBackend.simulateRestoredJournal(id, { pruned: true });
 
     const state = await unwrap(mock.undoState(id));
     expect(state.undo?.blocked).toEqual({ kind: 'objectsMissing', count: 1 });
