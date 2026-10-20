@@ -140,7 +140,7 @@ A change needs docs when it alters something a user sees or does: behavior of a 
 ### Definition of done
 
 1. The task's acceptance criteria are met.
-2. `pnpm check`, `cargo clippy -- -D warnings` and `cargo test` pass. The `CI` workflow (`.github/workflows/ci.yml`) runs them, plus `pnpm test:ui` and `cargo fmt --check`, on every PR, with the Rust part on Linux, macOS and Windows.
+2. `pnpm check`, `cargo clippy -- -D warnings` and `cargo test` pass. The `CI` workflow (`.github/workflows/ci.yml`) runs them, plus `pnpm test:ui` and `cargo fmt --check`, on every PR, with the Rust part on Linux, macOS and Windows; its `changes` job skips the parts the changed files cannot break (docs only: nothing; frontend only: no Rust; backend only: no Playwright).
 3. The app starts (`xvfb-run pnpm tauri dev`, or at least `cargo build` + `pnpm build`) and new screens are checked with Playwright captures in both themes.
 4. PR opened with: summary, covered requirements (`F-xxx`), how to test, captures, points to check manually on macOS/Windows, docs, out of scope. `.github/pull_request_template.md` has the sections.
 5. Docs updated in the same PR (EN and FR), or the PR description contains `Docs: not needed (<reason>)`.

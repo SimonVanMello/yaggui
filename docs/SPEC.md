@@ -137,7 +137,7 @@ The three panels are resizable and collapsible; their sizes are remembered per t
 
 ## 5. Functional requirements
 
-Priorities: **MVP** (required for daily use), **V1** (public release), **V2** (after v1).
+Priorities: **MVP** (required for daily use), **V1** (public release), **V2** (after v1), **Dropped** (decided against after v1; the ID is kept so it is not reused).
 
 ### 5.1 Projects, workspaces and tabs
 
@@ -152,7 +152,7 @@ Priorities: **MVP** (required for daily use), **V1** (public release), **V2** (a
 | F-007 | Scan a parent folder to discover and import every repo it contains (configurable depth). | V1 |
 | F-008 | Workspace overview: list of repos with current branch, ahead/behind, dirty state, last fetch; "Fetch all". | V1 |
 | F-009 | Detect a moved/deleted repo and offer to relocate or remove it. | V1 |
-| F-010 | Multiple windows: detach a tab into a new window. | V2 |
+| F-010 | Multiple windows: detach a tab into a new window. | Dropped |
 
 ### 5.2 Commit graph (center view)
 
@@ -199,7 +199,7 @@ Priorities: **MVP** (required for daily use), **V1** (public release), **V2** (a
 | F-068 | History of recent, reusable messages. | V1 |
 | F-069 | Add to `.gitignore` from an untracked file (exact file, extension, folder). | V1 |
 | F-070 | Change the repo identity (user.name/email) from the panel, with identity profiles (personal/work). | V1 |
-| F-071 | Co-authors (`Co-authored-by`) with autocompletion from history. | V2 |
+| F-071 | Co-authors (`Co-authored-by`) with autocompletion from history. | Dropped |
 
 ### 5.5 Diff
 
@@ -304,6 +304,7 @@ A signature feature of GitKraken and a pillar of the ergonomics: it lowers the f
 | F-241 | Implementation: an `OpJournal` that records, before each operation, the touched refs (SHA), the index and, for discards, a backup of the contents (blobs written with `git hash-object -w`). Undo restores those states. | V1 |
 | F-242 | Operations that cannot be undone locally (push, fetch with prune) are flagged as such on the button (disabled + explanatory tooltip). | V1 |
 | F-243 | Drop-down list of the session's operation history with timestamps. | V1 |
+| F-244 | Persistent journal: the `OpJournal` is saved in `yaggui.db`, so the last operations of a repo stay undoable after a restart. An entry whose refs or index moved since (outside yaggui, or while it was closed) is not restored and says why. | V2 |
 
 ### 5.14 Submodules, worktrees, LFS, misc.
 
@@ -313,8 +314,8 @@ A signature feature of GitKraken and a pillar of the ergonomics: it lowers the f
 | F-261 | Worktrees: list, create (from a branch), open in a tab, remove. | V1 |
 | F-262 | Git LFS: detection, "LFS" badge on tracked files, `lfs pull`/`track`, no text diff on pointers. | V1 |
 | F-263 | Assisted bisect: mark good/bad from the graph, progress banner. | V2 |
-| F-264 | Patches: create a patch from a commit/selection, apply a patch (`git apply` / `git am`). | V2 |
-| F-265 | Git Flow / configurable branch conventions (prefixes, base branch per type). | V2 |
+| F-264 | Patches: create a patch from a commit/selection, apply a patch (`git apply` / `git am`). | Dropped |
+| F-265 | Git Flow / configurable branch conventions (prefixes, base branch per type). | Dropped |
 | F-266 | Open a terminal in the repo (terminal configurable per OS). | MVP |
 | F-267 | **Integrated terminal**: panel at the bottom of the repo view (opened by the Terminal button and a shortcut), the OS default shell in the repo folder, several terminals per repo, survives tab switches; the external terminal (F-266) stays available as a preference. | V1 |
 
@@ -351,7 +352,7 @@ Default shortcuts (macOS; `⌘`→`Ctrl` elsewhere):
 | F-300 | **Log of the Git commands** that ran (command, duration, exit code, stdout/stderr), reachable from the status bar, copyable. | MVP |
 | F-301 | Non-blocking toast notifications for successes; errors stay until dismissed and offer an action. | MVP |
 | F-302 | Catalog of known Git errors → clear message + action (push rejected, conflict, lock, auth, detached, dirty tree, failed hook, missing upstream, etc.). | MVP |
-| F-303 | Optional system notifications for long operations finished in the background (window not focused). | V2 |
+| F-303 | Optional system notifications for long operations finished in the background (window not focused). | Dropped |
 
 ### 5.17 Preferences
 
@@ -425,10 +426,13 @@ Fonts: UI in **Inter** (bundled, system font fallback), code in **JetBrains Mono
 
 Stored in the OS application config folder (`~/Library/Application Support/dev.tropico.yaggui`, `%APPDATA%\dev.tropico.yaggui`, `$XDG_CONFIG_HOME/dev.tropico.yaggui`):
 
-- `yaggui.db` (SQLite): known repos (path, display name, color, favorite, last access), workspaces, tab and panel state, commit message history, persistent operation journal (for undo after a restart — V2).
-- `settings.json`: preferences (readable and editable by hand).
-- `keybindings.json`: custom shortcuts.
-- `cache/`: avatars, per-repo graph layout cache (invalidated by the list of refs).
+- `yaggui.db` (SQLite): known repos (path, display name, color, favorite, last access), workspaces, tab and panel state, per-repo layout, preferences (`preferences` table, one row per setting, JSON values), identity profiles, commit templates and message history. The preferences are edited in the Preferences window only; there is no `settings.json` (hand sync between machines: F-326).
+- `keybindings.json`: custom shortcuts (readable and editable by hand).
+- `backups/`: content saved before a discard, for undo.
+
+The operation journal (undo / redo) lives in memory for the session; a persistent journal, for undo after a restart, is V2 (F-244).
+
+Downloaded avatars (opt-in, F-033) go to the OS cache folder (`avatars-v1/`), not the config folder.
 
 Nothing is written into the user's repos, except what Git writes itself.
 
@@ -478,7 +482,7 @@ Updates: Tauri updater, **opt-in** (consistent with 100% local), update signatur
 | **M2 — Daily writing** (4 wks) | File/hunk/line staging, commit/amend, checkout + auto-stash, branches, fetch/pull/push, stash, tags, translated errors. | Usable instead of the terminal for daily work (dogfooding). **= MVP** |
 | **M3 — Advanced operations** (4–5 wks) | Drag & drop merge/rebase, cherry-pick, revert, reset, operation banner, conflicts (ours/theirs then 3-way editor), visual interactive rebase. | |
 | **M4 — Comfort** (3–4 wks) | Undo/redo, workspaces, blame, file history, reflog, submodules, worktrees, LFS, full preferences, FR/EN i18n, C/D themes. | **= public V1** |
-| **V2** | Multiple windows, bisect, patches, `log -L`, Git Flow, first-parent, co-authors, then possibly hosting integrations (read-only GitHub/GitLab PRs), opt-in AI commit messages. | |
+| **V2** | Persistent undo (F-244) first, then the small items: fixup / autosquash (F-147), one file from a stash (F-185), first-parent (F-032), preferences import/export (F-326); then `log -L` (F-223), tree at a commit (F-224), assisted bisect (F-263). Possibly later: hosting integrations (read-only GitHub/GitLab PRs), opt-in AI commit messages. Dropped: multiple windows (F-010), co-authors (F-071), patches (F-264), Git Flow (F-265), system notifications (F-303). | |
 
 ---
 
