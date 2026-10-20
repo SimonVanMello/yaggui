@@ -146,7 +146,7 @@ Checkout can be undone with **Undo** (<kbd>⌘Z</kbd>, <kbd>Ctrl+Z</kbd> on Wind
 
 ### Check out a commit or a remote branch
 
-- **A remote branch**: double-click it in the sidebar or its label in the graph, or use **Create a local branch tracking it**. For `origin/feat/x`, yaggui checks out a local `feat/x` that tracks it, creating it if needed: `git switch --create feat/x --track refs/remotes/origin/feat/x`. The toast reads "Created feat/x and switched to it". If a local `feat/x` already exists, yaggui checks it out as it is, whatever it tracks.
+- **A remote branch**: double-click it in the sidebar or its label in the graph, or use **Create a local branch tracking it**. For `origin/feat/x`, yaggui checks out a local `feat/x` that tracks it, creating it if needed: `git switch --create feat/x --track refs/remotes/origin/feat/x`. The toast reads "Created feat/x and switched to it". If a local `feat/x` already exists, yaggui checks it out, whatever it tracks. When it is behind `origin/feat/x` (every commit of `feat/x` is in `origin/feat/x`), yaggui also brings it up to `origin/feat/x` with `git merge --ff-only refs/remotes/origin/feat/x`, without fetching: the toast adds "Updated to origin/feat/x, which it was behind." This also works on the current branch. A local branch that has commits of its own (ahead or diverged) is checked out as it is, never merged. Local changes in the way of the update block the checkout like any other.
 - **A commit**: right-click it in the graph, then **Checkout this commit**. yaggui runs `git switch --detach <sha>` with no warning and shows "HEAD is now detached at _abc1234_". New commits made there belong to no branch: [create a branch](#create-a-branch) to keep them.
 - **A tag**: see [Check out a tag](../../history/tags/#check-out-a-tag).
 
@@ -293,15 +293,15 @@ The toast reads "N branches deleted. Undo restores them all." One **Undo** resto
 
 ## Undo
 
-| Operation                                   | Undo                                      |
-| ------------------------------------------- | ----------------------------------------- |
-| Check out a branch, remote branch or commit | Yes: switches back, keeping local changes |
-| Create a branch                             | Yes, except from a stash                  |
-| Rename a branch                             | Yes                                       |
-| Delete a local branch                       | Yes, with its upstream setting            |
-| Delete a local branch and its remote branch | No                                        |
-| Delete a branch on the remote               | No                                        |
-| Clean up branches                           | Yes, all branches in one step             |
-| Set or remove an upstream                   | No (not recorded)                         |
+| Operation                                   | Undo                                                                                                          |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Check out a branch, remote branch or commit | Yes: switches back, keeping local changes; a local branch brought up to its remote one goes back where it was |
+| Create a branch                             | Yes, except from a stash                                                                                      |
+| Rename a branch                             | Yes                                                                                                           |
+| Delete a local branch                       | Yes, with its upstream setting                                                                                |
+| Delete a local branch and its remote branch | No                                                                                                            |
+| Delete a branch on the remote               | No                                                                                                            |
+| Clean up branches                           | Yes, all branches in one step                                                                                 |
+| Set or remove an upstream                   | No (not recorded)                                                                                             |
 
 Undo is refused if the branches moved since, for example after a commit from a terminal. See [Undo and redo](../../history/undo-and-redo/). Every command above appears in the [command log](../../reference/command-log/), and error messages are explained in [Error messages](../../reference/error-messages/).

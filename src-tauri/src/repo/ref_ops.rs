@@ -526,10 +526,16 @@ pub(super) fn classify(ctx: &WriteContext<'_>, run: &GitRun) -> YagguiError {
 
 /// Runs a `git switch`; a refusal to overwrite local changes becomes `dirtyWorktree`.
 fn switch(ctx: &WriteContext<'_>, args: &[&str]) -> Result<(), YagguiError> {
-    let run = raw(
+    move_worktree(
         ctx,
         &ctx.command(std::iter::once("switch").chain(args.iter().copied())),
-    )?;
+    )
+}
+
+/// Runs a command that moves the working tree; local changes in its way are reported like a
+/// dirty checkout.
+fn move_worktree(ctx: &WriteContext<'_>, command: &GitCommand) -> Result<(), YagguiError> {
+    let run = raw(ctx, command)?;
     if run.success {
         return Ok(());
     }
@@ -547,6 +553,9 @@ struct Resolved {
     commit: String,
     branch: Option<String>,
     created: bool,
+    /// Remote branch (`origin/main`) the existing local branch is fast-forwarded to after the
+    /// switch, because it is behind it.
+    fast_forward: Option<String>,
 }
 
 fn resolve_target(
@@ -561,6 +570,7 @@ fn resolve_target(
                 commit: id.to_string(),
                 branch: Some(name.clone()),
                 created: false,
+                fast_forward: None,
             })
         }
         CheckoutTarget::Remote { name } => {
@@ -579,11 +589,15 @@ fn resolve_target(
                 &local,
             )?;
             if let Some(id) = find_ref(ctx.repo, &format!("refs/heads/{local}"))? {
+                // Checking out a remote branch means landing on its commit: a local branch
+                // behind it catches up. Ahead or diverged, it is left as it is (no merge).
+                let behind = id != remote_id && is_ancestor(ctx.repo, id, remote_id)?;
                 return Ok(Resolved {
                     args: vec!["--no-guess".into(), local.clone()],
-                    commit: id.to_string(),
+                    commit: if behind { remote_id } else { id }.to_string(),
                     branch: Some(local),
                     created: false,
+                    fast_forward: behind.then(|| name.clone()),
                 });
             }
             Ok(Resolved {
@@ -591,6 +605,7 @@ fn resolve_target(
                 commit: remote_id.to_string(),
                 branch: Some(local),
                 created: true,
+                fast_forward: None,
             })
         }
         CheckoutTarget::Detached { rev } => {
@@ -600,9 +615,41 @@ fn resolve_target(
                 commit: id,
                 branch: None,
                 created: false,
+                fast_forward: None,
             })
         }
     }
+}
+
+/// `ancestor` is reachable from `tip`.
+fn is_ancestor(
+    repo: &gix::Repository,
+    ancestor: ObjectId,
+    tip: ObjectId,
+) -> Result<bool, YagguiError> {
+    match repo.merge_base(ancestor, tip) {
+        Ok(base) => Ok(base.is_some_and(|base| base.detach() == ancestor)),
+        Err(err) => Err(BackendError::gix("find the merge-base", err).into()),
+    }
+}
+
+/// `git switch`, then the fast-forward of the branch to its remote when it was behind.
+fn switch_to(ctx: &WriteContext<'_>, resolved: &Resolved) -> Result<(), YagguiError> {
+    let args: Vec<&str> = resolved.args.iter().map(String::as_str).collect();
+    switch(ctx, &args)?;
+    let Some(remote) = &resolved.fast_forward else {
+        return Ok(());
+    };
+    // HEAD is now the branch: `--ff-only` moves it and the working tree, never merges.
+    move_worktree(
+        ctx,
+        &ctx.command([
+            "merge".to_owned(),
+            "--ff-only".to_owned(),
+            "--no-edit".to_owned(),
+            format!("refs/remotes/{remote}"),
+        ]),
+    )
 }
 
 /// `origin/feat/x` → `feat/x`, using the longest configured remote name that prefixes it.
@@ -629,8 +676,8 @@ fn checkout(
     let result = CheckoutResult {
         branch: resolved.branch.clone(),
         created: resolved.created,
+        fast_forwarded: resolved.fast_forward.clone(),
     };
-    let args: Vec<&str> = resolved.args.iter().map(String::as_str).collect();
     let status = worktree_status(ctx)?;
     if status.unmerged {
         return Err(YagguiError::unresolved_conflicts());
@@ -649,15 +696,15 @@ fn checkout(
                 status.untracked.iter().any(|p| changed.contains(p))
             };
         if stash_untracked {
-            stash_checkout_pop(ctx, &args, target)?;
+            stash_checkout_pop(ctx, &resolved, target)?;
         } else {
-            switch(ctx, &args)?;
+            switch_to(ctx, &resolved)?;
         }
         return Ok(result);
     }
     match mode {
         CheckoutMode::Carry => {
-            switch(ctx, &args)?;
+            switch_to(ctx, &resolved)?;
             Ok(result)
         }
         CheckoutMode::Clean => {
@@ -673,7 +720,7 @@ fn checkout(
             Err(YagguiError::dirty_worktree(blocking, can_carry))
         }
         CheckoutMode::StashAndPop => {
-            stash_checkout_pop(ctx, &args, target)?;
+            stash_checkout_pop(ctx, &resolved, target)?;
             Ok(result)
         }
     }
@@ -681,7 +728,7 @@ fn checkout(
 
 fn stash_checkout_pop(
     ctx: &WriteContext<'_>,
-    args: &[&str],
+    resolved: &Resolved,
     target: &CheckoutTarget,
 ) -> Result<(), YagguiError> {
     let label = match target {
@@ -697,7 +744,7 @@ fn stash_checkout_pop(
     ]))?;
     let Some(stash) = find_ref(ctx.repo, "refs/stash")?.filter(|id| Some(*id) != before) else {
         // Nothing was stashed after all (changes undone meanwhile): a plain switch.
-        return switch(ctx, args);
+        return switch_to(ctx, resolved);
     };
     let entry = StashEntryInfo {
         sha: stash.to_string(),
@@ -707,7 +754,7 @@ fn stash_checkout_pop(
         index: 0,
         sha: entry.sha.clone(),
     };
-    if let Err(err) = switch(ctx, args) {
+    if let Err(err) = switch_to(ctx, resolved) {
         // Put the changes back where they were; the checkout error is the one to report.
         apply_stash(ctx, &top, &entry, true, false, true)?;
         return Err(err);

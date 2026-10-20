@@ -867,6 +867,11 @@ export type CheckoutResult = {
 	branch: string | null,
 	/**  The local branch was created by this checkout (remote target). */
 	created: boolean,
+	/**
+	 *  Remote target whose local branch was behind it: the local branch was fast-forwarded
+	 *  to it (short name of the remote branch, `origin/main`).
+	 */
+	fastForwarded: string | null,
 };
 
 /**  What `checkout` moves HEAD to. */

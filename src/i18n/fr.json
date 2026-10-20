@@ -854,6 +854,7 @@
   "refs.stale.description": "Des branches ou des stashes ont changé entre-temps. La liste a été rafraîchie : vérifie-la puis réessaie.",
   "refs.checkout.done": "Passé sur {name}",
   "refs.checkout.createdDone": "{name} créée, tu es dessus",
+  "refs.checkout.fastForwarded": "Mise à jour vers {remote}, sur lequel elle était en retard.",
   "refs.checkout.detachedDone": "HEAD est détaché sur {name}",
   "refs.checkout.already": "{name} est déjà la branche courante",
   "refs.branch.created": "Branche {name} créée",

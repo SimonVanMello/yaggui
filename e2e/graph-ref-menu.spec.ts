@@ -84,6 +84,22 @@ for (const { name: theme, colorScheme } of THEMES) {
       await expect(page.getByRole('menuitem', { name: 'Edit commit message…' })).toBeVisible();
     });
 
+    test('double-click on a remote label brings the local branch behind it up to it', async ({
+      page,
+    }) => {
+      await openRepo(page, 'blog');
+      // `main` is 4 commits behind `origin/main`.
+      const remote = page.locator(
+        '[data-row] [data-ref-kind="remote"][data-ref-name="origin/main"]',
+      );
+      await remote.dblclick();
+      await expect(toastWith(page, 'Updated to origin/main')).toBeVisible();
+      // Local and remote are on the same commit again: one merged label.
+      await expect(remote).toHaveCount(0);
+      await expect(headRow(page)).toContainText('chore(deps): bump dependency 4');
+      await capture(page, theme, 'remote-fast-forward');
+    });
+
     test('edits the message of the last commit', async ({ page }) => {
       await openRepo(page, 'blog');
       await headRow(page).click({ button: 'right' });

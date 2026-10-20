@@ -17,6 +17,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
   pencil shown on hover; `Esc` cancels, `Mod+Enter` saves, and the graph stays on the rewritten
   commit (#44).
 
+### Changed
+
+- Checking out a remote branch (double-click on its label in the graph or the sidebar) brings an
+  existing local branch that is behind it up to it, without fetching; one with commits of its own
+  is left as it is (#45).
+
 ### Fixed
 
 - Stash labels in the graph and the commit details show the stash's message instead of

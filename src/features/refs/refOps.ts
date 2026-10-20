@@ -123,13 +123,16 @@ export async function checkout(
 ): Promise<boolean> {
   const result = await call(repoId, () => unwrap(ipc.commands.checkout(repoId, target, mode)));
   if (result.ok) {
-    const { branch, created } = result.data;
+    const { branch, created, fastForwarded } = result.data;
     if (branch) rememberBranch(repoId, branch);
     toast({
       variant: 'success',
       title: branch
         ? t(created ? 'refs.checkout.createdDone' : 'refs.checkout.done', { name: branch })
         : t('refs.checkout.detachedDone', { name: targetLabel(target) }),
+      description: fastForwarded
+        ? t('refs.checkout.fastForwarded', { remote: fastForwarded })
+        : undefined,
     });
     return true;
   }
