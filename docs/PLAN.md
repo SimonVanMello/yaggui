@@ -169,6 +169,25 @@ Exit: every tagged version is installable from GitHub Releases and from the main
 
 Order: M6-1; then M6-2a ∥ M6-2b ∥ M6-3 ∥ M6-4 ∥ M6-6; M6-5 when the signing accounts exist.
 
+## M7 — V2
+
+Exit: an undo survives a restart; fixups, a single file from a stash, first-parent history and preferences sync between machines are one gesture each; the history of a line range, the tree at any commit and an assisted bisect are available. Scope and order from the spec (§12); dropped there: F-010, F-071, F-264, F-265, F-303.
+
+| ID | Task | Depends on | Requirements |
+|---|---|---|---|
+| M7-1 | Persistent undo journal backend: `OpJournal` entries saved per repo in `yaggui.db` after each journaled write (new migration, bounded per repo by count and age), loaded when the repo opens; before an undo or redo of a restored entry, the existing checks (`undoDiverged`, `undoWouldOverwrite`) plus the presence of the objects it needs (the backup blobs written by `hash-object -w` are unreachable and can be pruned by `git gc`): an entry that can no longer be restored says why and is never partly applied; nothing written into the repo beyond what Git already writes; contract pushed first | M4-1 | F-244 (back) |
+| M7-2 | Persistent undo front: the history dropdown lists the entries of previous sessions after those of the current one (date, separator), unrestorable entries grayed with their reason, `⌘Z` after a restart, docs of the undo page updated | M7-1 (contract) | F-244 (front) |
+| M7-3 | Fixup / autosquash: "Create a fixup for this commit" in the commit context menu and the palette (commits the staged changes as `fixup! <subject>`, journaled like a commit); "Autosquash" opens the visual interactive rebase (M3-4) with the fixups already moved under their targets, for review before running | M3-4 | F-147 |
+| M7-4 | Apply a single file from a stash: per-file action in the stash preview, for a tracked file (merged into the working tree, conflicts reported as for `stash apply`) and an untracked one (third parent of the stash); the working tree file is backed up first, so the action is undoable like a discard; the stash is left untouched | M4-1 | F-185 |
+| M7-5 | First-parent mode: toggle in the graph (toolbar, palette, shortcut), saved per repo with the layout (M5-8); paginated walk following first parents only, lanes, search and jumps consistent with it; P-02 and P-04 measured again in the mode | M5-8 | F-032 |
+| M7-6 | Preferences import / export: one versioned JSON file with the preferences and the custom shortcuts, machine-specific values (Git path, tool paths) left out or flagged; import shows what changes before applying and rejects an invalid file with a typed error | M4-6 | F-326 |
+| M7-7 | History of a line range: `git log -L` started from a selection in the blame or the file view, parsed into commits with the diff restricted to the range, shown in the file history view (M4-4), with cancellation on large histories | M4-4 | F-223 |
+| M7-8 | Tree at a commit: virtualized file explorer of a commit's tree read through `gix` (from the commit detail, the graph menu, the palette), file opened read-only with highlighting, "Save as…" of a version, jump to its history or blame | M4-4 | F-224 |
+| M7-9 | Assisted bisect: start from the graph (mark good / bad from the commit menu), banner with the current commit and the estimated number of steps left, good / bad / skip from the banner or the graph, first bad commit shown at the end, reset; bisect markers in the graph; an interrupted bisect found again on reopening (detection from M3-1) | M3-1 | F-263 |
+| M7-10 | Integration and validation: mock / real gaps, `docs/validation/M7.md`, V2 rows added to `docs/validation/V1-audit.md` or a V2 audit | all of M7 | — |
+
+Order: M7-1 first, M7-2 as soon as its contract is pushed; M7-3 ∥ M7-4 ∥ M7-5 ∥ M7-6 alongside; then M7-7 ∥ M7-8 ∥ M7-9; then M7-10.
+
 ## W — Website and documentation
 
 Exit: `https://yaggui.tropico.dev` serves the landing page, the versioned docs (latest release by default, older versions selectable, `next` for `master`) and the live demo, in English and French, deployed by CI. Agents keep the docs current with each change. See [`docs/WEBSITE.md`](WEBSITE.md) and the mockup [`docs/ui/website.html`](ui/website.html).
