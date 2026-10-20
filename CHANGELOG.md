@@ -9,6 +9,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-20
+
+### Added
+
+- Right-click a branch or tag label in the commit graph for the same menu as in the sidebar: push a
+  tag, delete it, rename or push a branch… (#40).
+- Edit the message of a commit from its menu in the graph: the last commit is amended (staged
+  changes are left out, undoable), an older one of the current branch is rewritten by a rebase
+  (#40).
+
+### Security
+
+- Credentials embedded in remote URLs (`https://user:token@…`) are masked in the command log, in
+  error details and in the remote and submodule dialogs (#34).
+
 ## [0.4.0] - 2026-10-19
 
 ### Added
