@@ -306,6 +306,42 @@ fn version_changes_with_refs_only() {
 }
 
 #[test]
+fn stash_labels_carry_their_message() {
+    let fx = Fixture::new("history");
+    std::fs::write(fx.repo().join("named.txt"), "x").unwrap();
+    git(
+        &fx.repo(),
+        &[
+            "stash",
+            "push",
+            "-q",
+            "--include-untracked",
+            "-m",
+            "my changes",
+        ],
+    );
+    let b = backend(false);
+    let id = b.repos.open(&fx.repo_str()).unwrap().id;
+    let page = all_rows(&b, id);
+    let stash = |name: &str| {
+        page.refs
+            .iter()
+            .find(|r| r.label.kind == RefKind::Stash && r.label.name == name)
+            .map(|r| r.label.message.clone())
+    };
+    let named = stash("stash@{0}").flatten().unwrap_or_default();
+    assert!(named.ends_with(": my changes"), "{named}");
+    let older = stash("stash@{1}").flatten().unwrap_or_default();
+    assert!(older.starts_with("WIP on "), "{older}");
+    assert!(
+        page.refs
+            .iter()
+            .filter(|r| r.label.kind != RefKind::Stash)
+            .all(|r| r.label.message.is_none())
+    );
+}
+
+#[test]
 fn index_of_resolves_revisions() {
     let fx = Fixture::new("history");
     let b = backend(false);

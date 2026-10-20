@@ -150,6 +150,12 @@ for (const { name: theme, colorScheme } of THEMES) {
       await expect(file(unstaged(page), 'src/ui/Icon.tsx')).toHaveCount(0);
       await expect(file(unstaged(page), 'src/features/tabs/TabBar.tsx')).toBeVisible();
       await expect(page.getByRole('treeitem', { name: 'icons and readme' })).toBeVisible();
+      // The graph names the stash by its message, not by `stash@{0}` (here in the `+N` chip).
+      const more = page
+        .locator('[data-row]')
+        .getByLabel(/^\d+ more refs$/)
+        .first();
+      await expect(more).toHaveAttribute('title', /^icons and readme$/m);
 
       await page.getByRole('button', { name: 'Undo: stash of 2 files' }).click();
       await expect(page.getByRole('treeitem', { name: 'icons and readme' })).toHaveCount(0);

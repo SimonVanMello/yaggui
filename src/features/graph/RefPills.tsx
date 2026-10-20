@@ -41,8 +41,8 @@ function layoutRefs(labels: readonly RefLabel[], space: PillSpace): RowLayout {
   const { metrics } = space;
   const refs = displayRefs(labels);
   const pills = refs.map((ref_) => ({
-    name: ref_.name,
-    natural: metrics.measure(ref_.name, ref_.isHead),
+    name: ref_.text,
+    natural: metrics.measure(ref_.text, ref_.isHead),
     chrome:
       metrics.padding +
       (ref_.isHead ? metrics.dot : metrics.icon) +
@@ -66,8 +66,8 @@ function layoutRefs(labels: readonly RefLabel[], space: PillSpace): RowLayout {
     const budget = fit.budgets[i] ?? 0;
     const pill = pills[i];
     return pill && budget >= pill.natural
-      ? ref_.name
-      : truncateMiddle(ref_.name, budget, measureWith(metrics, ref_.isHead));
+      ? ref_.text
+      : truncateMiddle(ref_.text, budget, measureWith(metrics, ref_.isHead));
   });
   return { shown, names, hidden: refs.slice(fit.shown) };
 }
@@ -111,13 +111,13 @@ function Pill({
 }: {
   repoId: number;
   ref_: DisplayRef;
-  /** Text shown, `ref_.name` or a middle-truncated form of it. */
+  /** Text shown, `ref_.text` or a middle-truncated form of it. */
   label: string;
   capped: boolean;
   color: number;
 }) {
   const t = useT();
-  const truncated = label !== ref_.name;
+  const truncated = label !== ref_.text;
   const classes = [styles.pill, styles[ref_.kind], ref_.isHead ? styles.current : '']
     .filter(Boolean)
     .join(' ');
@@ -144,7 +144,13 @@ function Pill({
           : undefined
       }
       style={{ '--pill-color': `var(--lane-${String(color)})` } as React.CSSProperties}
-      title={switchable ? `${ref_.name} — ${t('graph.checkoutHint')}` : ref_.name}
+      title={
+        switchable
+          ? `${ref_.name} — ${t('graph.checkoutHint')}`
+          : ref_.text === ref_.name
+            ? ref_.name
+            : `${ref_.text} (${ref_.name})`
+      }
       onDoubleClick={
         switchable && ref_.branch !== null
           ? (event) => {
@@ -172,7 +178,7 @@ function Pill({
       >
         {label}
       </span>
-      {truncated && <span className={styles.srOnly}>{ref_.name}</span>}
+      {truncated && <span className={styles.srOnly}>{ref_.text}</span>}
       {ref_.remote !== null && (
         <Icon name="cloud" className={styles.cloud} aria-label={ref_.remote} />
       )}
@@ -208,7 +214,7 @@ export function RefPills({
           key={ref_.key}
           repoId={repoId}
           ref_={ref_}
-          label={names?.[i] ?? ref_.name}
+          label={names?.[i] ?? ref_.text}
           capped={names === null}
           color={color}
         />
@@ -216,7 +222,7 @@ export function RefPills({
       {hidden.length > 0 && (
         <span
           className={`${styles.pill} ${styles.more}`}
-          title={hidden.map((h) => h.name).join('\n')}
+          title={hidden.map((h) => h.text).join('\n')}
           aria-label={t('graph.moreRefs', { count: hidden.length })}
         >
           +{hidden.length}

@@ -68,14 +68,14 @@ Cliquez dessus, ou appuyez sur <kbd>↑</kbd> depuis la première ligne, pour ou
 
 Les étiquettes de la colonne de message indiquent quelles références pointent sur un commit :
 
-| Étiquette           | Icône                                               |
-| ------------------- | --------------------------------------------------- |
-| Branche courante    | Point, mis en évidence comme courante               |
-| Branche locale      | Ordinateur portable                                 |
-| Branche distante    | Nuage                                               |
-| Tag                 | Étiquette                                           |
-| Stash (`stash@{n}`) | Stash, placé sur le commit d’où le stash a été créé |
-| HEAD détaché        | Point                                               |
+| Étiquette        | Icône                                                                                                                                                                                            |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Branche courante | Point, mis en évidence comme courante                                                                                                                                                            |
+| Branche locale   | Ordinateur portable                                                                                                                                                                              |
+| Branche distante | Nuage                                                                                                                                                                                            |
+| Tag              | Étiquette                                                                                                                                                                                        |
+| Stash            | Stash, placé sur le commit d’où le stash a été créé. Affiche le message du stash sans le préfixe `On main:` / `WIP on main:` de Git, comme la barre latérale ; survolez-le pour voir `stash@{n}` |
+| HEAD détaché     | Point                                                                                                                                                                                            |
 
 Une branche locale et une branche distante situées sur le même commit partagent une seule étiquette quand la branche distante est l’upstream de la branche locale, ou porte le même nom court (`origin/feat/x` et `feat/x`). L’étiquette porte alors une icône de nuage supplémentaire, nommée d’après le remote.
 
@@ -131,7 +131,7 @@ Quand au moins deux commits sont sélectionnés, une barre apparaît en bas du g
 
 Sélectionner un commit ouvre à droite le panneau **Détail du commit**. Il affiche :
 
-- Le titre et le corps complet du message.
+- Le titre et le corps complet du message. Cliquez dessus, ou sur le crayon qui apparaît au survol (**Modifier le message du commit**), pour [modifier le message](../../history/interactive-rebase/#modifier-le-message-dun-seul-commit) sur place.
 - **Auteur** (avatar, nom, e-mail) et **Date** (date et heure, puis date relative).
 - **Committer**, seulement s’il diffère de l’auteur (autre e-mail ou autre heure, par exemple après un rebase).
 - **SHA** avec un bouton de copie.

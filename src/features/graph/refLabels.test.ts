@@ -84,6 +84,12 @@ describe('displayRefs', () => {
     expect(refs.find((r) => r.kind === 'tag')?.branch).toBeNull();
   });
 
+  it('shows a stash by its message, without the Git prefix', () => {
+    const [named, bare] = displayRefs([{ ...stash(0), message: 'On main: my changes' }, stash(1)]);
+    expect(named).toMatchObject({ name: 'stash@{0}', text: 'my changes' });
+    expect(bare).toMatchObject({ name: 'stash@{1}', text: 'stash@{1}' });
+  });
+
   it('keeps distinct keys for several stashes on one commit', () => {
     const keys = displayRefs([stash(0), stash(1)]).map((r) => r.key);
     expect(new Set(keys).size).toBe(2);

@@ -66,6 +66,11 @@ pub struct RefLabel {
     /// Local branches: short name of the upstream (`origin/main`), to merge the local and
     /// remote labels when both point at the same commit.
     pub upstream: Option<String>,
+    /// Stashes: their message (`On main: my changes`), which names them better than
+    /// `stash@{0}`. `null` for the other kinds.
+    #[serde(default)]
+    #[specta(optional)]
+    pub message: Option<String>,
 }
 
 /// A ref label placed on a graph row.
