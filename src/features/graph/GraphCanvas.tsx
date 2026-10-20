@@ -113,7 +113,7 @@ export function GraphCanvas({
       const needed = neededTiles(
         mapper.sync(scroller),
         viewportHeight,
-        tileHeight / 4,
+        tileHeight / 2,
         tileHeight,
         wipHeight + totalRows * rowHeight,
       );

@@ -95,6 +95,9 @@ export function CodeDiff({
   const t = useT();
   const leftRef = useRef<HTMLDivElement>(null);
   const rightRef = useRef<HTMLDivElement>(null);
+  const splitRef = useRef<HTMLDivElement>(null);
+  /** Horizontal scrollbars of the split columns, left then right. */
+  const bars = useRef<(HTMLDivElement | null)[]>([]);
   const editors = useRef<DiffEditor[]>([]);
   const current = useRef<number | null>(null);
 
@@ -301,38 +304,47 @@ export function CodeDiff({
       });
     });
 
-    // Both columns have the same lines and headers: scroll positions map one to one.
     const cleanups: (() => void)[] = [];
     if (created.length === 2) {
       const [a, b] = created as [DiffEditor, DiffEditor];
-      // Comparing positions (not a "syncing" flag) stops the echo without dropping events.
-      const link = (from: DiffEditor, to: DiffEditor) => {
+      // Both columns sit in one vertical scroller: they move in the same frame, even when the
+      // compositor scrolls ahead of the main thread. Each column scrolls horizontally on its
+      // own, kept in step here, with its scrollbar on a bar stuck to the bottom of the view.
+      const horizontal = [a.view.scrollDOM, b.view.scrollDOM, ...bars.current].filter(
+        (el): el is HTMLElement => el !== null,
+      );
+      for (const source of horizontal) {
+        // Comparing positions (not a "syncing" flag) stops the echo without dropping events.
         const onScroll = () => {
-          const source = from.view.scrollDOM;
-          const target = to.view.scrollDOM;
-          if (target.scrollTop !== source.scrollTop) target.scrollTop = source.scrollTop;
-          if (target.scrollLeft !== source.scrollLeft) target.scrollLeft = source.scrollLeft;
+          for (const target of horizontal)
+            if (target.scrollLeft !== source.scrollLeft) target.scrollLeft = source.scrollLeft;
         };
-        from.view.scrollDOM.addEventListener('scroll', onScroll, { passive: true });
+        source.addEventListener('scroll', onScroll, { passive: true });
         cleanups.push(() => {
-          from.view.scrollDOM.removeEventListener('scroll', onScroll);
+          source.removeEventListener('scroll', onScroll);
         });
-      };
+      }
       // Same content width on both sides, so horizontal positions match up to the end.
       const equalize = () => {
         // Wrapped lines fit the pane: a minimum width kept from before would hide their end.
-        if (wrapRef.current) return;
-        const width = Math.max(a.view.contentDOM.scrollWidth, b.view.contentDOM.scrollWidth);
-        for (const editor of [a, b]) editor.view.contentDOM.style.minWidth = `${String(width)}px`;
+        if (!wrapRef.current) {
+          const width = Math.max(a.view.contentDOM.scrollWidth, b.view.contentDOM.scrollWidth);
+          for (const editor of [a, b]) editor.view.contentDOM.style.minWidth = `${String(width)}px`;
+        }
+        [a, b].forEach((editor, i) => {
+          const bar = bars.current[i]?.firstElementChild;
+          if (bar instanceof HTMLElement)
+            bar.style.width = `${String(editor.view.scrollDOM.scrollWidth)}px`;
+        });
       };
       const observer = new ResizeObserver(equalize);
       observer.observe(a.view.contentDOM);
       observer.observe(b.view.contentDOM);
+      observer.observe(a.view.scrollDOM);
+      observer.observe(b.view.scrollDOM);
       cleanups.push(() => {
         observer.disconnect();
       });
-      link(a, b);
-      link(b, a);
       heights.attach(a.view, b.view);
     }
     return () => {
@@ -364,7 +376,7 @@ export function CodeDiff({
       navigate(direction) {
         const first = editors.current[0];
         if (!first) return false;
-        const top = topLine(first);
+        const top = topLine(first, splitRef.current ?? undefined);
         const from = current.current ?? (top === 0 ? null : top);
         const next = adjacentStop(stops, from, direction);
         if (next === null) return false;
@@ -488,10 +500,32 @@ export function CodeDiff({
       <div className={styles.srOnly} aria-live="polite">
         {announcement}
       </div>
-      <div className={styles.code} data-view={view}>
-        <div ref={leftRef} className={styles.pane} />
-        {view === 'split' && <div ref={rightRef} className={styles.pane} />}
-      </div>
+      {view === 'split' ? (
+        <div ref={splitRef} className={styles.code} data-view="split">
+          <div className={styles.columns}>
+            <div ref={leftRef} className={styles.pane} />
+            <div ref={rightRef} className={styles.pane} />
+          </div>
+          <div className={styles.bars}>
+            {[0, 1].map((i) => (
+              <div
+                key={i}
+                ref={(el) => {
+                  bars.current[i] = el;
+                }}
+                className={styles.bar}
+                aria-hidden="true"
+              >
+                <div className={styles.barContent} />
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className={styles.code} data-view="unified">
+          <div ref={leftRef} className={styles.pane} />
+        </div>
+      )}
     </div>
   );
 }

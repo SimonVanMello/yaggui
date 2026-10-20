@@ -528,10 +528,11 @@ export function revealLine(editor: DiffEditor, index: number): void {
   });
 }
 
-/** Line index at the top of the viewport. */
-export function topLine(editor: DiffEditor): number {
+/** Line index at the top of the viewport of `scroller` (the editor's own by default). */
+export function topLine(editor: DiffEditor, scroller: HTMLElement = editor.view.scrollDOM): number {
   const { view } = editor;
-  const block = view.lineBlockAtHeight(view.scrollDOM.scrollTop);
+  const top = scroller.getBoundingClientRect().top - view.documentTop;
+  const block = view.lineBlockAtHeight(Math.max(0, top));
   return view.state.doc.lineAt(block.from).number - 1;
 }
 
