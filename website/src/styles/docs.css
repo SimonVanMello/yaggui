@@ -16,7 +16,9 @@ body {
 header.header {
   border-bottom: 1px solid var(--line);
   background: color-mix(in srgb, var(--bg) 65%, transparent);
-  backdrop-filter: blur(20px) saturate(1.6);
+  /* Browsers sample the backdrop only inside the bar and mirror its edges: on a
+     ~52px bar a larger radius folds the text back into a readable copy. */
+  backdrop-filter: blur(6px) saturate(1.6);
 }
 
 /* Sidebar: group titles small and strong, current page on the accent tint. */
