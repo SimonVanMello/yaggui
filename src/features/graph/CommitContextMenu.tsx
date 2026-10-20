@@ -10,12 +10,16 @@ import { ContextMenuSub } from '../../ui/ContextMenuSub';
 import { toast } from '../../ui/toastStore';
 import { compareCommits, compareWithHead, jumpToMergeBase } from '../compare/compareActions';
 import { openHistoryDialog } from '../history/historyDialogsStore';
+import { RefContextMenu } from '../sidebar/RefContextMenu';
+import { refTargetOf } from '../sidebar/sidebarRows';
+import { useRepoRefs } from '../sidebar/useRepoRefs';
 import { cherryPickCommits, revertCommit } from '../history/historyOps';
 import { openCreateBranch, openCreateTag } from '../refs/refCommands';
 import { openInteractiveRebase } from '../rebase/rebaseStore';
 import { checkout } from '../refs/refOps';
 import { shortOid } from '../repo/repoStatus';
 import type { GraphRow } from './pageCache';
+import type { MenuRef } from './refLabels';
 import type { PickedCommit } from './selectionModel';
 
 interface Props {
@@ -23,6 +27,8 @@ interface Props {
   children: ReactElement;
   /** Commit under the pointer, set before the menu opens. */
   target: GraphRow | null;
+  /** Ref label of `target` right-clicked: its menu replaces the commit's (F-023). */
+  refLabel: MenuRef | null;
   /** Selected commits in graph order; more than one when a multi-selection is right-clicked. */
   picked: readonly PickedCommit[];
   /** Name of the operation in progress: history actions wait for it to end. */
@@ -48,6 +54,7 @@ export function CommitContextMenu({
   repoId,
   children,
   target,
+  refLabel,
   picked,
   busy,
   current,
@@ -59,6 +66,13 @@ export function CommitContextMenu({
   const branch = current ?? 'HEAD';
   const busyHint = busy ? t('history.menu.busy') : undefined;
   const many = target !== null && picked.length > 1 && picked.some((c) => c.sha === target.sha);
+  const refs = useRepoRefs(repoId).data;
+  const refTarget = refLabel && refs ? refTargetOf(refs, refLabel.kind, refLabel.name) : null;
+  const isHead = target?.refs.some((r) => r.isHead || r.kind === 'head') ?? false;
+
+  const refContent = refTarget ? (
+    <RefContextMenu repoId={repoId} target={refTarget} current={current} />
+  ) : null;
 
   const manyContent = many ? (
     <>
@@ -115,6 +129,7 @@ export function CommitContextMenu({
   ) : null;
 
   const content =
+    refContent ??
     manyContent ??
     (target ? (
       <>
@@ -203,6 +218,16 @@ export function CommitContextMenu({
           }}
         >
           {t('graph.menu.rebase')}
+        </ContextMenuItem>
+        <ContextMenuItem
+          icon="pencil"
+          disabled={busy}
+          hint={busyHint}
+          onSelect={() => {
+            openHistoryDialog({ kind: 'reword', repoId, sha: target.sha, head: isHead });
+          }}
+        >
+          {t('graph.menu.reword')}
         </ContextMenuItem>
         <ContextMenuSeparator />
         <ContextMenuItem disabled hint={t('graph.menu.v2')}>

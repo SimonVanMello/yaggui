@@ -389,6 +389,15 @@ export const commands = {
 	 */
 	interactiveRebase: (repoId: number, base: string, todo: RebaseTodoEntry[]) => typedError<InteractiveRebaseResult, YagguiError>(__TAURI_INVOKE("interactive_rebase", { repoId, base, todo })),
 	/**
+	 *  Gives a commit a new message (summary, blank line, body). HEAD is amended without its
+	 *  staged changes; an older commit of the current branch is reworded by an interactive
+	 *  rebase, the commits after it replayed unchanged. Returns the new SHA of that commit.
+	 *  Errors: `invalidArgument` (empty summary, commit not on the current branch, root commit
+	 *  that is not HEAD, merges after it), `dirtyWorktree`, `operationInProgress`,
+	 *  `detachedHead` (older commit). Cancellable.
+	 */
+	rewordCommit: (repoId: number, sha: string, message: string) => typedError<CommitResult, YagguiError>(__TAURI_INVOKE("reword_commit", { repoId, sha, message })),
+	/**
 	 *  One page (≤ 500 entries, newest first) of the commits that changed `path`, following
 	 *  renames like `git log --follow`. Starts at `rev` (HEAD when `None`), or continues at
 	 *  `cursor` (the `next` of the previous page). Errors: `revisionNotFound`,

@@ -137,3 +137,32 @@ describe('mock interactive rebase', () => {
     expect(result).toMatchObject({ status: 'error', error: { code: 'dirtyWorktree' } });
   });
 });
+
+describe('mock reword', () => {
+  it('amends HEAD with the new message', async () => {
+    const { id, plan: p } = await plan();
+    const head = p.head;
+    const result = await unwrap(mock.rewordCommit(id, head, 'New summary\n\nBody'));
+    const detail = await unwrap(mock.commitDetail(id, result.sha));
+    expect(result.sha).not.toBe(head);
+    expect(detail.summary).toBe('New summary');
+    expect(detail.message).toBe('New summary\n\nBody');
+    const state = await unwrap(mock.repoState(id));
+    expect(state.head.kind === 'branch' && state.head.oid).toBe(result.sha);
+  });
+
+  it('rewords an older commit and replays the ones after it', async () => {
+    const { id, plan: p } = await plan();
+    const before = p.commits.map((c) => c.summary);
+    const second = p.commits[1]?.sha ?? '';
+    const result = await unwrap(mock.rewordCommit(id, second, 'Reworded'));
+    expect(await subjects(id, 4)).toEqual([before[0], 'Reworded', before[2], before[3]]);
+    expect((await unwrap(mock.commitDetail(id, result.sha))).summary).toBe('Reworded');
+  });
+
+  it('refuses an empty summary', async () => {
+    const { id, plan: p } = await plan();
+    const result = await mock.rewordCommit(id, p.head, '  \n\nbody');
+    expect(result.status === 'error' && result.error.code).toBe('invalidArgument');
+  });
+});

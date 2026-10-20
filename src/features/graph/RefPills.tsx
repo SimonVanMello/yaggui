@@ -125,6 +125,8 @@ function Pill({
   return (
     <span
       className={classes}
+      data-ref-kind={ref_.kind}
+      data-ref-name={ref_.name}
       data-drop-branch={ref_.kind === 'local' ? ref_.name : undefined}
       data-drop-repo={ref_.kind === 'local' ? repoId : undefined}
       onPointerDown={

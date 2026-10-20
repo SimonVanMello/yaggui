@@ -4,8 +4,9 @@ import { MergeDialog } from './MergeDialog';
 import { ParentDialog } from './ParentDialog';
 import { RebaseDialog } from './RebaseDialog';
 import { ResetDialog } from './ResetDialog';
+import { RewordDialog } from './RewordDialog';
 
-/** Renders the open merge / rebase / reset / revert dialog. Mount once at the app root. */
+/** Renders the open merge / rebase / reset / revert / reword dialog. Mount once at the app root. */
 export function HistoryDialogs() {
   const dialog = useHistoryDialogs((state) => state.dialog);
   if (!dialog) return null;
@@ -20,6 +21,8 @@ export function HistoryDialogs() {
       return <ResetDialog key={key} {...dialog} />;
     case 'parent':
       return <ParentDialog key={key} {...dialog} />;
+    case 'reword':
+      return <RewordDialog key={key} {...dialog} />;
     case 'continue':
       return <ContinueDialog key={key} {...dialog} />;
   }

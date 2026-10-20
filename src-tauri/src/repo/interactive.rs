@@ -18,14 +18,15 @@ use crate::events::{OpKind, OpNote};
 use crate::git::errors::{BackendError, HistoryOp, YagguiError};
 use crate::git::ops::rebase_todo::{self, TodoLine};
 use crate::git::ops::types::{
-    CommitRef, HistoryEffect, InteractiveRebasePlan, InteractiveRebaseResult, REBASE_PLAN_MAX,
-    RebasePlanCommit, RebaseStop, RebaseTodoEntry,
+    CommitRef, CommitResult, HistoryEffect, InteractiveRebasePlan, InteractiveRebaseResult,
+    JournalOp, REBASE_PLAN_MAX, RebaseAction, RebasePlanCommit, RebaseStop, RebaseTodoEntry,
 };
 use crate::git::read::state::{RepoOperation, count_exclusive, gix as gix_err, read_operation};
 use crate::graph::resolve_commit;
 
 use super::RepoManager;
 use super::history::{ensure_idle, failure, head_id, rev_arg, run_history};
+use super::journal::{Mode, Plan};
 use super::ref_ops::worktree_status;
 use super::write::WriteContext;
 
@@ -59,6 +60,152 @@ impl RepoManager {
             Ok(result)
         })
     }
+
+    /// Gives `sha` a new message. HEAD is amended without its staged changes (undoable); an
+    /// older commit of the current branch is reworded by an interactive rebase from its
+    /// parent, the commits after it replayed unchanged. Returns the new SHA of the commit.
+    pub fn reword_commit(
+        &self,
+        repo_id: u32,
+        sha: String,
+        message: String,
+    ) -> Result<CommitResult, YagguiError> {
+        let message = rewording_message(&message)?;
+        let (target, head) = {
+            let repo = self.session(repo_id)?.repo()?.to_thread_local();
+            let target = resolve_commit(&repo, rev_arg(&sha)?)?;
+            (target, repo.head_id().ok().map(gix::Id::detach))
+        };
+        if head == Some(target) {
+            let summary = message.lines().next().unwrap_or_default().trim().to_owned();
+            return self.journal_op(repo_id, OpKind::Commit, true, false, move |ctx| {
+                let result = amend_message(ctx, target, &message)?;
+                let op = JournalOp::Amend {
+                    sha: result.sha.clone(),
+                    summary,
+                };
+                Ok((result, Some(Plan::new(op, Mode::Refs))))
+            });
+        }
+        self.write_op(repo_id, OpKind::Rebase, true, move |ctx| {
+            reword_older(ctx, target, &message)
+        })
+    }
+}
+
+/// The message as written, ending with a newline; refused without a summary.
+fn rewording_message(message: &str) -> Result<String, YagguiError> {
+    let message = message.trim_start_matches(['\n', '\r']).trim_end();
+    if message
+        .lines()
+        .next()
+        .is_none_or(|line| line.trim().is_empty())
+    {
+        return Err(YagguiError::invalid_argument(
+            "The commit summary is empty.",
+            "Le résumé du commit est vide.",
+        ));
+    }
+    Ok(format!("{message}\n"))
+}
+
+/// `--only` without paths: the message changes, the staged changes stay staged.
+fn amend_message(
+    ctx: &WriteContext<'_>,
+    target: ObjectId,
+    message: &str,
+) -> Result<CommitResult, YagguiError> {
+    if head_id(ctx)? != Some(target) {
+        return Err(YagguiError::invalid_argument(
+            "HEAD moved since the commit was chosen: try again.",
+            "HEAD a bougé depuis le choix du commit : réessaie.",
+        ));
+    }
+    // Like the rebase twins: verbatim message, no `pre-commit` / `commit-msg` hook (the
+    // content does not change). `--allow-empty` for a commit that changes nothing.
+    let command = ctx
+        .command([
+            "commit",
+            "--amend",
+            "--only",
+            "--allow-empty",
+            "--no-verify",
+            "--cleanup=verbatim",
+            "-F",
+            "-",
+        ])
+        .stdin(message);
+    ctx.run(&command)?;
+    let sha = head_id(ctx)?.ok_or_else(|| YagguiError::revision_not_found("HEAD"))?;
+    Ok(CommitResult {
+        sha: sha.to_string(),
+    })
+}
+
+fn reword_older(
+    ctx: &WriteContext<'_>,
+    target: ObjectId,
+    message: &str,
+) -> Result<CommitResult, YagguiError> {
+    let (_, head) = branch_and_head(ctx.repo)?;
+    if count_exclusive(ctx.repo, target, head)? != 0 {
+        return Err(YagguiError::invalid_argument(
+            "This commit is not on the current branch: check out its branch to change its message.",
+            "Ce commit n'est pas sur la branche courante : bascule sur sa branche pour modifier son message.",
+        ));
+    }
+    let commit = ctx
+        .repo
+        .find_commit(target)
+        .map_err(gix_err("read a commit"))?;
+    let Some(parent) = commit
+        .decode()
+        .map_err(gix_err("decode a commit"))?
+        .parents()
+        .next()
+    else {
+        return Err(YagguiError::invalid_argument(
+            "The first commit of the repository can only be reworded while it is HEAD.",
+            "Le premier commit du dépôt ne peut être reformulé que lorsqu'il est HEAD.",
+        ));
+    };
+    let (ids, _) = range(ctx.repo, parent, head)?;
+    let Some(position) = ids.iter().position(|id| *id == target) else {
+        return Err(YagguiError::invalid_argument(
+            "This commit was brought in by a merge: yaggui cannot rewrite it.",
+            "Ce commit vient d'un merge : yaggui ne peut pas le réécrire.",
+        ));
+    };
+    let todo: Vec<_> = ids
+        .iter()
+        .map(|id| {
+            let reword = *id == target;
+            RebaseTodoEntry {
+                sha: id.to_string(),
+                action: if reword {
+                    RebaseAction::Reword
+                } else {
+                    RebaseAction::Pick
+                },
+                message: reword.then(|| message.to_owned()),
+            }
+        })
+        .collect();
+    let result = interactive_rebase(ctx, &parent.to_string(), &todo)?;
+    // The commits after it were replayed one for one: walk back as many first parents.
+    let mut id = ObjectId::from_hex(result.head.as_bytes())
+        .map_err(|err| BackendError::Invariant(format!("rebase head is not an id: {err}")))?;
+    for _ in position + 1..ids.len() {
+        let commit = ctx.repo.find_commit(id).map_err(gix_err("read a commit"))?;
+        let decoded = commit.decode().map_err(gix_err("decode a commit"))?;
+        id = decoded
+            .parents()
+            .next()
+            .ok_or_else(|| BackendError::Invariant("a replayed commit has no parent".to_owned()))?;
+    }
+    Ok(CommitResult {
+        sha: id.to_string(),
+    })
 }
 
 /// Current branch and HEAD, refused when detached or unborn.

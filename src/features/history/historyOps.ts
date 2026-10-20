@@ -93,7 +93,7 @@ function failureTitle(op: HistoryOp): string {
 
 /** Which operation failed: decides the follow-up offered by the typed errors. */
 type HistoryOp =
-  'merge' | 'rebase' | 'cherryPick' | 'revert' | 'reset' | 'continue' | 'skip' | 'abort';
+  'merge' | 'rebase' | 'cherryPick' | 'revert' | 'reset' | 'reword' | 'continue' | 'skip' | 'abort';
 
 export interface FailureContext {
   op: HistoryOp;
@@ -390,6 +390,27 @@ export async function revertCommit(
     return false;
   }
   toast({ variant: 'success', title: t('history.revert.done', { sha: shortOid(sha) }) });
+  return true;
+}
+
+// --- Reword --------------------------------------------------------------------------------
+
+/**
+ * New message for a commit of the current branch: HEAD is amended (its staged changes stay
+ * staged), an older commit is reworded by a rebase replaying the commits after it.
+ */
+export async function rewordCommit(repoId: number, sha: string, message: string): Promise<boolean> {
+  const result = await attempt(repoId, () =>
+    unwrap(ipc.commands.rewordCommit(repoId, sha, message)),
+  );
+  if (!result.ok) {
+    reportHistoryError(repoId, result.error, { op: 'reword' });
+    return false;
+  }
+  toast({
+    variant: 'success',
+    title: t('history.reword.done', { sha: shortOid(result.data.sha) }),
+  });
   return true;
 }
 

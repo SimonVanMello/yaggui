@@ -25,6 +25,7 @@ import { GraphSearchBar } from './GraphSearchBar';
 import { HistoryWalkStatus } from './HistoryWalkStatus';
 import { useGraphSource } from './graphSource';
 import type { GraphRow } from './pageCache';
+import { isDisplayRefKind, type MenuRef } from './refLabels';
 import styles from './GraphView.module.css';
 import { ScrollMapper } from './scrollMapper';
 import { useRowHeight } from './useRowHeight';
@@ -36,6 +37,17 @@ const SKELETON_ROWS = 40;
 
 function rowOfEvent(event: { target: EventTarget }): HTMLElement | null {
   return event.target instanceof Element ? event.target.closest<HTMLElement>('[data-row]') : null;
+}
+
+/** The ref label (pill) a right click landed on, if any. */
+function refOfEvent(event: { target: EventTarget }): MenuRef | null {
+  const pill =
+    event.target instanceof Element
+      ? event.target.closest<HTMLElement>('[data-ref-kind][data-ref-name]')
+      : null;
+  const kind = pill?.dataset.refKind;
+  const name = pill?.dataset.refName;
+  return kind && name && isDisplayRefKind(kind) ? { kind, name } : null;
 }
 
 /** The commit graph (F-020…F-031): canvas lanes, virtualized rows, header, search. */
@@ -58,6 +70,7 @@ export function GraphView({
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
   const [menuTarget, setMenuTarget] = useState<GraphRow | null>(null);
+  const [menuRef, setMenuRef] = useState<MenuRef | null>(null);
   const handledScroll = useRef(0);
 
   const { cache } = source;
@@ -332,6 +345,7 @@ export function GraphView({
     if (!source.pickedRows.has(row) || source.picks.picked.size < 2)
       source.selectCommit(data.sha, row);
     setMenuTarget(data);
+    setMenuRef(refOfEvent(event));
   };
 
   if (cache.version === null && source.loadError) {
@@ -377,6 +391,7 @@ export function GraphView({
       <CommitContextMenu
         repoId={repoId}
         target={menuTarget}
+        refLabel={menuRef}
         picked={source.selectedCommits()}
         busy={state.operation !== null}
         current={state.head.kind === 'branch' ? state.head.name : null}
