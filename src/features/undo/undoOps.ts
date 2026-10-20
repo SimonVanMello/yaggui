@@ -77,6 +77,14 @@ async function present(repoId: number, error: YagguiError, direction: UndoDirect
       invalidateJournal(repoId);
       toast({ variant: 'info', title: localize(error.message) });
       return;
+    case 'undoObjectsMissing':
+      invalidateJournal(repoId);
+      toast({
+        variant: 'warning',
+        title: t(direction === 'undo' ? 'undo.blocked.title' : 'redo.blocked.title'),
+        description: localize(error.message),
+      });
+      return;
     case 'undoBlocked':
       toast({
         variant: 'warning',

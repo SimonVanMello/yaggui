@@ -1646,6 +1646,8 @@
   "undo.blocked.downloaded": "elle a téléchargé et extrait du contenu (fichiers LFS, commits de submodules)",
   "undo.blocked.filesDeleted": "les modifications locales du worktree ont été supprimées avec lui",
   "undo.blocked.diverged": "{refs} a bougé depuis, hors de yaggui",
+  "undo.blocked.objectsMissing": "ce dont elle a besoin a été supprimé depuis par le nettoyage de Git",
+  "undo.blocked.unreadable": "elle a été enregistrée par une autre version de yaggui",
   "undo.changes.ref": "a bougé depuis",
   "undo.changes.file": "modifié depuis",
   "undo.diverged.title": "Annulation impossible : le dépôt a changé depuis",

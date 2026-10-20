@@ -223,6 +223,7 @@ impl OpJournal {
                 at,
                 undone: false,
                 blocked,
+                restored: false,
             },
             mode: Mode::Refs,
             before: Side::default(),

@@ -139,4 +139,51 @@ describe('mock undo journal', () => {
     await unwrap(mock.redo(id));
     expect(await stashes()).not.toContain(stash.sha);
   });
+  it('keeps the journal when the repository closes, flagged as restored', async () => {
+    const id = await openYaggui();
+    const before = await headSha(id);
+    await unwrap(mock.stagePaths(id, { kind: 'all' }));
+    await unwrap(
+      mock.commit(id, { summary: 'feat: x', description: '', amend: false, skipHooks: true }),
+    );
+    await unwrap(mock.closeRepo(id));
+    expect(await openYaggui()).toBe(id);
+
+    const [entry] = await unwrap(mock.opHistory(id));
+    expect(entry).toMatchObject({ op: { kind: 'commit' }, restored: true, blocked: null });
+    await unwrap(mock.undo(id));
+    expect(await headSha(id)).toBe(before);
+  });
+
+  it('refuses a restored entry whose objects were pruned, changing nothing', async () => {
+    const id = await openYaggui();
+    await unwrap(mock.stagePaths(id, { kind: 'all' }));
+    const { sha } = await unwrap(
+      mock.commit(id, { summary: 'feat: x', description: '', amend: false, skipHooks: true }),
+    );
+    await unwrap(mock.closeRepo(id));
+    await openYaggui();
+    mockBackend.pruneJournal(id);
+
+    const state = await unwrap(mock.undoState(id));
+    expect(state.undo?.blocked).toEqual({ kind: 'objectsMissing', count: 1 });
+    expect((await unwrap(mock.opHistory(id)))[0]?.blocked).toEqual({
+      kind: 'objectsMissing',
+      count: 1,
+    });
+    expect(await mock.undo(id)).toMatchObject({
+      status: 'error',
+      error: { code: 'undoObjectsMissing' },
+    });
+    expect(await headSha(id)).toBe(sha);
+  });
+
+  it('drops the journal with the repository', async () => {
+    const id = await openYaggui();
+    await unwrap(mock.createBranch(id, 'topic', { kind: 'head' }, false));
+    await unwrap(mock.closeRepo(id));
+    await unwrap(mock.forgetRepo(id));
+    const again = await openYaggui();
+    expect(await unwrap(mock.opHistory(again))).toEqual([]);
+  });
 });

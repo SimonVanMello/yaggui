@@ -432,7 +432,7 @@ export class MockBackend {
   private commitStore = new MockCommitStore();
   /** Merges, rebases, cherry-picks and reverts stopped on conflicts, by repository. */
   private operations = new Map<number, MockOperation>();
-  /** Undo journal of each open repository (session only, like `OpJournal`). */
+  /** Undo journal of each repository, kept when it closes (like `OpJournal` in `yaggui.db`). */
   private journals = new Map<number, MockJournal>();
   /** Repositories whose next interactive rebase stops on conflicts (`simulateRebaseConflict`). */
   private rebaseConflicts = new Set<number>();
@@ -809,6 +809,14 @@ export class MockBackend {
   }
 
   /**
+   * Simulates a `git gc` between two sessions: the journal entries of a repository restored
+   * from a previous session lose what they need and are refused with `undoObjectsMissing`.
+   */
+  pruneJournal(repoId: number): void {
+    this.journals.get(repoId)?.prune();
+  }
+
+  /**
    * Makes the next pull of a repository that has diverged from its upstream (merge or rebase
    * strategy) stop on the scenario conflicts, as the backend's `pull_conflicts` does. A
    * repository whose path contains `conflict` always does.
@@ -1103,7 +1111,8 @@ export class MockBackend {
     if (!log || !record) {
       return { error: direction === 'undo' ? nothingToUndo() : nothingToRedo() };
     }
-    if (record.entry.blocked) return { error: undoBlocked(record.entry.blocked) };
+    const block = MockJournal.block(record);
+    if (block) return { error: undoBlocked(block) };
     const guard = this.historyGuard(repoId);
     if (guard) return { error: guard };
     const [from, to] =
@@ -2803,7 +2812,8 @@ export class MockBackend {
       if (refs > 0) this.open.set(repoId, refs);
       else {
         this.open.delete(repoId);
-        this.journals.delete(repoId);
+        // Like `yaggui.db`: the journal outlives the session.
+        this.journals.get(repoId)?.restore();
         this.ptys.closeRepo(repoId);
       }
       return ok(null);
@@ -2943,6 +2953,7 @@ export class MockBackend {
       }));
       this.open.delete(repoId);
       this.repoUiStates.delete(repoId);
+      this.journals.delete(repoId);
       // `ON DELETE SET NULL`: saved tabs of the repo become "new tab" tabs.
       this.tabs = {
         ...this.tabs,

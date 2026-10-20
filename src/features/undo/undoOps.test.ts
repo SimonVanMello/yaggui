@@ -16,6 +16,7 @@ const entry: JournalEntry = {
   op: { kind: 'commit', sha: 'abc1234', summary: 'feat: login' },
   at: 1_000,
   undone: true,
+  restored: false,
   blocked: null,
 };
 
