@@ -79,15 +79,15 @@ Exit: all routine work is done without a terminal: staging (file, hunk, line), c
 
 | ID | Task | Depends on | Requirements |
 |---|---|---|---|
-| M2-1 🟨 | Write foundation backend + staging + commit: operation conventions (events, cancellation by process group, log), extended error catalog; stage/unstage file, hunk and line (`git apply --cached` with a freshness check by blob id), discard file/hunk/line with a prior backup (for the M4 undo), commit / amend, hooks with full output | M1 | F-061 to F-065 (back), F-302 |
-| M2-2 🟨 | Staging + commit front: interactive right panel (hover buttons, `Space`, drag between lists, stage all), hunk and line actions in the diff, discard with confirmation, commit area (72 counter, description, `⌘↵`, amend, push after commit), readable hook failure | M2-1 (contract) | F-060 to F-065 (front) |
-| M2-3 🟨 | Branches, checkout, stash, tags backend: checkout (dirty tree: stash-checkout-pop or carry over), local branch tracking a remote one, create / rename / delete (+ remote), upstream, stash push (untracked, keep-index) / apply / pop / drop / rename / branch from a stash, lightweight and annotated tags | M2-1 | F-024, F-045, F-100 to F-103, F-180 to F-184, F-200 (back) |
-| M2-4 🟨 | Branches, stash, tags front: double-click checkout, dirty-tree dialog, create (live name validation) / rename / delete dialogs, sidebar and graph context menus enabled, branch selector (F-106), stash `⌘⇧S` + options, stash preview and actions, tag creation, palette actions wired | M2-3 (contract) | same as M2-3 (front), F-106 |
-| M2-5 🟨 | Network: fetch (one / all, prune) and auto-fetch, pull (ff-only / merge / rebase, default read from the config), push (upstream on first push), force-with-lease confirmed and refused on protected branches, parsed and cancellable progress, translated network and auth errors | M2-1 | F-120 to F-123, F-126, F-127 |
-| M2-6 🟨 | Clone / init + preferences: clone (HTTPS/SSH, folder, branch, shallow, submodules, progress, cancellation), init (default branch, `.gitignore`, README), preferences screen (theme, density, fonts, Git path, auto-fetch, prune, pull strategy, protected branches, confirmations) | M2-1 | F-002, F-003, F-320, F-322, F-324 |
-| M2-7a 🟨 | Debt and polish independent of the network: P-05 (status on 50k files), diff options (F-082: wrapping, whitespace, context, whole file), Windows points (autocrlf, fileMode, long paths, `index.lock` after cancellation), open points of M2-1 to M2-4 (bounded hook output, hunk discard freshness, `op-finished` on failure, keyboard line selection, checks on the real backend for branches / tags / upstream / stash) | M2-1 to M2-4 | P-05, F-082 |
-| M2-7b 🟨 | Integration and validation: mock / real gaps for network, clone and preferences, `docs/validation/M2.md` | all of M2 | — |
-| M2-7c 🟨 | End-of-M2 fixes: Playwright e2e made obsolete by the network work (`addOfflineRemote` error trigger in the mock), faster Vitest test of the 100k graph, git started without a controlling terminal (ssh no longer hangs on a passphrase) | M2-5 | — |
+| M2-1 ✅ | Write foundation backend + staging + commit: operation conventions (events, cancellation by process group, log), extended error catalog; stage/unstage file, hunk and line (`git apply --cached` with a freshness check by blob id), discard file/hunk/line with a prior backup (for the M4 undo), commit / amend, hooks with full output | M1 | F-061 to F-065 (back), F-302 |
+| M2-2 ✅ | Staging + commit front: interactive right panel (hover buttons, `Space`, drag between lists, stage all), hunk and line actions in the diff, discard with confirmation, commit area (72 counter, description, `⌘↵`, amend, push after commit), readable hook failure | M2-1 (contract) | F-060 to F-065 (front) |
+| M2-3 ✅ | Branches, checkout, stash, tags backend: checkout (dirty tree: stash-checkout-pop or carry over), local branch tracking a remote one, create / rename / delete (+ remote), upstream, stash push (untracked, keep-index) / apply / pop / drop / rename / branch from a stash, lightweight and annotated tags | M2-1 | F-024, F-045, F-100 to F-103, F-180 to F-184, F-200 (back) |
+| M2-4 ✅ | Branches, stash, tags front: double-click checkout, dirty-tree dialog, create (live name validation) / rename / delete dialogs, sidebar and graph context menus enabled, branch selector (F-106), stash `⌘⇧S` + options, stash preview and actions, tag creation, palette actions wired | M2-3 (contract) | same as M2-3 (front), F-106 |
+| M2-5 ✅ | Network: fetch (one / all, prune) and auto-fetch, pull (ff-only / merge / rebase, default read from the config), push (upstream on first push), force-with-lease confirmed and refused on protected branches, parsed and cancellable progress, translated network and auth errors | M2-1 | F-120 to F-123, F-126, F-127 |
+| M2-6 ✅ | Clone / init + preferences: clone (HTTPS/SSH, folder, branch, shallow, submodules, progress, cancellation), init (default branch, `.gitignore`, README), preferences screen (theme, density, fonts, Git path, auto-fetch, prune, pull strategy, protected branches, confirmations) | M2-1 | F-002, F-003, F-320, F-322, F-324 |
+| M2-7a ✅ | Debt and polish independent of the network: P-05 (status on 50k files), diff options (F-082: wrapping, whitespace, context, whole file), Windows points (autocrlf, fileMode, long paths, `index.lock` after cancellation), open points of M2-1 to M2-4 (bounded hook output, hunk discard freshness, `op-finished` on failure, keyboard line selection, checks on the real backend for branches / tags / upstream / stash) | M2-1 to M2-4 | P-05, F-082 |
+| M2-7b ✅ | Integration and validation: mock / real gaps for network, clone and preferences, `docs/validation/M2.md` | all of M2 | — |
+| M2-7c ✅ | End-of-M2 fixes: Playwright e2e made obsolete by the network work (`addOfflineRemote` error trigger in the mock), faster Vitest test of the 100k graph, git started without a controlling terminal (ssh no longer hangs on a passphrase) | M2-5 | — |
 
 Order: M2-1 first; M2-2 starts on the mock as soon as its IPC contract is pushed. Then M2-3 ∥ M2-4, then M2-5 ∥ M2-6 ∥ M2-7a, then M2-7b.
 
@@ -103,7 +103,7 @@ Exit: merge, rebase (simple and interactive), cherry-pick, revert and reset from
 | M3-2 ✅ | Operations front: full commit context menu (F-025), drag & drop branch onto branch (merge / rebase / fast-forward) and commit onto branch (cherry-pick), multiple selection in the graph, confirmation dialogs (reset with lost files, revert of a merge), operation-in-progress banner, conflict list with ours/theirs in the right panel, palette actions | M3-1 (contract) | F-025, F-026, F-140 to F-146, F-160, F-161 (front) |
 | M3-3 ✅ | 3-way merge editor: ours / theirs panels with per-block checkboxes, editable result, conflict navigation and counter, labels with branch names (during a rebase too), external tool (`merge.tool`), explicit choice for delete/modify and binaries | M3-1 (contract) | F-162 to F-165 |
 | M3-4 ✅ | Visual interactive rebase: backend (todo written by yaggui, non-interactive editors, reword / squash with provided messages, stop on `edit`), front (list reorderable by drag and keyboard, `p r s f d e`, result preview, messages edited inline) | M3-1 | F-142 |
-| M3-5 🟨 | Integration and validation: mock / real gaps, end-to-end conflict scenarios, `docs/validation/M3.md` | all of M3 | — |
+| M3-5 ✅ | Integration and validation: mock / real gaps, end-to-end conflict scenarios, `docs/validation/M3.md` | all of M3 | — |
 
 Order: M3-1 starts during the end of M2; M3-2 ∥ M3-3 as soon as its contract is pushed, M3-4 when M3-1 is merged, then M3-5.
 
@@ -130,7 +130,7 @@ Each task starts by checking what the previous milestones already delivered of i
 | M4-10 ✅ | Rename Grove → **yaggui** ("yet another git graphical user interface"): `productName`, identifier `dev.tropico.yaggui` (domain yaggui.tropico.dev), crate / binary / lib, UI text and i18n, docs, agent branch prefix, `YAGGUI_*` variables, storage keys; no migration of the `dev.grove.app` data (app never deployed); the GitHub repo is renamed by the PO | all of M4 except M4-8 | — |
 | M4-8 ✅ | V1 integration and validation: audit of the remaining V1 requirements (`docs/validation/V1-audit.md`), undo entry for the operations added by M4, mock / real gaps, `docs/validation/M4.md` | all of M4 | — |
 
-Order: M4-1 ∥ M4-3 ∥ M4-4 ∥ M4-6 first; M4-2 as soon as the contract of M4-1 is pushed; M4-5 ∥ M4-7a ∥ M4-7b ∥ M4-7c ∥ M4-9 as the first wave gets merged; then M4-10 (the only task in progress, to avoid conflicts); then M4-8.
+Order: M4-1 ∥ M4-3 ∥ M4-4 ∥ M4-6 first; M4-2 as soon as the contract of M4-1 is pushed; M4-5 ∥ M4-7a ∥ M4-7b ∥ M4-7c ∥ M4-9 as the first wave gets merged; then M4-10 (run alone, to avoid conflicts); then M4-8.
 
 ## M5 — V1 polish and performance
 
@@ -175,11 +175,11 @@ Exit: `https://yaggui.tropico.dev` serves the landing page, the versioned docs (
 
 | ID | Task | Depends on | Requirements |
 |---|---|---|---|
-| W-1 🟨 | Website scaffold: Astro + Starlight in `website/` (standalone package), app theme tokens through one adapter, EN / FR routing, versioned docs built from git refs (`website/versions.json`), lightbox, placeholder pages; `ci.yml` skips app jobs on site-only PRs, `website.yml` builds PRs (Cloudflare Pages preview) and deploys to Cloudflare Pages on `master` and on release | — | — |
-| W-2 🟨 | Landing page from the mockup, EN and FR: OS-aware download, install commands, features, undo, transparency, themes, FAQ, final call to action | W-1 | — |
-| W-3 🟨 | Docs content in English from an analysis of the app (features, flows, UI wording, edge cases, undo), information architecture, `sources` / `requirements` frontmatter, docs screenshots in both themes | — | — |
-| W-4 🟨 | Docs upkeep: `CLAUDE.md` rules and Definition of done, PR template, `docs-impact` warning job, keyboard shortcut reference generated from the action registry | W-1 | — |
-| W-5 🟨 | Live demo: mocked frontend built into `/demo/` with a demo banner | W-1 | — |
-| W-6 🟨 | French docs | W-3 | — |
+| W-1 ✅ | Website scaffold: Astro + Starlight in `website/` (standalone package), app theme tokens through one adapter, EN / FR routing, versioned docs built from git refs (`website/versions.json`), lightbox, placeholder pages; `ci.yml` skips app jobs on site-only PRs, `website.yml` builds PRs (Cloudflare Pages preview) and deploys to Cloudflare Pages on `master` and on release | — | — |
+| W-2 ✅ | Landing page from the mockup, EN and FR: OS-aware download, install commands, features, undo, transparency, themes, FAQ, final call to action | W-1 | — |
+| W-3 ✅ | Docs content in English from an analysis of the app (features, flows, UI wording, edge cases, undo), information architecture, `sources` / `requirements` frontmatter, docs screenshots in both themes | — | — |
+| W-4 ✅ | Docs upkeep: `CLAUDE.md` rules and Definition of done, PR template, `docs-impact` warning job, keyboard shortcut reference generated from the action registry | W-1 | — |
+| W-5 ✅ | Live demo: mocked frontend built into `/demo/` with a demo banner | W-1 | — |
+| W-6 ✅ | French docs | W-3 | — |
 
 Order: W-1 ∥ W-3; then W-2 ∥ W-4 ∥ W-5 on top of W-1; W-6 once the English docs of W-3 are stable.
