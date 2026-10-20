@@ -293,15 +293,15 @@ La notification indique « N branches supprimées. Annuler les restaure toutes.
 
 ## Annulation
 
-| Opération                                                   | Annulation                                            |
-| ----------------------------------------------------------- | ----------------------------------------------------- |
+| Opération                                                   | Annulation                                                                                                                            |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | Basculer sur une branche, une branche distante ou un commit | Oui : rebascule, en gardant les modifications locales ; une branche locale mise à jour vers sa branche distante revient où elle était |
-| Créer une branche                                           | Oui, sauf depuis un stash                             |
-| Renommer une branche                                        | Oui                                                   |
-| Supprimer une branche locale                                | Oui, avec son réglage d’upstream                      |
-| Supprimer une branche locale et sa branche distante         | Non                                                   |
-| Supprimer une branche sur le remote                         | Non                                                   |
-| Nettoyer les branches                                       | Oui, toutes les branches en une seule étape           |
-| Définir ou retirer un upstream                              | Non (non enregistré)                                  |
+| Créer une branche                                           | Oui, sauf depuis un stash                                                                                                             |
+| Renommer une branche                                        | Oui                                                                                                                                   |
+| Supprimer une branche locale                                | Oui, avec son réglage d’upstream                                                                                                      |
+| Supprimer une branche locale et sa branche distante         | Non                                                                                                                                   |
+| Supprimer une branche sur le remote                         | Non                                                                                                                                   |
+| Nettoyer les branches                                       | Oui, toutes les branches en une seule étape                                                                                           |
+| Définir ou retirer un upstream                              | Non (non enregistré)                                                                                                                  |
 
 L’annulation est refusée si les branches ont bougé depuis, par exemple après un commit fait depuis un terminal. Voir [Annuler et rétablir](../../history/undo-and-redo/). Chaque commande ci-dessus apparaît dans le [journal des commandes](../../reference/command-log/), et les messages d’erreur sont expliqués dans [Messages d’erreur](../../reference/error-messages/).
