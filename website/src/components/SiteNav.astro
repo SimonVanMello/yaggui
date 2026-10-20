@@ -46,7 +46,7 @@ const locale = localeOf(Astro.url);
         <path d="M8 2a6 6 0 0 1 0 12z" fill="currentColor"></path>
       </svg>
     </button>
-    <DownloadButton size="sm" />
+    <DownloadButton size="sm" href={localePath(locale, '/#download')} />
   </nav>
 </div>
 

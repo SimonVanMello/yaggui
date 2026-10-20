@@ -1,22 +1,25 @@
 ---
-// Primary download button: links to the latest release's asset for the visitor's OS (detected in
-// the browser), or to the release page when the OS is unknown or JavaScript is off.
+// Primary download button. With `href`, it links there (the download section of the landing page)
+// and only the label follows the visitor's OS; without it, it links to the latest release's asset
+// for that OS (detected in the browser), or to the release page when the OS is unknown or JS is off.
 import { localeOf, t } from '../i18n/ui';
 import { getLatestRelease } from '../lib/release';
 
 interface Props {
   size?: 'md' | 'sm';
   class?: string;
+  href?: string;
 }
 
-const { size = 'md', class: className } = Astro.props;
+const { size = 'md', class: className, href } = Astro.props;
 const locale = localeOf(Astro.url);
 const release = await getLatestRelease();
 ---
 
 <a
   class:list={['btn', 'yaggui-download', { sm: size === 'sm' }, className]}
-  href={release.url}
+  href={href ?? release.url}
+  data-anchor={href ? '' : undefined}
   data-version={release.version}
   data-mac={release.assets['macos-arm64']}
   data-windows={release.assets['windows-exe']}
@@ -56,7 +59,7 @@ const release = await getLatestRelease();
     const key = ({ macOS: 'mac', Windows: 'windows', Linux: 'linux' } as const)[os];
     for (const link of document.querySelectorAll<HTMLAnchorElement>('a.yaggui-download')) {
       const href = link.dataset[key];
-      if (href) link.href = href;
+      if (href && link.dataset.anchor === undefined) link.href = href;
       const label = link.querySelector('span');
       // The small variant (navigation bar) keeps its short label.
       if (label && !link.classList.contains('sm') && link.dataset.label) {
