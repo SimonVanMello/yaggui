@@ -8,6 +8,7 @@ import type {
   TagRef,
   WorktreeRef,
 } from '../../ipc';
+import type { DisplayRefKind } from '../graph/refLabels';
 
 export type SectionId = 'local' | 'remote' | 'tags' | 'stashes' | 'submodules' | 'worktrees';
 
@@ -525,5 +526,34 @@ export function targetSha(target: RefTarget): string | null {
       return target.submodule.sha;
     default:
       return targetCommit(target)?.sha ?? null;
+  }
+}
+
+/**
+ * The sidebar target of a ref label of the graph, by kind and short name (`origin/main` for a
+ * remote branch); `null` when the refs no longer list it.
+ */
+export function refTargetOf(refs: RepoRefs, kind: DisplayRefKind, name: string): RefTarget | null {
+  switch (kind) {
+    case 'head':
+      return { kind: 'head', head: refs.head };
+    case 'local': {
+      const branch = refs.local.find((b) => b.name === name);
+      return branch ? { kind: 'local', branch } : null;
+    }
+    case 'remote':
+      for (const remote of refs.remotes) {
+        const branch = remote.branches.find((b) => b.name === name);
+        if (branch) return { kind: 'remote', branch, remote: remote.name };
+      }
+      return null;
+    case 'tag': {
+      const tag = refs.tags.find((t) => t.name === name);
+      return tag ? { kind: 'tag', tag } : null;
+    }
+    case 'stash': {
+      const stash = refs.stashes.find((s) => s.name === name);
+      return stash ? { kind: 'stash', stash } : null;
+    }
   }
 }

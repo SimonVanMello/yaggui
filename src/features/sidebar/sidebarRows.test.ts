@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
 import type { LocalBranch, RepoRefs } from '../../ipc';
-import { buildSidebarRows, matchAll, stashTitle, type SidebarRow } from './sidebarRows';
+import {
+  buildSidebarRows,
+  matchAll,
+  refTargetOf,
+  stashTitle,
+  type SidebarRow,
+} from './sidebarRows';
 
 function local(name: string, extra: Partial<LocalBranch> = {}): LocalBranch {
   return {
@@ -252,5 +258,28 @@ describe('helpers', () => {
     expect(stashTitle('WIP on main: 3f9c2a1 fix: x')).toBe('3f9c2a1 fix: x');
     expect(stashTitle('On feat/a: try')).toBe('try');
     expect(stashTitle('custom')).toBe('custom');
+  });
+});
+
+describe('refTargetOf', () => {
+  it('finds the target of each kind of graph label', () => {
+    const r = refs();
+    expect(refTargetOf(r, 'tag', 'v1.0.0')).toEqual({ kind: 'tag', tag: r.tags[0] });
+    expect(refTargetOf(r, 'local', 'main')).toMatchObject({
+      kind: 'local',
+      branch: { name: 'main' },
+    });
+    expect(refTargetOf(r, 'remote', 'origin/main')).toMatchObject({
+      kind: 'remote',
+      remote: 'origin',
+      branch: { fullName: 'refs/remotes/origin/main' },
+    });
+    expect(refTargetOf(r, 'stash', 'stash@{0}')).toMatchObject({ kind: 'stash' });
+    expect(refTargetOf(r, 'head', 'HEAD')).toEqual({ kind: 'head', head: r.head });
+  });
+
+  it('is null for a label the refs no longer list', () => {
+    expect(refTargetOf(refs(), 'tag', 'v9')).toBeNull();
+    expect(refTargetOf(refs(), 'remote', 'upstream/main')).toBeNull();
   });
 });

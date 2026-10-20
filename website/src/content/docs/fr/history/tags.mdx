@@ -8,6 +8,7 @@ sources:
   - src/features/refs/TagCheckoutDialog.tsx
   - src/features/refs/refOps.ts
   - src/features/sidebar/RefContextMenu.tsx
+  - src/features/graph/RefPills.tsx
   - src/features/sidebar/RemoteContextMenu.tsx
   - src/features/network/networkOps.ts
   - src-tauri/src/repo/ref_ops.rs
@@ -23,7 +24,7 @@ import tagCheckoutLight from '../../../../assets/screens/tag-checkout-fr-light.p
 
 Les tags marquent un commit d’un nom permanent, généralement une version (`v1.0.0`). Cette page présente la création, la suppression, le push, le fetch et le checkout des tags. Pour savoir ce que sont les tags, voir [Git Basics - Tagging](https://git-scm.com/book/en/v2/Git-Basics-Tagging).
 
-Les tags apparaissent sous forme d’étiquettes sur leur commit dans le [graphe des commits](../../history/commit-graph/) et dans la section **Tags** de la barre latérale, repliée par défaut. Une icône d’information signale les tags annotés.
+Les tags apparaissent sous forme d’étiquettes sur leur commit dans le [graphe des commits](../../history/commit-graph/) et dans la section **Tags** de la barre latérale, repliée par défaut. Une icône d’information signale les tags annotés. Un clic droit sur l’étiquette d’un tag dans le graphe ouvre le même menu que le tag dans la barre latérale : toutes les actions ci-dessous qui commencent par un clic droit sur le tag fonctionnent aussi depuis le graphe.
 
 ## Créer un tag
 
@@ -87,7 +88,7 @@ La notification indique « Tag _nom_ supprimé sur _origin_ ». Un tag déjà 
 
 | Push          | Où                                                                                                                                                                                                                                                      | Commande                                                                   |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| Un seul tag   | Clic droit sur le tag, puis **Pousser le tag** (ou **Pousser le tag vers** ▸ remote quand vous en avez plusieurs)                                                                                                                                       | `git push --progress --porcelain <remote> refs/tags/<tag>:refs/tags/<tag>` |
+| Un seul tag   | Clic droit sur le tag (barre latérale ou étiquette du graphe), puis **Pousser le tag** (ou **Pousser le tag vers** ▸ remote quand vous en avez plusieurs)                                                                                               | `git push --progress --porcelain <remote> refs/tags/<tag>:refs/tags/<tag>` |
 | Tous les tags | Clic droit sur l’en-tête de la section **Tags**, puis **Pousser tous les tags** (ou **Pousser tous les tags vers** ▸ remote) ; clic droit sur un dossier de remote, puis **Y pousser tous les tags** ; ou l’action de palette **Pousser tous les tags** | `git push --progress --porcelain <remote> refs/tags/*:refs/tags/*`         |
 
 Quand aucun remote n’est choisi, yaggui utilise `origin`, ou le premier remote s’il n’y a pas d’`origin`.

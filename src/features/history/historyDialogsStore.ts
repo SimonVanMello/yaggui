@@ -39,6 +39,14 @@ export type HistoryDialog =
       /** Branch the cherry-pick lands on, when it is not the checked-out one. */
       target: string | null;
     }
+  | {
+      /** New message for a commit of the current branch. */
+      kind: 'reword';
+      repoId: number;
+      sha: string;
+      /** The commit is HEAD: amended instead of rebased. */
+      head: boolean;
+    }
   | { kind: 'continue'; repoId: number };
 
 interface HistoryDialogsStore {

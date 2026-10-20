@@ -17,6 +17,16 @@ export interface DisplayRef {
 
 const ORDER: Record<DisplayRefKind, number> = { head: 0, local: 1, remote: 2, tag: 3, stash: 4 };
 
+export function isDisplayRefKind(kind: string): kind is DisplayRefKind {
+  return kind in ORDER;
+}
+
+/** A ref label of a graph row, as a right click on it designates it. */
+export interface MenuRef {
+  kind: DisplayRefKind;
+  name: string;
+}
+
 /** Remote part of `origin/feat/x` matching a local branch `feat/x`. */
 function sameShortName(remote: string, local: string): boolean {
   const slash = remote.indexOf('/');

@@ -96,7 +96,13 @@ import {
   type MockJournalSpec,
   type MockSnapshot,
 } from './mock/journal';
-import { mockPlan, mockRange, mockTodo, type MockTodoLine } from './mock/interactive';
+import {
+  mockPlan,
+  mockRange,
+  mockTodo,
+  normalizeMockMessage,
+  type MockTodoLine,
+} from './mock/interactive';
 import {
   conflictSide,
   checkMainline,
@@ -3703,6 +3709,81 @@ export class MockBackend {
           note: (result) => (result.stopped ? 'paused' : null),
         },
       ),
+    rewordCommit: (repoId, sha, message) => {
+      const graph = this.graph(repoId);
+      if (!graph || !this.wip(repoId)) return fail(this.notOpen(repoId));
+      const text = normalizeMockMessage(message);
+      if (text === null) {
+        return fail(
+          invalidHistoryArgument('The commit summary is empty.', 'Le résumé du commit est vide.'),
+        );
+      }
+      const [summary = '', ...rest] = text.split('\n');
+      const body = rest.join('\n').trim();
+      const target = graph.resolve(sha);
+      if (target === null) return fail(this.revisionNotFound(sha));
+      const head = graph.headCommit();
+      if (target === head) {
+        return this.runWrite<{ sha: string }>(
+          repoId,
+          'commit',
+          ['commit', '--amend', '--only', '--allow-empty', '--no-verify', '-F', '-'],
+          () => {
+            const amended = this.addCommit(repoId, summary.trim(), body, true);
+            return amended === null ? { error: this.notOpen(repoId) } : { ok: { sha: amended } };
+          },
+          {
+            delayMs: 120,
+            refs: true,
+            journal: (result) => ({ op: { kind: 'amend', sha: result.sha, summary } }),
+          },
+        );
+      }
+      const { commits } = graph.history;
+      if (head === null || !ancestors(commits, head).has(target)) {
+        return fail(
+          invalidHistoryArgument(
+            'This commit is not on the current branch: check out its branch to change its message.',
+            "Ce commit n'est pas sur la branche courante : bascule sur sa branche pour modifier son message.",
+          ),
+        );
+      }
+      const parent = commits[target]?.parents[0];
+      if (parent === undefined) {
+        return fail(
+          invalidHistoryArgument(
+            'The first commit of the repository can only be reworded while it is HEAD.',
+            "Le premier commit du dépôt ne peut être reformulé que lorsqu'il est HEAD.",
+          ),
+        );
+      }
+      const range = mockRange(graph, parent, head);
+      const ids = 'code' in range ? [] : range.ids;
+      const position = ids.indexOf(target);
+      const todo: RebaseTodoEntry[] = ids.map((id) => ({
+        sha: commits[id]?.sha ?? '',
+        action: id === target ? 'reword' : 'pick',
+        message: id === target ? text : null,
+      }));
+      const base = this.commitSha(graph, parent);
+      return this.runWrite<{ sha: string }>(
+        repoId,
+        'rebase',
+        ['rebase', '--interactive', base],
+        () => {
+          const result = this.interactiveWork(repoId, base, todo);
+          if ('error' in result) return result;
+          // The commits after it were replayed one for one: walk back as many parents.
+          const after = this.graph(repoId);
+          let id = after?.headCommit() ?? null;
+          for (let i = position + 1; i < ids.length && id !== null; i++) {
+            id = after?.history.commits[id]?.parents[0] ?? null;
+          }
+          return { ok: { sha: after && id !== null ? this.commitSha(after, id) : '' } };
+        },
+        { cancellable: true, delayMs: 300, refs: true },
+      );
+    },
     operationDetail: (repoId) => {
       if (!this.wip(repoId)) return fail(this.notOpen(repoId));
       const op = this.operation(repoId);

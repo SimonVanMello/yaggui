@@ -10,10 +10,10 @@ use tauri::State;
 use super::blocking;
 use crate::git::errors::YagguiError;
 use crate::git::ops::types::{
-    CherryPickRequest, ConflictList, ConflictResolution, ConflictStage, ConflictVersions,
-    HistoryResult, InteractiveRebasePlan, InteractiveRebaseResult, MergeRequest, MergeToolResult,
-    OperationDetail, RebaseRequest, RebaseTodoEntry, ResetPreview, ResetRequest, ResetResult,
-    RevertRequest,
+    CherryPickRequest, CommitResult, ConflictList, ConflictResolution, ConflictStage,
+    ConflictVersions, HistoryResult, InteractiveRebasePlan, InteractiveRebaseResult, MergeRequest,
+    MergeToolResult, OperationDetail, RebaseRequest, RebaseTodoEntry, ResetPreview, ResetRequest,
+    ResetResult, RevertRequest,
 };
 use crate::state::AppState;
 
@@ -254,4 +254,22 @@ pub async fn interactive_rebase(
 ) -> Result<InteractiveRebaseResult, YagguiError> {
     let repos = Arc::clone(&state.repos);
     blocking(move || repos.interactive_rebase(repo_id, base, todo)).await
+}
+
+/// Gives a commit a new message (summary, blank line, body). HEAD is amended without its
+/// staged changes; an older commit of the current branch is reworded by an interactive
+/// rebase, the commits after it replayed unchanged. Returns the new SHA of that commit.
+/// Errors: `invalidArgument` (empty summary, commit not on the current branch, root commit
+/// that is not HEAD, merges after it), `dirtyWorktree`, `operationInProgress`,
+/// `detachedHead` (older commit). Cancellable.
+#[tauri::command]
+#[specta::specta]
+pub async fn reword_commit(
+    state: State<'_, AppState>,
+    repo_id: u32,
+    sha: String,
+    message: String,
+) -> Result<CommitResult, YagguiError> {
+    let repos = Arc::clone(&state.repos);
+    blocking(move || repos.reword_commit(repo_id, sha, message)).await
 }

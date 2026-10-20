@@ -6,6 +6,7 @@ sidebar:
 sources:
   - src/features/rebase/**
   - src/features/graph/CommitContextMenu.tsx
+  - src/features/history/RewordDialog.tsx
   - src/features/palette/builtinActions.ts
   - src-tauri/src/repo/interactive.rs
   - src-tauri/src/git/ops/rebase_todo.rs
@@ -130,6 +131,23 @@ After **Continue** or **Skip**, the panel follows the next stop, or closes when 
 :::caution
 **Abort rebase** in this panel runs `git rebase --abort` without asking for confirmation (the banner's **Abort rebase** asks). The branch goes back to how it was before the rebase. Toast: **Rebase of \{branch\} aborted**.
 :::
+
+## Edit the message of one commit
+
+To change only the message of a commit, without opening the editor, right-click the commit in the graph and choose **Edit commit message…**. The **Edit the message of _abc1234_** dialog shows the full message (summary, blank line, body); edit it, then click **Change message** or press <kbd>⌘↵</kbd> / <kbd>Ctrl+↵</kbd>. The button stays disabled while the message is unchanged or its first line is empty.
+
+| Commit                                | What yaggui does                                                                                                                                                                                                                                                 | Command                                                                  |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| The last commit (HEAD)                | Amends it with the new message. Staged changes are not included, and the working copy can have changes. Undoable like an amend.                                                                                                                                  | `git commit --amend --only --allow-empty --no-verify --cleanup=verbatim` |
+| An older commit of the current branch | Runs an interactive rebase from its parent: this commit is reworded, the commits after it are replayed unchanged and get new SHAs. Same rules as a rebase: no local changes to tracked files, no merge after the commit, no operation in progress. Not undoable. | `git rebase --interactive <parent>`                                      |
+
+The message is kept as typed (lines starting with `#` included). The `pre-commit` and `commit-msg` hooks do not run, since the content does not change. If the rewritten commits were already pushed, the next push needs a force push.
+
+The toast reads "Message changed (_abc1234_)", with the new SHA. Errors:
+
+- "This commit is not on the current branch: check out its branch to change its message."
+- "The first commit of the repository can only be reworded while it is HEAD."
+- "This commit was brought in by a merge: yaggui cannot rewrite it."
 
 ## Undo
 

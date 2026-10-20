@@ -565,3 +565,81 @@ fn refuses_invalid_todos_and_dirty_trees() {
     let err = fails(env.repos.interactive_rebase_plan(env.id, &env.base));
     assert_eq!(err.code, ErrorCode::DetachedHead);
 }
+
+#[test]
+fn reword_head_amends_the_message_only() {
+    let env = env();
+    // Staged and unstaged changes stay where they are.
+    env.write("a.txt", "staged\n");
+    env.fx.git(&["add", "--", "a.txt"]);
+    env.write("b.txt", "unstaged\n");
+    let before = env.rev("HEAD");
+    let result = env
+        .repos
+        .reword_commit(env.id, before.clone(), "c4: new\n\nbody".to_owned())
+        .unwrap();
+    assert_eq!(result.sha, env.rev("HEAD"));
+    assert_ne!(result.sha, before);
+    assert_eq!(env.message("HEAD"), "c4: new\n\nbody\n\n");
+    assert_eq!(
+        env.rev("HEAD^{tree}"),
+        env.rev(&format!("{before}^{{tree}}"))
+    );
+    assert_eq!(env.rev("HEAD^"), env.commits[2]);
+    assert_eq!(env.out(&["diff", "--cached", "--name-only"]), "a.txt");
+    assert_eq!(env.out(&["diff", "--name-only"]), "b.txt");
+
+    // Undoable like an amend.
+    env.repos.undo(env.id).unwrap();
+    assert_eq!(env.rev("HEAD"), before);
+}
+
+#[test]
+fn reword_older_commit_replays_the_ones_after_it() {
+    let env = env();
+    let result = env
+        .repos
+        .reword_commit(env.id, env.commits[1].clone(), "c2: reworded".to_owned())
+        .unwrap();
+    assert_eq!(
+        env.subjects(),
+        ["c1: add a", "c2: reworded", "c3: change a", "c4: add c"]
+    );
+    assert_eq!(result.sha, env.rev("HEAD~2"));
+    assert_eq!(env.rev("HEAD~3"), env.commits[0]);
+    assert_eq!(env.author("HEAD~2"), env.author(&env.commits[1]));
+    assert_eq!(
+        env.rev("HEAD^{tree}"),
+        env.rev(&format!("{}^{{tree}}", env.commits[3]))
+    );
+    assert_eq!(env.branch(), "main");
+    assert!(env.operation().is_none());
+}
+
+#[test]
+fn reword_refuses_what_it_cannot_rewrite() {
+    let env = env();
+    let head = env.rev("HEAD");
+    let code = |sha: &str, message: &str| {
+        fails(
+            env.repos
+                .reword_commit(env.id, sha.to_owned(), message.to_owned()),
+        )
+        .code
+    };
+    assert_eq!(code(&head, "  \n\nbody"), ErrorCode::InvalidArgument);
+    // Root commit, not HEAD.
+    let root = env.out(&["rev-list", "--max-parents=0", "HEAD"]);
+    assert_eq!(code(&root, "root"), ErrorCode::InvalidArgument);
+    // Not on the current branch.
+    env.fx
+        .git(&["checkout", "-q", "-b", "side", &env.commits[1]]);
+    env.commit("side.txt", "s\n", "side");
+    let side = env.rev("HEAD");
+    env.fx.git(&["checkout", "-q", "main"]);
+    assert_eq!(code(&side, "x"), ErrorCode::InvalidArgument);
+    // Tracked changes block a rebase.
+    env.write("a.txt", "dirty\n");
+    assert_eq!(code(&env.commits[1], "x"), ErrorCode::DirtyWorktree);
+    assert_eq!(env.rev("HEAD"), head);
+}

@@ -83,6 +83,8 @@ Labels are ordered HEAD, local branches (current first), remote branches, tags, 
 
 Double-click a branch label to check the branch out. A remote branch label checks out a local tracking branch. See [Check out a branch](../../history/branches/#check-out-a-branch). Double-clicking a tag, stash or HEAD label does nothing. You can also drag a branch label onto another local branch label to merge, rebase or fast-forward, see [Merge and rebase](../../history/merge-and-rebase/).
 
+Right-click a label to open the menu of that ref, the same as in the sidebar: for a tag, **Push the tag**, **Delete the tag…** or **Check out the tag…** (see [Tags](../../history/tags/)); for a branch, check out, push, rename, delete, merge or rebase (see [Branches](../../history/branches/)). A label shared by a local branch and its remote branch opens the local branch's menu.
+
 ### Signed commits
 
 A lock icon before the summary marks a signed commit (GPG, SSH or X.509). The graph does not verify signatures, for speed: the tooltip reads "Signed (GPG), not verified — check it in the commit details". Verification happens in the [commit details](#signature-verification).
@@ -171,7 +173,7 @@ Hover the badge for the signer, the key and Git's explanation. Results are cache
 
 ## Commit context menu
 
-Right-click a commit, or press the context menu key or <kbd>⇧F10</kbd> on the selected row. Right-clicking a commit outside the selection selects it first. The **Work in progress** row and empty space have no menu. In the labels, _branch_ is the checked-out branch, or "HEAD" when HEAD is detached.
+Right-click a commit, or press the context menu key or <kbd>⇧F10</kbd> on the selected row. Right-clicking a commit outside the selection selects it first. The **Work in progress** row and empty space have no menu. Right-clicking a [ref label](#ref-labels) opens the menu of that ref instead. In the labels, _branch_ is the checked-out branch, or "HEAD" when HEAD is detached.
 
 ### One commit
 
@@ -184,6 +186,7 @@ Right-click a commit, or press the context menu key or <kbd>⇧F10</kbd> on the 
 | **Revert this commit**                                       | No operation in progress | [Revert](../../history/cherry-pick-revert-reset/) the commit. For a merge commit, you first choose the parent.                                                                                                                                                                               |
 | **Reset _branch_ to here** ▸ **Soft** / **Mixed** / **Hard** | No operation in progress | Opens the [reset dialog](../../history/cherry-pick-revert-reset/) with that mode                                                                                                                                                                                                             |
 | **Interactive rebase from here…**                            | No operation in progress | Opens the [interactive rebase](../../history/interactive-rebase/) editor with this commit as the base                                                                                                                                                                                        |
+| **Edit commit message…**                                     | No operation in progress | Opens the [message editor](../../history/interactive-rebase/#edit-the-message-of-one-commit) for this commit                                                                                                                                                                                 |
 | **Create fixup commit…**                                     | Never                    | Shown disabled, "Planned for V2"                                                                                                                                                                                                                                                             |
 | **Compare with HEAD**                                        | Always                   | Opens the [Compare panel](../../inspect/compare/) between the commit and HEAD                                                                                                                                                                                                                |
 | **Go to the merge-base with HEAD**                           | Always                   | [Jumps](#jump-to-a-commit) to the common ancestor of the commit and HEAD                                                                                                                                                                                                                     |
