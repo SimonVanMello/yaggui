@@ -165,6 +165,20 @@ const groups: { title: LandingKey; items: { label: LandingKey; platform: Platfor
   }
   li.pkg :global(.copy) {
     display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 10px;
+    font-size: 12px;
+  }
+  li.pkg :global(.copy code) {
+    overflow-x: visible;
+    white-space: normal;
+    overflow-wrap: break-word;
+    line-height: 1.5;
+  }
+  li.pkg :global(.copy button) {
+    align-self: flex-end;
   }
   .signing {
     margin-top: 20px;
