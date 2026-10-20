@@ -141,6 +141,9 @@ pub struct CheckoutResult {
     pub branch: Option<String>,
     /// The local branch was created by this checkout (remote target).
     pub created: bool,
+    /// Remote target whose local branch was behind it: the local branch was fast-forwarded
+    /// to it (short name of the remote branch, `origin/main`).
+    pub fast_forwarded: Option<String>,
 }
 
 /// Where a new branch starts.

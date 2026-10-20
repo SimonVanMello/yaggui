@@ -146,7 +146,7 @@ Un checkout peut être annulé avec **Annuler** (<kbd>⌘Z</kbd>, <kbd>Ctrl+Z</k
 
 ### Basculer sur un commit ou une branche distante
 
-- **Une branche distante** : double-cliquez dessus dans la barre latérale ou sur son étiquette dans le graphe, ou utilisez **Créer une branche locale qui la suit**. Pour `origin/feat/x`, yaggui bascule sur une branche locale `feat/x` qui la suit, en la créant au besoin : `git switch --create feat/x --track refs/remotes/origin/feat/x`. La notification indique « feat/x créée, tu es dessus ». Si une branche locale `feat/x` existe déjà, yaggui bascule dessus telle quelle, quel que soit son upstream.
+- **Une branche distante** : double-cliquez dessus dans la barre latérale ou sur son étiquette dans le graphe, ou utilisez **Créer une branche locale qui la suit**. Pour `origin/feat/x`, yaggui bascule sur une branche locale `feat/x` qui la suit, en la créant au besoin : `git switch --create feat/x --track refs/remotes/origin/feat/x`. La notification indique « feat/x créée, tu es dessus ». Si une branche locale `feat/x` existe déjà, yaggui bascule dessus, quel que soit son upstream. Quand elle est en retard sur `origin/feat/x` (tous les commits de `feat/x` sont dans `origin/feat/x`), yaggui la met aussi à jour vers `origin/feat/x` avec `git merge --ff-only refs/remotes/origin/feat/x`, sans fetch : la notification ajoute « Mise à jour vers origin/feat/x, sur lequel elle était en retard. » Cela marche aussi sur la branche courante. Une branche locale qui a ses propres commits (en avance ou divergente) est extraite telle quelle, jamais fusionnée. Des modifications locales sur le chemin de la mise à jour bloquent l’extraction comme pour toute autre.
 - **Un commit** : faites un clic droit dessus dans le graphe, puis **Checkout de ce commit**. yaggui exécute `git switch --detach <sha>` sans avertissement et affiche « HEAD est détaché sur _abc1234_ ». Les nouveaux commits faits à cet endroit n’appartiennent à aucune branche : [créez une branche](#créer-une-branche) pour les conserver.
 - **Un tag** : voir [Basculer sur un tag](../../history/tags/#basculer-sur-un-tag).
 
@@ -293,15 +293,15 @@ La notification indique « N branches supprimées. Annuler les restaure toutes.
 
 ## Annulation
 
-| Opération                                                   | Annulation                                            |
-| ----------------------------------------------------------- | ----------------------------------------------------- |
-| Basculer sur une branche, une branche distante ou un commit | Oui : rebascule, en gardant les modifications locales |
-| Créer une branche                                           | Oui, sauf depuis un stash                             |
-| Renommer une branche                                        | Oui                                                   |
-| Supprimer une branche locale                                | Oui, avec son réglage d’upstream                      |
-| Supprimer une branche locale et sa branche distante         | Non                                                   |
-| Supprimer une branche sur le remote                         | Non                                                   |
-| Nettoyer les branches                                       | Oui, toutes les branches en une seule étape           |
-| Définir ou retirer un upstream                              | Non (non enregistré)                                  |
+| Opération                                                   | Annulation                                                                                                                            |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Basculer sur une branche, une branche distante ou un commit | Oui : rebascule, en gardant les modifications locales ; une branche locale mise à jour vers sa branche distante revient où elle était |
+| Créer une branche                                           | Oui, sauf depuis un stash                                                                                                             |
+| Renommer une branche                                        | Oui                                                                                                                                   |
+| Supprimer une branche locale                                | Oui, avec son réglage d’upstream                                                                                                      |
+| Supprimer une branche locale et sa branche distante         | Non                                                                                                                                   |
+| Supprimer une branche sur le remote                         | Non                                                                                                                                   |
+| Nettoyer les branches                                       | Oui, toutes les branches en une seule étape                                                                                           |
+| Définir ou retirer un upstream                              | Non (non enregistré)                                                                                                                  |
 
 L’annulation est refusée si les branches ont bougé depuis, par exemple après un commit fait depuis un terminal. Voir [Annuler et rétablir](../../history/undo-and-redo/). Chaque commande ci-dessus apparaît dans le [journal des commandes](../../reference/command-log/), et les messages d’erreur sont expliqués dans [Messages d’erreur](../../reference/error-messages/).

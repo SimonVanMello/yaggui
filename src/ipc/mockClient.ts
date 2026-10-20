@@ -1367,7 +1367,9 @@ export class MockBackend {
         const commit = graph.resolve(target.rev);
         if (commit === null) return { error: this.revisionNotFound(target.rev) };
         const moved = this.moveTo(graph, repoId, { commit }, target.rev, mode);
-        return 'error' in moved ? moved : { ok: { branch: null, created: false } };
+        return 'error' in moved
+          ? moved
+          : { ok: { branch: null, created: false, fastForwarded: null } };
       }
       if (target.kind === 'branch') {
         if (!history.local.some((b) => b.name === target.name)) {
@@ -1378,7 +1380,9 @@ export class MockBackend {
         );
         if (other) return { error: branchInOtherWorktree(target.name, other.path) };
         const moved = this.moveTo(graph, repoId, { branch: target.name }, target.name, mode);
-        return 'error' in moved ? moved : { ok: { branch: target.name, created: false } };
+        return 'error' in moved
+          ? moved
+          : { ok: { branch: target.name, created: false, fastForwarded: null } };
       }
       const remote = history.remote.find((b) => b.name === target.name);
       const split = splitRemoteBranch(history, target.name);
@@ -1388,12 +1392,29 @@ export class MockBackend {
         if (!isValidRefName(split.branch)) return { error: invalidRefName(split.branch, 'branch') };
         history.local.push({ name: split.branch, commit: remote.commit, upstream: remote.name });
       }
+      // A local branch behind the remote one catches up with it, like the backend's
+      // `merge --ff-only`; ahead or diverged, it stays.
+      const before = existing?.commit;
+      const behind =
+        existing !== undefined &&
+        existing.commit !== remote.commit &&
+        ancestors(history.commits, remote.commit).has(existing.commit);
+      if (behind) existing.commit = remote.commit;
       const moved = this.moveTo(graph, repoId, { branch: split.branch }, target.name, mode);
       if ('error' in moved && moved.error.code !== 'stashConflict') {
         if (!existing) history.local = history.local.filter((b) => b.name !== split.branch);
+        if (existing && before !== undefined) existing.commit = before;
         return moved;
       }
-      return 'error' in moved ? moved : { ok: { branch: split.branch, created: !existing } };
+      return 'error' in moved
+        ? moved
+        : {
+            ok: {
+              branch: split.branch,
+              created: !existing,
+              fastForwarded: behind ? remote.name : null,
+            },
+          };
     });
   }
 

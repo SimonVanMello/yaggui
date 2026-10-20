@@ -57,12 +57,24 @@ describe('checkout', () => {
   });
 
   it('asks for the requested mode and reports success', async () => {
-    const spy = vi
-      .spyOn(ipc.commands, 'checkout')
-      .mockResolvedValue({ status: 'ok', data: { branch: 'dev', created: true } });
+    const spy = vi.spyOn(ipc.commands, 'checkout').mockResolvedValue({
+      status: 'ok',
+      data: { branch: 'dev', created: true, fastForwarded: null },
+    });
     await expect(checkout(1, { kind: 'remote', name: 'origin/dev' }, 'carry')).resolves.toBe(true);
     expect(spy).toHaveBeenCalledWith(1, { kind: 'remote', name: 'origin/dev' }, 'carry');
     expect(useToastStore.getState().toasts[0]?.variant).toBe('success');
+  });
+
+  it('says when the local branch was brought up to the remote one', async () => {
+    vi.spyOn(ipc.commands, 'checkout').mockResolvedValue({
+      status: 'ok',
+      data: { branch: 'dev', created: false, fastForwarded: 'origin/dev' },
+    });
+    await checkout(1, { kind: 'remote', name: 'origin/dev' });
+    const toast = useToastStore.getState().toasts.at(-1);
+    expect(toast?.title).toBe('Switched to dev');
+    expect(toast?.description).toBe('Updated to origin/dev, which it was behind.');
   });
 });
 

@@ -302,6 +302,28 @@ fn checkout_detached() {
 }
 
 #[test]
+fn checkout_of_a_remote_branch_fast_forwards_the_local_one_back() {
+    let e = env();
+    // `feat` one commit behind `origin/feat`.
+    e.fx.git(&["branch", "feat", "HEAD"]);
+    e.fx.git(&["push", "-q", "origin", "feat"]);
+    e.fx.git(&["branch", "-f", "feat", "HEAD~1"]);
+    let old = e.rev("refs/heads/feat");
+    e.round_trip(|e| {
+        e.repos
+            .checkout(
+                e.id,
+                CheckoutTarget::Remote {
+                    name: "origin/feat".into(),
+                },
+                CheckoutMode::Clean,
+            )
+            .unwrap();
+    });
+    assert_eq!(e.rev("refs/heads/feat"), old);
+}
+
+#[test]
 fn checkout_of_a_remote_branch_creates_and_removes_the_local_one() {
     let e = env();
     e.fx.git(&["branch", "feat", "HEAD~1"]);

@@ -367,6 +367,114 @@ fn remote_branch_checkout_creates_a_tracking_branch() {
     assert_eq!(env.head_branch(), "feat/remote");
 }
 
+/// `feat/remote` at "base", `origin/feat/remote` one commit ahead ("remote work"), on `main`.
+fn behind_remote(env: &Env) -> CheckoutTarget {
+    env.fx.git(&["switch", "-q", "-c", "feat/remote"]);
+    env.commit("base.txt", "base\n", "base");
+    env.commit("r.txt", "r\n", "remote work");
+    env.fx.git(&["push", "-q", "-u", "origin", "feat/remote"]);
+    env.fx.git(&["switch", "-q", "main"]);
+    env.fx
+        .git(&["branch", "-q", "-f", "feat/remote", "feat/remote~1"]);
+    CheckoutTarget::Remote {
+        name: "origin/feat/remote".into(),
+    }
+}
+
+#[test]
+fn remote_branch_checkout_fast_forwards_a_local_branch_behind_it() {
+    let env = env();
+    let target = behind_remote(&env);
+    // A local change the fast-forward does not touch is carried along.
+    env.write("README.md", "local change\n");
+    let result = env
+        .repos
+        .checkout(env.id, target, CheckoutMode::Carry)
+        .unwrap();
+    assert_eq!(result.branch.as_deref(), Some("feat/remote"));
+    assert!(!result.created);
+    assert_eq!(result.fast_forwarded.as_deref(), Some("origin/feat/remote"));
+    assert_eq!(env.head_branch(), "feat/remote");
+    assert_eq!(env.rev("feat/remote"), env.rev("origin/feat/remote"));
+    assert_eq!(env.read("r.txt").as_deref(), Some("r\n"));
+    assert_eq!(env.read("README.md").as_deref(), Some("local change\n"));
+}
+
+#[test]
+fn remote_branch_checkout_fast_forwards_the_current_branch() {
+    let env = env();
+    let target = behind_remote(&env);
+    env.fx.git(&["switch", "-q", "feat/remote"]);
+    let result = env
+        .repos
+        .checkout(env.id, target, CheckoutMode::Clean)
+        .unwrap();
+    assert_eq!(result.fast_forwarded.as_deref(), Some("origin/feat/remote"));
+    assert_eq!(env.rev("HEAD"), env.rev("origin/feat/remote"));
+    assert_eq!(env.status(), "");
+}
+
+#[test]
+fn remote_branch_checkout_with_an_untracked_file_in_the_way_of_the_fast_forward() {
+    let env = env();
+    let target = behind_remote(&env);
+    env.write("r.txt", "mine\n");
+    let err = env
+        .repos
+        .checkout(env.id, target.clone(), CheckoutMode::Clean)
+        .unwrap_err();
+    assert_eq!(err.code, ErrorCode::DirtyWorktree);
+    assert_eq!(
+        err.payload.as_deref(),
+        Some(&ErrorPayload::DirtyWorktree {
+            paths: vec!["r.txt".into()],
+            can_carry: false
+        })
+    );
+    assert_eq!(env.read("r.txt").as_deref(), Some("mine\n"));
+    // Stashed out of the way, the file comes back on top of the updated branch.
+    let result = env
+        .repos
+        .checkout(env.id, target, CheckoutMode::StashAndPop)
+        .unwrap_err();
+    assert_eq!(result.code, ErrorCode::StashConflict);
+    assert_eq!(env.rev("feat/remote"), env.rev("origin/feat/remote"));
+}
+
+#[test]
+fn remote_branch_checkout_leaves_a_diverged_local_branch_alone() {
+    let env = env();
+    let target = behind_remote(&env);
+    env.fx.git(&["switch", "-q", "feat/remote"]);
+    env.commit("l.txt", "l\n", "local work");
+    let local = env.rev("feat/remote");
+    env.fx.git(&["switch", "-q", "main"]);
+    let result = env
+        .repos
+        .checkout(env.id, target, CheckoutMode::Clean)
+        .unwrap();
+    assert_eq!(result.fast_forwarded, None);
+    assert_eq!(env.head_branch(), "feat/remote");
+    assert_eq!(env.rev("feat/remote"), local);
+    assert_eq!(env.read("r.txt"), None);
+}
+
+#[test]
+fn remote_branch_checkout_with_a_change_in_the_way_of_the_fast_forward() {
+    let env = env();
+    let target = behind_remote(&env);
+    // `r.txt` is untracked here and added by the commit the branch catches up with.
+    env.write("r.txt", "mine\n");
+    env.fx.git(&["add", "--", "r.txt"]);
+    let err = env
+        .repos
+        .checkout(env.id, target, CheckoutMode::Clean)
+        .unwrap_err();
+    assert_eq!(err.code, ErrorCode::DirtyWorktree);
+    assert_eq!(env.head_branch(), "main");
+    assert_ne!(env.rev("feat/remote"), env.rev("origin/feat/remote"));
+}
+
 #[test]
 fn detached_checkout() {
     let env = env();
