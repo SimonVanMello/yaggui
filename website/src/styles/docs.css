@@ -17,7 +17,6 @@ header.header {
   border-bottom: 1px solid var(--line);
   background: color-mix(in srgb, var(--bg) 65%, transparent);
   backdrop-filter: blur(20px) saturate(1.6);
-  -webkit-backdrop-filter: blur(20px) saturate(1.6);
 }
 
 /* Sidebar: group titles small and strong, current page on the accent tint. */
