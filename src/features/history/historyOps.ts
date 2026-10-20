@@ -397,21 +397,26 @@ export async function revertCommit(
 
 /**
  * New message for a commit of the current branch: HEAD is amended (its staged changes stay
- * staged), an older commit is reworded by a rebase replaying the commits after it.
+ * staged), an older commit is reworded by a rebase replaying the commits after it. Resolves to
+ * the reworded commit's new SHA, `null` on failure.
  */
-export async function rewordCommit(repoId: number, sha: string, message: string): Promise<boolean> {
+export async function rewordCommit(
+  repoId: number,
+  sha: string,
+  message: string,
+): Promise<string | null> {
   const result = await attempt(repoId, () =>
     unwrap(ipc.commands.rewordCommit(repoId, sha, message)),
   );
   if (!result.ok) {
     reportHistoryError(repoId, result.error, { op: 'reword' });
-    return false;
+    return null;
   }
   toast({
     variant: 'success',
     title: t('history.reword.done', { sha: shortOid(result.data.sha) }),
   });
-  return true;
+  return result.data.sha;
 }
 
 // --- Reset ---------------------------------------------------------------------------------

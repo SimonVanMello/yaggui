@@ -7,6 +7,8 @@ sources:
   - src/features/rebase/**
   - src/features/graph/CommitContextMenu.tsx
   - src/features/history/RewordDialog.tsx
+  - src/features/graph/CommitMessageHeader.tsx
+  - src/features/graph/CommitMessageEditor.tsx
   - src/features/palette/builtinActions.ts
   - src-tauri/src/repo/interactive.rs
   - src-tauri/src/git/ops/rebase_todo.rs
@@ -135,6 +137,8 @@ Après **Continuer** ou **Passer**, le panneau suit l’arrêt suivant, ou se fe
 ## Modifier le message d’un seul commit
 
 Pour changer seulement le message d’un commit, sans ouvrir l’éditeur, faites un clic droit sur le commit dans le graphe et choisissez **Modifier le message du commit…**. La boîte de dialogue **Modifier le message de _abc1234_** affiche le message complet (résumé, ligne vide, corps) ; modifiez-le, puis cliquez sur **Modifier le message** ou appuyez sur <kbd>⌘↵</kbd> / <kbd>Ctrl+↵</kbd>. Le bouton reste désactivé tant que le message est inchangé ou que sa première ligne est vide.
+
+Vous pouvez aussi le modifier sur place depuis le panneau **Détail du commit** : sélectionnez le commit, puis cliquez sur son message, ou sur le crayon qui apparaît au survol (**Modifier le message du commit**). L’en-tête devient un champ **Résumé du commit** avec un compteur de caractères (_n_/72), un champ **Description (facultative)** et la même explication que la boîte de dialogue. Cliquez sur **Modifier le message** ou appuyez sur <kbd>⌘↵</kbd> / <kbd>Ctrl+↵</kbd> ; <kbd>Esc</kbd> ou **Annuler** abandonne la modification. Sélectionner du texte du message pour le copier ne lance pas l’édition. Une fois le message modifié, le graphe sélectionne le commit réécrit. Le crayon est désactivé pendant une opération en cours ; si la modification échoue, le message saisi reste dans les champs.
 
 | Commit                                       | Ce que fait yaggui                                                                                                                                                                                                                                                                                            | Commande                                                                 |
 | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |

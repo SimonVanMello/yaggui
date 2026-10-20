@@ -427,6 +427,10 @@ export class GraphSource {
     if (data) this.selectCommit(data.sha, this.pendingSelectRow);
   }
 
+  private isSelected(sha: string): boolean {
+    return this.selection?.kind === 'commit' && this.selection.sha === sha;
+  }
+
   selectedRow(): number | null {
     return this.selection?.kind === 'commit' ? this.selection.row : null;
   }
@@ -445,6 +449,27 @@ export class GraphSource {
   async goToSha(sha: string): Promise<void> {
     const row = await this.locate(sha);
     if (row !== null) this.selectRow(row, 'center');
+  }
+
+  /**
+   * Selects a commit a write just created (a reword): the panel shows it at once, its row is
+   * located once the graph has the new layout, which the loaded pages may not have yet.
+   */
+  async followSha(sha: string): Promise<void> {
+    this.pendingSelectRow = null;
+    this.pendingRange = null;
+    this.setPicks(EMPTY_SELECTION);
+    this.selection = { kind: 'commit', sha, row: null };
+    useGraphNavigation.getState().selectCommit(this.repoId, sha);
+    this.notify();
+    await this.refresh();
+    const row = await this.locate(sha);
+    // Another selection may have been made meanwhile (TS keeps the narrowing across `await`).
+    if (row === null || !this.isSelected(sha)) return;
+    // Still the old layout: the refresh in flight relocates the selection by its SHA.
+    const loaded = this.cache.row(row);
+    if (loaded && loaded.sha !== sha) return;
+    this.selectRow(row, 'center');
   }
 
   // --- Search ----------------------------------------------------------------------------

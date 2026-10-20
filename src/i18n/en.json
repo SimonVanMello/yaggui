@@ -501,6 +501,8 @@
   "graph.detail.rootCommit": "None (root commit)",
   "graph.detail.refs": "Refs",
   "graph.detail.signature": "Signature",
+  "graph.detail.rewording": "Changing…",
+  "graph.detail.editMessage": "Edit commit message",
   "changes.label": "Local changes",
   "changes.title": "Local changes",
   "changes.conflicted": "Conflicted",

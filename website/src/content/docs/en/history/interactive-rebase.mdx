@@ -7,6 +7,8 @@ sources:
   - src/features/rebase/**
   - src/features/graph/CommitContextMenu.tsx
   - src/features/history/RewordDialog.tsx
+  - src/features/graph/CommitMessageHeader.tsx
+  - src/features/graph/CommitMessageEditor.tsx
   - src/features/palette/builtinActions.ts
   - src-tauri/src/repo/interactive.rs
   - src-tauri/src/git/ops/rebase_todo.rs
@@ -135,6 +137,8 @@ After **Continue** or **Skip**, the panel follows the next stop, or closes when 
 ## Edit the message of one commit
 
 To change only the message of a commit, without opening the editor, right-click the commit in the graph and choose **Edit commit message…**. The **Edit the message of _abc1234_** dialog shows the full message (summary, blank line, body); edit it, then click **Change message** or press <kbd>⌘↵</kbd> / <kbd>Ctrl+↵</kbd>. The button stays disabled while the message is unchanged or its first line is empty.
+
+You can also edit it in place from the **Commit details** panel: select the commit, then click its message, or the pencil that appears on hover (**Edit commit message**). The header turns into a **Commit summary** field with a character counter (_n_/72), a **Description (optional)** field and the same explanation as the dialog. Click **Change message** or press <kbd>⌘↵</kbd> / <kbd>Ctrl+↵</kbd>; <kbd>Esc</kbd> or **Cancel** discards the edit. Selecting text in the message to copy it does not start an edit. Once the message is changed, the graph selects the rewritten commit. The pencil is disabled while an operation is in progress; if the change fails, the edited message stays in the fields.
 
 | Commit                                | What yaggui does                                                                                                                                                                                                                                                 | Command                                                                  |
 | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |

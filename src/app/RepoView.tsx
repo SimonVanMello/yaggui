@@ -202,6 +202,7 @@ function OpenRepoLayout({ tab, repo }: { tab: ShellTab; repo: RepoInfo }) {
               sha={selection.sha}
               repoId={repo.id}
               tabId={tab.id}
+              busy={state.operation !== null}
             />
           ) : (
             <div className={styles.stack}>

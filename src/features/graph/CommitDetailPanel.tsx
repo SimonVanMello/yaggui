@@ -19,6 +19,7 @@ import { closeDiff, openDiff, useDiffSelection } from '../diff/diffStore';
 import { FileInspectMenu } from '../inspect/FileInspectButtons';
 import { useNow } from '../../ui/useNow';
 import { Avatar } from './Avatar';
+import { CommitMessageHeader } from './CommitMessageHeader';
 import { CopyShaButton } from './CopyShaButton';
 import styles from './CommitDetailPanel.module.css';
 import type { GraphSource } from './graphSource';
@@ -120,11 +121,14 @@ export function CommitDetailPanel({
   sha,
   repoId,
   tabId,
+  busy,
 }: {
   source: GraphSource;
   sha: string;
   repoId: number;
   tabId: string;
+  /** A merge, rebase… is in progress: history cannot be rewritten. */
+  busy: boolean;
 }) {
   const t = useT();
   const detail = useQuery({
@@ -166,15 +170,18 @@ export function CommitDetailPanel({
   }
 
   const commit = detail.data;
-  const body = commit.message.slice(commit.summary.length).trim();
   const sameSignature =
     commit.author.email === commit.committer.email && commit.author.time === commit.committer.time;
   return (
     <section className={styles.panel} aria-label={t('graph.detail.label')}>
-      <header className={styles.header}>
-        <h2 className={styles.summary}>{commit.summary}</h2>
-        {body && <p className={styles.body}>{body}</p>}
-      </header>
+      <CommitMessageHeader
+        // A new commit starts out of edit mode.
+        key={commit.sha}
+        repoId={repoId}
+        commit={commit}
+        busy={busy}
+        onReworded={(rewritten) => void source.followSha(rewritten)}
+      />
       <div className={styles.scroll}>
         <dl className={styles.facts}>
           <dt>{t('graph.detail.author')}</dt>

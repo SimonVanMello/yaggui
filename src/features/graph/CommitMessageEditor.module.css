@@ -1,0 +1,90 @@
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.summary {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input,
+.description {
+  width: 100%;
+  border: var(--border-width) solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--bg-input);
+  color: var(--fg-primary);
+  font: inherit;
+}
+
+.input {
+  padding: var(--space-2) calc(var(--space-7) + var(--space-5)) var(--space-2) var(--space-3);
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+}
+
+.description {
+  padding: var(--space-2) var(--space-3);
+  color: var(--fg-secondary);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+  resize: vertical;
+}
+
+.input::placeholder,
+.description::placeholder {
+  color: var(--fg-muted);
+  font-weight: var(--weight-regular);
+}
+
+.input:focus-visible,
+.description:focus-visible {
+  outline: var(--focus-ring-width) solid var(--accent);
+  outline-offset: -1px;
+}
+
+.input[aria-invalid='true'] {
+  border-color: var(--danger);
+}
+
+.counter {
+  position: absolute;
+  right: var(--space-3);
+  color: var(--fg-muted);
+  font-family: var(--font-code);
+  font-size: var(--text-xs);
+  pointer-events: none;
+}
+
+.counter[data-level='over'] {
+  color: var(--warning);
+  font-weight: var(--weight-semibold);
+}
+
+.note {
+  display: flex;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--fg-muted);
+  font-size: var(--text-xs);
+  line-height: var(--leading-normal);
+}
+
+.note > svg {
+  flex: none;
+  margin-top: var(--space-1);
+}
+
+.note[data-tone='warning'] > svg {
+  color: var(--warning);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}

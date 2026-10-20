@@ -6,9 +6,32 @@
 }
 
 .header {
+  position: relative;
   flex: none;
   padding: var(--space-4);
   border-bottom: var(--border-width) solid var(--border-subtle);
+}
+
+/* Room for the pencil, so a long summary never runs under it. */
+.message {
+  padding-inline-end: calc(var(--control-height-sm) + var(--space-2));
+}
+
+.header[data-editable] .message {
+  cursor: text;
+}
+
+.edit {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--easing-standard);
+}
+
+.header:hover .edit,
+.edit:focus-visible {
+  opacity: 1;
 }
 
 .summary {
