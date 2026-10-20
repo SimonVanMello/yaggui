@@ -9,6 +9,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-20
+
+### Added
+
+- Edit the message of the selected commit right from the commit details: click the message, or the
+  pencil shown on hover; `Esc` cancels, `Mod+Enter` saves, and the graph stays on the rewritten
+  commit (#44).
+
+### Fixed
+
+- Stash labels in the graph and the commit details show the stash's message instead of
+  `stash@{0}` (#44).
+- Fast scrolling in the commit graph and in the split diff no longer shows blank strips, and both
+  diff columns stay aligned while scrolling (#42).
+
 ## [0.5.0] - 2026-10-20
 
 ### Added
