@@ -1,4 +1,4 @@
-import { observeElementOffset, useVirtualizer } from '@tanstack/react-virtual';
+import { observeElementOffset, useVirtualizer, type Range } from '@tanstack/react-virtual';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 
@@ -24,6 +24,7 @@ import { usePillMetrics } from './usePillMetrics';
 import { GraphSearchBar } from './GraphSearchBar';
 import { HistoryWalkStatus } from './HistoryWalkStatus';
 import { useGraphSource } from './graphSource';
+import { directionalRange } from './overscan';
 import type { GraphRow } from './pageCache';
 import { isDisplayRefKind, type MenuRef } from './refLabels';
 import styles from './GraphView.module.css';
@@ -106,13 +107,23 @@ export function GraphView({
   const [offset, setOffset] = useState(0);
   const shownOffset = useRef(0);
 
+  // The compositor paints the new scroll offset before the scroll listener runs: rows rendered
+  // half a viewport ahead (in the last scroll direction) cover a fast flick until the next
+  // render, which the virtualizer does synchronously in the scroll event (its default
+  // `useFlushSync`). A whole viewport costs frames on slow CPUs for no visible gain.
+  const ahead = Math.max(OVERSCAN, Math.ceil(size.height / 2 / rowHeight));
+  const scrolled = useRef({ offset: 0, forward: true });
+  const rangeExtractor = useCallback(
+    (range: Range) => directionalRange(range, scrolled.current.forward, ahead, OVERSCAN),
+    [ahead],
+  );
   const virtualizer = useVirtualizer({
     count: totalRows,
     getScrollElement: () => scrollRef.current,
     estimateSize: () => rowHeight,
     overscan: OVERSCAN,
+    rangeExtractor,
     paddingStart: wipHeight,
-    useFlushSync: false,
     observeElementOffset: (instance, notify) =>
       observeElementOffset(instance, (_physical, isScrolling) => {
         const scroller = instance.scrollElement;
@@ -125,6 +136,8 @@ export function GraphView({
             setOffset(mapper.offset);
           });
         }
+        if (logical !== scrolled.current.offset)
+          scrolled.current = { offset: logical, forward: logical > scrolled.current.offset };
         notify(logical, isScrolling);
       }),
   });

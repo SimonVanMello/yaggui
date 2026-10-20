@@ -17,7 +17,53 @@
   min-height: 0;
 }
 
-.code[data-view='split'] .pane:first-child {
+/* Split: one vertical scroller for both columns (see CodeDiff), the editors at full height. */
+.code[data-view='split'] {
+  flex-direction: column;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.columns,
+.bars {
+  display: flex;
+  flex: none;
+}
+
+.code[data-view='split'] .pane :global(.cm-editor) {
+  flex: none;
+  height: auto;
+}
+
+/* Each column still scrolls horizontally; its scrollbar is the bar below. */
+.code[data-view='split'] .pane :global(.cm-scroller) {
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+
+.code[data-view='split'] .pane :global(.cm-scroller)::-webkit-scrollbar {
+  display: none;
+}
+
+.bars {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+}
+
+.bar {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.barContent {
+  height: var(--border-width);
+}
+
+.code[data-view='split'] .pane:first-child,
+.bar:first-child {
   border-right: var(--border-width) solid var(--border-subtle);
 }
 
