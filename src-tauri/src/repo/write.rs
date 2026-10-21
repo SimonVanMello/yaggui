@@ -598,7 +598,17 @@ pub(super) fn commit(
     if request.skip_hooks {
         command = command.arg("--no-verify");
     }
-    let command = command.stdin(message).capture_limit(HOOK_OUTPUT_LIMIT);
+    run_commit(ctx, command.stdin(message), request.skip_hooks)
+}
+
+/// Runs a `git commit` built by the caller: a failing hook is reported with its output.
+/// Returns the new HEAD.
+pub(super) fn run_commit(
+    ctx: &WriteContext<'_>,
+    command: GitCommand,
+    skip_hooks: bool,
+) -> Result<CommitResult, YagguiError> {
+    let command = command.capture_limit(HOOK_OUTPUT_LIMIT);
     let run = ctx.git.run_raw(&command, Some(ctx.cancel), None)?;
     if !run.success {
         let workdir = ctx.workdir.display().to_string();
@@ -609,7 +619,7 @@ pub(super) fn commit(
         if run.exit_code == Some(1)
             && matches!(err.code, ErrorCode::GitFailed | ErrorCode::StaleDiff)
         {
-            let hooks = commit_hooks(ctx, request.skip_hooks);
+            let hooks = commit_hooks(ctx, skip_hooks);
             if !hooks.is_empty() {
                 let name = (hooks.len() == 1).then_some(hooks[0]);
                 return Err(YagguiError::hook_failed(

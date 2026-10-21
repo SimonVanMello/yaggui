@@ -1,5 +1,6 @@
 import { REBASE_PLAN_MAX } from '../bindings';
 import type {
+  AutosquashPlan,
   YagguiError,
   InteractiveRebasePlan,
   RebasePlanCommit,
@@ -190,4 +191,99 @@ export function mockTodo(
     );
   }
   return lines;
+}
+
+const FIXUP_PREFIX = 'fixup! ';
+
+/** Like `rebase_todo::fixup_subject`: the subject without its `fixup! ` prefixes. */
+export function mockFixupSubject(summary: string): string | null {
+  if (!summary.startsWith(FIXUP_PREFIX)) return null;
+  let rest = summary;
+  while (rest.startsWith(FIXUP_PREFIX)) rest = rest.slice(FIXUP_PREFIX.length);
+  return rest;
+}
+
+/** Like `rebase_todo::autosquash`: the todo order with the fixups under their targets. */
+export function mockAutosquash(commits: readonly { sha: string; summary: string }[]): {
+  order: { index: number; action: 'pick' | 'fixup' }[];
+  unmatched: number[];
+} {
+  const targets: (number | null)[] = commits.map(() => null);
+  const bySummary = new Map<string, number>();
+  const unmatched: number[] = [];
+  commits.forEach(({ summary }, i) => {
+    const subject = mockFixupSubject(summary);
+    if (subject !== null) {
+      let found: number | undefined;
+      if (subject.trim() !== '') {
+        const prefix = subject.toLowerCase();
+        const earlier = commits.slice(0, i);
+        found = bySummary.get(subject);
+        if (found === undefined && prefix.length >= 4 && /^[0-9a-f]+$/.test(prefix)) {
+          const index = earlier.findIndex((c) => c.sha.startsWith(prefix));
+          if (index !== -1) found = index;
+        }
+        if (found === undefined) {
+          const index = earlier.findIndex((c) => c.summary.startsWith(subject));
+          if (index !== -1) found = index;
+        }
+      }
+      if (found !== undefined) {
+        targets[i] = targets[found] ?? found;
+        return;
+      }
+      unmatched.push(i);
+    }
+    if (!bySummary.has(summary)) bySummary.set(summary, i);
+  });
+  const order: { index: number; action: 'pick' | 'fixup' }[] = [];
+  targets.forEach((target, i) => {
+    if (target !== null) return;
+    order.push({ index: i, action: 'pick' });
+    targets.forEach((t, k) => {
+      if (t === i) order.push({ index: k, action: 'fixup' });
+    });
+  });
+  return { order, unmatched };
+}
+
+/**
+ * Like `fixup::automatic_base`: parent of the oldest commit a fixup targets, along the first
+ * parents of HEAD up to the first merge or root commit.
+ */
+export function mockAutosquashBase(graph: MockGraph, head: number): number | null {
+  const { commits } = graph.history;
+  const chain: { id: number; parent: number }[] = [];
+  let current = head;
+  while (chain.length < REBASE_PLAN_MAX) {
+    const parents = commits[current]?.parents ?? [];
+    const [parent] = parents;
+    if (parents.length !== 1 || parent === undefined) break;
+    chain.push({ id: current, parent });
+    current = parent;
+  }
+  chain.reverse();
+  const { order } = mockAutosquash(
+    chain.map(({ id }) => ({
+      sha: commits[id]?.sha ?? '',
+      summary: commits[id]?.summary ?? '',
+    })),
+  );
+  const target = order.find((_, i) => order[i + 1]?.action === 'fixup');
+  return target ? (chain[target.index]?.parent ?? null) : null;
+}
+
+/** `autosquashPlan` of the mock, from the plan of `base..HEAD`. */
+export function mockAutosquashPlan(plan: InteractiveRebasePlan): AutosquashPlan {
+  const { order, unmatched } = mockAutosquash(plan.commits);
+  return {
+    plan,
+    todo: order.map(({ index, action }) => ({
+      sha: plan.commits[index]?.sha ?? '',
+      action,
+      message: null,
+    })),
+    unmatched: unmatched.map((i) => plan.commits[i]?.sha ?? ''),
+    fixups: order.filter((entry) => entry.action === 'fixup').length,
+  };
 }

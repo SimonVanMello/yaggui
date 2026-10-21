@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { RebaseAction, RebaseTodoEntry } from '../bindings';
 import { mockBackend, mockClient } from '../mockClient';
 import { unwrap } from '../result';
+import { mockAutosquash } from './interactive';
 
 const { commands: mock } = mockClient;
 
@@ -164,5 +165,56 @@ describe('mock reword', () => {
     const { id, plan: p } = await plan();
     const result = await mock.rewordCommit(id, p.head, '  \n\nbody');
     expect(result.status === 'error' && result.error.code).toBe('invalidArgument');
+  });
+});
+
+describe('mock fixup and autosquash', () => {
+  it('arranges like rebase_todo::autosquash', () => {
+    const list = (summaries: string[]) =>
+      summaries.map((summary, i) => ({ sha: `${String(i)}abc0000`, summary }));
+    expect(
+      mockAutosquash(
+        list(['A', 'B', 'fixup! A', 'C', 'fixup! fixup! A', 'fixup! B', 'fixup! Gone']),
+      ),
+    ).toEqual({
+      order: [
+        { index: 0, action: 'pick' },
+        { index: 2, action: 'fixup' },
+        { index: 4, action: 'fixup' },
+        { index: 1, action: 'pick' },
+        { index: 5, action: 'fixup' },
+        { index: 3, action: 'pick' },
+        { index: 6, action: 'pick' },
+      ],
+      unmatched: [6],
+    });
+    // A SHA prefix, then a summary prefix; an empty subject matches nothing.
+    expect(mockAutosquash(list(['A', 'fixup! 0abc'])).order[1]?.action).toBe('fixup');
+    expect(mockAutosquash(list(['Add x and y', 'fixup! Add x'])).order[1]?.action).toBe('fixup');
+    expect(mockAutosquash(list(['A', 'fixup! '])).unmatched).toEqual([1]);
+  });
+
+  it('commits a fixup of the staged changes, then plans it under its target', async () => {
+    const { id } = await unwrap(mock.openRepo('/Users/alex/dev/yaggui'));
+    expect(await unwrap(mock.autosquashPlan(id, null))).toBeNull();
+    await unwrap(mock.stagePaths(id, { kind: 'all' }));
+    const target = (await unwrap(mock.interactiveRebasePlan(id, 'HEAD~3'))).commits[0];
+    const fixup = await unwrap(mock.commitFixup(id, target?.sha ?? ''));
+    const detail = await unwrap(mock.commitDetail(id, fixup.sha));
+    expect(detail.summary).toBe(`fixup! ${target?.summary ?? ''}`);
+    const undo = await unwrap(mock.undoState(id));
+    expect(undo.undo?.entry.op).toMatchObject({ kind: 'commit', summary: detail.summary });
+
+    const arranged = await unwrap(mock.autosquashPlan(id, null));
+    expect(arranged?.plan.commits).toHaveLength(4);
+    expect(arranged?.fixups).toBe(1);
+    expect(arranged?.todo.map((e) => e.action)).toEqual(['pick', 'fixup', 'pick', 'pick']);
+    expect(arranged?.todo[1]?.sha).toBe(fixup.sha);
+  });
+
+  it('refuses a fixup with nothing staged', async () => {
+    const { id, plan: p } = await plan();
+    const result = await mock.commitFixup(id, p.head);
+    expect(result.status === 'error' && result.error.code).toBe('nothingToCommit');
   });
 });

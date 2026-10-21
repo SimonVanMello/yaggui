@@ -16,9 +16,17 @@ import { BasePicker } from './BasePicker';
 import { CommitList } from './CommitList';
 import styles from './InteractiveRebaseView.module.css';
 import { rowsMatchPlan } from './rebaseLayout';
-import { initialRows, isUnchanged, preview, validate } from './rebaseModel';
+import { useAutosquashPlan } from './fixupOps';
+import {
+  initialRows,
+  isFixupSummary,
+  isUnchanged,
+  preview,
+  rowsFromTodo,
+  validate,
+} from './rebaseModel';
 import { leaveRebase, refreshAfterRebase, useRebasePlan } from './rebaseOps';
-import { setRebaseRows, type RebaseSession } from './rebaseStore';
+import { openAutosquash, setRebaseRows, type RebaseSession } from './rebaseStore';
 import { ResultPanel } from './ResultPanel';
 import { StoppedPanel } from './StoppedPanel';
 import { useRebaseRun } from './useRebaseRun';
@@ -56,7 +64,7 @@ export function InteractiveRebaseView({
   session: RebaseSession;
 }) {
   const t = useT();
-  const { base, rows, stop } = session;
+  const { base, rows, stop, autosquash } = session;
   const state = useRepoState(repoId).data;
   const run = useRebaseRun(repoId, tabId);
   // Stopped, the rebase can also go on or end from elsewhere (the operation banner, a
@@ -74,15 +82,24 @@ export function InteractiveRebaseView({
       refreshAfterRebase(repoId);
     }
   }, [stop, rebasing, run.busy, state, repoId]);
-  const planQuery = useRebasePlan(repoId, base, stop === null);
-  const plan = planQuery.data;
-  const refetching = planQuery.isFetching;
+  const planQuery = useRebasePlan(repoId, base, stop === null && !autosquash);
+  // Autosquash (F-147): the plan comes with its todo already arranged.
+  const autosquashQuery = useAutosquashPlan(repoId, base, stop === null && autosquash);
+  const arranged = autosquash ? autosquashQuery.data : undefined;
+  const source = autosquash ? autosquashQuery : planQuery;
+  const plan = autosquash ? arranged?.plan : planQuery.data;
+  const refetching = source.isFetching;
+  const unmatched = useMemo(() => new Set(arranged?.unmatched ?? []), [arranged]);
+  const hasFixups = plan?.commits.some((commit) => isFixupSummary(commit.summary)) ?? false;
 
-  // The todo starts as the plan; a reloaded plan that no longer fits replaces it.
+  // The todo starts as the plan (or its arrangement); a reloaded plan that no longer fits
+  // replaces it.
   useEffect(() => {
     if (!plan || refetching) return;
-    if (rows === null || !rowsMatchPlan(rows, plan)) setRebaseRows(repoId, initialRows(plan));
-  }, [plan, refetching, rows, repoId]);
+    if (rows === null || !rowsMatchPlan(rows, plan)) {
+      setRebaseRows(repoId, arranged ? rowsFromTodo(plan, arranged.todo) : initialRows(plan));
+    }
+  }, [plan, arranged, refetching, rows, repoId]);
 
   const result = useMemo(() => (rows ? preview(rows) : null), [rows]);
   const validation = useMemo(() => (rows ? validate(rows) : null), [rows]);
@@ -97,7 +114,7 @@ export function InteractiveRebaseView({
   const reload = () => {
     run.clearError();
     setRebaseRows(repoId, null);
-    void planQuery.refetch();
+    void source.refetch();
   };
 
   useEffect(() => {
@@ -129,13 +146,17 @@ export function InteractiveRebaseView({
         onClose={close}
       />
     );
-  } else if (base === null) {
+  } else if (base === null && !autosquash) {
     body = <BasePicker repoId={repoId} />;
-  } else if (planQuery.error) {
+  } else if (autosquash && autosquashQuery.data === null) {
+    body = (
+      <div className={styles.centered}>
+        <p className={styles.notice}>{t('fixup.nothingToSquash')}</p>
+      </div>
+    );
+  } else if (source.error) {
     const error =
-      planQuery.error instanceof YagguiIpcError
-        ? planQuery.error.error
-        : internal(planQuery.error.message);
+      source.error instanceof YagguiIpcError ? source.error.error : internal(source.error.message);
     body = (
       <div className={styles.centered}>
         <ErrorPanel
@@ -196,6 +217,7 @@ export function InteractiveRebaseView({
               setRebaseRows(repoId, next);
             }}
             upstream={plan.upstream}
+            unmatched={unmatched}
             label={t('rebaseInteractive.list')}
           />
           <ResultPanel plan={plan} rows={rows} result={result} />
@@ -217,7 +239,7 @@ export function InteractiveRebaseView({
   }
 
   const hint =
-    !plan || stop || base === null || plan.hasMerges
+    !plan || stop || plan.hasMerges
       ? null
       : unchanged
         ? t('rebaseInteractive.startHint.unchanged')
@@ -251,6 +273,11 @@ export function InteractiveRebaseView({
               {t('rebaseInteractive.commits', { count: plan.commits.length })}
             </span>
           )}
+          {arranged && !stop && arranged.fixups > 0 && (
+            <span className={styles.meta}>
+              {t('rebaseInteractive.autosquashed', { count: arranged.fixups })}
+            </span>
+          )}
         </div>
         <div className={styles.buttons}>
           {hint && <span className={styles.startHint}>{hint}</span>}
@@ -260,7 +287,21 @@ export function InteractiveRebaseView({
                 {t('common.cancel')}
                 <Kbd shortcut="Escape" />
               </Button>
-              {base !== null && (
+              {plan && hasFixups && (
+                <Button
+                  variant="ghost"
+                  disabled={busy}
+                  title={t('rebaseInteractive.autosquashHint')}
+                  onClick={() => {
+                    run.clearError();
+                    openAutosquash(repoId, plan.base.sha);
+                  }}
+                >
+                  <Icon name="merge" />
+                  {t('fixup.autosquash')}
+                </Button>
+              )}
+              {(base !== null || autosquash) && (
                 <Button
                   variant="primary"
                   aria-disabled={blocked}

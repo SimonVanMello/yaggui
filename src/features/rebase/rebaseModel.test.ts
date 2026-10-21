@@ -4,10 +4,12 @@ import type { InteractiveRebasePlan, RebasePlanCommit } from '../../ipc';
 import {
   combinedMessage,
   initialRows,
+  isFixupSummary,
   isUnchanged,
   moveRow,
   preview,
   rewrittenPushed,
+  rowsFromTodo,
   setAction,
   setMessage,
   toTodo,
@@ -135,5 +137,30 @@ describe('rebase model', () => {
     rows = moveRow(initialRows(p), 1, 2);
     expect(rewrittenPushed(rows, p).map((c) => c.summary)).toEqual(['c2']);
     expect(isUnchanged(rows, p)).toBe(false);
+  });
+
+  it('starts from an autosquash todo, falling back to the plan when it does not fit', () => {
+    const p = plan();
+    const [c1, c2, c3, c4] = p.commits.map((c) => c.sha) as [string, string, string, string];
+    const rows = rowsFromTodo(p, [
+      { sha: c1, action: 'pick', message: null },
+      { sha: c4, action: 'fixup', message: null },
+      { sha: c2, action: 'pick', message: null },
+      { sha: c3, action: 'pick', message: null },
+    ]);
+    expect(shas(rows)).toEqual(['c1', 'c4', 'c2', 'c3']);
+    expect(rows.map((r) => r.action)).toEqual(['pick', 'fixup', 'pick', 'pick']);
+    expect(preview(rows).commits).toHaveLength(3);
+    expect(isUnchanged(rows, p)).toBe(false);
+    // Missing, unknown or repeated commits: the plan as it is.
+    const stale = [{ sha: c1, action: 'pick' as const, message: null }];
+    expect(rowsFromTodo(p, stale)).toEqual(initialRows(p));
+    expect(rowsFromTodo(p, [...stale, ...stale, ...stale, ...stale])).toEqual(initialRows(p));
+  });
+
+  it('recognizes fixup summaries', () => {
+    expect(isFixupSummary('fixup! c1')).toBe(true);
+    expect(isFixupSummary('fixup!c1')).toBe(false);
+    expect(isFixupSummary('squash! c1')).toBe(false);
   });
 });
