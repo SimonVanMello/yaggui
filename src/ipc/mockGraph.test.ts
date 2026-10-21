@@ -190,6 +190,74 @@ describe('mock graph', () => {
   });
 });
 
+describe('first-parent mode (F-032)', () => {
+  async function allRows(repoId: number): Promise<GraphPage> {
+    const first = await unwrap(mock.graphPage(repoId, 0, GRAPH_PAGE_SIZE));
+    const all = structuredClone(first);
+    while (all.shas.length < all.totalRows) {
+      const next = await unwrap(mock.graphPage(repoId, all.shas.length, GRAPH_PAGE_SIZE));
+      expect(next.version).toBe(all.version);
+      const base = all.edges.length / 4;
+      all.edgeOffsets.pop();
+      all.edgeOffsets.push(...next.edgeOffsets.map((o) => o + base));
+      for (const key of ['shas', 'parents', 'lanes', 'edges', 'refs'] as const) {
+        (all[key] as unknown[]).push(...next[key]);
+      }
+    }
+    return all;
+  }
+
+  const filter = {
+    hidden: [],
+    solo: null,
+    hideRemotes: false,
+    hideStashes: false,
+    firstParent: true,
+  };
+
+  it('walks every tip along first parents only, without merge lines', async () => {
+    await unwrap(mock.openRepo('/Users/alex/dev/yaggui'));
+    const full = await allRows(1);
+    expect(await unwrap(mock.setGraphFilter(1, filter))).toEqual(filter);
+    const fp = await allRows(1);
+    expect(fp.version).not.toBe(full.version);
+    expect(fp.shas.length).toBeLessThan(full.shas.length);
+    // Pages of 500 join up, and the layout only links rows to their first parent.
+    checkPage({ ...fp, parents: fp.parents.map((p) => p.slice(0, 1)) });
+    expect(fp.edges.some((_, i) => i % 4 === 3 && fp.edges[i] === EDGE_MERGE)).toBe(false);
+    // Merges stay rows, with every parent listed.
+    expect(fp.parents.some((p) => p.length > 1)).toBe(true);
+    // Every row is a tip or the first parent of another row.
+    const rows = new Set(fp.shas);
+    const firstParents = new Set(fp.parents.map((p) => p[0]));
+    const tips = new Set(fp.refs.map((r) => fp.shas[r.row]));
+    for (const sha of fp.shas) expect(tips.has(sha) || firstParents.has(sha)).toBe(true);
+    for (const p of firstParents) if (p !== undefined) expect(rows.has(p)).toBe(true);
+    // Without the merge lines, branches need fewer lanes.
+    expect(Math.max(...fp.lanes)).toBeLessThan(Math.max(...full.lanes));
+    // HEAD keeps its WIP line.
+    expect(fp.wip?.headRow).toBe(fp.shas.indexOf('3f9c2a17d0b4e85c6a91f2d7e0c4b3a8f5d61e92'));
+
+    // A commit only reachable through a merge's other parents is not a row: jumps say so.
+    const outside = full.shas.find((sha) => !rows.has(sha)) ?? '';
+    expect(outside).not.toBe('');
+    expect(await unwrap(mock.graphIndexOf(1, outside))).toMatchObject({ row: null });
+    // The search only scans the first-parent rows.
+    const chunk = await unwrap(
+      mock.searchCommits(
+        1,
+        { text: outside.slice(0, 10), author: null, path: null, since: null, until: null },
+        0,
+      ),
+    );
+    expect(chunk.matches).toEqual([]);
+
+    // Leaving the mode gives the full graph back.
+    await unwrap(mock.setGraphFilter(1, { ...filter, firstParent: false }));
+    expect((await allRows(1)).shas).toEqual(full.shas);
+  });
+});
+
 describe('countExclusive', () => {
   function reachable(history: MockHistory, tip: number): Set<number> {
     const seen = new Set<number>();

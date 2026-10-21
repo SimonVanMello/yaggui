@@ -2,8 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 
 import { useT } from '../../i18n/useT';
 import type { CommitSearch } from '../../ipc';
+import { Button } from '../../ui/Button';
+import { Icon } from '../../ui/Icon';
 import { IconButton } from '../../ui/IconButton';
 import { Spinner } from '../../ui/Spinner';
+import { isFirstParent, leaveFirstParent, useGraphFilter } from './graphFilter';
 import type { GraphSource, SearchState } from './graphSource';
 import styles from './GraphSearchBar.module.css';
 
@@ -23,6 +26,7 @@ export function GraphSearchBar({ source, state }: { source: GraphSource; state: 
   const t = useT();
   const input = useRef<HTMLInputElement>(null);
   const [advanced, setAdvanced] = useState(false);
+  const firstParent = isFirstParent(useGraphFilter(source.repoId));
   const { query, matches, active, running, error } = state;
 
   useEffect(() => {
@@ -100,6 +104,21 @@ export function GraphSearchBar({ source, state }: { source: GraphSource; state: 
           }}
         />
       </div>
+      {firstParent && (
+        <div className={styles.scope}>
+          <Icon name="firstParent" />
+          <span className={styles.scopeText}>{t('graph.search.firstParent')}</span>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => {
+              void leaveFirstParent(source.repoId, null);
+            }}
+          >
+            {t('graph.firstParent.leave')}
+          </Button>
+        </div>
+      )}
       {advanced && (
         <div className={styles.filters}>
           <label className={styles.field}>

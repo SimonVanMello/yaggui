@@ -4,16 +4,23 @@ import { showYagguiError } from '../../app/errors/presentError';
 import { queryClient, queryKeys } from '../../app/queryClient';
 import { translate, useI18nStore } from '../../i18n/i18n';
 import { YagguiIpcError, ipc, unwrap, type GraphFilter } from '../../ipc';
+import { toast } from '../../ui/toastStore';
+import { revealCommit } from '../repo/graphNavigation';
 import { useRepoSessions } from '../repo/repoSessions';
-import { invalidateGraph } from './graphSource';
+import { shortOid } from '../repo/repoStatus';
+import { getGraphSource, invalidateGraph } from './graphSource';
 
-/** Refs hidden from the graph or soloed (F-028), persisted per repository by the backend. */
+/**
+ * Refs hidden from the graph or soloed (F-028) and first-parent mode (F-032), persisted per
+ * repository by the backend.
+ */
 
 export const EMPTY_FILTER: GraphFilter = {
   hidden: [],
   solo: null,
   hideRemotes: false,
   hideStashes: false,
+  firstParent: false,
 };
 
 export const graphFilterKey = (repoId: number) => ['graph-filter', repoId] as const;
@@ -21,8 +28,16 @@ export const graphFilterKey = (repoId: number) => ['graph-filter', repoId] as co
 export function isFilterActive(filter: GraphFilter | undefined): boolean {
   return (
     filter !== undefined &&
-    (filter.hidden.length > 0 || filter.solo !== null || filter.hideRemotes || filter.hideStashes)
+    (filter.hidden.length > 0 ||
+      filter.solo !== null ||
+      filter.hideRemotes ||
+      filter.hideStashes ||
+      isFirstParent(filter))
   );
+}
+
+export function isFirstParent(filter: GraphFilter | undefined): boolean {
+  return filter?.firstParent ?? false;
 }
 
 export function useGraphFilter(repoId: number): GraphFilter {
@@ -36,7 +51,7 @@ export function useGraphFilter(repoId: number): GraphFilter {
   return query.data ?? EMPTY_FILTER;
 }
 
-function currentFilter(repoId: number): GraphFilter {
+export function currentFilter(repoId: number): GraphFilter {
   return queryClient.getQueryData<GraphFilter>(graphFilterKey(repoId)) ?? EMPTY_FILTER;
 }
 
@@ -84,6 +99,39 @@ export function isHidden(filter: GraphFilter, fullName: string): boolean {
   return (
     filter.hidden.includes(fullName) || (filter.hideRemotes && fullName.startsWith('refs/remotes/'))
   );
+}
+
+/** Turns first-parent mode on or off (`on` omitted: toggles it). */
+export function setFirstParent(repoId: number, on?: boolean): Promise<void> {
+  return updateGraphFilter(repoId, (f) => ({ ...f, firstParent: on ?? !isFirstParent(f) }));
+}
+
+/**
+ * Says that `sha` has no row because first-parent mode leaves it out, with the way back to the
+ * full history, which then shows it. Nothing when the mode is off.
+ */
+export function explainOutsideFirstParent(repoId: number, sha: string): void {
+  if (!isFirstParent(currentFilter(repoId))) return;
+  const locale = useI18nStore.getState().locale;
+  toast({
+    variant: 'info',
+    title: translate(locale, 'graph.firstParent.outside', { sha: shortOid(sha) }),
+    description: translate(locale, 'graph.firstParent.outsideHint'),
+    action: {
+      label: translate(locale, 'graph.firstParent.leave'),
+      onClick: () => {
+        void leaveFirstParent(repoId, sha);
+      },
+    },
+  });
+}
+
+/** Leaves first-parent mode, then shows `sha` once the full graph is loaded. */
+export async function leaveFirstParent(repoId: number, sha: string | null): Promise<void> {
+  await setFirstParent(repoId, false);
+  if (isFirstParent(currentFilter(repoId))) return;
+  await getGraphSource(repoId).refresh();
+  if (sha !== null) revealCommit(repoId, sha, null);
 }
 
 export function showAll(repoId: number): Promise<void> {

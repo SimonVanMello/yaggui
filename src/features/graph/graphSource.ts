@@ -12,6 +12,7 @@ import {
 } from '../../ipc';
 import { useGraphNavigation, type RevealRequest } from '../repo/graphNavigation';
 import { useRepoSessions } from '../repo/repoSessions';
+import { explainOutsideFirstParent } from './graphFilter';
 import { GraphPageCache } from './pageCache';
 import {
   EMPTY_SELECTION,
@@ -170,6 +171,7 @@ export class GraphSource {
     if (row !== null) this.selectRow(row, 'center');
     else {
       // Not in the graph (e.g. unreachable): keep the selection without a row.
+      explainOutsideFirstParent(this.repoId, sha);
       this.pendingSelectRow = null;
       this.selection = { kind: 'commit', sha, row: null };
       this.notify();
@@ -449,6 +451,7 @@ export class GraphSource {
   async goToSha(sha: string): Promise<void> {
     const row = await this.locate(sha);
     if (row !== null) this.selectRow(row, 'center');
+    else explainOutsideFirstParent(this.repoId, sha);
   }
 
   /**

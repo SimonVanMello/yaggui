@@ -541,20 +541,33 @@ export function createMockHistory(
   return history;
 }
 
-/** `git log --topo-order` over the given tips (see `src-tauri/src/graph/topo.rs`). */
-export function topoOrder(commits: readonly MockCommit[], tips: readonly number[]): number[] {
+/** Parents of a commit, cut to the first one in first-parent mode (F-032). */
+function parentsOf(commits: readonly MockCommit[], c: number, firstParent: boolean): number[] {
+  const parents = commits[c]?.parents ?? [];
+  return firstParent ? parents.slice(0, 1) : parents;
+}
+
+/**
+ * `git log --topo-order` over the given tips (see `src-tauri/src/graph/topo.rs`); with
+ * `firstParent`, each tip follows its first parents only.
+ */
+export function topoOrder(
+  commits: readonly MockCommit[],
+  tips: readonly number[],
+  firstParent = false,
+): number[] {
   const reachable = new Uint8Array(commits.length);
   const stack = [...tips];
   while (stack.length > 0) {
     const c = stack.pop() as number;
     if (reachable[c]) continue;
     reachable[c] = 1;
-    for (const p of commits[c]?.parents ?? []) if (!reachable[p]) stack.push(p);
+    for (const p of parentsOf(commits, c, firstParent)) if (!reachable[p]) stack.push(p);
   }
   const indegree = new Int32Array(commits.length);
   for (let c = 0; c < commits.length; c++) {
     if (!reachable[c]) continue;
-    const parents = commits[c]?.parents ?? [];
+    const parents = parentsOf(commits, c, firstParent);
     parents.forEach((p, i) => {
       if (parents.indexOf(p) === i) indegree[p] = (indegree[p] ?? 0) + 1;
     });
@@ -568,7 +581,7 @@ export function topoOrder(commits: readonly MockCommit[], tips: readonly number[
   while (queue.length > 0) {
     const c = queue.pop() as number;
     order.push(c);
-    const parents = commits[c]?.parents ?? [];
+    const parents = parentsOf(commits, c, firstParent);
     parents.forEach((p, i) => {
       // Duplicated parents count once, without a `Set` per commit (100k commits).
       if (parents.indexOf(p) !== i) return;
@@ -605,7 +618,7 @@ export class MockGraph {
   constructor(
     readonly history: MockHistory,
     readonly version: number,
-    /** Refs left out (F-028), as `src-tauri/src/graph/mod.rs` `filter_refs` does. */
+    /** Refs left out (F-028) and first-parent mode (F-032), as `src-tauri/src/graph/mod.rs`. */
     readonly filter: GraphFilter | null = null,
   ) {
     const { commits } = history;
@@ -684,13 +697,16 @@ export class MockGraph {
         else this.labels.delete(commit);
       }
     }
-    this.order = topoOrder(commits, tips);
+    const firstParent = filter?.firstParent ?? false;
+    this.order = topoOrder(commits, tips, firstParent);
     this.rowOf = new Int32Array(commits.length).fill(-1);
     this.order.forEach((c, row) => {
       this.rowOf[c] = row;
     });
     const parentRows = this.order.map((c) =>
-      (commits[c]?.parents ?? []).map((p) => this.rowOf[p] ?? -1).filter((r) => r >= 0),
+      parentsOf(commits, c, firstParent)
+        .map((p) => this.rowOf[p] ?? -1)
+        .filter((r) => r >= 0),
     );
     const seeds = this.order.map((c) => this.seed(c));
     const soloOnOther =
