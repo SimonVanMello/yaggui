@@ -18,9 +18,10 @@ sources:
   - src/features/refs/StashConflictDialog.tsx
   - src/features/refs/CreateBranchDialog.tsx
   - src-tauri/src/repo/ref_ops.rs
+  - src-tauri/src/repo/stash_file.rs
   - src-tauri/src/repo/commit_tools.rs
   - src-tauri/src/git/read/refs.rs
-requirements: [F-180, F-181, F-182, F-183, F-184]
+requirements: [F-180, F-181, F-182, F-183, F-184, F-185]
 ---
 
 import Screenshot from '~/components/Screenshot.astro';
@@ -109,6 +110,37 @@ Cliquez sur un fichier pour ouvrir son diff à la place du graphe. Le diff est e
   alt="Le panneau Détails du stash avec le message du stash, son commit de base, les boutons Appliquer, Pop et Supprimer, et la liste des fichiers du stash"
 />
 
+## Appliquer un seul fichier
+
+Pour récupérer un seul fichier d’un stash sans le reste, survolez le fichier dans **Fichiers du stash** ou **Fichiers non suivis** de **Détails du stash** et cliquez sur son bouton **Appliquer ce fichier à l'arbre de travail**, ou faites un clic droit sur le fichier et choisissez **Appliquer ce fichier à l'arbre de travail**. Seul ce fichier change, et le stash reste dans la liste sans modification.
+
+- **Un fichier du stash** : la modification que le stash apporte au fichier, par rapport à son commit de base, est fusionnée dans votre version, comme **Appliquer** le fait pour tout le stash. Les changements commités depuis le stash ailleurs dans le fichier sont conservés. La modification revient non indexée et la version indexée du fichier reste telle quelle, sauf pour un fichier que le stash ajoute, qui est indexé (comme avec `git stash apply`). Un fichier que le stash supprime est supprimé de l’arbre de travail. Un fichier binaire s’applique si votre version est encore celle dont le stash est parti ; sinon il est en conflit.
+- **Un fichier non suivi** : le fichier est écrit tel qu’il a été mis de côté et reste non suivi.
+
+yaggui exécute :
+
+```bash
+# Un fichier du stash : la modification du stash en patch, fusionnée à trois voies
+git --literal-pathspecs diff-tree -p --binary --full-index --no-renames <base> <stash> --output=<backup>/stash.patch -- <path>
+git apply --3way --whitespace=nowarn <backup>/stash.patch
+# Un fichier non suivi, depuis le troisième parent du stash
+git --literal-pathspecs restore --source=<untracked commit> --worktree -- <path>
+```
+
+Le toast indique « \{path\} appliqué depuis le stash » et « Le stash est conservé. Annuler remet ton fichier précédent. »
+
+Rien n’est appliqué, et le toast dit pourquoi, quand :
+
+- Le fichier a des changements locaux : « Tes modifications locales de « \{path\} » seraient écrasées par le fichier du stash. Commite-les, mets-les de côté (stash) ou annule-les d'abord. »
+- Un fichier existe déjà au chemin d’un fichier non suivi, ou d’un fichier que le stash ajoute : « « \{path\} » existe déjà dans ton arbre de travail : le fichier du stash l'écraserait. Déplace-le ou supprime-le d'abord. »
+- Le stash modifie un fichier qui n’existe plus de votre côté : « « \{path\} » n'existe plus de ton côté : la modification que le stash garde pour lui ne peut pas y être fusionnée. Ouvre le fichier dans le stash pour voir sa version mise de côté. »
+
+Pour un fichier affiché comme renommé, seul son nouveau chemin est appliqué ; l’ancien chemin reste tel quel.
+
+Si la modification entre en conflit avec votre version, le fichier garde les marqueurs de conflit et **Le stash est en conflit** s’ouvre avec « Appliquer \{path\} depuis le stash y a laissé des conflits. Le stash n'est pas modifié, et annuler remet ton fichier comme il était. » Résolvez le conflit comme décrit dans [Conflits](../../history/conflicts/), ou annulez.
+
+yaggui sauvegarde d’abord le fichier, comme pour un abandon de modifications, donc l’opération peut être défaite (« application de \{path\} depuis le stash « \{message\} » »), même après un conflit : annuler remet le fichier et sa version indexée. Si vous avez modifié le fichier depuis, l’annulation refuse plutôt que de l’écraser.
+
 ## Appliquer, pop, supprimer, renommer
 
 Faites un clic droit sur un stash dans la barre latérale. Éléments, dans l’ordre :
@@ -178,6 +210,7 @@ Si le stash écraserait des changements locaux, rien n’est appliqué et le toa
 | Stash rapide                                | Non (faites plutôt un pop du stash) |
 | Stash partiel                               | Oui                                 |
 | Appliquer, pop, renommer, créer une branche | Non                                 |
+| Appliquer un seul fichier                   | Oui                                 |
 | Supprimer                                   | Oui                                 |
 
 Voir [Annuler et rétablir](../../history/undo-and-redo/).

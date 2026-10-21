@@ -9,6 +9,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Added
+
+- Apply a single file of a stash from the stash details (hover button or right-click), tracked or
+  untracked: the stash is kept, a conflict is explained like for a whole stash, and the operation
+  can be undone.
+
 ## [0.6.0] - 2026-10-20
 
 ### Added

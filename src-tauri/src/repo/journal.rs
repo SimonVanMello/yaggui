@@ -37,7 +37,8 @@ use super::history::{STATUS_ARGS, ensure_idle, preview};
 use super::ref_ops::{classify, overwritten_paths, raw};
 use super::remotes::{RemoteChange, remote_step};
 use super::write::{
-    IndexSide, MODE_EXECUTABLE, MODE_FILE, MODE_SYMLINK, SavedPath, SavedWorktree, WriteContext,
+    IndexSide, MODE_EXECUTABLE, MODE_FILE, MODE_SYMLINK, SavedPath, SavedWorktree, StageEntry,
+    WriteContext,
 };
 use super::{RepoManager, lock};
 use crate::store::{JOURNAL_MAX_ENTRIES, Store, StoredJournalRow};
@@ -720,7 +721,29 @@ fn open_index(repo: &gix::Repository) -> Result<gix::index::File, YagguiError> {
 }
 
 fn index_side(index: &gix::index::File, path: &str) -> IndexSide {
-    match index.entry_by_path(BStr::new(path.as_bytes())) {
+    use gix::index::entry::Stage;
+
+    let key = BStr::new(path.as_bytes());
+    let entries = index
+        .entry_range(key)
+        .map_or(&[][..], |range| &index.entries()[range]);
+    if entries.iter().any(|e| e.stage() != Stage::Unconflicted) {
+        let mut stages = [None; 3];
+        for entry in entries {
+            let slot = match entry.stage() {
+                Stage::Base => 0,
+                Stage::Ours => 1,
+                Stage::Theirs => 2,
+                Stage::Unconflicted => continue,
+            };
+            stages[slot] = Some(StageEntry {
+                id: entry.id,
+                mode: entry.mode.bits(),
+            });
+        }
+        return IndexSide::Unmerged { stages };
+    }
+    match index.entry_by_path(key) {
         Some(entry) if entry.mode.is_submodule() => IndexSide::Unmanaged,
         Some(entry) => IndexSide::Blob {
             id: entry.id,
@@ -918,8 +941,14 @@ fn missing_objects(repo: &gix::Repository, record: &Record, undo: bool) -> u32 {
     needed.extend(to.index);
     for file in &to.files {
         for side in [file.worktree, file.index] {
-            if let IndexSide::Blob { id, .. } = side {
-                needed.insert(id);
+            match side {
+                IndexSide::Blob { id, .. } => {
+                    needed.insert(id);
+                }
+                IndexSide::Unmerged { stages } => {
+                    needed.extend(stages.iter().flatten().map(|s| s.id))
+                }
+                IndexSide::Unmanaged | IndexSide::Absent => {}
             }
         }
     }
@@ -1416,7 +1445,7 @@ fn write_files(ctx: &WriteContext<'_>, files: &[FileState]) -> Result<(), Yaggui
     for file in files {
         let full = ctx.workdir.join(&file.path);
         match file.worktree {
-            IndexSide::Unmanaged => {}
+            IndexSide::Unmanaged | IndexSide::Unmerged { .. } => {}
             IndexSide::Absent => remove_file(&full)?,
             IndexSide::Blob { id, mode } => {
                 let object = ctx
@@ -1440,6 +1469,18 @@ fn write_files(ctx: &WriteContext<'_>, files: &[FileState]) -> Result<(), Yaggui
             }
             IndexSide::Blob { id, mode } => {
                 entries.extend_from_slice(format!("{mode:o} {id}\t{}\0", file.path).as_bytes());
+            }
+            IndexSide::Unmerged { stages } => {
+                // The stage 0 entry goes first, then the stages are added back.
+                let null = ObjectId::null(ctx.repo.object_hash());
+                entries.extend_from_slice(format!("0 {null}\t{}\0", file.path).as_bytes());
+                for (stage, entry) in (1..).zip(stages) {
+                    if let Some(StageEntry { id, mode }) = entry {
+                        entries.extend_from_slice(
+                            format!("{mode:o} {id} {stage}\t{}\0", file.path).as_bytes(),
+                        );
+                    }
+                }
             }
         }
     }

@@ -18,9 +18,10 @@ sources:
   - src/features/refs/StashConflictDialog.tsx
   - src/features/refs/CreateBranchDialog.tsx
   - src-tauri/src/repo/ref_ops.rs
+  - src-tauri/src/repo/stash_file.rs
   - src-tauri/src/repo/commit_tools.rs
   - src-tauri/src/git/read/refs.rs
-requirements: [F-180, F-181, F-182, F-183, F-184]
+requirements: [F-180, F-181, F-182, F-183, F-184, F-185]
 ---
 
 import Screenshot from '~/components/Screenshot.astro';
@@ -109,6 +110,37 @@ Click a file to open its diff in place of the graph. The diff is read-only: no h
   alt="The Stash details panel with the stash message, its base commit, the Apply, Pop and Drop buttons and the list of stashed files"
 />
 
+## Apply a single file
+
+To bring back one file of a stash without the rest, hover the file in **Stashed files** or **Untracked files** of **Stash details** and click its **Apply this file to the working tree** button, or right-click the file and choose **Apply this file to the working tree**. Only that file changes, and the stash stays in the list untouched.
+
+- **A stashed file**: the stash's change to the file, compared with the stash's base commit, is merged into your version, as **Apply** does for the whole stash. Changes committed since the stash elsewhere in the file are kept. The change comes back unstaged and the file's staged version is left as it was, except for a file the stash adds, which is staged (as `git stash apply` does). A file the stash deletes is deleted from the working tree. A binary file applies when your version is still the one the stash started from; otherwise it conflicts.
+- **An untracked file**: the file is written as it was stashed and stays untracked.
+
+yaggui runs:
+
+```bash
+# A stashed file: the stash's change as a patch, merged in three ways
+git --literal-pathspecs diff-tree -p --binary --full-index --no-renames <base> <stash> --output=<backup>/stash.patch -- <path>
+git apply --3way --whitespace=nowarn <backup>/stash.patch
+# An untracked file, from the stash's third parent
+git --literal-pathspecs restore --source=<untracked commit> --worktree -- <path>
+```
+
+The toast says "\{path\} applied from the stash" and "The stash is kept. Undo puts your previous file back."
+
+Nothing is applied, and the toast says why, when:
+
+- The file has local changes: "Your local changes to "\{path\}" would be overwritten by the file from the stash. Commit, stash or discard them first."
+- A file is already at the path of an untracked file, or of a file the stash adds: ""\{path\}" already exists in your working tree: the file from the stash would overwrite it. Move or delete it first."
+- The stash changes a file that no longer exists on your side: ""\{path\}" no longer exists on your side: the change the stash holds for it cannot be merged. Open the file in the stash to see its stashed version."
+
+For a file shown as renamed, only its new path is applied; the old path is left as it is.
+
+If the change conflicts with your version, the file keeps the conflict markers and **The stash conflicts** opens with "Applying \{path\} from the stash left conflicts in it. The stash is untouched, and undo puts your file back as it was." Resolve the conflict as described in [Conflicts](../../history/conflicts/), or undo.
+
+yaggui backs the file up first, as for a discard, so the operation can be undone ("applying \{path\} from stash "\{message\}""), even after a conflict: undo puts the file and its staged version back. If you changed the file since, undo refuses rather than overwrite it.
+
 ## Apply, pop, drop, rename
 
 Right-click a stash in the sidebar. Items, in order:
@@ -178,6 +210,7 @@ If the stash would overwrite local changes, nothing is applied and the toast say
 | Quick stash                         | No (pop the stash instead) |
 | Partial stash                       | Yes                        |
 | Apply, pop, rename, create a branch | No                         |
+| Apply a single file                 | Yes                        |
 | Drop                                | Yes                        |
 
 See [Undo and redo](../../history/undo-and-redo/).

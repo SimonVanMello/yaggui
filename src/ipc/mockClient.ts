@@ -135,6 +135,7 @@ import {
   splitRemoteBranch,
   staleRefs,
   stashConflict,
+  stashFileConflict,
 } from './mock/refs';
 import {
   authFailed,
@@ -929,6 +930,7 @@ export class MockBackend {
       progress = false,
       steps,
       journal,
+      journalError,
       note,
       logged = true,
     }: {
@@ -941,6 +943,8 @@ export class MockBackend {
       steps?: { phase: string; total: number };
       /** How a success is journaled for the undo (`null`: it is not). */
       journal?: (result: T) => MockJournalSpec | null;
+      /** How a failure is journaled anyway (a conflict that changed files). */
+      journalError?: (error: YagguiError) => MockJournalSpec | null;
       /** `op-finished` note of a success that did not complete (paused, aborted). */
       note?: (result: T) => OpNote | null;
       /** A Git command, recorded in the log (a file save is not). */
@@ -952,9 +956,10 @@ export class MockBackend {
     const opId = this.nextOpId++;
     let journaled = false;
     const run = (): { ok: T } | { error: YagguiError } => {
-      const before = journal ? this.snapshot(repoId) : null;
+      const before = journal || journalError ? this.snapshot(repoId) : null;
       const result = work();
-      const spec = 'ok' in result && journal ? journal(result.ok) : null;
+      const spec =
+        'ok' in result ? (journal?.(result.ok) ?? null) : (journalError?.(result.error) ?? null);
       const after = spec ? this.snapshot(repoId) : null;
       if (spec && before && after) {
         let log = this.journals.get(repoId);
@@ -3521,6 +3526,46 @@ export class MockBackend {
         },
         { refs: true, delayMs: 120 },
       ),
+    stashApplyFile: (repoId, request) => {
+      const { stash, path, untracked } = request;
+      let message = '';
+      const spec = (): MockJournalSpec => ({
+        op: { kind: 'stashApplyFile', message, path },
+        files: true,
+      });
+      return this.runWrite(
+        repoId,
+        'stash',
+        untracked
+          ? ['restore', `--source=stash@{${String(stash.index)}}^3`, '--worktree', '--', path]
+          : ['apply', '--3way', '--whitespace=nowarn', '<stash.patch>'],
+        () =>
+          this.editHistory<null>(repoId, (graph) => {
+            const stale = this.findStash(graph, stash);
+            if (stale) return { error: stale };
+            const wip = this.wip(repoId);
+            const entry = graph.history.stashes[stash.index];
+            if (!wip || !entry) return { error: this.notOpen(repoId) };
+            message = entry.message;
+            const result = wip.applyStashFile(
+              path,
+              untracked,
+              this.stashStates.get(entry.sha)?.worktree.get(path)?.text ?? null,
+              /conflict/.test(entry.message),
+            );
+            if ('error' in result) return result;
+            return result.ok === 'conflict'
+              ? { error: stashFileConflict(path, entry.sha) }
+              : { ok: null };
+          }),
+        {
+          refs: true,
+          delayMs: 120,
+          journal: spec,
+          journalError: (error) => (error.code === 'stashConflict' ? spec() : null),
+        },
+      );
+    },
     stashPop: (repoId, stash) =>
       this.runWrite(
         repoId,

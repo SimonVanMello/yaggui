@@ -14,6 +14,7 @@ import {
   type DeleteBranchRequest,
   type DeleteBranchResult,
   type YagguiError,
+  type StashFileRequest,
   type StashId,
   type StashPushRequest,
 } from '../../ipc';
@@ -22,6 +23,7 @@ import { diffKeys } from '../diff/diffQueries';
 import { shortOid } from '../repo/repoStatus';
 import { pushRecent } from '../sidebar/sidebarUiState';
 import { openRefDialog } from './refDialogsStore';
+import { isRefUiError } from './refErrors';
 
 function t(key: MessageKey, params?: MessageParams): string {
   return translate(useI18nStore.getState().locale, key, params);
@@ -49,8 +51,11 @@ export function refreshRefs(repoId: number): void {
   void queryClient.invalidateQueries({ queryKey: diffKeys.worktree(repoId) });
 }
 
-/** Errors every caller treats the same way: the conflict explanation and the stale-list warning. */
-function handleGlobal(repoId: number, error: YagguiError): boolean {
+/**
+ * Errors every caller treats the same way: the conflict explanation and the stale-list warning.
+ * `file`: the conflict comes from applying only that file of the stash.
+ */
+function handleGlobal(repoId: number, error: YagguiError, file: string | null): boolean {
   if (error.code === 'staleRefs') {
     refreshRefs(repoId);
     toast({
@@ -66,6 +71,7 @@ function handleGlobal(repoId: number, error: YagguiError): boolean {
       repoId,
       paths: error.payload.paths,
       checkedOut: error.payload.checkedOut,
+      file,
     });
     return true;
   }
@@ -81,14 +87,18 @@ export function reportRefError(error: YagguiError): void {
   }
 }
 
-async function call<T>(repoId: number, work: () => Promise<T>): Promise<RefResult<T>> {
+async function call<T>(
+  repoId: number,
+  work: () => Promise<T>,
+  file: string | null = null,
+): Promise<RefResult<T>> {
   try {
     return { ok: true, data: await work() };
   } catch (error) {
     const typed = error instanceof YagguiIpcError ? error.error : null;
     if (!typed) showError(error);
     const yaggui = typed ?? internalError(error);
-    return { ok: false, error: yaggui, handled: typed ? handleGlobal(repoId, typed) : true };
+    return { ok: false, error: yaggui, handled: typed ? handleGlobal(repoId, typed, file) : true };
   } finally {
     refreshRefs(repoId);
   }
@@ -284,6 +294,29 @@ export async function stashPop(repoId: number, stash: StashId): Promise<boolean>
     toast({ variant: 'success', title: t('refs.stash.popped') });
     return null;
   });
+  return result.ok;
+}
+
+/**
+ * Applies one file of a stash to the working tree, the stash kept (F-185). Not confirmed: local
+ * changes in the way are refused by the backend, and the undo puts the previous file back.
+ */
+export async function stashApplyFile(repoId: number, request: StashFileRequest): Promise<boolean> {
+  const result = await call(
+    repoId,
+    async () => {
+      await unwrap(ipc.commands.stashApplyFile(repoId, request));
+      toast({
+        variant: 'success',
+        title: t('refs.stash.fileApplied', { path: request.path }),
+        description: t('refs.stash.fileAppliedHint'),
+      });
+      return null;
+    },
+    request.path,
+  );
+  // Other failures (`invalidArgument`…) already get the generic `op-finished` toast.
+  if (!result.ok && !result.handled && isRefUiError(result.error)) reportRefError(result.error);
   return result.ok;
 }
 

@@ -179,6 +179,18 @@ pub struct StashId {
     pub sha: String,
 }
 
+/// One file of a stash to bring back into the working tree (F-185).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct StashFileRequest {
+    pub stash: StashId,
+    /// Repository-relative path, as the stash preview lists it.
+    pub path: String,
+    /// The file comes from the untracked files of the stash (its third parent), not from
+    /// its tracked changes.
+    pub untracked: bool,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct DeleteBranchRequest {
@@ -902,6 +914,11 @@ pub enum JournalOp {
         message: String,
         paths: Vec<String>,
         count: u32,
+    },
+    /// One file applied from a stash (F-185); the stash itself is untouched.
+    StashApplyFile {
+        message: String,
+        path: String,
     },
     /// A rule appended to the repository's `.gitignore` (F-069).
     Gitignore {
