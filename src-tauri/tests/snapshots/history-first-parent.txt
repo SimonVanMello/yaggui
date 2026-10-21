@@ -1,0 +1,15 @@
+ 0 lane 0 main 4           [0>0] main, stash@{0}
+ 1 lane 0 Octopus          [0>0] origin/main, v0.2
+ 2 lane 1 pages 2          [0>0 1>1] pages
+ 3 lane 1 pages 1          [0>0] 
+ 4 lane 1 Merge x into y   [0>0 1>1] y
+ 5 lane 1 y 1              [0>0 1>1] 
+ 6 lane 2 Merge y into x   [0>0 1>1 2>2] x
+ 7 lane 2 x 1              [0>0 1>0 2>0] 
+ 8 lane 0 Merge feat/a     [0>0] 
+ 9 lane 0 main 3           [0>0] v0.1
+10 lane 1 b 1              [0>0 1>1] feat/b, origin/feat/b
+11 lane 2 a 2              [0>0 1>1 2>2] feat/a
+12 lane 2 a 1              [0>0 1>0 2>0] 
+13 lane 0 main 2           [0>0] 
+14 lane 0 initial          [] 

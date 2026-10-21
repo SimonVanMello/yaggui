@@ -27,11 +27,16 @@ export const EMPTY_GRAPH_FILTER: GraphFilter = {
   solo: null,
   hideRemotes: false,
   hideStashes: false,
+  firstParent: false,
 };
 
 export function isFilterEmpty(filter: GraphFilter): boolean {
   return (
-    filter.hidden.length === 0 && filter.solo === null && !filter.hideRemotes && !filter.hideStashes
+    filter.hidden.length === 0 &&
+    filter.solo === null &&
+    !filter.hideRemotes &&
+    !filter.hideStashes &&
+    !filter.firstParent
   );
 }
 
@@ -76,7 +81,13 @@ export function normalizeFilter(filter: GraphFilter): Result<GraphFilter> {
   const solo = filter.solo?.trim() ?? null;
   if (solo !== null && !validRef(solo)) return { error: invalidRef(solo) };
   return {
-    ok: { hidden, solo, hideRemotes: filter.hideRemotes, hideStashes: filter.hideStashes },
+    ok: {
+      hidden,
+      solo,
+      hideRemotes: filter.hideRemotes,
+      hideStashes: filter.hideStashes,
+      firstParent: filter.firstParent ?? false,
+    },
   };
 }
 

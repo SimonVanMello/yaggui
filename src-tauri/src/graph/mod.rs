@@ -8,6 +8,10 @@
 //! and a background thread finishes the walk, reporting progress to the listener (the
 //! `graph-progress` event). Rows never move once emitted, so pages already sent stay valid;
 //! operations that need a row further down (jumps) wait for the walk to reach it.
+//!
+//! First-parent mode (F-032, `GraphFilter::first_parent`) walks the same tips, each following
+//! its first parents only: the walk, the lanes and the search all see a commit's parents cut
+//! to the first one. The mode is part of the fingerprint, so it has its own snapshot.
 
 pub mod layout;
 pub mod search;
@@ -60,6 +64,7 @@ struct StoreDag<'a> {
     store: &'a mut CommitStore,
     objects: &'a gix::OdbHandle,
     buf: &'a mut Vec<u8>,
+    first_parent: bool,
 }
 
 impl Dag for StoreDag<'_> {
@@ -73,6 +78,9 @@ impl Dag for StoreDag<'_> {
 
     fn parents_into(&self, node: Node, out: &mut Vec<Node>) {
         self.store.parents_into(node, out);
+        if self.first_parent {
+            out.truncate(1);
+        }
     }
 
     fn time(&self, node: Node) -> i64 {
@@ -90,6 +98,7 @@ struct WalkState {
     walk: Walk,
     layout: Layout,
     buf: Vec<u8>,
+    first_parent: bool,
     /// A page went out before the walk was done: report its progress and its end.
     reporting: bool,
     reported_at: Option<Instant>,
@@ -114,7 +123,11 @@ impl WalkState {
         let started = Instant::now();
         while !until(self) && !self.walk.is_finished() && started.elapsed() < WALK_STEP {
             let WalkState {
-                store, walk, buf, ..
+                store,
+                walk,
+                buf,
+                first_parent,
+                ..
             } = self;
             let target = walk.rows().saturating_add(WALK_BATCH);
             walk.ensure(
@@ -122,6 +135,7 @@ impl WalkState {
                     store,
                     objects,
                     buf,
+                    first_parent: *first_parent,
                 },
                 target,
             )?;
@@ -135,6 +149,7 @@ struct Rows<'a> {
     store: &'a CommitStore,
     walk: &'a Walk,
     labels: &'a HashMap<Node, Vec<RefLabel>>,
+    first_parent: bool,
 }
 
 impl RowSource for Rows<'_> {
@@ -144,6 +159,9 @@ impl RowSource for Rows<'_> {
 
     fn parents(&self, node: u32, out: &mut Vec<u32>) {
         self.store.parents_into(node, out);
+        if self.first_parent {
+            out.truncate(1);
+        }
         topo::dedup_in_order(out);
         out.retain(|&p| self.walk.is_reached(p));
     }
@@ -179,6 +197,7 @@ pub(crate) struct ScanRow {
 pub struct Snapshot {
     pub version: u32,
     fingerprint: u64,
+    first_parent: bool,
     files: GraphFiles,
     has_commit_graph: bool,
     /// Labels by commit, in ref order.
@@ -212,6 +231,11 @@ impl Snapshot {
 
     pub fn has_commit_graph(&self) -> bool {
         self.has_commit_graph
+    }
+
+    /// Rows follow first parents only (F-032).
+    pub fn is_first_parent(&self) -> bool {
+        self.first_parent
     }
 
     /// Commits decoded so far that the commit-graph file does not have.
@@ -477,7 +501,10 @@ impl GraphCache {
             refs,
             fingerprint,
             state.next_version,
-            state.exact,
+            WalkMode {
+                exact: state.exact,
+                first_parent: filter.first_parent,
+            },
             read(&self.listener).clone(),
         )?);
         *write(&self.current) = Some(Arc::clone(&snapshot));
@@ -538,7 +565,7 @@ fn spawn_walk(repo: &gix::Repository, snapshot: &Arc<Snapshot>) {
 /// The refs the graph shows under `filter`. HEAD stays unless another ref is soloed; a solo
 /// ref that no longer exists is ignored.
 pub fn filter_refs(refs: GraphRefs, filter: &GraphFilter) -> GraphRefs {
-    if filter.is_empty() {
+    if !filter.filters_refs() {
         return refs;
     }
     let GraphRefs { labels, head, .. } = refs;
@@ -582,13 +609,25 @@ pub fn filter_refs(refs: GraphRefs, filter: &GraphFilter) -> GraphRefs {
     GraphRefs { tips, labels, head }
 }
 
+/// How a version walks the history.
+#[derive(Clone, Copy)]
+struct WalkMode {
+    /// Explore the whole history before the first row (dates misled a walk of this session).
+    exact: bool,
+    /// Follow first parents only (F-032).
+    first_parent: bool,
+}
+
 fn build(
     repo: &gix::Repository,
     mut store: CommitStore,
     refs: GraphRefs,
     fingerprint: u64,
     version: u32,
-    exact: bool,
+    WalkMode {
+        exact,
+        first_parent,
+    }: WalkMode,
     listener: Option<GraphListener>,
 ) -> Result<Snapshot, YagguiError> {
     let started = Instant::now();
@@ -607,6 +646,7 @@ fn build(
             store: &mut store,
             objects: &repo.objects,
             buf: &mut buf,
+            first_parent,
         },
         &tips,
         exact,
@@ -616,6 +656,7 @@ fn build(
     tracing::info!(
         tips = tips.len(),
         commit_graph = store.has_commit_graph(),
+        first_parent,
         exact,
         total_ms = started.elapsed().as_millis() as u64,
         version,
@@ -625,6 +666,7 @@ fn build(
     Ok(Snapshot {
         version,
         fingerprint,
+        first_parent,
         files: store.files().clone(),
         has_commit_graph: store.has_commit_graph(),
         labels,
@@ -633,6 +675,7 @@ fn build(
             walk,
             layout: Layout::new(head),
             buf,
+            first_parent,
             reporting: false,
             reported_at: None,
             reported_end: false,
@@ -712,6 +755,7 @@ pub fn page(
             store,
             walk,
             labels: &snapshot.labels,
+            first_parent: snapshot.first_parent,
         },
         start,
         end,

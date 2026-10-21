@@ -20,6 +20,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Apply a single file of a stash from the stash details (hover button or right-click), tracked or
   untracked: the stash is kept, a conflict is explained like for a whole stash, and the operation
   can be undone.
+- First-parent history in the graph: each branch's main line only, merges without the commits
+  they brought in. Toggle it from the toolbar, the palette or `Mod+Alt+R`; it is kept per
+  repository, and search and jumps follow it.
 
 ## [0.6.0] - 2026-10-20
 

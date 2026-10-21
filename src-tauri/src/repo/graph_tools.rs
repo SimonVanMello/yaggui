@@ -219,6 +219,7 @@ fn normalized_filter(filter: GraphFilter) -> Result<GraphFilter, YagguiError> {
         solo,
         hide_remotes: filter.hide_remotes,
         hide_stashes: filter.hide_stashes,
+        first_parent: filter.first_parent,
     })
 }
 
