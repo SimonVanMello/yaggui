@@ -403,6 +403,7 @@ fn stores_graph_filters_per_repo() {
         solo: Some("refs/heads/b".into()),
         hide_remotes: true,
         hide_stashes: false,
+        first_parent: true,
     };
     store.set_graph_filter(id, &filter).unwrap();
     assert_eq!(store.graph_filter(id).unwrap(), filter);

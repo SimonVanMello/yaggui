@@ -1757,8 +1757,8 @@ export type GitignoreRuleKind =
 export type GitignoreTemplate = "node" | "rust" | "dotNet" | "python" | "macOs" | "windows";
 
 /**
- *  Refs left out of the graph (F-028), kept per repository. HEAD's commit always stays,
- *  except in solo mode on another ref.
+ *  Refs left out of the graph (F-028) and first-parent mode (F-032), kept per repository.
+ *  HEAD's commit always stays, except in solo mode on another ref.
  */
 export type GraphFilter = {
 	/**
@@ -1776,6 +1776,12 @@ export type GraphFilter = {
 	hideRemotes: boolean,
 	/**  Stash labels hidden. */
 	hideStashes: boolean,
+	/**
+	 *  First-parent history (F-032): every tip shown follows its first parents only, so a
+	 *  commit only reachable through a merge's other parents is not a row. Merges stay rows,
+	 *  without the lines to their other parents.
+	 */
+	firstParent?: boolean,
 };
 
 /**  Result of `graph_index_of`. */
