@@ -4,6 +4,7 @@ mod commit_prefs;
 mod graph_filters;
 pub mod keybindings;
 mod migrations;
+pub mod prefs_sync;
 mod repo_ui_state;
 mod types;
 mod undo_journal;

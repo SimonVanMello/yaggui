@@ -7,6 +7,7 @@ import { Dialog } from '../../ui/Dialog';
 import { AppearanceTab } from './AppearanceTab';
 import { KeybindingsTab } from '../keybindings/KeybindingsTab';
 import { BehaviorTab } from './BehaviorTab';
+import { exportPreferencesFile, startPreferencesImport } from './prefsSync';
 import { GitConfigTab } from './GitConfigTab';
 import { GitTab } from './GitTab';
 import { ToolsTab } from './ToolsTab';
@@ -31,13 +32,33 @@ export function PreferencesDialog() {
       title={t('prefs.title')}
       description={t('prefs.description')}
       footer={
-        <Button
-          onClick={() => {
-            useShellStore.getState().setPreferencesOpen(false);
-          }}
-        >
-          {t('common.close')}
-        </Button>
+        <>
+          <div className={styles.sync}>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                void startPreferencesImport();
+              }}
+            >
+              {t('prefs.sync.import')}
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                void exportPreferencesFile();
+              }}
+            >
+              {t('prefs.sync.export')}
+            </Button>
+          </div>
+          <Button
+            onClick={() => {
+              useShellStore.getState().setPreferencesOpen(false);
+            }}
+          >
+            {t('common.close')}
+          </Button>
+        </>
       }
     >
       <Tabs.Root
