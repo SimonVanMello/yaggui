@@ -11,6 +11,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ### Added
 
+- Export your preferences and custom shortcuts to one JSON file, and import it on another machine
+  (Preferences dialog or command palette). The import lists what changes before applying anything;
+  the Git path, editor, terminal and diff/merge tools stay specific to each machine.
 - First-parent history in the graph: each branch's main line only, merges without the commits
   they brought in. Toggle it from the toolbar, the palette or `Mod+Alt+R`; it is kept per
   repository, and search and jumps follow it.

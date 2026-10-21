@@ -12,10 +12,11 @@ sources:
   - src-tauri/src/store/types.rs
   - src-tauri/src/store/mod.rs
   - src-tauri/src/store/keybindings.rs
+  - src-tauri/src/store/prefs_sync.rs
   - src-tauri/src/commands/store.rs
   - src-tauri/src/commands/settings.rs
   - src-tauri/src/state.rs
-requirements: [F-320, F-321, F-322, F-323, F-324, F-325, F-033, F-266, F-267, F-281]
+requirements: [F-320, F-321, F-322, F-323, F-324, F-325, F-033, F-266, F-267, F-281, F-326]
 ---
 
 Cette page recense tous les réglages de la boîte de dialogue **Préférences**, onglet par onglet. Chaque ligne renvoie vers la page qui explique la fonctionnalité.
@@ -145,4 +146,31 @@ La variable d’environnement `YAGGUI_CONFIG_DIR` remplace ce dossier.
 - Une valeur illisible ou hors limites reprend sa valeur par défaut. Si la base de données ne peut pas être ouverte, yaggui démarre avec les valeurs par défaut et ne conserve les changements qu’en mémoire : ils sont perdus quand vous quittez.
 - Pour réinitialiser toutes les préférences, quittez yaggui et supprimez `yaggui.db`. Cela fait aussi oublier vos dépôts, vos onglets et vos workspaces. Voir [Données et confidentialité](../../reference/data-and-privacy/).
 
-Il n’existe pas encore d’import ni d’export des préférences.
+## Import et export
+
+Pour emporter vos préférences et vos raccourcis sur une autre machine à la main, utilisez **Exporter…** et **Importer…**, en bas à gauche de la boîte de dialogue Préférences. Les deux mêmes commandes sont dans la palette de commandes : **Exporter les préférences et les raccourcis…** et **Importer des préférences et des raccourcis…**.
+
+**Exporter…** demande où enregistrer un fichier (`yaggui-preferences.json` par défaut) et y écrit vos préférences actuelles et vos raccourcis personnalisés. La notification « Préférences et raccourcis exportés » affiche le chemin.
+
+**Importer…** demande un fichier et ouvre **Importer des préférences**, qui liste ce qui changerait avant que rien ne soit appliqué : chaque préférence avec sa valeur actuelle et la nouvelle, chaque raccourci avec son association actuelle et la nouvelle, et ce qui est laissé de côté. Rien n’est écrit tant que vous n’avez pas cliqué sur **Importer**, qui applique tout en une seule étape. Si le fichier ne changerait rien, la boîte de dialogue le dit et **Importer** reste désactivé.
+
+### Ce que contient le fichier
+
+```json
+{
+  "format": "yaggui-preferences",
+  "version": 1,
+  "preferences": { "theme": "dark", "fontSize": 14 },
+  "keybindings": [{ "action": "tab.new", "shortcut": "Mod+N" }]
+}
+```
+
+- **Préférences exportées :** thème, style, langue, ce qu’ouvre le bouton Terminal, disposition et options du diff, contraste élevé, densité, polices de l’interface et du code, taille du texte, fetch automatique et son intervalle, nettoyage au fetch, stratégie de pull par défaut, branches protégées, confirmations désactivées et avatars Gravatar.
+- **Jamais exportés (propres à une machine) :** le chemin du binaire Git, l’éditeur, le terminal externe, les outils de diff et de merge, et la réponse à la question sur la vérification des mises à jour. Leurs chemins et leurs programmes diffèrent d’une installation à l’autre, et la vérification des mises à jour est un choix que vous faites sur chaque machine. Si un fichier les contient malgré tout, ils sont ignorés et listés sous **Laissé de côté**, et les valeurs de cette machine restent telles quelles.
+- **Raccourcis :** la liste `keybindings` est l’ensemble de vos raccourcis personnalisés. L’importer **remplace** les raccourcis personnalisés de cette machine : une commande que le fichier ne liste pas retrouve son raccourci par défaut. L’aperçu montre chaque changement.
+- **Les préférences absentes du fichier** gardent leur valeur sur cette machine. **Les clés inconnues** (un réglage ajouté par une version plus récente de yaggui, ou une faute de frappe) sont ignorées et listées.
+- Les profils d’identité, les modèles de commit, les dépôts, les onglets et les workspaces ne sont pas des préférences et ne sont jamais exportés.
+
+### Fichiers que yaggui refuse
+
+Un fichier qui n’est pas du JSON valide, qui n’est pas un fichier de préférences yaggui, qui contient une valeur hors limites ou du mauvais type (par exemple `"fontSize": 99`), ou un raccourci invalide est refusé en entier : rien n’est modifié et une notification « Impossible d'importer le fichier » en donne la raison, avec les clés fautives dans **Détails**. Un fichier dont la `version` est supérieure à celle que lit cette version de yaggui est refusé avec un message qui demande de mettre yaggui à jour. Voir [Messages d’erreur](../../reference/error-messages/).

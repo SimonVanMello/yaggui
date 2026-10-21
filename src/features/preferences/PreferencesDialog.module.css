@@ -51,3 +51,9 @@
 .panel[hidden] {
   display: none;
 }
+
+.sync {
+  display: flex;
+  gap: var(--space-2);
+  margin-right: auto;
+}
