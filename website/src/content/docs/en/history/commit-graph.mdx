@@ -1,11 +1,12 @@
 ---
 title: Commit graph
-description: Read the commit graph, select commits, inspect a commit, use the commit context menu, search the history, and hide or solo branches.
+description: Read the commit graph, select commits, inspect a commit, use the commit context menu, search the history, hide or solo branches, and follow first parents only.
 sidebar:
   order: 1
 sources:
   - src/features/graph/**
   - src/features/compare/compareActions.ts
+  - src/features/compare/graphToolActions.ts
   - src/app/RepoView.tsx
   - src-tauri/src/graph/**
   - src-tauri/src/commands/graph.rs
@@ -14,7 +15,23 @@ sources:
   - src-tauri/src/system/avatars.rs
   - src-tauri/src/git/ops/commit_graph.rs
 requirements:
-  [F-020, F-021, F-022, F-023, F-024, F-025, F-027, F-028, F-030, F-031, F-033, F-066, F-088, F-143]
+  [
+    F-020,
+    F-021,
+    F-022,
+    F-023,
+    F-024,
+    F-025,
+    F-027,
+    F-028,
+    F-030,
+    F-031,
+    F-032,
+    F-033,
+    F-066,
+    F-088,
+    F-143,
+  ]
 ---
 
 import Screenshot from '~/components/Screenshot.astro';
@@ -247,14 +264,34 @@ You can lighten the graph without changing the repository:
 
 Tags cannot be hidden.
 
-When a filter is active, a bar above the graph sums it up, for example "Only main", "2 refs hidden", "Remote branches hidden" or "Stashes hidden". In this bar:
+When a filter is active, a bar above the graph sums it up, for example "Only main", "2 refs hidden", "Remote branches hidden", "Stashes hidden" or "First-parent history". In this bar:
 
-- The **Graph filter** button opens **Hide remote branches** and **Hide stashes** checkboxes.
-- **Show all** clears every filter.
+- The **Graph filter** button opens **Hide remote branches**, **Hide stashes** and **First parent only** checkboxes.
+- **Show all** clears every filter, first-parent history included.
 
 In the sidebar, hidden branches show an eye icon ("Hidden from the graph") and the soloed branch a target icon.
 
 Filters are saved per repository and survive a restart. If saving fails, a toast says "The graph filter could not be saved". No Git command runs: yaggui rebuilds the graph in memory.
+
+## First-parent history
+
+First-parent history shows the main line of each branch: every branch, remote branch, tag and HEAD shown in the graph is followed through its first parents only, like `git log --first-parent --all`. A merge stays a row, with its message, but without the line to the commits it brought in. Commits that are only reachable through a merge's other parents are not in the graph.
+
+Turn it on or off with:
+
+- **First parent** in the toolbar (highlighted while it is on).
+- The palette action **Graph: turn first-parent history on or off**, or <kbd>⌘⌥P</kbd> (<kbd>Ctrl+Alt+P</kbd> on Windows and Linux).
+- **First parent only** in the **Graph filter** menu of the filter bar.
+
+While it is on, the filter bar reads "First-parent history". The mode combines with the other filters: with **Show only this branch**, you get the linear history of that branch. It is saved per repository and survives a restart.
+
+What changes in this mode:
+
+- The commits of a branch that still exists stay visible on that branch's own line, without the merge line to them. The commits of a deleted branch, once merged, are absent.
+- Stash labels show only when the commit the stash was made from is in the first-parent history.
+- The **Work in progress** row is unchanged: HEAD is always followed.
+- The [search](#search-the-history) only looks through the first-parent history. The search bar reads "First-parent history only" with **Show full history**, which leaves the mode and searches again.
+- [Jumping](#jump-to-a-commit) to a commit that is not in the first-parent history (a parent, a merge-base, a commit from the palette) says "_abc1234_ is not in the first-parent history" ("Commits brought in by a merge are only in the full history."). **Show full history** in that message leaves the mode and shows the commit.
 
 ## Jump to a commit
 
@@ -270,7 +307,7 @@ Filters are saved per repository and survive a restart. If saving fails, a toast
 The commit is selected and centered. For a merge-base, you may see:
 
 - "No common ancestor: these histories are unrelated".
-- "The merge-base _abc1234_ is not shown in the graph (filter)": the commit is selected and its details are shown, but a [filter](#hide-solo-and-filter-branches) hides its row.
+- "The merge-base _abc1234_ is not shown in the graph (filter)": the commit is selected and its details are shown, but a [filter](#hide-solo-and-filter-branches) hides its row. In [first-parent history](#first-parent-history), the message is the one of that mode, with **Show full history**.
 - "The merge-base could not be found": an error occurred, with details.
 
 ## Long histories

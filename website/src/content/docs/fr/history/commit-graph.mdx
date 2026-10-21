@@ -1,11 +1,12 @@
 ---
 title: Graphe des commits
-description: Lire le graphe des commits, sélectionner des commits, inspecter un commit, utiliser le menu contextuel, rechercher dans l’historique, et masquer ou isoler des branches.
+description: Lire le graphe des commits, sélectionner des commits, inspecter un commit, utiliser le menu contextuel, rechercher dans l’historique, masquer ou isoler des branches, et ne suivre que les premiers parents.
 sidebar:
   order: 1
 sources:
   - src/features/graph/**
   - src/features/compare/compareActions.ts
+  - src/features/compare/graphToolActions.ts
   - src/app/RepoView.tsx
   - src-tauri/src/graph/**
   - src-tauri/src/commands/graph.rs
@@ -14,7 +15,23 @@ sources:
   - src-tauri/src/system/avatars.rs
   - src-tauri/src/git/ops/commit_graph.rs
 requirements:
-  [F-020, F-021, F-022, F-023, F-024, F-025, F-027, F-028, F-030, F-031, F-033, F-066, F-088, F-143]
+  [
+    F-020,
+    F-021,
+    F-022,
+    F-023,
+    F-024,
+    F-025,
+    F-027,
+    F-028,
+    F-030,
+    F-031,
+    F-032,
+    F-033,
+    F-066,
+    F-088,
+    F-143,
+  ]
 ---
 
 import Screenshot from '~/components/Screenshot.astro';
@@ -247,14 +264,34 @@ Vous pouvez alléger le graphe sans modifier le dépôt :
 
 Les tags ne peuvent pas être masqués.
 
-Quand un filtre est actif, une barre au-dessus du graphe le résume, par exemple « Seulement main », « 2 refs masquées », « Branches distantes masquées » ou « Stashes masqués ». Dans cette barre :
+Quand un filtre est actif, une barre au-dessus du graphe le résume, par exemple « Seulement main », « 2 refs masquées », « Branches distantes masquées » ou « Stashes masqués » ou « Historique premier parent ». Dans cette barre :
 
-- Le bouton **Filtre du graphe** ouvre les cases à cocher **Masquer les branches distantes** et **Masquer les stashes**.
-- **Tout afficher** supprime tous les filtres.
+- Le bouton **Filtre du graphe** ouvre les cases à cocher **Masquer les branches distantes**, **Masquer les stashes** et **Premier parent seulement**.
+- **Tout afficher** supprime tous les filtres, historique premier parent compris.
 
 Dans la barre latérale, les branches masquées affichent une icône d’œil (« Masquée du graphe ») et la branche isolée une icône de cible.
 
 Les filtres sont enregistrés par dépôt et survivent à un redémarrage. Si l’enregistrement échoue, une notification indique « Le filtre du graphe n'a pas pu être enregistré ». Aucune commande Git n’est exécutée : yaggui reconstruit le graphe en mémoire.
+
+## Historique premier parent
+
+L’historique premier parent montre la ligne principale de chaque branche : chaque branche, branche distante, tag et HEAD affichés dans le graphe n’est suivi que par ses premiers parents, comme `git log --first-parent --all`. Un merge reste une ligne, avec son message, mais sans le trait vers les commits qu’il a apportés. Les commits accessibles uniquement par les autres parents d’un merge ne sont pas dans le graphe.
+
+Activez-le ou désactivez-le avec :
+
+- **Premier parent** dans la barre d’outils (en surbrillance tant qu’il est actif).
+- L’action de palette **Graphe : activer ou désactiver l'historique premier parent**, ou <kbd>⌘⌥P</kbd> (<kbd>Ctrl+Alt+P</kbd> sous Windows et Linux).
+- **Premier parent seulement** dans le menu **Filtre du graphe** de la barre de filtre.
+
+Tant qu’il est actif, la barre de filtre affiche « Historique premier parent ». Le mode se combine avec les autres filtres : avec **Afficher seulement cette branche**, vous obtenez l’historique linéaire de cette branche. Il est enregistré par dépôt et survit à un redémarrage.
+
+Ce qui change dans ce mode :
+
+- Les commits d’une branche qui existe encore restent visibles sur la ligne de cette branche, sans le trait de merge vers eux. Les commits d’une branche supprimée, une fois mergée, sont absents.
+- Les étiquettes de stash ne s’affichent que si le commit à partir duquel le stash a été créé est dans l’historique premier parent.
+- La ligne **Travail en cours** ne change pas : HEAD est toujours suivi.
+- La [recherche](#rechercher-dans-lhistorique) ne parcourt que l’historique premier parent. La barre de recherche indique « Historique premier parent seulement » avec **Afficher tout l'historique**, qui quitte le mode et relance la recherche.
+- [Aller](#aller-à-un-commit) à un commit qui n’est pas dans l’historique premier parent (un parent, un merge-base, un commit depuis la palette) indique « _abc1234_ n'est pas dans l'historique premier parent » (« Les commits apportés par un merge ne sont que dans l'historique complet. »). **Afficher tout l'historique** dans ce message quitte le mode et affiche le commit.
 
 ## Aller à un commit
 
@@ -270,7 +307,7 @@ Les filtres sont enregistrés par dépôt et survivent à un redémarrage. Si l�
 Le commit est sélectionné et centré. Pour un merge-base, vous pouvez voir :
 
 - « Aucun ancêtre commun : ces historiques n'ont pas de lien ».
-- « Le merge-base _abc1234_ n'est pas affiché dans le graphe (filtre) » : le commit est sélectionné et son détail s’affiche, mais un [filtre](#masquer-isoler-et-filtrer-des-branches) masque sa ligne.
+- « Le merge-base _abc1234_ n'est pas affiché dans le graphe (filtre) » : le commit est sélectionné et son détail s’affiche, mais un [filtre](#masquer-isoler-et-filtrer-des-branches) masque sa ligne. En [historique premier parent](#historique-premier-parent), c’est le message de ce mode qui s’affiche, avec **Afficher tout l'historique**.
 - « Le merge-base n'a pas pu être trouvé » : une erreur s’est produite, avec des détails.
 
 ## Historiques volumineux
