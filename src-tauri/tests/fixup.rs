@@ -53,7 +53,11 @@ fn env() -> Env {
         base: String::new(),
     };
     env.base = env.rev("HEAD");
-    for (path, message) in [("a.txt", "c1: add a"), ("b.txt", "c2: add b"), ("c.txt", "c3: add c")] {
+    for (path, message) in [
+        ("a.txt", "c1: add a"),
+        ("b.txt", "c2: add b"),
+        ("c.txt", "c3: add c"),
+    ] {
         env.commit(path, "1\n", message);
     }
     env
@@ -95,10 +99,15 @@ impl Env {
 
     /// Subjects from the base to HEAD, oldest first.
     fn subjects(&self) -> Vec<String> {
-        self.out(&["log", "--reverse", "--format=%s", &format!("{}..HEAD", self.base)])
-            .lines()
-            .map(str::to_owned)
-            .collect()
+        self.out(&[
+            "log",
+            "--reverse",
+            "--format=%s",
+            &format!("{}..HEAD", self.base),
+        ])
+        .lines()
+        .map(str::to_owned)
+        .collect()
     }
 
     fn plan(&self, base: Option<&str>) -> Option<AutosquashPlan> {
@@ -113,7 +122,12 @@ fn arrangement(plan: &AutosquashPlan) -> Vec<(String, RebaseAction)> {
     plan.todo
         .iter()
         .map(|entry| {
-            let commit = plan.plan.commits.iter().find(|c| c.sha == entry.sha).unwrap();
+            let commit = plan
+                .plan
+                .commits
+                .iter()
+                .find(|c| c.sha == entry.sha)
+                .unwrap();
             (commit.summary.clone(), entry.action)
         })
         .collect()
@@ -208,11 +222,19 @@ fn plan_moves_fixups_under_their_targets_from_the_oldest_target() {
         .unwrap();
     assert_eq!(
         env.subjects(),
-        ["c1: add a", "c2: add b", "c3: add c", "fixup! nothing like this"]
+        [
+            "c1: add a",
+            "c2: add b",
+            "c3: add c",
+            "fixup! nothing like this"
+        ]
     );
     assert_eq!(env.out(&["show", "HEAD~3:a.txt"]), "2");
     assert_eq!(env.out(&["show", "HEAD~2:b.txt"]), "3");
-    assert_eq!(env.out(&["log", "-1", "--format=%B", "HEAD~2"]), "c2: add b");
+    assert_eq!(
+        env.out(&["log", "-1", "--format=%B", "HEAD~2"]),
+        "c2: add b"
+    );
     assert!(env.plan(None).is_none(), "nothing left to squash");
 }
 
@@ -254,7 +276,8 @@ fn plan_without_fixups_is_none_and_stops_at_merges() {
     env.fx.git(&["switch", "-q", "-c", "side", "HEAD~1"]);
     env.commit("side.txt", "s\n", "side work");
     env.fx.git(&["switch", "-q", "main"]);
-    env.fx.git(&["merge", "-q", "--no-ff", "-m", "merge side", "side"]);
+    env.fx
+        .git(&["merge", "-q", "--no-ff", "-m", "merge side", "side"]);
     env.fixup("a.txt", "2\n", "HEAD~1~2");
     assert_eq!(env.out(&["log", "-1", "--format=%s"]), "fixup! c1: add a");
     assert!(env.plan(None).is_none());
