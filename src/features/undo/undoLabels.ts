@@ -93,6 +93,8 @@ export function opMessage(op: JournalOp): Message {
         ? { key: 'undo.op.stashPush.file', params: { path: first } }
         : { key: 'undo.op.stashPush', params: { count: op.count } };
     }
+    case 'stashApplyFile':
+      return { key: 'undo.op.stashApplyFile', params: { path: op.path, message: op.message } };
     case 'gitignore':
       return { key: 'undo.op.gitignore', params: { rule: op.rule } };
     case 'deleteBranches': {

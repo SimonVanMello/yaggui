@@ -179,6 +179,18 @@ pub struct StashId {
     pub sha: String,
 }
 
+/// One file of a stash to bring back into the working tree (F-185).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct StashFileRequest {
+    pub stash: StashId,
+    /// Repository-relative path, as the stash preview lists it.
+    pub path: String,
+    /// The file comes from the untracked files of the stash (its third parent), not from
+    /// its tracked changes.
+    pub untracked: bool,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct DeleteBranchRequest {
@@ -665,6 +677,21 @@ pub struct InteractiveRebasePlan {
     pub pushed: u32,
 }
 
+/// An interactive rebase plan with the `fixup!` commits already moved under their targets
+/// (F-147), for review before running it.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct AutosquashPlan {
+    pub plan: InteractiveRebasePlan,
+    /// Every commit of `plan` once, oldest first: each matched `fixup!` commit as a `fixup`
+    /// right after its target, the others as `pick`. No messages.
+    pub todo: Vec<RebaseTodoEntry>,
+    /// SHAs of the `fixup!` commits whose target is not in the plan: left in place, picked.
+    pub unmatched: Vec<String>,
+    /// Number of `fixup` entries of `todo`.
+    pub fixups: u32,
+}
+
 /// Maximum number of commits of an interactive rebase plan.
 pub const REBASE_PLAN_MAX: u32 = 200;
 
@@ -902,6 +929,11 @@ pub enum JournalOp {
         message: String,
         paths: Vec<String>,
         count: u32,
+    },
+    /// One file applied from a stash (F-185); the stash itself is untouched.
+    StashApplyFile {
+        message: String,
+        path: String,
     },
     /// A rule appended to the repository's `.gitignore` (F-069).
     Gitignore {

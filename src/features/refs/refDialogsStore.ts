@@ -31,7 +31,14 @@ export type RefDialog =
       paths: string[];
       canCarry: boolean;
     }
-  | { kind: 'stashConflict'; repoId: number; paths: string[]; checkedOut: boolean }
+  | {
+      kind: 'stashConflict';
+      repoId: number;
+      paths: string[];
+      checkedOut: boolean;
+      /** Only this file of the stash was applied (F-185). */
+      file: string | null;
+    }
   | { kind: 'stashRename'; repoId: number; stash: StashId; message: string };
 
 interface RefDialogsStore {

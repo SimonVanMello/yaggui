@@ -9,8 +9,8 @@ use super::blocking;
 use crate::git::errors::YagguiError;
 use crate::git::ops::types::{
     BranchStart, CheckoutMode, CheckoutResult, CheckoutTarget, CreateTagRequest,
-    DeleteBranchRequest, DeleteBranchResult, DeletedRef, RefNameKind, StashEntryInfo, StashId,
-    StashPushRequest,
+    DeleteBranchRequest, DeleteBranchResult, DeletedRef, RefNameKind, StashEntryInfo,
+    StashFileRequest, StashId, StashPushRequest,
 };
 use crate::state::AppState;
 
@@ -130,6 +130,21 @@ pub async fn stash_apply(
 ) -> Result<(), YagguiError> {
     let repos = Arc::clone(&state.repos);
     blocking(move || repos.stash_apply(repo_id, stash)).await
+}
+
+/// Applies one file of a stash into the working tree and keeps the stash (F-185), undoable
+/// like a discard. Errors: `stashConflict` (journaled: the undo puts the file back),
+/// `dirtyWorktree` (local changes to the file, or a file already at its path),
+/// `invalidArgument`, `staleRefs`.
+#[tauri::command]
+#[specta::specta]
+pub async fn stash_apply_file(
+    state: State<'_, AppState>,
+    repo_id: u32,
+    request: StashFileRequest,
+) -> Result<(), YagguiError> {
+    let repos = Arc::clone(&state.repos);
+    blocking(move || repos.stash_apply_file(repo_id, request)).await
 }
 
 /// Applies a stash, then drops it when it applied without conflict (`stashConflict`: kept).

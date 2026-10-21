@@ -18,6 +18,8 @@ interface CommitListProps {
   rows: readonly RebaseRow[];
   onRows: (rows: RebaseRow[]) => void;
   upstream: string | null;
+  /** SHAs of the `fixup!` commits no target was found for (autosquash). */
+  unmatched?: ReadonlySet<string>;
   label: string;
 }
 
@@ -36,7 +38,7 @@ const SCROLL_STEP = 16;
  * handling of the window on Windows) and by keyboard: ↑ ↓ move the focus, Alt+↑ Alt+↓ move
  * the commit, `p r s f d e` set its action, Enter edits its message.
  */
-export function CommitList({ rows, onRows, upstream, label }: CommitListProps) {
+export function CommitList({ rows, onRows, upstream, unmatched, label }: CommitListProps) {
   const locale = useI18nStore((state) => state.locale);
   const now = useNow();
   const count = rows.length;
@@ -214,6 +216,7 @@ export function CommitList({ rows, onRows, upstream, label }: CommitListProps) {
             finalMessage={group && holdsMessage ? group.message : null}
             editing={editing === index}
             upstream={upstream}
+            unmatched={unmatched?.has(row.commit.sha) === true}
             now={now}
             locale={locale}
             onSelect={(next) => {

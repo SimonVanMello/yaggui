@@ -271,6 +271,13 @@ export const commands = {
 	/**  Applies a stash and keeps it. Errors: `stashConflict`, `dirtyWorktree`, `staleRefs`. */
 	stashApply: (repoId: number, stash: StashId) => typedError<null, YagguiError>(__TAURI_INVOKE("stash_apply", { repoId, stash })),
 	/**
+	 *  Applies one file of a stash into the working tree and keeps the stash (F-185), undoable
+	 *  like a discard. Errors: `stashConflict` (journaled: the undo puts the file back),
+	 *  `dirtyWorktree` (local changes to the file, or a file already at its path),
+	 *  `invalidArgument`, `staleRefs`.
+	 */
+	stashApplyFile: (repoId: number, request: StashFileRequest) => typedError<null, YagguiError>(__TAURI_INVOKE("stash_apply_file", { repoId, request })),
+	/**
 	 *  Applies a stash, then drops it when it applied without conflict (`stashConflict`: kept).
 	 *  Returns the dropped entry, for the undo.
 	 */
@@ -415,6 +422,31 @@ export const commands = {
 	 *  `detachedHead` (older commit). Cancellable.
 	 */
 	rewordCommit: (repoId: number, sha: string, message: string) => typedError<CommitResult, YagguiError>(__TAURI_INVOKE("reword_commit", { repoId, sha, message })),
+	/**
+	 *  Commits the staged changes as `fixup! <subject of target>` (`git commit --fixup`), hooks
+	 *  included; journaled and undoable like a commit (F-147). Errors: `nothingToCommit`,
+	 *  `hookFailed`, `identityUnknown`, `revisionNotFound`, `invalidArgument` (commit not on
+	 *  the current branch). Cancellable.
+	 */
+	commitFixup: (repoId: number, target: string) => typedError<CommitResult, YagguiError>(__TAURI_INVOKE("commit_fixup", { repoId, target })),
+	/**
+	 *  The plan of `base..HEAD` with its `fixup!` commits moved under their targets, for the
+	 *  interactive rebase view (F-147). Without `base`: from the parent of the oldest commit a
+	 *  fixup of the current branch targets (first parents from HEAD, up to the first merge),
+	 *  `None` when no fixup has a target. Read-only. Errors: as `interactiveRebasePlan`.
+	 */
+	autosquashPlan: (repoId: number, base: string | null) => typedError<{
+	plan: InteractiveRebasePlan,
+	/**
+	 *  Every commit of `plan` once, oldest first: each matched `fixup!` commit as a `fixup`
+	 *  right after its target, the others as `pick`. No messages.
+	 */
+	todo: RebaseTodoEntry[],
+	/**  SHAs of the `fixup!` commits whose target is not in the plan: left in place, picked. */
+	unmatched: string[],
+	/**  Number of `fixup` entries of `todo`. */
+	fixups: number,
+} | null, YagguiError>(__TAURI_INVOKE("autosquash_plan", { repoId, base })),
 	/**
 	 *  One page (≤ 500 entries, newest first) of the commits that changed `path`, following
 	 *  renames like `git log --follow`. Starts at `rev` (HEAD when `None`), or continues at
@@ -732,6 +764,23 @@ export type AppInfo = {
 export type AppliedImport = {
 	preferences: Preferences,
 	keybindings: KeybindingsFile,
+};
+
+/**
+ *  An interactive rebase plan with the `fixup!` commits already moved under their targets
+ *  (F-147), for review before running it.
+ */
+export type AutosquashPlan = {
+	plan: InteractiveRebasePlan,
+	/**
+	 *  Every commit of `plan` once, oldest first: each matched `fixup!` commit as a `fixup`
+	 *  right after its target, the others as `pick`. No messages.
+	 */
+	todo: RebaseTodoEntry[],
+	/**  SHAs of the `fixup!` commits whose target is not in the plan: left in place, picked. */
+	unmatched: string[],
+	/**  Number of `fixup` entries of `todo`. */
+	fixups: number,
 };
 
 export type Blame = {
@@ -2150,6 +2199,8 @@ export type JournalOp =
 { kind: "updateSubmodules"; count: number } | 
 /**  Stash of selected files (F-182). `paths` / `count` as for `Discard`. */
 { kind: "stashPush"; message: string; paths: string[]; count: number } | 
+/**  One file applied from a stash (F-185); the stash itself is untouched. */
+{ kind: "stashApplyFile"; message: string; path: string } | 
 /**  A rule appended to the repository's `.gitignore` (F-069). */
 { kind: "gitignore"; rule: string } | 
 /**
@@ -2970,6 +3021,18 @@ export type SigningFormat = "openpgp" | "ssh" | "x509";
 export type StashEntryInfo = {
 	sha: string,
 	message: string,
+};
+
+/**  One file of a stash to bring back into the working tree (F-185). */
+export type StashFileRequest = {
+	stash: StashId,
+	/**  Repository-relative path, as the stash preview lists it. */
+	path: string,
+	/**
+	 *  The file comes from the untracked files of the stash (its third parent), not from
+	 *  its tracked changes.
+	 */
+	untracked: boolean,
 };
 
 /**

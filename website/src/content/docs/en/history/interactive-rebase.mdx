@@ -11,9 +11,10 @@ sources:
   - src/features/graph/CommitMessageEditor.tsx
   - src/features/palette/builtinActions.ts
   - src-tauri/src/repo/interactive.rs
+  - src-tauri/src/repo/fixup.rs
   - src-tauri/src/git/ops/rebase_todo.rs
   - src-tauri/src/commands/history.rs
-requirements: [F-142]
+requirements: [F-142, F-147]
 ---
 
 import Screenshot from '~/components/Screenshot.astro';
@@ -28,6 +29,8 @@ You choose a **base**: the commit the rewritten commits are placed on. The base 
 
 - **From a commit**: right-click a commit of the current branch in the graph and choose **Interactive rebase from here…**. That commit is the base.
 - **From the palette**: run **Interactive rebase from…** (<kbd>⌘K</kbd>, or <kbd>Ctrl+K</kbd> on Windows and Linux). If a commit other than HEAD is selected in the graph, it is the base. Otherwise a picker asks "Rebase on top of which commit? The commits above it will be listed." and lists the 30 latest commits of the branch (first parents only), each with **\{count\} commits above**. Use <kbd>↑</kbd>/<kbd>↓</kbd> and <kbd>Enter</kbd>, or click one.
+
+To meld fixup commits into the commits they fix, use [Autosquash](#autosquash): it opens the same editor with the list already arranged.
 
 The editor replaces the graph. Both entry points are disabled while another operation is in progress.
 
@@ -133,6 +136,39 @@ After **Continue** or **Skip**, the panel follows the next stop, or closes when 
 :::caution
 **Abort rebase** in this panel runs `git rebase --abort` without asking for confirmation (the banner's **Abort rebase** asks). The branch goes back to how it was before the rebase. Toast: **Rebase of \{branch\} aborted**.
 :::
+
+## Fixup commits and autosquash
+
+A fixup commit carries a correction for an older commit of the branch, to be melded into it later.
+
+### Create a fixup
+
+Stage the correction, then right-click the commit it fixes in the graph and choose **Create a fixup for this commit**, or select that commit and run **Create a fixup for the selected commit** from the palette. yaggui commits the staged changes with `git commit --fixup=<sha>`: the message is `fixup! ` followed by the summary of that commit (`fixup! fixup! …` for a fixup of a fixup). Hooks run as for any commit; a rejection shows its output in the commit panel.
+
+The toast reads **Fixup \{sha\} created for \{target\}**, with an **Autosquash** button. Like a commit, the fixup is undoable with <kbd>⌘Z</kbd> (<kbd>Ctrl+Z</kbd> on Windows and Linux): see [Undo and redo](../../history/undo-and-redo/).
+
+The entry is disabled, with the reason, when nothing is staged (**Stage the changes of the fixup first**), when the repository has no commit yet (**No commit yet**) or while an operation is in progress. A commit that is not on the current branch is refused: "This commit is not on the current branch: check out its branch to create a fixup for it."
+
+### Autosquash
+
+**Autosquash** opens the interactive rebase editor with each fixup already moved right above the commit it fixes and set to **Fixup**, so you review the list before running it. Nothing is rewritten until you click **Start rebase**. It is offered:
+
+- in the palette: **Autosquash the fixups…**;
+- in the menu of a `fixup!` commit in the graph: **Autosquash the fixups…**;
+- as the **Autosquash** button of the toast after creating a fixup;
+- as the **Autosquash** button of the editor header, when the list contains `fixup!` commits. It arranges the list again from the same base; your edits are replaced.
+
+From the palette, the menu and the toast, the base is the parent of the oldest commit a fixup targets, looked for among the latest commits of the branch: first parents from the tip, up to the first merge commit, 200 commits at most. When no fixup has a target there, a toast says **No fixup commit to squash on this branch**. The header shows **\{count\} fixups moved under their targets**.
+
+Fixups are matched like `git rebase --autosquash`:
+
+- every `fixup! ` prefix is removed from the summary, so a fixup of a fixup goes under the original commit;
+- the target is the oldest commit below the fixup with exactly that summary; otherwise the commit below whose SHA starts with it (4 characters or more); otherwise the oldest commit below whose summary starts with it;
+- several fixups of the same commit keep their order under it.
+
+A fixup whose target is not in the list (the target is the base or older, or nothing matches) stays where it is, as **Pick**, with **No commit of the list matches this fixup: left in place**. Only `fixup!` commits are moved: `squash!` and `amend!` commits stay as **Pick**.
+
+The rest is the usual editor: change what you want, then [confirm and run](#confirm-and-run). A rebase that rewrites pushed commits needs a force push, and the rebase itself is not undoable.
 
 ## Edit the message of one commit
 

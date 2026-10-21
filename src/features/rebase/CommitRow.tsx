@@ -39,6 +39,8 @@ interface CommitRowProps extends RowHandlers {
   finalMessage: string | null;
   editing: boolean;
   upstream: string | null;
+  /** A `fixup!` commit whose target is not in the list (autosquash): left as it is. */
+  unmatched: boolean;
   now: number;
   locale: Locale;
 }
@@ -57,6 +59,7 @@ export function CommitRow({
   finalMessage,
   editing,
   upstream,
+  unmatched,
   now,
   locale,
   onSelect,
@@ -71,6 +74,8 @@ export function CommitRow({
   const { commit, action } = row;
   const time = commit.authorTime;
   const sha = shortSha(commit.sha);
+  // Only while it is still left as it is: moved or melded by hand, it is the user's call.
+  const noTarget = unmatched && meldedInto === null && action !== 'edit';
 
   return (
     <li
@@ -142,14 +147,15 @@ export function CommitRow({
         )}
       </span>
 
-      {(meldedInto !== null || action === 'edit' || issue !== undefined) && (
-        <p className={styles.note} data-tone={issue ? 'warning' : undefined}>
+      {(meldedInto !== null || action === 'edit' || issue !== undefined || noTarget) && (
+        <p className={styles.note} data-tone={issue || noTarget ? 'warning' : undefined}>
           {issue === 'noTarget' && t('rebaseInteractive.issue.noTarget')}
           {issue === 'emptyMessage' && t('rebaseInteractive.issue.emptyMessage')}
           {issue === undefined &&
             meldedInto !== null &&
             t('rebaseInteractive.meldedInto', { summary: meldedInto })}
           {issue === undefined && action === 'edit' && t('rebaseInteractive.stopsHere')}
+          {issue === undefined && noTarget && t('rebaseInteractive.fixupNoTarget')}
         </p>
       )}
 

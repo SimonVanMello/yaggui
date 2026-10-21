@@ -15,9 +15,12 @@ import { refTargetOf } from '../sidebar/sidebarRows';
 import { useRepoRefs } from '../sidebar/useRepoRefs';
 import { cherryPickCommits, revertCommit } from '../history/historyOps';
 import { openCreateBranch, openCreateTag } from '../refs/refCommands';
+import { createFixup, fixupBlock, startAutosquash } from '../rebase/fixupOps';
+import { isFixupSummary } from '../rebase/rebaseModel';
 import { openInteractiveRebase } from '../rebase/rebaseStore';
 import { checkout } from '../refs/refOps';
 import { shortOid } from '../repo/repoStatus';
+import { useRepoState } from '../repo/useRepoState';
 import type { GraphRow } from './pageCache';
 import type { MenuRef } from './refLabels';
 import type { PickedCommit } from './selectionModel';
@@ -69,6 +72,7 @@ export function CommitContextMenu({
   const refs = useRepoRefs(repoId).data;
   const refTarget = refLabel && refs ? refTargetOf(refs, refLabel.kind, refLabel.name) : null;
   const isHead = target?.refs.some((r) => r.isHead || r.kind === 'head') ?? false;
+  const fixupBlocked = fixupBlock(useRepoState(repoId).data);
 
   const refContent = refTarget ? (
     <RefContextMenu repoId={repoId} target={refTarget} current={current} />
@@ -230,9 +234,28 @@ export function CommitContextMenu({
           {t('graph.menu.reword')}
         </ContextMenuItem>
         <ContextMenuSeparator />
-        <ContextMenuItem disabled hint={t('graph.menu.v2')}>
+        <ContextMenuItem
+          icon="plus"
+          disabled={fixupBlocked !== null}
+          hint={fixupBlocked === null ? undefined : t(fixupBlocked)}
+          onSelect={() => {
+            void createFixup(repoId, target.sha);
+          }}
+        >
           {t('graph.menu.fixup')}
         </ContextMenuItem>
+        {isFixupSummary(target.summary) && (
+          <ContextMenuItem
+            icon="merge"
+            disabled={busy}
+            hint={busyHint}
+            onSelect={() => {
+              void startAutosquash(repoId);
+            }}
+          >
+            {t('graph.menu.autosquash')}
+          </ContextMenuItem>
+        )}
         <ContextMenuItem
           icon="compare"
           onSelect={() => {

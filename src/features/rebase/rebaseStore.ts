@@ -15,6 +15,11 @@ export interface RebaseSession {
   rows: RebaseRow[] | null;
   /** Set once the rebase started and halted: the view then shows the way to go on. */
   stop: RebaseStop | null;
+  /**
+   * Autosquash (F-147): the todo starts with the fixups under their targets. With a `null`
+   * base, the backend picks it: the parent of the oldest commit a fixup targets.
+   */
+  autosquash: boolean;
 }
 
 interface RebaseStore {
@@ -40,9 +45,27 @@ function patch(repoId: number, change: (session: RebaseSession) => RebaseSession
 export function openInteractiveRebase(repoId: number, base: string | null): void {
   useRebaseStore.setState((state) => {
     const current = state.sessions[repoId];
-    if (current && current.base === base) return state;
-    return { sessions: { ...state.sessions, [repoId]: { base, rows: null, stop: null } } };
+    if (current && current.base === base && !current.autosquash) return state;
+    return {
+      sessions: {
+        ...state.sessions,
+        [repoId]: { base, rows: null, stop: null, autosquash: false },
+      },
+    };
   });
+}
+
+/**
+ * Opens the interactive rebase view with the fixups already moved under their targets
+ * (F-147), for review before running it. Any edit of an open session is replaced.
+ */
+export function openAutosquash(repoId: number, base: string | null): void {
+  useRebaseStore.setState((state) => ({
+    sessions: {
+      ...state.sessions,
+      [repoId]: { base, rows: null, stop: null, autosquash: true },
+    },
+  }));
 }
 
 /** Closes the view and forgets its edits. A rebase already started keeps running in Git. */
@@ -63,7 +86,7 @@ export function useInteractiveRebase(repoId: number): RebaseSession | undefined 
 
 /** Picks the base from the picker. */
 export function chooseRebaseBase(repoId: number, base: string): void {
-  patch(repoId, (session) => ({ ...session, base, rows: null, stop: null }));
+  patch(repoId, (session) => ({ ...session, base, rows: null, stop: null, autosquash: false }));
 }
 
 export function setRebaseRows(repoId: number, rows: RebaseRow[] | null): void {

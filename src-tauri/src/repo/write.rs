@@ -598,7 +598,17 @@ pub(super) fn commit(
     if request.skip_hooks {
         command = command.arg("--no-verify");
     }
-    let command = command.stdin(message).capture_limit(HOOK_OUTPUT_LIMIT);
+    run_commit(ctx, command.stdin(message), request.skip_hooks)
+}
+
+/// Runs a `git commit` built by the caller: a failing hook is reported with its output.
+/// Returns the new HEAD.
+pub(super) fn run_commit(
+    ctx: &WriteContext<'_>,
+    command: GitCommand,
+    skip_hooks: bool,
+) -> Result<CommitResult, YagguiError> {
+    let command = command.capture_limit(HOOK_OUTPUT_LIMIT);
     let run = ctx.git.run_raw(&command, Some(ctx.cancel), None)?;
     if !run.success {
         let workdir = ctx.workdir.display().to_string();
@@ -609,7 +619,7 @@ pub(super) fn commit(
         if run.exit_code == Some(1)
             && matches!(err.code, ErrorCode::GitFailed | ErrorCode::StaleDiff)
         {
-            let hooks = commit_hooks(ctx, request.skip_hooks);
+            let hooks = commit_hooks(ctx, skip_hooks);
             if !hooks.is_empty() {
                 let name = (hooks.len() == 1).then_some(hooks[0]);
                 return Err(YagguiError::hook_failed(
@@ -756,6 +766,18 @@ pub(super) enum IndexSide {
         id: gix::ObjectId,
         mode: u32,
     },
+    /// Conflict stages (base, ours, theirs) left by a merge of the file.
+    Unmerged {
+        stages: [Option<StageEntry>; 3],
+    },
+}
+
+/// One conflict stage of an index entry.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub(super) struct StageEntry {
+    #[serde(with = "super::journal::oid")]
+    pub(super) id: gix::ObjectId,
+    pub(super) mode: u32,
 }
 
 pub(super) const MODE_FILE: u32 = 0o100_644;
@@ -796,6 +818,11 @@ impl Backup {
             },
             saved: Vec::new(),
         })
+    }
+
+    /// The backup folder, for files an operation keeps next to the backup (a patch).
+    pub(super) fn dir(&self) -> &Path {
+        &self.dir
     }
 
     fn next_file(&self, kind: &str) -> String {

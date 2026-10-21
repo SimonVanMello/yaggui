@@ -34,6 +34,33 @@ export function initialRows(plan: InteractiveRebasePlan): RebaseRow[] {
   return plan.commits.map((commit) => ({ commit, action: 'pick', message: null }));
 }
 
+/**
+ * Rows in the order and with the actions of `todo` (an autosquash arrangement, F-147).
+ * Falls back to the plan's order if the todo does not list every commit of the plan once.
+ */
+export function rowsFromTodo(
+  plan: InteractiveRebasePlan,
+  todo: readonly RebaseTodoEntry[],
+): RebaseRow[] {
+  const bySha = new Map(plan.commits.map((commit) => [commit.sha, commit]));
+  const rows: RebaseRow[] = [];
+  for (const entry of todo) {
+    const commit = bySha.get(entry.sha);
+    if (!commit) return initialRows(plan);
+    bySha.delete(entry.sha);
+    rows.push({ commit, action: entry.action, message: entry.message });
+  }
+  return bySha.size === 0 ? rows : initialRows(plan);
+}
+
+/** Prefix of the message of a fixup commit (`git commit --fixup`). */
+export const FIXUP_PREFIX = 'fixup! ';
+
+/** Whether a commit summary is the one of a fixup commit. */
+export function isFixupSummary(summary: string): boolean {
+  return summary.startsWith(FIXUP_PREFIX);
+}
+
 /** Melds into the previous kept commit. */
 export function isMelded(action: RebaseAction): boolean {
   return action === 'squash' || action === 'fixup';
