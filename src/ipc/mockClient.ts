@@ -97,6 +97,8 @@ import {
   type MockSnapshot,
 } from './mock/journal';
 import {
+  mockAutosquashBase,
+  mockAutosquashPlan,
   mockPlan,
   mockRange,
   mockTodo,
@@ -3878,6 +3880,53 @@ export class MockBackend {
         },
         { cancellable: true, delayMs: 300, refs: true },
       );
+    },
+    commitFixup: (repoId, target) => {
+      const graph = this.graph(repoId);
+      if (!graph || !this.wip(repoId)) return fail(this.notOpen(repoId));
+      const commit = graph.resolve(target);
+      if (commit === null) return fail(this.revisionNotFound(target));
+      const head = graph.headCommit();
+      if (head === null || !ancestors(graph.history.commits, head).has(commit)) {
+        return fail(
+          invalidHistoryArgument(
+            'This commit is not on the current branch: check out its branch to create a fixup for it.',
+            "Ce commit n'est pas sur la branche courante : bascule sur sa branche pour lui créer un fixup.",
+          ),
+        );
+      }
+      const summary = `fixup! ${graph.history.commits[commit]?.summary ?? ''}`;
+      const request = { summary, description: '', amend: false, skipHooks: false };
+      return this.runWrite<{ sha: string }>(
+        repoId,
+        'commit',
+        ['commit', `--fixup=${this.commitSha(graph, commit)}`],
+        () => this.commitWork(repoId, request),
+        {
+          cancellable: true,
+          delayMs: 600,
+          refs: true,
+          journal: ({ sha }) => ({ op: { kind: 'commit', sha, summary } }),
+        },
+      );
+    },
+    autosquashPlan: (repoId, base) => {
+      const graph = this.graph(repoId);
+      if (!graph || !this.wip(repoId)) return fail(this.notOpen(repoId));
+      const { head } = graph.history;
+      const tip = graph.headCommit();
+      if (tip === null) return fail(noCommitToRebase());
+      if (head.kind !== 'branch') return fail(detachedHead());
+      let commit: number | null;
+      if (base === null) {
+        commit = mockAutosquashBase(graph, tip);
+        if (commit === null) return ok(null);
+      } else {
+        commit = graph.resolve(base);
+        if (commit === null) return fail(this.revisionNotFound(base));
+      }
+      const plan = mockPlan(graph, head.name, tip, commit);
+      return 'code' in plan ? fail(plan) : ok(mockAutosquashPlan(plan));
     },
     operationDetail: (repoId) => {
       if (!this.wip(repoId)) return fail(this.notOpen(repoId));

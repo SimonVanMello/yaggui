@@ -10,10 +10,10 @@ use tauri::State;
 use super::blocking;
 use crate::git::errors::YagguiError;
 use crate::git::ops::types::{
-    CherryPickRequest, CommitResult, ConflictList, ConflictResolution, ConflictStage,
-    ConflictVersions, HistoryResult, InteractiveRebasePlan, InteractiveRebaseResult, MergeRequest,
-    MergeToolResult, OperationDetail, RebaseRequest, RebaseTodoEntry, ResetPreview, ResetRequest,
-    ResetResult, RevertRequest,
+    AutosquashPlan, CherryPickRequest, CommitResult, ConflictList, ConflictResolution,
+    ConflictStage, ConflictVersions, HistoryResult, InteractiveRebasePlan, InteractiveRebaseResult,
+    MergeRequest, MergeToolResult, OperationDetail, RebaseRequest, RebaseTodoEntry, ResetPreview,
+    ResetRequest, ResetResult, RevertRequest,
 };
 use crate::state::AppState;
 
@@ -272,4 +272,34 @@ pub async fn reword_commit(
 ) -> Result<CommitResult, YagguiError> {
     let repos = Arc::clone(&state.repos);
     blocking(move || repos.reword_commit(repo_id, sha, message)).await
+}
+
+/// Commits the staged changes as `fixup! <subject of target>` (`git commit --fixup`), hooks
+/// included; journaled and undoable like a commit (F-147). Errors: `nothingToCommit`,
+/// `hookFailed`, `identityUnknown`, `revisionNotFound`, `invalidArgument` (commit not on
+/// the current branch). Cancellable.
+#[tauri::command]
+#[specta::specta]
+pub async fn commit_fixup(
+    state: State<'_, AppState>,
+    repo_id: u32,
+    target: String,
+) -> Result<CommitResult, YagguiError> {
+    let repos = Arc::clone(&state.repos);
+    blocking(move || repos.commit_fixup(repo_id, target)).await
+}
+
+/// The plan of `base..HEAD` with its `fixup!` commits moved under their targets, for the
+/// interactive rebase view (F-147). Without `base`: from the parent of the oldest commit a
+/// fixup of the current branch targets (first parents from HEAD, up to the first merge),
+/// `None` when no fixup has a target. Read-only. Errors: as `interactiveRebasePlan`.
+#[tauri::command]
+#[specta::specta]
+pub async fn autosquash_plan(
+    state: State<'_, AppState>,
+    repo_id: u32,
+    base: Option<String>,
+) -> Result<Option<AutosquashPlan>, YagguiError> {
+    let repos = Arc::clone(&state.repos);
+    blocking(move || repos.autosquash_plan(repo_id, base)).await
 }

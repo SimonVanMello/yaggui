@@ -60,10 +60,10 @@ for (const { name: theme, colorScheme } of THEMES) {
       await graphRow(page, 2).click({ button: 'right' });
       const menu = page.getByRole('menu');
       await expect(menu.getByRole('menuitem', { name: /Cherry-pick onto/ })).toBeVisible();
-      await expect(menu.getByRole('menuitem', { name: /Create fixup commit/ })).toHaveAttribute(
-        'aria-disabled',
-        'true',
-      );
+      // Wired to the fixup commit (M7-3).
+      await expect(
+        menu.getByRole('menuitem', { name: /^Create a fixup for this commit/ }),
+      ).toBeVisible();
       // Wired to the interactive rebase view (M3-4).
       await expect(menu.getByRole('menuitem', { name: /Interactive rebase/ })).not.toHaveAttribute(
         'aria-disabled',

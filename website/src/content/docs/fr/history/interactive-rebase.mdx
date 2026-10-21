@@ -11,9 +11,10 @@ sources:
   - src/features/graph/CommitMessageEditor.tsx
   - src/features/palette/builtinActions.ts
   - src-tauri/src/repo/interactive.rs
+  - src-tauri/src/repo/fixup.rs
   - src-tauri/src/git/ops/rebase_todo.rs
   - src-tauri/src/commands/history.rs
-requirements: [F-142]
+requirements: [F-142, F-147]
 ---
 
 import Screenshot from '~/components/Screenshot.astro';
@@ -28,6 +29,8 @@ Vous choisissez une **base** : le commit sur lequel les commits réécrits sont
 
 - **Depuis un commit** : faites un clic droit sur un commit de la branche courante dans le graphe et choisissez **Rebase interactif depuis ici…**. Ce commit est la base.
 - **Depuis la palette** : lancez **Rebase interactif depuis…** (<kbd>⌘K</kbd>, ou <kbd>Ctrl+K</kbd> sous Windows et Linux). Si un commit autre que HEAD est sélectionné dans le graphe, il sert de base. Sinon, un sélecteur demande « Rebaser au-dessus de quel commit ? Les commits qui le suivent seront listés. » et propose les 30 derniers commits de la branche (premiers parents uniquement), chacun avec **\{count\} commits au-dessus**. Utilisez <kbd>↑</kbd>/<kbd>↓</kbd> et <kbd>Enter</kbd>, ou cliquez sur l’un d’eux.
+
+Pour fusionner des commits fixup dans les commits qu’ils corrigent, utilisez l’[Autosquash](#autosquash) : il ouvre le même éditeur avec la liste déjà arrangée.
 
 L’éditeur remplace le graphe. Les deux points d’entrée sont désactivés tant qu’une autre opération est en cours.
 
@@ -133,6 +136,39 @@ Après **Continuer** ou **Passer**, le panneau suit l’arrêt suivant, ou se fe
 :::caution
 **Annuler le rebase** dans ce panneau exécute `git rebase --abort` sans demander de confirmation (le bouton **Annuler le rebase** du bandeau, lui, en demande une). La branche revient à son état d’avant le rebase. Notification : **Rebase de \{branch\} abandonné**.
 :::
+
+## Commits fixup et autosquash
+
+Un commit fixup porte une correction pour un commit plus ancien de la branche, à fusionner dedans plus tard.
+
+### Créer un fixup
+
+Stagez la correction, puis faites un clic droit sur le commit qu’elle corrige dans le graphe et choisissez **Créer un fixup pour ce commit**, ou sélectionnez ce commit et lancez **Créer un fixup pour le commit sélectionné** depuis la palette. yaggui commite les modifications stagées avec `git commit --fixup=<sha>` : le message est `fixup! ` suivi du résumé de ce commit (`fixup! fixup! …` pour un fixup d’un fixup). Les hooks s’exécutent comme pour tout commit ; un refus affiche leur sortie dans le panneau de commit.
+
+Le toast indique **Fixup \{sha\} créé pour \{target\}**, avec un bouton **Autosquash**. Comme un commit, le fixup s’annule avec <kbd>⌘Z</kbd> (<kbd>Ctrl+Z</kbd> sous Windows et Linux) : voir [Annuler et rétablir](../../history/undo-and-redo/).
+
+L’entrée est désactivée, avec la raison, quand rien n’est stagé (**Stage d'abord les modifications du fixup**), quand le dépôt n’a pas encore de commit (**Pas encore de commit**) ou pendant une opération. Un commit qui n’est pas sur la branche courante est refusé : « Ce commit n'est pas sur la branche courante : bascule sur sa branche pour lui créer un fixup. »
+
+### Autosquash
+
+**Autosquash** ouvre l’éditeur de rebase interactif avec chaque fixup déjà placé juste au-dessus du commit qu’il corrige et réglé sur **Fixup**, pour que vous relisiez la liste avant de la lancer. Rien n’est réécrit avant que vous cliquiez sur **Lancer le rebase**. Il est proposé :
+
+- dans la palette : **Autosquash des fixups…** ;
+- dans le menu d’un commit `fixup!` du graphe : **Autosquash des fixups…** ;
+- par le bouton **Autosquash** du toast après la création d’un fixup ;
+- par le bouton **Autosquash** de l’en-tête de l’éditeur, quand la liste contient des commits `fixup!`. Il arrange à nouveau la liste depuis la même base ; vos modifications sont remplacées.
+
+Depuis la palette, le menu et le toast, la base est le parent du plus ancien commit visé par un fixup, cherché parmi les derniers commits de la branche : premiers parents depuis la pointe, jusqu’au premier commit de merge, 200 commits au plus. Quand aucun fixup n’y a de cible, un toast indique **Aucun commit fixup à fusionner sur cette branche**. L’en-tête affiche **\{count\} fixups placés sous leurs cibles**.
+
+Les fixups sont associés comme avec `git rebase --autosquash` :
+
+- tous les préfixes `fixup! ` sont retirés du résumé, si bien qu’un fixup d’un fixup va sous le commit d’origine ;
+- la cible est le plus ancien commit en dessous du fixup ayant exactement ce résumé ; sinon le commit en dessous dont le SHA commence par lui (4 caractères ou plus) ; sinon le plus ancien commit en dessous dont le résumé commence par lui ;
+- plusieurs fixups d’un même commit gardent leur ordre sous lui.
+
+Un fixup dont la cible n’est pas dans la liste (la cible est la base ou plus ancienne, ou rien ne correspond) reste à sa place, en **Pick**, avec **Aucun commit de la liste ne correspond à ce fixup : il reste à sa place**. Seuls les commits `fixup!` sont déplacés : les commits `squash!` et `amend!` restent en **Pick**.
+
+Le reste est l’éditeur habituel : modifiez ce que vous voulez, puis [confirmez et lancez](#confirmer-et-lancer). Un rebase qui réécrit des commits poussés demande un force push, et le rebase lui-même ne s’annule pas.
 
 ## Modifier le message d’un seul commit
 

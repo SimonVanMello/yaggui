@@ -416,6 +416,31 @@ export const commands = {
 	 */
 	rewordCommit: (repoId: number, sha: string, message: string) => typedError<CommitResult, YagguiError>(__TAURI_INVOKE("reword_commit", { repoId, sha, message })),
 	/**
+	 *  Commits the staged changes as `fixup! <subject of target>` (`git commit --fixup`), hooks
+	 *  included; journaled and undoable like a commit (F-147). Errors: `nothingToCommit`,
+	 *  `hookFailed`, `identityUnknown`, `revisionNotFound`, `invalidArgument` (commit not on
+	 *  the current branch). Cancellable.
+	 */
+	commitFixup: (repoId: number, target: string) => typedError<CommitResult, YagguiError>(__TAURI_INVOKE("commit_fixup", { repoId, target })),
+	/**
+	 *  The plan of `base..HEAD` with its `fixup!` commits moved under their targets, for the
+	 *  interactive rebase view (F-147). Without `base`: from the parent of the oldest commit a
+	 *  fixup of the current branch targets (first parents from HEAD, up to the first merge),
+	 *  `None` when no fixup has a target. Read-only. Errors: as `interactiveRebasePlan`.
+	 */
+	autosquashPlan: (repoId: number, base: string | null) => typedError<{
+	plan: InteractiveRebasePlan,
+	/**
+	 *  Every commit of `plan` once, oldest first: each matched `fixup!` commit as a `fixup`
+	 *  right after its target, the others as `pick`. No messages.
+	 */
+	todo: RebaseTodoEntry[],
+	/**  SHAs of the `fixup!` commits whose target is not in the plan: left in place, picked. */
+	unmatched: string[],
+	/**  Number of `fixup` entries of `todo`. */
+	fixups: number,
+} | null, YagguiError>(__TAURI_INVOKE("autosquash_plan", { repoId, base })),
+	/**
 	 *  One page (≤ 500 entries, newest first) of the commits that changed `path`, following
 	 *  renames like `git log --follow`. Starts at `rev` (HEAD when `None`), or continues at
 	 *  `cursor` (the `next` of the previous page). Errors: `revisionNotFound`,
@@ -732,6 +757,23 @@ export type AppInfo = {
 export type AppliedImport = {
 	preferences: Preferences,
 	keybindings: KeybindingsFile,
+};
+
+/**
+ *  An interactive rebase plan with the `fixup!` commits already moved under their targets
+ *  (F-147), for review before running it.
+ */
+export type AutosquashPlan = {
+	plan: InteractiveRebasePlan,
+	/**
+	 *  Every commit of `plan` once, oldest first: each matched `fixup!` commit as a `fixup`
+	 *  right after its target, the others as `pick`. No messages.
+	 */
+	todo: RebaseTodoEntry[],
+	/**  SHAs of the `fixup!` commits whose target is not in the plan: left in place, picked. */
+	unmatched: string[],
+	/**  Number of `fixup` entries of `todo`. */
+	fixups: number,
 };
 
 export type Blame = {

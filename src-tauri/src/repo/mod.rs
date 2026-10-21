@@ -3,6 +3,7 @@
 mod commit_tools;
 mod config;
 pub mod create;
+mod fixup;
 mod graph_tools;
 mod history;
 mod inspect;
