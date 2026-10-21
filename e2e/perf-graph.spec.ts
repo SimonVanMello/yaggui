@@ -7,7 +7,10 @@ import { expect, test, type Browser } from '@playwright/test';
  * An in-page rAF loop scrolls the graph at a constant speed for DURATION_MS, down then up,
  * and records every frame interval; with normal CPU and with a 4× CPU throttle (CDP).
  * Reports the median fps, the 95th percentile frame time and the share of frames over 20 ms.
+ * `YAGGUI_PERF_FIRST_PARENT=1` measures the first-parent graph (F-032, M7-5) instead.
  */
+
+const FIRST_PARENT = process.env.YAGGUI_PERF_FIRST_PARENT === '1';
 
 const DURATION_MS = 6_000;
 const SPEED_PX_PER_S = 6_000; // ≈ 215 rows/s, a fast flick
@@ -37,6 +40,13 @@ async function openGraph(browser: Browser, throttle: number) {
   await page.getByRole('option', { name: /^linux\b/ }).click();
   const graph = page.getByRole('listbox', { name: 'Commit graph' });
   await expect(graph.getByRole('option').first()).toBeVisible();
+  if (FIRST_PARENT) {
+    await page.getByRole('toolbar').getByRole('button', { name: 'First parent' }).click();
+    await expect(page.getByRole('status', { name: 'Graph filter' })).toContainText(
+      'First-parent history',
+    );
+    await expect(graph.getByRole('option').first()).toBeVisible();
+  }
   return { context, client, graph };
 }
 
@@ -106,7 +116,7 @@ test('P-04: graph scroll frame rate on 100k commits', async ({ browser }) => {
         `p95 ${s.p95Ms.toFixed(1)} ms, >20 ms: ${(s.slowShare * 100).toFixed(1)} %, max ${s.maxMs.toFixed(1)} ms`,
     );
   }
-  const text = `P-04 graph scroll, linux mock (100k commits), ${String(SPEED_PX_PER_S)} px/s for ${String(DURATION_MS / 1000)} s (target: 60 fps)\n${lines.join('\n')}\n`;
+  const text = `P-04 graph scroll, linux mock (100k commits${FIRST_PARENT ? ', first-parent' : ''}), ${String(SPEED_PX_PER_S)} px/s for ${String(DURATION_MS / 1000)} s (target: 60 fps)\n${lines.join('\n')}\n`;
   console.log(text);
   writeFileSync(test.info().outputPath('p04.txt'), text);
   expect(results['1']?.medianMs ?? Infinity).toBeLessThanOrEqual(FRAME_BUDGET_MS * 1.1);

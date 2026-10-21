@@ -1,14 +1,15 @@
 //! Graph benchmark (P-02, P-03). See `scripts/bench-graph.sh`.
 //!
-//! `graph-bench run <repo> [--search <text>] [--path <path>] [--dump <file> [--dump-rows <n>]]`
-//! measures a cold graph load and page requests as the frontend issues them.
+//! `graph-bench run <repo> [--first-parent] [--search <text>] [--path <path>] [--dump <file>
+//! [--dump-rows <n>]]` measures a cold graph load and page requests as the frontend issues them,
+//! in first-parent mode (F-032) with `--first-parent`.
 //! `graph-bench gen <commits>` prints a `git fast-import` stream of a synthetic history
 //! (long-lived branches, features, merges) of that many commits.
 
 use std::io::Write;
 use std::time::{Duration, Instant};
 
-use yaggui_lib::graph::types::{CommitSearch, GRAPH_PAGE_SIZE};
+use yaggui_lib::graph::types::{CommitSearch, GRAPH_PAGE_SIZE, GraphFilter};
 use yaggui_lib::graph::{self, GraphCache};
 
 fn ms(d: Duration) -> String {
@@ -19,6 +20,7 @@ fn ms(d: Duration) -> String {
 /// `git log --topo-order --branches --remotes --tags HEAD --format=%H`).
 fn run(
     path: &str,
+    first_parent: bool,
     search: Option<String>,
     search_path: Option<String>,
     dump: Option<(String, u32)>,
@@ -27,6 +29,10 @@ fn run(
     let repo = gix::open(path).expect("open repository");
     let opened = started.elapsed();
     let cache = GraphCache::default();
+    cache.set_filter(GraphFilter {
+        first_parent,
+        ..GraphFilter::default()
+    });
     let snapshot = cache.snapshot(&repo).expect("graph");
     let built = started.elapsed();
     let first = graph::page(&repo, &snapshot, 0, GRAPH_PAGE_SIZE).expect("page 0");
@@ -36,6 +42,7 @@ fn run(
     let total = snapshot.complete(&repo.objects).expect("whole history");
     let walked = started.elapsed();
     println!("repository        {path}");
+    println!("first-parent      {first_parent}");
     println!("commits (rows)    {total}");
     println!(
         "commit-graph      {}",
@@ -264,6 +271,7 @@ fn main() {
     match args.first().map(String::as_str) {
         Some("run") if args.len() >= 2 => run(
             &args[1],
+            args.iter().any(|a| a == "--first-parent"),
             flag("--search"),
             flag("--path"),
             flag("--dump").map(|file| {
@@ -275,7 +283,7 @@ fn main() {
         Some("gen") if args.len() >= 2 => generate(args[1].parse().expect("commit count")),
         _ => {
             eprintln!(
-                "usage: graph-bench run <repo> [--search <text>] [--path <path>] [--dump <file> [--dump-rows <n>]] | gen <commits>"
+                "usage: graph-bench run <repo> [--first-parent] [--search <text>] [--path <path>] [--dump <file> [--dump-rows <n>]] | gen <commits>"
             );
             std::process::exit(2);
         }

@@ -5,6 +5,7 @@
 # Usage: scripts/bench-graph.sh <dir> [commits]
 #   <dir>/git        partial clone of git/git (~80k commits, --filter=blob:none)
 #   <dir>/synthetic  synthetic history of [commits] commits (default 1 300 000) via fast-import
+# YAGGUI_BENCH_FIRST_PARENT=1 measures the first-parent graph (F-032) instead.
 set -euo pipefail
 
 dir=${1:?usage: scripts/bench-graph.sh <dir> [commits]}
@@ -14,6 +15,8 @@ mkdir -p "$dir"
 
 cargo build --release --quiet --manifest-path "$root/src-tauri/Cargo.toml" --example graph-bench
 bench="$root/src-tauri/target/release/examples/graph-bench"
+mode_args=()
+if [ "${YAGGUI_BENCH_FIRST_PARENT:-}" = 1 ]; then mode_args=(--first-parent); fi
 
 if [ ! -d "$dir/git" ]; then
   git clone --filter=blob:none --no-checkout https://github.com/git/git.git "$dir/git"
@@ -38,7 +41,7 @@ for repo in "$dir/git" "$dir/synthetic"; do
     fi
     echo "=== $(basename "$repo"), $mode commit-graph"
     # Second run: the first one also measures the OS file cache warming up.
-    "$bench" run "$repo" >/dev/null
-    "$bench" run "$repo" --search "fix" --path "Documentation/RelNotes"
+    "$bench" run "$repo" ${mode_args[@]+"${mode_args[@]}"} >/dev/null
+    "$bench" run "$repo" ${mode_args[@]+"${mode_args[@]}"} --search "fix" --path "Documentation/RelNotes"
   done
 done
