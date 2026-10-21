@@ -25,6 +25,9 @@ async function openYaggui(page: Page) {
 }
 
 const tree = (page: Page) => page.getByRole('tree');
+/** A toast by its text; the live-region announcement of the same toast is left out. */
+const toastWith = (page: Page, text: string | RegExp) =>
+  page.locator('ol > li').filter({ hasText: text });
 const preview = (page: Page) => page.getByRole('region', { name: 'Stash details' });
 
 async function openStash(page: Page, name: RegExp) {
@@ -65,10 +68,9 @@ for (const { name: theme, colorScheme } of THEMES) {
       await capture(page, theme, 'row-action');
 
       await apply.click();
-      await expect(page.getByText(`${path} applied from the stash`)).toBeVisible();
-      await expect(
-        page.getByText('The stash is kept. Undo puts your previous file back.'),
-      ).toBeVisible();
+      const applied = toastWith(page, `${path} applied from the stash`);
+      await expect(applied).toBeVisible();
+      await expect(applied).toContainText('The stash is kept. Undo puts your previous file back.');
       await capture(page, theme, 'applied');
       // The stash is still listed.
       await expect(tree(page).getByRole('treeitem', { name: /one file demo/ })).toBeVisible();
@@ -76,7 +78,7 @@ for (const { name: theme, colorScheme } of THEMES) {
       // The same action from the right-click menu, refused now that the file is back.
       await row.click({ button: 'right' });
       await page.getByRole('menuitem', { name: 'Apply this file to the working tree' }).click();
-      await expect(page.getByText(/already exists in your working tree/)).toBeVisible();
+      await expect(toastWith(page, /already exists in your working tree/)).toBeVisible();
     });
 
     test('a conflicting file is explained, with the undo as a way back', async ({ page }) => {
