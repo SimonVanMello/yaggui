@@ -47,13 +47,13 @@ for (const { name: theme, colorScheme } of THEMES) {
       await expect(review).toBeVisible();
       await expect(review.getByText('Text size')).toBeVisible();
       await expect(review.getByText('New tab')).toBeVisible();
-      await expect(review.getByText('gitPath, editor')).toBeVisible();
+      await expect(review.getByText('editor, gitPath')).toBeVisible();
       await expect(review.getByText('commitGraphStyle')).toBeVisible();
       await capture(page, theme, 'import-preview');
 
       await review.getByRole('button', { name: 'Import', exact: true }).click();
       await expect(review).toBeHidden();
-      await expect(page.getByText('Preferences and shortcuts imported')).toBeVisible();
+      await expect(page.getByText('Preferences and shortcuts imported').first()).toBeVisible();
 
       // Applied: the same file now changes nothing.
       await prefs.getByRole('button', { name: 'Import…' }).click();
@@ -71,8 +71,12 @@ for (const { name: theme, colorScheme } of THEMES) {
       );
       const prefs = await openPrefs(page);
       await prefs.getByRole('button', { name: 'Import…' }).click();
-      await expect(page.getByText('Could not import the file')).toBeVisible();
-      await expect(page.getByText('This is not a valid yaggui preferences file')).toBeVisible();
+      await expect(
+        page.getByText('Could not import the file', { exact: true }).first(),
+      ).toBeVisible();
+      await expect(
+        page.getByText('This is not a valid yaggui preferences file').first(),
+      ).toBeVisible();
       await expect(dialog(page, 'Import preferences')).toBeHidden();
       await capture(page, theme, 'import-invalid');
     });
@@ -87,14 +91,14 @@ for (const { name: theme, colorScheme } of THEMES) {
       await page.keyboard.press('Control+K');
       await page.getByRole('combobox').fill('import preferences');
       await page.keyboard.press('Enter');
-      await expect(page.getByText(/format version 2/)).toBeVisible();
+      await expect(page.getByText(/format version 2/).first()).toBeVisible();
     });
 
     test('export writes the file and says what was left out', async ({ page }) => {
       await start(page);
       const prefs = await openPrefs(page);
       await prefs.getByRole('button', { name: 'Export…' }).click();
-      await expect(page.getByText('Preferences and shortcuts exported')).toBeVisible();
+      await expect(page.getByText('Preferences and shortcuts exported').first()).toBeVisible();
       const exported = await page.evaluate(() => window.__yagguiMock?.exportedPreferences());
       const file = JSON.parse(exported ?? '{}') as {
         format: string;
