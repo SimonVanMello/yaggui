@@ -318,6 +318,8 @@ pub fn run() {
 
     // Before the webview reads its text input settings.
     system::keyboard::enable_key_repeat();
+    // In the background: the first Git command waits for it only if it is still running.
+    system::shell_env::resolve_in_background();
 
     let builder = specta_builder();
 

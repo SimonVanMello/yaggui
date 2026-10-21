@@ -33,7 +33,10 @@ fn open_with(os: Os, target: &Path, preference: Option<&str>) -> Result<String, 
     let preference = preference.map(str::trim).filter(|p| !p.is_empty());
     let (program, args) = command(os, target, preference);
     let name = program.to_string_lossy().into_owned();
-    let mut child = Command::new(&program)
+    let mut command = Command::new(&program);
+    // An editor set by name (`code`, `zed`) lives where the user's shell finds it.
+    crate::system::shell_env::apply(&mut command);
+    let mut child = command
         .args(&args)
         .stdin(Stdio::null())
         .stdout(Stdio::null())

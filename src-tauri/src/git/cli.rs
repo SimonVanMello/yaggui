@@ -459,6 +459,8 @@ impl GitCli {
 
     fn build(&self, command: &GitCommand) -> Command {
         let mut cmd = Command::new(self.binary());
+        // Hooks run with this `PATH` (husky needs `npx`).
+        crate::system::shell_env::apply(&mut cmd);
         for name in INHERITED_GIT_ENV {
             cmd.env_remove(name);
         }

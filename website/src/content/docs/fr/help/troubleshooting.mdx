@@ -7,6 +7,7 @@ sources:
   - src-tauri/src/git/errors.rs
   - src-tauri/src/git/cli.rs
   - src-tauri/src/system/git_binary.rs
+  - src-tauri/src/system/shell_env.rs
   - src-tauri/src/repo/mod.rs
   - src-tauri/src/repo/watcher.rs
   - src-tauri/src/repo/write.rs
@@ -134,7 +135,7 @@ Quand un hook `pre-commit`, `prepare-commit-msg` ou `commit-msg` échoue, la zon
 
 Si le hook fonctionne dans un terminal mais échoue dans yaggui :
 
-- **Une commande est introuvable** (`node`, `npx`, `python`…) : sous macOS, les applications lancées depuis le Dock ou le Finder ne reçoivent pas le `PATH` de votre shell. Faites utiliser des chemins complets au hook, ou lancez yaggui depuis un terminal avec `/Applications/yaggui.app/Contents/MacOS/yaggui` pour qu’il hérite du `PATH` de votre shell.
+- **Une commande est introuvable** (`node`, `npx`, `python`…) : les applications lancées depuis le Dock ou le Finder (et certains lanceurs Linux) ne reçoivent pas le `PATH` de votre shell. Au démarrage, yaggui demande donc son `PATH` à votre shell de connexion (`$SHELL`) et le transmet à Git, aux hooks et aux outils qu’il ouvre. Si la commande reste introuvable, elle est configurée dans un fichier que votre shell de connexion ne lit pas (vérifiez dans un terminal que `$SHELL -l -i -c 'command -v npx'` la trouve), ou votre shell a mis plus de 5 secondes à démarrer : yaggui garde alors son propre `PATH`. Votre configuration de shell peut tester la variable `YAGGUI_RESOLVING_ENVIRONMENT` pour sauter les étapes lentes pendant que yaggui la lit. Faire utiliser des chemins complets au hook fonctionne toujours.
 - **Le hook attend une saisie** : les hooks s’exécutent sans terminal et sans entrée, donc les invites interactives échouent. Rendez le hook non interactif.
 - **Le hook reste bloqué** : annulez le commit avec **Annuler** dans la barre d’état. yaggui arrête aussi le hook.
 
