@@ -86,7 +86,7 @@ export const GRAPH_TOOL_ACTIONS: readonly PaletteAction[] = [
   {
     id: 'graph.toggleFirstParent',
     title: 'palette.action.graph.toggleFirstParent',
-    shortcut: 'Mod+Alt+P',
+    shortcut: 'Mod+Alt+R',
     group: 'view',
     enabled: hasRepo,
     run: () => {

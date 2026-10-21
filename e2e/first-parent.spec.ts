@@ -82,9 +82,9 @@ for (const { name: theme, colorScheme } of THEMES) {
       await expect(page.locator('[data-row][aria-selected="true"]')).toContainText(second);
 
       // The shortcut turns it on and off again.
-      await page.keyboard.press('ControlOrMeta+Alt+p');
+      await page.keyboard.press('ControlOrMeta+Alt+r');
       await expect(filterBar(page)).toContainText('First-parent history');
-      await page.keyboard.press('ControlOrMeta+Alt+p');
+      await page.keyboard.press('ControlOrMeta+Alt+r');
       await expect(filterBar(page)).toHaveCount(0);
     });
   });
