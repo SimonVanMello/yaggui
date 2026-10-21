@@ -171,6 +171,11 @@ pub enum ErrorCode {
     ProtectedBranchDelete,
     /// The branch is checked out in a worktree: it cannot be deleted.
     BranchCheckedOut,
+    /// A preferences file (F-326) that cannot be read, is not a yaggui export or holds a value
+    /// yaggui refuses. Nothing was changed; the keys at fault are in `detail`.
+    PreferencesFileInvalid,
+    /// A preferences file written by a newer format version than this yaggui reads.
+    PreferencesFileTooNew,
 }
 
 /// A user-facing text provided in every supported language.
@@ -373,6 +378,30 @@ impl YagguiError {
             format!("« {path} » n'est pas un Git utilisable : le fichier doit exister et répondre à --version."),
         )
         .with_detail(detail.unwrap_or_default())
+    }
+
+    pub fn preferences_file_invalid(detail: impl Into<String>) -> Self {
+        Self::new(
+            ErrorCode::PreferencesFileInvalid,
+            "This is not a valid yaggui preferences file. Nothing was changed.",
+            "Ce n'est pas un fichier de préférences yaggui valide. Rien n'a été modifié. \
+             Vérifie que tu as choisi le bon fichier.",
+        )
+        .with_detail(detail)
+    }
+
+    pub fn preferences_file_too_new(found: u32, supported: u32) -> Self {
+        Self::new(
+            ErrorCode::PreferencesFileTooNew,
+            format!(
+                "This file uses format version {found}, but this yaggui reads up to version \
+                 {supported}. Update yaggui to import it."
+            ),
+            format!(
+                "Ce fichier utilise la version {found} du format, mais cette version de yaggui \
+                 lit jusqu'à la version {supported}. Mets yaggui à jour pour l'importer."
+            ),
+        )
     }
 
     pub fn remote_branch_not_found(branch: Option<&str>) -> Self {

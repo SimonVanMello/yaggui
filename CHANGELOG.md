@@ -14,6 +14,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Fixup commits: "Create a fixup for this commit" in the commit menu and the palette commits the
   staged changes as `fixup! <summary>`, undoable like a commit; "Autosquash" opens the interactive
   rebase with the fixups already under their targets, to review before running it.
+- Export your preferences and custom shortcuts to one JSON file, and import it on another machine
+  (Preferences dialog or command palette). The import lists what changes before applying anything;
+  the Git path, editor, terminal and diff/merge tools stay specific to each machine.
 
 ## [0.6.0] - 2026-10-20
 

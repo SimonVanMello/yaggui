@@ -3,6 +3,7 @@ import { defaultShortcutOf, execShellAction, type ShellAction } from '../../app/
 import { useThemeStore, type ThemePreference } from '../../theme/themeStore';
 import { queryClient, queryKeys } from '../../app/queryClient';
 import type { RepoState, UndoState } from '../../ipc';
+import { exportPreferencesFile, startPreferencesImport } from '../preferences/prefsSync';
 import { openHistoryDialog } from '../history/historyDialogsStore';
 import {
   abortOperation,
@@ -168,6 +169,18 @@ const BUILTIN: readonly PaletteAction[] = [
   theme('light', 'palette.action.view.theme.light'),
   theme('dark', 'palette.action.view.theme.dark'),
   shell('app.preferences', 'preferences', 'palette.action.app.preferences', 'app'),
+  {
+    id: 'app.exportPreferences',
+    title: 'palette.action.app.exportPreferences',
+    group: 'app',
+    run: () => void exportPreferencesFile(),
+  },
+  {
+    id: 'app.importPreferences',
+    title: 'palette.action.app.importPreferences',
+    group: 'app',
+    run: () => void startPreferencesImport(),
+  },
   shell('app.terminalSettings', 'terminalSettings', 'palette.action.app.terminal', 'app'),
   shell('app.shortcuts', 'shortcuts', 'palette.action.app.shortcuts', 'app'),
   shell('app.changelog', 'changelog', 'palette.action.app.changelog', 'app'),
