@@ -185,6 +185,12 @@ import {
   type MockHistory,
 } from './mockGraph';
 import { mockChangelog } from './mock/changelog';
+import {
+  exportPreferencesText,
+  parsePreferencesFile,
+  previewOf,
+  sampleImportFile,
+} from './mock/prefsSync';
 import { MockSettings } from './mock/settings';
 import type { IpcResult } from './result';
 
@@ -247,6 +253,10 @@ function pathArgs(paths: PathSelection): string[] {
 function folderName(path: string): string {
   return path.split(/[\\/]/).filter(Boolean).pop() ?? path;
 }
+
+/** Where the mock "file dialogs" save to and read from. */
+const MOCK_EXPORT_PATH = '~/Documents/yaggui-preferences.json';
+const MOCK_IMPORT_PATH = '~/Downloads/yaggui-preferences.json';
 
 /** Key under which the mock keeps what the real backend stores in SQLite, so reloads keep it. */
 export const MOCK_STORE_KEY = 'yaggui.mock.store';
@@ -378,6 +388,10 @@ export class MockBackend {
   private legacyMigrated = false;
   /** Next answers of the folder picker; when empty, a browser prompt stands in for it. */
   private pickedFolders: (string | null)[] = [];
+  /** Texts the next preferences-file pickers open (`null` = the user cancelled). */
+  private pickedPreferencesFiles: (string | null)[] = [];
+  /** Files "on disk" by path: what was exported, and what a preview read. */
+  private preferencesFiles = new Map<string, string>();
   /** `false` simulates a system where no terminal can be found. */
   terminalAvailable = true;
   /** Hashes asked of `avatar`, for tests: nothing is asked while Gravatar is off. */
@@ -500,6 +514,8 @@ export class MockBackend {
     this.preferences = { ...DEFAULT_MOCK_PREFERENCES };
     this.legacyMigrated = false;
     this.pickedFolders = [];
+    this.pickedPreferencesFiles = [];
+    this.preferencesFiles.clear();
     this.creator.reset();
     this.settings.reset();
     this.terminalAvailable = true;
@@ -551,6 +567,16 @@ export class MockBackend {
     } catch {
       // Storage unavailable: data lives for this page only.
     }
+  }
+
+  /** Queues the file the next import preview opens (`null` = the user cancelled). */
+  setPickedPreferencesFile(text: string | null): void {
+    this.pickedPreferencesFiles.push(text);
+  }
+
+  /** The last file `exportPreferences` wrote, for tests. */
+  exportedPreferences(): string | null {
+    return this.preferencesFiles.get(MOCK_EXPORT_PATH) ?? null;
   }
 
   /** Queues the answer of the next `pickRepoFolder` call (`null` = the user cancelled). */
@@ -3015,6 +3041,38 @@ export class MockBackend {
       this.preferences = normalized.ok;
       this.persist();
       return ok({ ...this.preferences });
+    },
+    exportPreferences: () => {
+      this.preferencesFiles.set(
+        MOCK_EXPORT_PATH,
+        exportPreferencesText(this.preferences, this.settings.overridesSnapshot()),
+      );
+      return ok(MOCK_EXPORT_PATH);
+    },
+    previewPreferencesImport: () => {
+      const text = this.pickedPreferencesFiles.length
+        ? this.pickedPreferencesFiles.shift()
+        : sampleImportFile();
+      if (text === null || text === undefined) return ok(null);
+      this.preferencesFiles.set(MOCK_IMPORT_PATH, text);
+      const parsed = parsePreferencesFile(text, this.preferences, normalizePreferences);
+      if ('code' in parsed) return fail(parsed);
+      return ok(
+        previewOf(MOCK_IMPORT_PATH, parsed, this.preferences, this.settings.overridesSnapshot()),
+      );
+    },
+    applyPreferencesImport: (path) => {
+      const parsed = parsePreferencesFile(
+        this.preferencesFiles.get(path) ?? '',
+        this.preferences,
+        normalizePreferences,
+      );
+      if ('code' in parsed) return fail(parsed);
+      const failure = this.settings.setKeybindings(parsed.keybindings);
+      if ('code' in failure) return fail(failure);
+      this.preferences = parsed.preferences;
+      this.persist();
+      return ok({ preferences: { ...this.preferences }, keybindings: failure });
     },
     migrateLegacyPreferences: (legacy: LegacyPreferences) => {
       if (!this.legacyMigrated) {

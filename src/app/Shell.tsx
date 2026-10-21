@@ -11,6 +11,7 @@ import { CloneDialog } from '../features/clone/CloneDialog';
 import { InitDialog } from '../features/clone/InitDialog';
 import { ChangelogDialog } from '../features/changelog/ChangelogDialog';
 import { ShortcutsDialog } from '../features/keybindings/ShortcutsDialog';
+import { PreferencesImportDialog } from '../features/preferences/PreferencesImportDialog';
 import { PreferencesDialog } from '../features/preferences/PreferencesDialog';
 import { OpenRepoDialog } from '../features/welcome/OpenRepoDialog';
 import { WorkspaceDialogs } from '../features/workspaces/WorkspaceDialogs';
@@ -77,6 +78,7 @@ export function Shell() {
       <CloneDialog />
       <InitDialog />
       <PreferencesDialog />
+      <PreferencesImportDialog />
       <ShortcutsDialog />
       <ChangelogDialog />
       <TerminalDialog />

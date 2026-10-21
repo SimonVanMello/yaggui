@@ -81,6 +81,24 @@ export const commands = {
 	/**  Replaces `keybindings.json` with these overrides and returns what was written. */
 	setKeybindings: (overrides: KeybindingOverride[]) => typedError<KeybindingsFile, YagguiError>(__TAURI_INVOKE("set_keybindings", { overrides })),
 	/**
+	 *  Asks where to save, then writes the preferences and shortcuts file (F-326). Returns the
+	 *  file written, `None` when the user cancels.
+	 */
+	exportPreferences: (title: string) => typedError<string | null, YagguiError>(__TAURI_INVOKE("export_preferences", { title })),
+	/**
+	 *  Asks for a preferences file and lists what importing it would change, without changing
+	 *  anything. `None` when the user cancels.
+	 */
+	previewPreferencesImport: (title: string) => typedError<{
+	/**  The file the preview was read from; passed back to apply it. */
+	path: string,
+	changes: PreferenceChange[],
+	keybindingChanges: KeybindingChange[],
+	ignored: IgnoredKey[],
+} | null, YagguiError>(__TAURI_INVOKE("preview_preferences_import", { title })),
+	/**  Applies the file a preview was made from, in one step. The file is validated again. */
+	applyPreferencesImport: (path: string) => typedError<AppliedImport, YagguiError>(__TAURI_INVOKE("apply_preferences_import", { path })),
+	/**
 	 *  Entries of the global or local Git config file (F-325). `repo_id` is required for the
 	 *  repository scope.
 	 */
@@ -709,6 +727,11 @@ export type AppInfo = {
 	/**  `false` when the detected git is older than `min_git_version` (warning shown in the UI). */
 	gitSupported: boolean,
 	minGitVersion: string,
+};
+
+export type AppliedImport = {
+	preferences: Preferences,
+	keybindings: KeybindingsFile,
 };
 
 export type Blame = {
@@ -1569,7 +1592,14 @@ export type ErrorCode =
 /**  A branch protected by the preferences is refused by a batch deletion. */
 "protectedBranchDelete" | 
 /**  The branch is checked out in a worktree: it cannot be deleted. */
-"branchCheckedOut";
+"branchCheckedOut" | 
+/**
+ *  A preferences file (F-326) that cannot be read, is not a yaggui export or holds a value
+ *  yaggui refuses. Nothing was changed; the keys at fault are in `detail`.
+ */
+"preferencesFileInvalid" | 
+/**  A preferences file written by a newer format version than this yaggui reads. */
+"preferencesFileTooNew";
 
 /**  Structured data attached to some errors, for a dedicated display. */
 export type ErrorPayload = 
@@ -1953,6 +1983,17 @@ export type IdentityProfile = {
 	email: string,
 };
 
+export type IgnoredKey = {
+	key: string,
+	reason: IgnoredReason,
+};
+
+export type IgnoredReason = 
+/**  A path or program of the machine that exported the file. */
+"machineSpecific" | 
+/**  Not a setting this version of yaggui has (hand edit, or a newer version). */
+"unknown";
+
 export type ImportFailure = {
 	path: string,
 	error: YagguiError,
@@ -2110,6 +2151,12 @@ export type JournalOp =
  *  `count`: how many in total.
  */
 { kind: "deleteBranches"; names: string[]; count: number };
+
+export type KeybindingChange = {
+	action: string,
+	before: ShortcutState,
+	after: ShortcutState,
+};
 
 export type KeybindingOverride = {
 	/**  Stable action id (`tab.new`, `git.push`…). */
@@ -2368,6 +2415,13 @@ export type PathSelection =
 /**  Repository-relative, `/`-separated paths, as listed by `changed_files`. */
 { kind: "paths"; paths: string[] };
 
+/**  One setting that the import would change. Values are JSON text. */
+export type PreferenceChange = {
+	key: string,
+	before: string,
+	after: string,
+};
+
 export type Preferences = {
 	theme: ThemePreference,
 	/**  Visual style (F-320). */
@@ -2427,6 +2481,14 @@ export type Preferences = {
 	 *  one-time question: the check is opt-in, nothing is asked of GitHub before.
 	 */
 	checkUpdates?: boolean | null,
+};
+
+export type PreferencesImportPreview = {
+	/**  The file the preview was read from; passed back to apply it. */
+	path: string,
+	changes: PreferenceChange[],
+	keybindingChanges: KeybindingChange[],
+	ignored: IgnoredKey[],
 };
 
 /**  The shell of an integrated terminal exited (or was closed); sent after its last output. */
@@ -2836,6 +2898,12 @@ export type SearchChunk = {
 	nextRow: number | null,
 	/**  Rows known when this chunk was scanned (grows while the history walk runs). */
 	totalRows: number,
+};
+
+/**  What an action's shortcut is: the default one, or an override (`None` = no shortcut). */
+export type ShortcutState = {
+	custom: boolean,
+	shortcut: string | null,
 };
 
 /**
