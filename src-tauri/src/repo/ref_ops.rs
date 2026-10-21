@@ -14,7 +14,7 @@ use crate::git::ops::types::{
     DeleteBranchRequest, DeleteBranchResult, DeletedRef, JournalOp, RefNameKind, StashEntryInfo,
     StashId, StashPushRequest, UndoBlock,
 };
-use crate::git::read::refs::read_stashes;
+use crate::git::read::refs::{StashEntry, read_stashes};
 use crate::graph::resolve_commit;
 
 use super::RepoManager;
@@ -870,16 +870,23 @@ fn stash_ref(index: u32) -> String {
 
 /// The entry `stash` designates, `staleRefs` when the list changed since it was read.
 fn verify_stash(ctx: &WriteContext<'_>, stash: &StashId) -> Result<StashEntryInfo, YagguiError> {
-    let entries = read_stashes(ctx.repo)?;
-    let entry = usize::try_from(stash.index)
-        .ok()
-        .and_then(|index| entries.into_iter().nth(index))
-        .filter(|entry| entry.id.to_string().eq_ignore_ascii_case(stash.sha.trim()))
-        .ok_or_else(YagguiError::stale_refs)?;
+    let entry = stash_entry(ctx, stash)?;
     Ok(StashEntryInfo {
         sha: entry.id.to_string(),
         message: entry.message,
     })
+}
+
+pub(super) fn stash_entry(
+    ctx: &WriteContext<'_>,
+    stash: &StashId,
+) -> Result<StashEntry, YagguiError> {
+    let entries = read_stashes(ctx.repo)?;
+    usize::try_from(stash.index)
+        .ok()
+        .and_then(|index| entries.into_iter().nth(index))
+        .filter(|entry| entry.id.to_string().eq_ignore_ascii_case(stash.sha.trim()))
+        .ok_or_else(YagguiError::stale_refs)
 }
 
 fn stash_push(

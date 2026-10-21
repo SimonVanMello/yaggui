@@ -15,6 +15,7 @@ pub mod op_queue;
 mod ref_ops;
 mod remotes;
 pub mod scan;
+mod stash_file;
 pub mod watcher;
 pub mod workspace;
 mod write;

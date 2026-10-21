@@ -271,6 +271,13 @@ export const commands = {
 	/**  Applies a stash and keeps it. Errors: `stashConflict`, `dirtyWorktree`, `staleRefs`. */
 	stashApply: (repoId: number, stash: StashId) => typedError<null, YagguiError>(__TAURI_INVOKE("stash_apply", { repoId, stash })),
 	/**
+	 *  Applies one file of a stash into the working tree and keeps the stash (F-185), undoable
+	 *  like a discard. Errors: `stashConflict` (journaled: the undo puts the file back),
+	 *  `dirtyWorktree` (local changes to the file, or a file already at its path),
+	 *  `invalidArgument`, `staleRefs`.
+	 */
+	stashApplyFile: (repoId: number, request: StashFileRequest) => typedError<null, YagguiError>(__TAURI_INVOKE("stash_apply_file", { repoId, request })),
+	/**
 	 *  Applies a stash, then drops it when it applied without conflict (`stashConflict`: kept).
 	 *  Returns the dropped entry, for the undo.
 	 */
@@ -2186,6 +2193,8 @@ export type JournalOp =
 { kind: "updateSubmodules"; count: number } | 
 /**  Stash of selected files (F-182). `paths` / `count` as for `Discard`. */
 { kind: "stashPush"; message: string; paths: string[]; count: number } | 
+/**  One file applied from a stash (F-185); the stash itself is untouched. */
+{ kind: "stashApplyFile"; message: string; path: string } | 
 /**  A rule appended to the repository's `.gitignore` (F-069). */
 { kind: "gitignore"; rule: string } | 
 /**
@@ -3006,6 +3015,18 @@ export type SigningFormat = "openpgp" | "ssh" | "x509";
 export type StashEntryInfo = {
 	sha: string,
 	message: string,
+};
+
+/**  One file of a stash to bring back into the working tree (F-185). */
+export type StashFileRequest = {
+	stash: StashId,
+	/**  Repository-relative path, as the stash preview lists it. */
+	path: string,
+	/**
+	 *  The file comes from the untracked files of the stash (its third parent), not from
+	 *  its tracked changes.
+	 */
+	untracked: boolean,
 };
 
 /**

@@ -7,6 +7,7 @@ sources:
   - src/features/undo/**
   - src/features/toolbar/Toolbar.tsx
   - src-tauri/src/repo/journal.rs
+  - src-tauri/src/repo/stash_file.rs
   - src-tauri/src/commands/undo.rs
   - src-tauri/src/store/undo_journal.rs
 requirements: [F-240, F-241, F-242, F-243, F-244]
@@ -74,6 +75,7 @@ L’annulation cible toujours l’opération la plus récente qui n’est pas d�
 | Reset hard                                                    | reset hard vers \{target\}                                                                                                                | La branche revient en arrière et les fichiers écrasés sont réécrits depuis la sauvegarde                                   |
 | Abandon de modifications (fichiers ou blocs)                  | abandon des modifications de \{path\}, abandon des modifications de \{count\} fichiers                                                    | Le contenu abandonné revient dans le répertoire de travail et dans l’index                                                 |
 | Stash de fichiers sélectionnés                                | stash de \{path\}, stash de \{count\} fichiers                                                                                            | Les fichiers reviennent et l’entrée de stash est supprimée                                                                 |
+| Application d’un seul fichier d’un stash                      | application de \{path\} depuis le stash « \{message\} »                                                                                   | Le fichier précédent revient dans le répertoire de travail et dans l’index ; le stash n’est pas modifié                    |
 | Suppression d’un stash                                        | suppression du stash « \{message\} »                                                                                                      | Le stash revient, en haut de la liste                                                                                      |
 | Ajout à `.gitignore`                                          | ajout de \{rule\} au .gitignore                                                                                                           | `.gitignore` est restauré                                                                                                  |
 | Suivi d’un motif avec Git LFS                                 | suivi LFS de \{pattern\}                                                                                                                  | `.gitattributes` est restauré                                                                                              |
@@ -108,7 +110,7 @@ Le rétablissement réapplique l’opération que vous venez d’annuler. Annule
 - L’historique est enregistré par dépôt dans la base de yaggui (`yaggui.db`, voir [Données et confidentialité](../../reference/data-and-privacy/)) après chaque opération, annulation et rétablissement, et revient quand vous rouvrez le dépôt, y compris les opérations annulées qui peuvent être rétablies.
 - Il contient les 100 dernières opérations de chaque dépôt, et aucune de plus de 30 jours ; les plus anciennes sont supprimées.
 - Retirer un dépôt de yaggui (**Retirer des récents**) supprime son historique.
-- L’annulation exige un dépôt au calme : tant qu’un merge, un rebase, un cherry-pick, un revert ou un bisect est en cours, l’annulation et le rétablissement sont refusés (« Une autre opération (merge, rebase, cherry-pick, revert ou bisect) est en cours : continue-la ou annule-la d'abord. »), de même quand des fichiers sont en conflit (« Des fichiers sont encore en conflit : résous-les (et stage-les) d'abord. »). Les abandons de modifications, les stashs de fichiers sélectionnés, les modifications de `.gitignore` et du suivi LFS, les suppressions de stash et les changements de remote peuvent en revanche toujours être annulés.
+- L’annulation exige un dépôt au calme : tant qu’un merge, un rebase, un cherry-pick, un revert ou un bisect est en cours, l’annulation et le rétablissement sont refusés (« Une autre opération (merge, rebase, cherry-pick, revert ou bisect) est en cours : continue-la ou annule-la d'abord. »), de même quand des fichiers sont en conflit (« Des fichiers sont encore en conflit : résous-les (et stage-les) d'abord. »). Les abandons de modifications, les stashs de fichiers sélectionnés, les fichiers appliqués depuis un stash, les modifications de `.gitignore` et du suivi LFS, les suppressions de stash et les changements de remote peuvent en revanche toujours être annulés.
 - yaggui ne détecte pas un push fait depuis un terminal : si vous poussez depuis un terminal puis annulez un commit, seule votre branche locale bouge.
 
 ## Quand le dépôt a changé en dehors de yaggui
@@ -128,6 +130,6 @@ Une opération enregistrée par une autre version de yaggui que celle-ci ne sait
 
 ## Sauvegardes avant abandon de modifications
 
-Avant d’abandonner des modifications, avant un reset hard, et avant de mettre de côté des fichiers sélectionnés, d’ajouter à `.gitignore` ou de suivre un motif avec LFS, yaggui copie les fichiers concernés dans un dossier de sauvegarde (`backups/` dans le dossier de configuration de yaggui). L’annulation utilise ces copies pour réécrire les fichiers.
+Avant d’abandonner des modifications, avant un reset hard, avant de mettre de côté des fichiers sélectionnés ou d’appliquer un seul fichier d’un stash, d’ajouter à `.gitignore` ou de suivre un motif avec LFS, yaggui copie les fichiers concernés dans un dossier de sauvegarde (`backups/` dans le dossier de configuration de yaggui). L’annulation utilise ces copies pour réécrire les fichiers.
 
 Les sauvegardes restent sur le disque, même une fois l’opération sortie de l’historique d’annulation ; yaggui ne les supprime pas. Vous pouvez récupérer un fichier à la main depuis ce dossier, ou le supprimer pour libérer de l’espace. Son emplacement est indiqué dans [Données et confidentialité](../../reference/data-and-privacy/).

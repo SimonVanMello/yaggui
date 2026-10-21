@@ -2,6 +2,7 @@ import type { DragEvent } from 'react';
 
 import { useT } from '../../i18n/useT';
 import type { ChangedFile } from '../../ipc';
+import type { IconName } from '../../ui/Icon';
 import { IconButton } from '../../ui/IconButton';
 import { splitPath } from './fileTree';
 import { STATUS_LETTER } from './format';
@@ -14,6 +15,13 @@ export interface RowActions {
   /** The row can be dragged to the other list. */
   onDragStart: (event: DragEvent<HTMLDivElement>) => void;
   onDragEnd: () => void;
+}
+
+/** A button of its own on a file row outside the working tree lists (apply a stashed file). */
+export interface FileAction {
+  icon: IconName;
+  label: string;
+  onClick: () => void;
 }
 
 export interface PressModifiers {
@@ -29,6 +37,7 @@ interface ChangedFileRowProps {
   selected: boolean;
   onSelect: (modifiers: PressModifiers) => void;
   actions?: RowActions;
+  fileAction?: FileAction;
   /** Stored with Git LFS (F-262). */
   lfs?: boolean;
 }
@@ -40,6 +49,7 @@ export function ChangedFileRow({
   selected,
   onSelect,
   actions,
+  fileAction,
   lfs = false,
 }: ChangedFileRowProps) {
   const t = useT();
@@ -88,6 +98,20 @@ export function ChangedFileRow({
         <span className={styles.stats}>
           {file.additions > 0 && <span className={styles.add}>+{file.additions}</span>}
           {(file.deletions ?? 0) > 0 && <span className={styles.del}>−{file.deletions}</span>}
+        </span>
+      )}
+      {fileAction && !actions && (
+        <span className={styles.actions}>
+          <IconButton
+            icon={fileAction.icon}
+            size="sm"
+            label={fileAction.label}
+            tabIndex={-1}
+            onClick={(event) => {
+              event.stopPropagation();
+              fileAction.onClick();
+            }}
+          />
         </span>
       )}
       {actions && (

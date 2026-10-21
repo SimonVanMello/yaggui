@@ -6,8 +6,11 @@ import styles from './RefDialogs.module.css';
 
 type Props = Extract<RefDialog, { kind: 'stashConflict' }>;
 
-/** A stash apply / pop conflicted: the stash is kept, the files hold the conflict markers. */
-export function StashConflictDialog({ paths, checkedOut }: Props) {
+/**
+ * A stash apply / pop, or the apply of one of its files, conflicted: the stash is kept, the files
+ * hold the conflict markers.
+ */
+export function StashConflictDialog({ paths, checkedOut, file }: Props) {
   const t = useT();
   const close = useRefDialogs((state) => state.close);
   return (
@@ -17,7 +20,11 @@ export function StashConflictDialog({ paths, checkedOut }: Props) {
         if (!open) close();
       }}
       title={t('refs.conflict.title')}
-      description={t(checkedOut ? 'refs.conflict.checkedOut' : 'refs.conflict.description')}
+      description={
+        file !== null
+          ? t('refs.conflict.file', { path: file })
+          : t(checkedOut ? 'refs.conflict.checkedOut' : 'refs.conflict.description')
+      }
       footer={
         <Button variant="primary" onClick={close}>
           {t('refs.conflict.ok')}
@@ -36,7 +43,7 @@ export function StashConflictDialog({ paths, checkedOut }: Props) {
         <ol className={styles.steps}>
           <li>{t('refs.conflict.step1')}</li>
           <li>{t('refs.conflict.step2')}</li>
-          <li>{t('refs.conflict.step3')}</li>
+          <li>{t(file !== null ? 'refs.conflict.fileStep3' : 'refs.conflict.step3')}</li>
         </ol>
       </div>
     </Dialog>

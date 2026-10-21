@@ -7,6 +7,7 @@ sources:
   - src/features/undo/**
   - src/features/toolbar/Toolbar.tsx
   - src-tauri/src/repo/journal.rs
+  - src-tauri/src/repo/stash_file.rs
   - src-tauri/src/commands/undo.rs
   - src-tauri/src/store/undo_journal.rs
 requirements: [F-240, F-241, F-242, F-243, F-244]
@@ -74,6 +75,7 @@ Undo always targets the newest operation that is not already undone; press it ag
 | Hard reset                                         | hard reset to \{target\}                                                                                                    | The branch moves back and the overwritten files are written back from the backup                               |
 | Discard changes (files or hunks)                   | discard of \{path\}, discard of \{count\} files                                                                             | The discarded content comes back in the working tree and the index                                             |
 | Stash selected files                               | stash of \{path\}, stash of \{count\} files                                                                                 | The files come back and the stash entry is dropped                                                             |
+| Apply a single file of a stash                     | applying \{path\} from stash "\{message\}"                                                                                  | The previous file comes back in the working tree and the index; the stash is not touched                       |
 | Drop a stash                                       | drop of stash "\{message\}"                                                                                                 | The stash comes back, on top of the list                                                                       |
 | Add to .gitignore                                  | addition of \{rule\} to .gitignore                                                                                          | `.gitignore` is restored                                                                                       |
 | Track a pattern with Git LFS                       | LFS tracking of \{pattern\}                                                                                                 | `.gitattributes` is restored                                                                                   |
@@ -108,7 +110,7 @@ Redo re-applies the operation you last undid. Undo several operations, then redo
 - The history is saved per repository in yaggui's database (`yaggui.db`, see [Data and privacy](../../reference/data-and-privacy/)) after each operation, undo and redo, and comes back when you open the repository again, including which operations were undone and can be redone.
 - It holds the last 100 operations of each repository, and none older than 30 days; older ones are dropped.
 - Removing a repository from yaggui (**Remove from recents**) deletes its history.
-- Undo needs a quiet repository: while a merge, rebase, cherry-pick, revert or bisect is in progress, undo and redo are refused ("Another operation (merge, rebase, cherry-pick, revert or bisect) is in progress: continue or abort it first."), and while files are in conflict too ("Some files are still in conflict: resolve them (and stage them) first."). Discards, stashes of selected files, `.gitignore` and LFS tracking changes, stash drops and remote changes can still be undone meanwhile.
+- Undo needs a quiet repository: while a merge, rebase, cherry-pick, revert or bisect is in progress, undo and redo are refused ("Another operation (merge, rebase, cherry-pick, revert or bisect) is in progress: continue or abort it first."), and while files are in conflict too ("Some files are still in conflict: resolve them (and stage them) first."). Discards, stashes of selected files, files applied from a stash, `.gitignore` and LFS tracking changes, stash drops and remote changes can still be undone meanwhile.
 - yaggui does not detect a push made from a terminal: if you push from a terminal and then undo a commit, only your local branch moves.
 
 ## When the repository changed outside yaggui
@@ -128,6 +130,6 @@ An operation recorded by a different version of yaggui that this one cannot read
 
 ## Backups of discarded files
 
-Before discarding changes, before a hard reset, and before stashing selected files, adding to `.gitignore` or tracking an LFS pattern, yaggui copies the affected files to a backup folder (`backups/` in the yaggui configuration folder). Undo uses these copies to write the files back.
+Before discarding changes, before a hard reset, before stashing selected files or applying a single file from a stash, adding to `.gitignore` or tracking an LFS pattern, yaggui copies the affected files to a backup folder (`backups/` in the yaggui configuration folder). Undo uses these copies to write the files back.
 
 The backups stay on disk, even after the operation has left the undo history; yaggui does not delete them. You can recover a file from them by hand, or delete the folder to free space. Its location is given in [Data and privacy](../../reference/data-and-privacy/).

@@ -872,6 +872,71 @@ impl YagguiError {
         })
     }
 
+    /// Conflicts left by applying one file of a stash (F-185): same code and payload as a
+    /// stash apply, the stash itself is untouched and the undo puts the file back.
+    pub fn stash_file_conflict(path: &str, stash_sha: String) -> Self {
+        Self::new(
+            ErrorCode::StashConflict,
+            format!("\"{path}\" from the stash conflicts with your version. Resolve the conflict, or undo to get your file back; the stash is untouched."),
+            format!("« {path} » du stash entre en conflit avec ta version. Résous le conflit, ou annule pour retrouver ton fichier ; le stash n'est pas modifié."),
+        )
+        .with_payload(ErrorPayload::StashConflict {
+            paths: vec![path.to_owned()],
+            stash_sha,
+            checked_out: false,
+        })
+    }
+
+    /// Applying one file of a stash would overwrite something in the working tree: local
+    /// changes to a tracked file (`exists`: false), or a file already at the path of one the
+    /// stash adds (`exists`: true). Code `dirtyWorktree`, never carried.
+    pub fn stash_file_in_the_way(path: &str, exists: bool) -> Self {
+        let (en, fr) = if exists {
+            (
+                format!(
+                    "\"{path}\" already exists in your working tree: the file from the stash would overwrite it. Move or delete it first."
+                ),
+                format!(
+                    "« {path} » existe déjà dans ton arbre de travail : le fichier du stash l'écraserait. Déplace-le ou supprime-le d'abord."
+                ),
+            )
+        } else {
+            (
+                format!(
+                    "Your local changes to \"{path}\" would be overwritten by the file from the stash. Commit, stash or discard them first."
+                ),
+                format!(
+                    "Tes modifications locales de « {path} » seraient écrasées par le fichier du stash. Commite-les, mets-les de côté (stash) ou annule-les d'abord."
+                ),
+            )
+        };
+        Self::new(ErrorCode::DirtyWorktree, en, fr).with_payload(ErrorPayload::DirtyWorktree {
+            paths: vec![path.to_owned()],
+            can_carry: false,
+        })
+    }
+
+    /// The stash changes a file that is no longer in the index: there is nothing to merge
+    /// its change into.
+    pub fn stash_file_missing(path: &str) -> Self {
+        Self::invalid_argument(
+            format!(
+                "\"{path}\" no longer exists on your side: the change the stash holds for it cannot be merged. Open the file in the stash to see its stashed version."
+            ),
+            format!(
+                "« {path} » n'existe plus de ton côté : la modification que le stash garde pour lui ne peut pas y être fusionnée. Ouvre le fichier dans le stash pour voir sa version mise de côté."
+            ),
+        )
+    }
+
+    /// The path asked for is not a file the stash changed (or stashed as untracked).
+    pub fn not_in_stash(path: &str) -> Self {
+        Self::invalid_argument(
+            format!("\"{path}\" is not a file of this stash."),
+            format!("« {path} » n'est pas un fichier de ce stash."),
+        )
+    }
+
     pub fn nothing_to_stash() -> Self {
         Self::new(
             ErrorCode::NothingToStash,

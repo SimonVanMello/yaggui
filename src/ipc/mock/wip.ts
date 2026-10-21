@@ -10,6 +10,7 @@ import type {
 } from '../bindings';
 import { genericWip, yagguiWip, type MockFileChange } from './diffData';
 import { textDiff } from './lineDiff';
+import { stashFileInTheWay } from './refs';
 
 /** One version of a path in HEAD, the index or the working tree. */
 interface MockSide {
@@ -564,6 +565,39 @@ export class MockWip {
   applyStash(saved: MockStashState): void {
     for (const [path, side] of saved.index) this.index.set(path, { ...side });
     for (const [path, side] of saved.worktree) this.worktree.set(path, clone(side));
+  }
+
+  /**
+   * One file of a stash (`stash_apply_file`): `stashed` is its stashed content when the mock
+   * knows it. Refused over local changes or a file in the way; `conflict` leaves it conflicted.
+   */
+  applyStashFile(
+    path: string,
+    untracked: boolean,
+    stashed: string | null,
+    conflict: boolean,
+  ): Result<'applied' | 'conflict'> {
+    const current = this.worktree.get(path);
+    const text = stashed ?? `${current?.text ?? ''}stashed change of ${path}\n`;
+    if (untracked) {
+      if (current) return { error: stashFileInTheWay(path, true) };
+      this.worktree.set(path, { text, mode: 'regular' });
+      return { ok: 'applied' };
+    }
+    const indexed = this.index.get(path);
+    if (!indexed) {
+      if (current) return { error: stashFileInTheWay(path, true) };
+      // A file the stash adds stays staged, as with `git stash apply`.
+      this.index.set(path, { text, mode: 'regular' });
+    } else if (indexed.conflicted || indexed.text !== (current?.text ?? null)) {
+      return { error: stashFileInTheWay(path, false) };
+    }
+    if (conflict) {
+      this.markConflicted([path]);
+      return { ok: 'conflict' };
+    }
+    this.worktree.set(path, { text, mode: current?.mode ?? 'regular' });
+    return { ok: 'applied' };
   }
 
   /** Leaves `paths` in conflict, as a stash apply that conflicted does. */

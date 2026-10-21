@@ -766,6 +766,18 @@ pub(super) enum IndexSide {
         id: gix::ObjectId,
         mode: u32,
     },
+    /// Conflict stages (base, ours, theirs) left by a merge of the file.
+    Unmerged {
+        stages: [Option<StageEntry>; 3],
+    },
+}
+
+/// One conflict stage of an index entry.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub(super) struct StageEntry {
+    #[serde(with = "super::journal::oid")]
+    pub(super) id: gix::ObjectId,
+    pub(super) mode: u32,
 }
 
 pub(super) const MODE_FILE: u32 = 0o100_644;
@@ -806,6 +818,11 @@ impl Backup {
             },
             saved: Vec::new(),
         })
+    }
+
+    /// The backup folder, for files an operation keeps next to the backup (a patch).
+    pub(super) fn dir(&self) -> &Path {
+        &self.dir
     }
 
     fn next_file(&self, kind: &str) -> String {

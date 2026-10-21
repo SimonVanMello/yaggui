@@ -99,6 +99,7 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             commands::refs::unset_upstream,
             commands::refs::stash_push,
             commands::refs::stash_apply,
+            commands::refs::stash_apply_file,
             commands::refs::stash_pop,
             commands::refs::stash_drop,
             commands::refs::stash_rename,
