@@ -12,10 +12,11 @@ sources:
   - src-tauri/src/store/types.rs
   - src-tauri/src/store/mod.rs
   - src-tauri/src/store/keybindings.rs
+  - src-tauri/src/store/prefs_sync.rs
   - src-tauri/src/commands/store.rs
   - src-tauri/src/commands/settings.rs
   - src-tauri/src/state.rs
-requirements: [F-320, F-321, F-322, F-323, F-324, F-325, F-033, F-266, F-267, F-281]
+requirements: [F-320, F-321, F-322, F-323, F-324, F-325, F-033, F-266, F-267, F-281, F-326]
 ---
 
 This page lists every setting of the **Preferences** dialog, tab by tab. Each row links to the page that explains the feature.
@@ -145,4 +146,31 @@ The `YAGGUI_CONFIG_DIR` environment variable replaces this folder.
 - An unreadable or out-of-range value falls back to its default. If the database cannot be opened, yaggui starts with the defaults and keeps changes in memory only: they are lost when you quit.
 - To reset every preference, quit yaggui and delete `yaggui.db`. This also forgets your repositories, tabs and workspaces. See [Data and privacy](../../reference/data-and-privacy/).
 
-There is no import or export of preferences yet.
+## Import and export
+
+To carry your preferences and shortcuts to another machine by hand, use **Export…** and **Import…** at the bottom left of the Preferences dialog. The same two commands are in the command palette: **Export preferences and shortcuts…** and **Import preferences and shortcuts…**.
+
+**Export…** asks where to save a file (`yaggui-preferences.json` by default) and writes your current preferences and custom shortcuts to it. The toast "Preferences and shortcuts exported" shows the path.
+
+**Import…** asks for a file and opens **Import preferences**, which lists what would change before anything is applied: each preference with its current and new value, each shortcut with its current and new binding, and what is left out. Nothing is written until you click **Import**, which applies everything in one step. If the file would change nothing, the dialog says so and **Import** stays disabled.
+
+### What the file holds
+
+```json
+{
+  "format": "yaggui-preferences",
+  "version": 1,
+  "preferences": { "theme": "dark", "fontSize": 14 },
+  "keybindings": [{ "action": "tab.new", "shortcut": "Mod+N" }]
+}
+```
+
+- **Exported preferences:** theme, style, language, what the Terminal button opens, diff layout and options, high contrast, density, interface and code fonts, text size, automatic fetch and its interval, prune on fetch, default pull strategy, protected branches, turned-off confirmations and Gravatar avatars.
+- **Never exported (specific to a machine):** the Git binary path, the editor, the external terminal, the diff and merge tools, and the answer to the update check question. Their paths and programs differ from one install to the next, and the update check is an opt-in you answer on each machine. If a file contains them anyway, they are ignored and listed under **Left out**, and the values on this machine stay as they are.
+- **Shortcuts:** the list in `keybindings` is your whole set of custom shortcuts. Importing it **replaces** the custom shortcuts of this machine: a command the file does not list goes back to its default shortcut. The preview shows each change.
+- **Preferences missing from the file** keep their value on this machine. **Unknown keys** (a setting added by a newer yaggui, or a typo) are ignored and listed.
+- Identity profiles, commit templates, repositories, tabs and workspaces are not preferences and are never exported.
+
+### Files yaggui refuses
+
+A file that is not valid JSON, is not a yaggui preferences file, holds a value out of range or of the wrong type (for example `"fontSize": 99`), or has an invalid shortcut is refused as a whole: nothing is changed and a toast "Could not import the file" explains why, with the keys at fault under **Details**. A file whose `version` is higher than the one this yaggui reads is refused with a message asking you to update yaggui. See [Error messages](../../reference/error-messages/).

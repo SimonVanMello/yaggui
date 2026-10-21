@@ -1,6 +1,6 @@
 import { expect, test, type Locator, type Page, type TestInfo } from '@playwright/test';
 
-import { capture, openRepo, start } from './capture';
+import { MOCK_NOW_MS, capture, openRepo, start } from './capture';
 
 /** Docs screenshots: commit graph, branches, tags, compare and history operations. */
 
@@ -341,17 +341,38 @@ test('conflicts-choice-binary', async ({ page }, testInfo) => {
   }));
 });
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** A restart of yaggui (M7-1): the journal comes back from `yaggui.db`, optionally after a `git gc`. */
+async function restart(page: Page, pruned: boolean) {
+  await page.evaluate(async (pruned) => {
+    const mock = window.__yagguiMock;
+    const opened = await mock?.commands.openRepo('/Users/alex/dev/yaggui');
+    if (!mock || opened?.status !== 'ok') return;
+    mock.simulateRestoredJournal(opened.data.id, { pruned });
+    await mock.commands.closeRepo(opened.data.id);
+  }, pruned);
+}
+
 test('undo-history', async ({ page }, testInfo) => {
   await openYaggui(page);
+  // Two earlier sessions, the first one's entry pruned by a `git gc` since (F-244).
+  await page.clock.setFixedTime(new Date(MOCK_NOW_MS - 2 * DAY_MS));
   await createBranch(page, 'qa-undo-1');
+  await restart(page, true);
+  await page.clock.setFixedTime(new Date(MOCK_NOW_MS - DAY_MS));
   await createBranch(page, 'qa-undo-2');
+  await restart(page, false);
+  await page.clock.setFixedTime(new Date(MOCK_NOW_MS));
+  await createBranch(page, 'qa-undo-3');
+  await createBranch(page, 'qa-undo-4');
   await page.keyboard.press('Control+z');
   await expect(
-    page.getByText('Undone: creation of branch qa-undo-2', { exact: true }),
+    page.getByText('Undone: creation of branch qa-undo-4', { exact: true }),
   ).toBeVisible();
   await toolbar(page).getByRole('button', { name: 'Operation history' }).click();
-  const history = page.getByRole('region', { name: 'Session history' });
-  await expect(history.getByRole('listitem')).toHaveCount(2);
+  const history = page.getByRole('region', { name: 'Operation history' });
+  await expect(history.getByRole('listitem')).toHaveCount(4);
   await captureUnion(page, testInfo, 'undo-history', [
     history,
     toolbar(page).getByRole('button', { name: /^(Undo|Cannot)/ }),

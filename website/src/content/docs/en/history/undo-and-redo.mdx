@@ -33,26 +33,27 @@ On macOS, the **Edit** menu also has **Undo** and **Redo**. Shortcuts can be reb
 - They are ignored while a dialog is open.
 - One undo or redo runs at a time per repository; pressing the shortcut again while one is running does nothing.
 
-The **Undo** and **Redo** buttons sit at the left of the toolbar. Their tooltip names the operation: **Undo: \{op\}** / **Redo: \{op\}**. When there is nothing to undo, the button is disabled with **Nothing to undo in this session** (**Nothing to redo**). When the latest operation cannot be undone, the button looks disabled with **Cannot undo \{op\}: \{reason\}**; the shortcut then shows a **Cannot undo** toast with the reason.
+The **Undo** and **Redo** buttons sit at the left of the toolbar. Their tooltip names the operation: **Undo: \{op\}** / **Redo: \{op\}**. When there is nothing to undo, the button is disabled with **Nothing to undo** (**Nothing to redo**). When the latest operation cannot be undone, the button looks disabled with **Cannot undo \{op\}: \{reason\}**; the shortcut then shows a **Cannot undo** toast with the reason.
 
 After an undo or redo, a toast confirms it: **Undone: \{op\}** or **Redone: \{op\}**, for example "Undone: creation of branch qa-undo". Undo and redo themselves are not recorded as operations.
 
-## The session history
+## The operation history
 
-Click the arrow next to **Redo** to open **Session history**.
+Click the arrow next to **Redo** to open **Operation history**.
 
 <Screenshot
   dark={undoHistoryDark}
   light={undoHistoryLight}
-  alt="Session history popover listing operations newest first, one struck through and marked undone, with their times"
+  alt="Operation history popover: this session's operations first, one struck through and marked undone, then under Earlier sessions an older operation with its date and a grayed one marked cannot be restored, with its reason"
 />
 
-- Operations are listed newest first, each with its time (hours, minutes, seconds). Operations from earlier sessions of the repository follow those of this session.
+- Operations are listed newest first. Those of this session come first; those of earlier sessions of the repository follow under **Earlier sessions** (see [After a restart](#after-a-restart)).
+- Each operation shows its time (hours, minutes, seconds), and its date and time when it is not from today.
 - Undone operations are struck through and marked **undone**.
-- Operations that cannot be undone are marked **not undoable**; hover the badge to see why.
+- Operations that can no longer be undone are grayed, with the reason under their name (also in their tooltip: **Cannot undo \{op\}: \{reason\}**). They are marked **not undoable** when the operation itself cannot be undone (a push, a pull…), and **cannot be restored** when it could be undone but no longer can: what it needs was deleted by Git's garbage collection, or it was recorded by another version of yaggui.
 - The list is read only: undo and redo always act on the newest entries.
 
-When nothing was recorded yet: **No operation yet in this session.**
+When nothing was recorded yet: **No operation yet in this session.** When only earlier sessions have operations, that line is followed by **Earlier sessions**.
 
 ## What can be undone
 
@@ -123,9 +124,9 @@ Before it undoes anything, yaggui checks that every branch the undo would move i
 
 An operation from an earlier session is undone exactly like a recent one, with the same checks (see above): if a branch moved while yaggui was closed, the undo is refused and nothing is touched.
 
-It also needs the Git objects it restores: the commits the branches pointed to and the saved contents of discarded or overwritten files. yaggui keeps these contents as Git objects that nothing references and adds nothing to your repository to keep them alive, so Git's garbage collection (`git gc`, also run automatically by Git from time to time) can delete them. yaggui then refuses the undo before changing anything: the button shows **Cannot undo \{op\}: what it needs was deleted by Git's garbage collection since**, and the shortcut a **Cannot undo** toast: "Git deleted what this undo needs (old commits or saved file contents, removed by a garbage collection since): it can no longer be undone. Nothing was changed; redo the change by hand if you still need it." The entry stays in the history, marked **not undoable**, and, like any such entry, is a barrier for older ones. The copies in `backups/` (below) may still have the files.
+It also needs the Git objects it restores: the commits the branches pointed to and the saved contents of discarded or overwritten files. yaggui keeps these contents as Git objects that nothing references and adds nothing to your repository to keep them alive, so Git's garbage collection (`git gc`, also run automatically by Git from time to time) can delete them. yaggui then refuses the undo before changing anything: the button shows **Cannot undo \{op\}: what it needs was deleted by Git's garbage collection since**, and the shortcut a **Cannot undo** toast: "Git deleted what this undo needs (old commits or saved file contents, removed by a garbage collection since): it can no longer be undone. Nothing was changed; redo the change by hand if you still need it." The entry stays in the history, grayed and marked **cannot be restored**, and, like any entry that cannot be undone, is a barrier for older ones. The copies in `backups/` (below) may still have the files.
 
-An operation recorded by a different version of yaggui that this one cannot read is kept in the history but not undoable: **it was recorded by another version of yaggui**.
+An operation recorded by a different version of yaggui that this one cannot read is kept in the history, grayed and marked **cannot be restored**: **it was recorded by another version of yaggui**.
 
 ## Backups of discarded files
 
