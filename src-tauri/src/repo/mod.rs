@@ -440,7 +440,7 @@ impl RepoManager {
             refs_changed,
             refs_cache: Mutex::default(),
             watch_error,
-            journal: Mutex::default(),
+            journal: Mutex::new(journal::OpJournal::load(&self.store, id)),
             _watcher: watcher,
         });
         let info = session.info()?;

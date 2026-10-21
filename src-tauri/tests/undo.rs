@@ -1016,5 +1016,13 @@ fn worktree_prune_is_not_journaled() {
     std::fs::remove_dir_all(&folder).unwrap();
     e.repos.prune_worktrees(e.id).unwrap();
     assert!(e.repos.op_history(e.id).unwrap().is_empty());
-    assert!(!e.out(&["worktree", "list"]).contains("wt"));
+    // Compared by folder name and branch, not by substring: the main worktree's temp path
+    // (e.g. macOS `/var/folders/…`) may contain "wt" by chance.
+    let list = e.out(&["worktree", "list", "--porcelain"]);
+    let left = list.lines().any(|line| {
+        line.strip_prefix("worktree ")
+            .is_some_and(|path| Path::new(path).file_name() == Some("wt".as_ref()))
+            || line == "branch refs/heads/wt"
+    });
+    assert!(!left, "pruned worktree still listed:\n{list}");
 }

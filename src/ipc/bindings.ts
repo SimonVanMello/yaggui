@@ -1532,7 +1532,7 @@ export type ErrorCode =
 "invalidRemoteName" | 
 /**  The remote refused a tag: one of that name points elsewhere there, or a hook declined it. */
 "tagRejected" | 
-/**  `undo` with no operation to undo in this session. */
+/**  `undo` with no operation to undo (in this session or a previous one). */
 "nothingToUndo" | 
 /**  `redo` with no undone operation (or an operation was journaled since). */
 "nothingToRedo" | 
@@ -1551,6 +1551,12 @@ export type ErrorCode =
  *  stash them first.
  */
 "undoWouldOverwrite" | 
+/**
+ *  An entry (usually from a previous session) needs objects that are no longer in the
+ *  repository, pruned by `git gc` since: it can never be undone or redone. Reason
+ *  (`objectsMissing`) in `payload`; nothing was changed.
+ */
+"undoObjectsMissing" | 
 /**
  *  Git could not sign the commit (`commit.gpgsign`): no key, a key whose passphrase no
  *  agent provides (yaggui never asks for it), or the signing program failed.
@@ -2044,15 +2050,20 @@ export type JournalChanged = {
 
 /**  One operation of the session journal. */
 export type JournalEntry = {
-	/**  Unique within the repository session. */
+	/**  Unique within the repository, across sessions (the journal is kept in `yaggui.db`). */
 	id: number,
 	op: JournalOp,
 	/**  When the operation finished, Unix time in milliseconds (`f64`: specta refuses `u64`). */
 	at: number | null,
 	/**  Undone, and not redone since. */
 	undone: boolean,
-	/**  Set for operations that can never be undone (push, fetch with prune, pull). */
+	/**
+	 *  Set for operations that can never be undone (push, fetch with prune, pull). In
+	 *  `op_history`, also `objectsMissing` when what the entry needs was pruned since.
+	 */
 	blocked: UndoBlock | null,
+	/**  Recorded by a previous session of the repository, reloaded from `yaggui.db` (M7-1). */
+	restored: boolean,
 };
 
 /**  A journaled operation, with what its label needs. The frontend writes the text (i18n). */
@@ -3081,11 +3092,18 @@ export type UndoBlock =
  *  Refs moved since the operation (in a terminal, or by an operation that is not
  *  journaled): full names (`refs/heads/main`, `HEAD`).
  */
-{ kind: "diverged"; refs: string[] };
+{ kind: "diverged"; refs: string[] } | 
+/**
+ *  Objects the step needs (commits the refs pointed to, index trees, saved file contents)
+ *  are no longer in the repository, usually pruned by `git gc` (M7-1). `count`: how many.
+ */
+{ kind: "objectsMissing"; count: number } | 
+/**  An entry from a previous session that this version of yaggui cannot read (M7-1). */
+{ kind: "unreadable" };
 
 /**  State of the undo / redo buttons of a repository. */
 export type UndoState = {
-	/**  Latest operation not undone; `None`: nothing to undo in this session. */
+	/**  Latest operation not undone (this session or a previous one); `None`: nothing to undo. */
 	undo: UndoStep | null,
 	/**
 	 *  Latest undone operation; `None` when nothing was undone, or when an operation was
@@ -3098,8 +3116,8 @@ export type UndoState = {
 export type UndoStep = {
 	entry: JournalEntry,
 	/**
-	 *  Why it would be refused: the entry's own `blocked`, or `diverged` when refs moved
-	 *  since. Local changes it would overwrite are only found when it runs
+	 *  Why it would be refused: the entry's own `blocked`, `objectsMissing` when what it
+	 *  needs was pruned, or `diverged` when refs moved since. Local changes it would overwrite are only found when it runs
 	 *  (`undoWouldOverwrite`).
 	 */
 	blocked: UndoBlock | null,

@@ -938,21 +938,29 @@ pub enum UndoBlock {
     /// Refs moved since the operation (in a terminal, or by an operation that is not
     /// journaled): full names (`refs/heads/main`, `HEAD`).
     Diverged { refs: Vec<String> },
+    /// Objects the step needs (commits the refs pointed to, index trees, saved file contents)
+    /// are no longer in the repository, usually pruned by `git gc` (M7-1). `count`: how many.
+    ObjectsMissing { count: u32 },
+    /// An entry from a previous session that this version of yaggui cannot read (M7-1).
+    Unreadable,
 }
 
 /// One operation of the session journal.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct JournalEntry {
-    /// Unique within the repository session.
+    /// Unique within the repository, across sessions (the journal is kept in `yaggui.db`).
     pub id: u32,
     pub op: JournalOp,
     /// When the operation finished, Unix time in milliseconds (`f64`: specta refuses `u64`).
     pub at: f64,
     /// Undone, and not redone since.
     pub undone: bool,
-    /// Set for operations that can never be undone (push, fetch with prune, pull).
+    /// Set for operations that can never be undone (push, fetch with prune, pull). In
+    /// `op_history`, also `objectsMissing` when what the entry needs was pruned since.
     pub blocked: Option<UndoBlock>,
+    /// Recorded by a previous session of the repository, reloaded from `yaggui.db` (M7-1).
+    pub restored: bool,
 }
 
 /// What `undo` or `redo` would do now.
@@ -960,8 +968,8 @@ pub struct JournalEntry {
 #[serde(rename_all = "camelCase")]
 pub struct UndoStep {
     pub entry: JournalEntry,
-    /// Why it would be refused: the entry's own `blocked`, or `diverged` when refs moved
-    /// since. Local changes it would overwrite are only found when it runs
+    /// Why it would be refused: the entry's own `blocked`, `objectsMissing` when what it
+    /// needs was pruned, or `diverged` when refs moved since. Local changes it would overwrite are only found when it runs
     /// (`undoWouldOverwrite`).
     pub blocked: Option<UndoBlock>,
 }
@@ -970,7 +978,7 @@ pub struct UndoStep {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct UndoState {
-    /// Latest operation not undone; `None`: nothing to undo in this session.
+    /// Latest operation not undone (this session or a previous one); `None`: nothing to undo.
     pub undo: Option<UndoStep>,
     /// Latest undone operation; `None` when nothing was undone, or when an operation was
     /// journaled since.

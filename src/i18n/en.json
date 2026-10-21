@@ -1646,6 +1646,8 @@
   "undo.blocked.downloaded": "it downloaded and checked out content (LFS files, submodule commits)",
   "undo.blocked.filesDeleted": "the worktree's local changes were deleted with it",
   "undo.blocked.diverged": "{refs} moved since, outside yaggui",
+  "undo.blocked.objectsMissing": "what it needs was deleted by Git's garbage collection since",
+  "undo.blocked.unreadable": "it was recorded by another version of yaggui",
   "undo.changes.ref": "moved since",
   "undo.changes.file": "changed since",
   "undo.diverged.title": "Cannot undo: the repository changed since",

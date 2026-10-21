@@ -43,8 +43,22 @@ export function undoWouldOverwrite(paths: string[]): YagguiError {
   };
 }
 
+export function undoObjectsMissing(count: number): YagguiError {
+  return {
+    ...mockError(
+      'undoObjectsMissing',
+      'Git deleted what this undo needs (old commits or saved file contents, removed by a garbage collection since): it can no longer be undone. Nothing was changed; redo the change by hand if you still need it.',
+      "Git a supprimé ce dont cette annulation a besoin (anciens commits ou contenus de fichiers sauvegardés, effacés par un nettoyage depuis) : elle ne peut plus être annulée. Rien n'a été modifié ; refais le changement à la main si tu en as encore besoin.",
+    ),
+    payload: { kind: 'undoBlocked', reason: { kind: 'objectsMissing', count } },
+  };
+}
+
 export function undoBlocked(reason: UndoBlock): YagguiError {
-  const texts: Record<Exclude<UndoBlock['kind'], 'diverged'>, [string, string]> = {
+  const texts: Record<
+    Exclude<UndoBlock['kind'], 'diverged' | 'objectsMissing'>,
+    [string, string]
+  > = {
     published: [
       'This operation changed a remote: it cannot be undone locally.',
       'Cette opération a modifié un remote : elle ne peut pas être annulée localement.',
@@ -69,13 +83,18 @@ export function undoBlocked(reason: UndoBlock): YagguiError {
       'The worktree was removed with its local changes: they cannot be brought back.',
       'Le worktree a été supprimé avec ses modifications locales : elles ne peuvent pas être restaurées.',
     ],
+    unreadable: [
+      'This operation was recorded by another version of yaggui and cannot be read: it cannot be undone. Use the reflog to find the earlier state if you need it.',
+      "Cette opération a été enregistrée par une autre version de yaggui et ne peut pas être lue : elle ne peut pas être annulée. Passe par le reflog pour retrouver l'état d'avant si besoin.",
+    ],
   };
   if (reason.kind === 'diverged') return undoDiverged(reason.refs, []);
+  if (reason.kind === 'objectsMissing') return undoObjectsMissing(reason.count);
   const [en, fr] = texts[reason.kind];
   return { ...mockError('undoBlocked', en, fr), payload: { kind: 'undoBlocked', reason } };
 }
 
-/** Operations kept per repository, like the backend journal. */
+/** Operations kept per repository, like the backend journal (`JOURNAL_MAX_ENTRIES`). */
 export const MOCK_JOURNAL_MAX = 100;
 
 /** The local refs of a mock history by full name (`HEAD`: its branch or commit), to compare. */
@@ -127,6 +146,8 @@ export interface MockJournalRecord {
   after: MockSnapshot;
   /** The undo restores the index and working tree too (discard, reset). */
   files: boolean;
+  /** What the step needs was pruned (`mockPruneJournal`): refused with `undoObjectsMissing`. */
+  missing: boolean;
 }
 
 /** How an operation is journaled. */
@@ -136,7 +157,10 @@ export interface MockJournalSpec {
   files?: boolean;
 }
 
-/** Session journal of one mock repository; same model as `OpJournal`. */
+/**
+ * Journal of one mock repository; same model as `OpJournal`. Like the backend's, saved in
+ * `yaggui.db`, it outlives the session: `restore` flags the entries as from a previous one.
+ */
 export class MockJournal {
   private records: MockJournalRecord[] = [];
   /** Undone records that can be redone, latest last; cleared by a new operation. */
@@ -145,10 +169,18 @@ export class MockJournal {
 
   push(spec: MockJournalSpec, before: MockSnapshot, after: MockSnapshot, at: number): void {
     this.records.push({
-      entry: { id: this.nextId++, op: spec.op, at, undone: false, blocked: spec.blocked ?? null },
+      entry: {
+        id: this.nextId++,
+        op: spec.op,
+        at,
+        undone: false,
+        blocked: spec.blocked ?? null,
+        restored: false,
+      },
       before,
       after,
       files: spec.files ?? false,
+      missing: false,
     });
     if (this.records.length > MOCK_JOURNAL_MAX) this.records.shift();
     this.redoable = [];
@@ -177,8 +209,28 @@ export class MockJournal {
     this.redoable.pop();
   }
 
+  /** The repository was closed: its entries come back as from a previous session. */
+  restore(): void {
+    for (const record of this.records) record.entry.restored = true;
+  }
+
+  /**
+   * Simulates `git gc` pruning what the restored entries need (their saved file contents),
+   * so they are refused with `undoObjectsMissing`.
+   */
+  prune(): void {
+    for (const record of this.records) {
+      if (record.entry.restored && !record.entry.blocked) record.missing = true;
+    }
+  }
+
+  /** Why the record cannot be undone or redone before the refs are even looked at. */
+  static block(record: MockJournalRecord): UndoBlock | null {
+    return record.entry.blocked ?? (record.missing ? { kind: 'objectsMissing', count: 1 } : null);
+  }
+
   history(): JournalEntry[] {
-    return this.records.map((r) => ({ ...r.entry })).reverse();
+    return this.records.map((r) => ({ ...r.entry, blocked: MockJournal.block(r) })).reverse();
   }
 
   step(record: MockJournalRecord | null, current: Map<string, string>): UndoStep | null {
@@ -190,7 +242,7 @@ export class MockJournal {
     return {
       entry: { ...record.entry },
       blocked:
-        record.entry.blocked ?? (moved.length > 0 ? { kind: 'diverged', refs: moved } : null),
+        MockJournal.block(record) ?? (moved.length > 0 ? { kind: 'diverged', refs: moved } : null),
     };
   }
 }

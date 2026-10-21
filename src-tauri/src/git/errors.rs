@@ -143,7 +143,7 @@ pub enum ErrorCode {
     InvalidRemoteName,
     /// The remote refused a tag: one of that name points elsewhere there, or a hook declined it.
     TagRejected,
-    /// `undo` with no operation to undo in this session.
+    /// `undo` with no operation to undo (in this session or a previous one).
     NothingToUndo,
     /// `redo` with no undone operation (or an operation was journaled since).
     NothingToRedo,
@@ -156,6 +156,10 @@ pub enum ErrorCode {
     /// Undoing (or redoing) would overwrite local changes; files in `payload`. Commit or
     /// stash them first.
     UndoWouldOverwrite,
+    /// An entry (usually from a previous session) needs objects that are no longer in the
+    /// repository, pruned by `git gc` since: it can never be undone or redone. Reason
+    /// (`objectsMissing`) in `payload`; nothing was changed.
+    UndoObjectsMissing,
     /// Git could not sign the commit (`commit.gpgsign`): no key, a key whose passphrase no
     /// agent provides (yaggui never asks for it), or the signing program failed.
     SigningFailed,
@@ -1160,8 +1164,8 @@ impl YagguiError {
     pub fn nothing_to_undo() -> Self {
         Self::new(
             ErrorCode::NothingToUndo,
-            "Nothing to undo in this session.",
-            "Rien à annuler dans cette session.",
+            "Nothing to undo.",
+            "Rien à annuler.",
         )
     }
 
@@ -1199,9 +1203,14 @@ impl YagguiError {
                 "The state before this operation could not be recorded: it cannot be undone.",
                 "L'état d'avant cette opération n'a pas pu être enregistré : elle ne peut pas être annulée.",
             ),
+            UndoBlock::Unreadable => (
+                "This operation was recorded by another version of yaggui and cannot be read: it cannot be undone. Use the reflog to find the earlier state if you need it.",
+                "Cette opération a été enregistrée par une autre version de yaggui et ne peut pas être lue : elle ne peut pas être annulée. Passe par le reflog pour retrouver l'état d'avant si besoin.",
+            ),
             UndoBlock::Diverged { refs } => {
                 return Self::undo_diverged(refs.clone(), Vec::new());
             }
+            UndoBlock::ObjectsMissing { count } => return Self::undo_objects_missing(*count),
         };
         Self::new(ErrorCode::UndoBlocked, en, fr).with_payload(ErrorPayload::UndoBlocked { reason })
     }
@@ -1214,6 +1223,18 @@ impl YagguiError {
         )
         .with_payload(ErrorPayload::UndoChanges { refs, paths })
         .with_action(ErrorAction::Refresh)
+    }
+
+    /// What a step needs was pruned (`git gc`): refused before anything changed.
+    pub fn undo_objects_missing(count: u32) -> Self {
+        Self::new(
+            ErrorCode::UndoObjectsMissing,
+            "Git deleted what this undo needs (old commits or saved file contents, removed by a garbage collection since): it can no longer be undone. Nothing was changed; redo the change by hand if you still need it.",
+            "Git a supprimé ce dont cette annulation a besoin (anciens commits ou contenus de fichiers sauvegardés, effacés par un nettoyage depuis) : elle ne peut plus être annulée. Rien n'a été modifié ; refais le changement à la main si tu en as encore besoin.",
+        )
+        .with_payload(ErrorPayload::UndoBlocked {
+            reason: UndoBlock::ObjectsMissing { count },
+        })
     }
 
     pub fn undo_would_overwrite(paths: Vec<String>) -> Self {

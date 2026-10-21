@@ -9,6 +9,7 @@ function step(blocked: UndoBlock | null = null): UndoStep {
     op: { kind: 'commit', sha: 'abc', summary: 'feat: x' },
     at: 0,
     undone: false,
+    restored: false,
     blocked,
   };
   return { entry, blocked };
@@ -32,6 +33,8 @@ describe('buttonState', () => {
     { kind: 'pulled' },
     { kind: 'notRecorded' },
     { kind: 'diverged', refs: ['refs/heads/main'] },
+    { kind: 'objectsMissing', count: 2 },
+    { kind: 'unreadable' },
   ])('is blocked for $kind', (block) => {
     expect(buttonState({ undo: step(block), redo: null }, 'undo').kind).toBe('blocked');
   });

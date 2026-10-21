@@ -446,3 +446,110 @@ fn stores_the_ui_state_per_repo() {
     assert!(store.set_repo_ui_state(other, &huge).is_err());
     assert_eq!(store.repo_ui_state(other).unwrap().as_deref(), Some("{}"));
 }
+
+fn journal_row(seq: u32, at: i64) -> StoredJournalRow {
+    StoredJournalRow {
+        seq,
+        at,
+        undone: false,
+        redo_order: None,
+        entry: format!("{{\"seq\":{seq}}}"),
+        format: 1,
+        state: "{}".into(),
+    }
+}
+
+const NOW_MS: i64 = 1_800_000_000_000;
+const DAY_MS: i64 = 24 * 60 * 60 * 1000;
+
+#[test]
+fn undo_journal_is_bounded_by_count() {
+    let store = store();
+    let repo = store.touch_repo("/r", "r").unwrap();
+    for seq in 1..=JOURNAL_MAX_ENTRIES + 5 {
+        store
+            .append_journal(repo, &journal_row(seq, NOW_MS), NOW_MS)
+            .unwrap();
+    }
+    let rows = store.load_journal(repo, NOW_MS).unwrap();
+    assert_eq!(rows.len(), JOURNAL_MAX_ENTRIES as usize);
+    assert_eq!(rows.first().map(|r| r.seq), Some(6), "the oldest go first");
+    assert_eq!(rows.last().map(|r| r.seq), Some(JOURNAL_MAX_ENTRIES + 5));
+}
+
+#[test]
+fn undo_journal_is_bounded_by_age() {
+    let store = store();
+    let repo = store.touch_repo("/r", "r").unwrap();
+    let max_age = i64::from(JOURNAL_MAX_AGE_DAYS) * DAY_MS;
+    store
+        .append_journal(
+            repo,
+            &journal_row(1, NOW_MS - max_age - 1),
+            NOW_MS - max_age,
+        )
+        .unwrap();
+    store
+        .append_journal(
+            repo,
+            &journal_row(2, NOW_MS - max_age + 1),
+            NOW_MS - max_age,
+        )
+        .unwrap();
+    let seqs = |now| -> Vec<u32> {
+        store
+            .load_journal(repo, now)
+            .unwrap()
+            .iter()
+            .map(|r| r.seq)
+            .collect()
+    };
+    assert_eq!(seqs(NOW_MS), vec![2]);
+    assert_eq!(seqs(NOW_MS + 2), Vec::<u32>::new());
+}
+
+#[test]
+fn undo_journal_keeps_the_redo_stack_until_a_new_entry() {
+    let store = store();
+    let repo = store.touch_repo("/r", "r").unwrap();
+    for seq in 1..=3 {
+        store
+            .append_journal(repo, &journal_row(seq, NOW_MS), NOW_MS)
+            .unwrap();
+    }
+    store.mark_journal(repo, 3, true, &[3]).unwrap();
+    store.mark_journal(repo, 2, true, &[3, 2]).unwrap();
+    let rows = store.load_journal(repo, NOW_MS).unwrap();
+    let state: Vec<_> = rows
+        .iter()
+        .map(|r| (r.seq, r.undone, r.redo_order))
+        .collect();
+    assert_eq!(
+        state,
+        vec![(1, false, None), (2, true, Some(1)), (3, true, Some(0))]
+    );
+    store
+        .append_journal(repo, &journal_row(4, NOW_MS), NOW_MS)
+        .unwrap();
+    let rows = store.load_journal(repo, NOW_MS).unwrap();
+    assert!(rows.iter().all(|r| r.redo_order.is_none()));
+}
+
+#[test]
+fn undo_journal_goes_with_its_repo() {
+    let store = store();
+    let repo = store.touch_repo("/r", "r").unwrap();
+    store
+        .append_journal(repo, &journal_row(1, NOW_MS), NOW_MS)
+        .unwrap();
+    // Unknown repository: ignored.
+    store
+        .append_journal(repo + 1, &journal_row(1, NOW_MS), NOW_MS)
+        .unwrap();
+    store.forget_repo(repo).unwrap();
+    let count: i64 = store
+        .conn()
+        .query_row("SELECT COUNT(*) FROM undo_journal", [], |row| row.get(0))
+        .unwrap();
+    assert_eq!(count, 0);
+}

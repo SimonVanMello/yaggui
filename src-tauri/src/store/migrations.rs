@@ -77,6 +77,21 @@ const MIGRATIONS: &[&str] = &[
         repo_id INTEGER PRIMARY KEY REFERENCES repos(id) ON DELETE CASCADE,
         ui_state TEXT NOT NULL
     );",
+    // v7: undo journal per repo (F-244). `seq`: the entry id, `at`: Unix ms, `redo_order`:
+    // position in the redo stack (NULL: not redoable), `entry`: the `JournalEntry` as JSON,
+    // `state`: what the undo restores, as JSON in `format` (unreadable formats are kept but
+    // blocked).
+    "CREATE TABLE undo_journal (
+        repo_id INTEGER NOT NULL REFERENCES repos(id) ON DELETE CASCADE,
+        seq INTEGER NOT NULL,
+        at INTEGER NOT NULL,
+        undone INTEGER NOT NULL DEFAULT 0,
+        redo_order INTEGER,
+        entry TEXT NOT NULL,
+        format INTEGER NOT NULL,
+        state TEXT NOT NULL,
+        PRIMARY KEY (repo_id, seq)
+    );",
 ];
 
 pub fn apply(conn: &mut Connection) -> rusqlite::Result<()> {
