@@ -1,0 +1,118 @@
+---
+title: Line history
+description: Follow a range of lines through the history of a file in yaggui, with the change each commit made to those lines.
+sidebar:
+  order: 3
+sources:
+  - src/features/inspect/LineHistoryView.tsx
+  - src/features/inspect/LineHistory.module.css
+  - src/features/inspect/lineRange.ts
+  - src/features/inspect/BlameView.tsx
+  - src/features/diff/CodeDiff.tsx
+  - src/features/diff/lineSelection.ts
+  - src-tauri/src/git/read/line_history.rs
+  - src-tauri/src/repo/inspect.rs
+  - src-tauri/src/commands/inspect.rs
+requirements: [F-223]
+---
+
+import Screenshot from '~/components/Screenshot.astro';
+import lineHistoryDark from '../../../../assets/screens/line-history-dark.png';
+import lineHistoryLight from '../../../../assets/screens/line-history-light.png';
+
+Line history lists the commits that changed a range of lines of a file, with the change each one made to those lines only. It follows the lines as code is added or removed around them, and across renames of the file. Like the [file history](../file-history-and-blame/), it replaces the graph in the repository view; press <kbd>Esc</kbd> or click **Graph** to go back.
+
+## Select the lines
+
+### In the blame
+
+In a [blame](../file-history-and-blame/#blame-a-file), click a line, then <kbd>Shift</kbd>-click another one: the line numbers of the range are highlighted. <kbd>Shift+↓</kbd> / <kbd>Shift+↑</kbd> extend the range by one line. Then:
+
+- click **History of lines 10–14** (**History of line 10** for a single line) in the **Selected commit** bar, or
+- right-click a line → **History of lines 10–14**. When the line you right-click is outside the selected range, the item acts on that line alone.
+
+The line numbers are those of the version blamed: a commit, or the file on disk for a working tree blame.
+
+### In a commit diff
+
+In the diff of a commit (from the commit details panel or a file history), click the line numbers gutter to select lines of the new version, <kbd>Shift</kbd>-click to extend, <kbd>⌘</kbd>/<kbd>Ctrl</kbd>-click to add a line. Unchanged lines can be selected too; removed lines cannot (they are not in the new version). The bar above the code shows **3 lines selected**: click **Line history** or press <kbd>Enter</kbd>. <kbd>Esc</kbd> clears the selection.
+
+The history covers one contiguous range: from the first to the last selected line.
+
+The same selection works in the diff of the line history itself, to narrow down to fewer lines at an older commit.
+
+## Read the line history
+
+<Screenshot
+  dark={lineHistoryDark}
+  light={lineHistoryLight}
+  alt="Line history of layout.ts, lines 10–14: the commits that changed the lines on the left, the change of the selected commit to those lines on the right"
+/>
+
+The header shows the file name, the range (**Lines 10–14**), the version it starts from (a short SHA) and the number of commits. The left side lists **Commits that changed the lines**, newest first. Each row shows:
+
+- the change letter (added, modified, renamed), or a merge icon,
+- the commit summary and short SHA,
+- the author, the relative date and where the lines were in that commit (**Lines 8–12**): they move when code is added or removed above them,
+- **from** _old path_ on the commit that renamed the file.
+
+The right side shows the selected commit's change to the range: the whole range as it was before and after the commit, in unified or side-by-side layout (<kbd>⌘D</kbd>, <kbd>Ctrl+D</kbd> on Windows and Linux). Its toolbar has **Newer commit** / **Older commit** arrows, **Show in graph**, **File history** and **Blame at this commit**.
+
+| Key                                                           | Action                                                      |
+| ------------------------------------------------------------- | ----------------------------------------------------------- |
+| <kbd>↑</kbd> / <kbd>↓</kbd>, <kbd>Home</kbd> / <kbd>End</kbd> | Move in the list (when it has focus)                        |
+| <kbd>j</kbd> / <kbd>k</kbd>                                   | Older / newer commit                                        |
+| <kbd>Esc</kbd>                                                | Clear the line selection, stop the search, or back to graph |
+
+### Where the history ends
+
+The oldest commit of the list is where the lines appear. Its diff only adds lines, with a notice:
+
+- "The lines appear with the file, in this commit." when the commit created the file,
+- "The lines appear in this commit. Git does not follow lines moved or copied from another place." otherwise: the lines were written there, or cut and pasted from elsewhere in the file or from another file. Blame the parent version to look further.
+
+### Renames and moved lines
+
+The range is followed across renames of the file: older commits show the old path, and the commit that renamed the file shows "The file was renamed from _old path_ to _new path_ in this commit." when it also changed the lines. A rename that left the lines untouched is not listed.
+
+Commits that only shifted the range (lines added or removed above it) are not listed either; the **Lines** of each row show where the range was.
+
+### Merges
+
+A merge is listed when the lines differ from every parent, typically when both sides changed them. Git shows no diff for it: the view says so, and the commits of each side are listed below it. A merge that took the lines from one parent as they were is not listed.
+
+## Working tree lines
+
+From a working tree blame, the selected lines are those of the file on disk, which may differ from HEAD. yaggui maps them to HEAD first, with a diff of the two versions:
+
+- unchanged lines keep their HEAD line,
+- a changed line stands for the HEAD lines it replaces,
+- lines only added on disk are left out.
+
+When the range moved, a line under the header says so, for example "In HEAD: Lines 10–11 (working tree: Lines 12–13)". When every selected line is new, there is nothing to follow: "These lines are not committed yet: they have no history." The history does not change afterwards when the file changes on disk; it updates when branches move.
+
+## Long histories
+
+yaggui runs, for the range of a version:
+
+```bash
+git log -L<start>,<end>:<path> --skip=<n> --max-count=<page + 1> <commit> --
+```
+
+The list loads by pages of 500 commits as you scroll (fewer for wide ranges: Git shows the whole range for each commit, so a page holds about 100 000 lines of range). The count shows `500+` while more remain.
+
+Git reads the history in order until it finds enough commits that changed the lines, which can take a while on a large repository. While it searches, the view says "Following the lines through the history…", or "500 commits so far…" under the list for the next pages, with a **Stop** button (<kbd>Esc</kbd>). A stopped search shows "Search stopped." with **Search again**; when some commits were already loaded, **Load older commits** continues.
+
+## Limits and errors
+
+| Case                                    | What the view says                                                                                             |
+| --------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| More than 5 000 lines                   | The range has 6000 lines: the history of a line range is limited to 5000 lines. Open the file history instead. |
+| A range past the end of the file        | "src/app.ts" has only 120 lines in HEAD.                                                                       |
+| A binary file                           | "src/logo.png" is a binary file: it has no lines to follow.                                                    |
+| A file not committed yet (working tree) | "src/new.ts" is not committed yet: its lines have no history.                                                  |
+| No commit changed the lines             | No commit changed these lines.                                                                                 |
+
+Errors show under "Could not read the history of these lines" with **Retry**; the command is in the [command log](../../reference/command-log/).
+
+Line history only reads: nothing to undo.
