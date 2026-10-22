@@ -521,7 +521,24 @@ fn rebase_replays_a_branch_with_progress() {
             _ => None,
         })
         .collect();
-    assert!(steps.contains(&(Some(2), Some(2))), "{steps:?}");
+    // Seen once on Windows CI with only (1, 2): show what Git wrote if it happens again.
+    let stderr: Vec<_> = env
+        .sink
+        .events()
+        .into_iter()
+        .filter_map(|e| match e {
+            BackendEvent::CommandLogged(c)
+                if c.entry.args.first().is_some_and(|a| a == "rebase") =>
+            {
+                Some(c.entry.stderr)
+            }
+            _ => None,
+        })
+        .collect();
+    assert!(
+        steps.contains(&(Some(2), Some(2))),
+        "{steps:?}, rebase stderr: {stderr:?}"
+    );
 }
 
 #[test]
