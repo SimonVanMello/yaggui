@@ -12,7 +12,8 @@ use yaggui_lib::git::cli::GitCli;
 use yaggui_lib::git::errors::{ErrorCode, ErrorPayload};
 use yaggui_lib::git::log::CommandLog;
 use yaggui_lib::git::ops::types::{
-    BranchStart, CommitRequest, DeleteBranchRequest, JournalOp, PathSelection, UndoBlock,
+    BranchStart, CommitRequest, DeleteBranchRequest, JournalOp, PathSelection, StashFileRequest,
+    StashId, UndoBlock,
 };
 use yaggui_lib::repo::RepoManager;
 use yaggui_lib::store::{JOURNAL_MAX_AGE_DAYS, Store, StoredJournalRow};
@@ -214,6 +215,78 @@ fn discard_is_undone_after_a_restart() {
         e.read("src.txt").as_deref(),
         Some("modified before the discard\n")
     );
+}
+
+/// M7-10: the writes added in M7 restore like the M4 ones (F-147, F-185).
+#[test]
+fn fixup_commit_is_undone_after_a_restart() {
+    let mut e = env();
+    e.write("new.txt", "new\n");
+    e.fx.git(&["add", "new.txt"]);
+    e.commit("add new");
+    let target = e.out(&["rev-parse", "HEAD"]);
+    e.write("new.txt", "new, fixed\n");
+    e.fx.git(&["add", "new.txt"]);
+    let before = e.state();
+    e.repos.commit_fixup(e.id, target).unwrap();
+    let after = e.state();
+
+    e.restart(|_| {});
+    let history = e.repos.op_history(e.id).unwrap();
+    assert!(history[0].restored);
+    assert!(
+        matches!(&history[0].op, JournalOp::Commit { summary, .. } if summary == "fixup! add new")
+    );
+    e.repos.undo(e.id).unwrap();
+    assert_eq!(e.state(), before, "fixup undone, the change staged again");
+    e.restart(|_| {});
+    e.repos.redo(e.id).unwrap();
+    assert_eq!(e.state(), after);
+}
+
+#[test]
+fn stash_file_apply_is_undone_after_a_restart() {
+    let mut e = env();
+    e.write("src.txt", "1\n2\n3\n4\n5\n");
+    e.fx.git(&["commit", "-qam", "five lines"]);
+    e.write("src.txt", "1\nstashed\n3\n4\n5\n");
+    e.write("README.md", "# Stashed\n");
+    e.fx.git(&["stash", "-q"]);
+    // Committed since the stash, elsewhere in the file: merged, and backed up for the undo.
+    e.write("src.txt", "1\n2\n3\n4\nfive\n");
+    e.fx.git(&["commit", "-qam", "change line 5"]);
+    let before = e.state();
+    let stashes = e.out(&["stash", "list", "--format=%H"]);
+    e.repos
+        .stash_apply_file(
+            e.id,
+            StashFileRequest {
+                stash: StashId {
+                    index: 0,
+                    sha: e.out(&["rev-parse", "stash@{0}"]),
+                },
+                path: "src.txt".into(),
+                untracked: false,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        e.read("src.txt").as_deref(),
+        Some("1\nstashed\n3\n4\nfive\n")
+    );
+
+    e.restart(|_| {});
+    let history = e.repos.op_history(e.id).unwrap();
+    assert!(history[0].restored);
+    assert!(matches!(&history[0].op, JournalOp::StashApplyFile { path, .. } if path == "src.txt"));
+    e.repos.undo(e.id).unwrap();
+    assert_eq!(e.state(), before);
+    assert_eq!(
+        e.read("src.txt").as_deref(),
+        Some("1\n2\n3\n4\nfive\n"),
+        "the backed-up file comes back"
+    );
+    assert_eq!(e.out(&["stash", "list", "--format=%H"]), stashes);
 }
 
 #[test]
