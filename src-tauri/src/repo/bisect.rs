@@ -8,12 +8,14 @@
 //! not journaled: undo and redo refuse to run while a bisect is in progress, and the way
 //! back is the bisect's own reset, to the HEAD it started from.
 
+use gix::ObjectId;
+
 use crate::events::{OpKind, OpNote};
 use crate::git::cli::GitRun;
 use crate::git::errors::{BackendError, YagguiError};
 use crate::git::ops::types::{BisectMark, BisectState};
 use crate::git::read::bisect::{Terms, read_bisect, terms};
-use crate::git::read::state::{RepoOperation, read_operation};
+use crate::git::read::state::{RepoOperation, count_exclusive, read_operation};
 use crate::graph::resolve_commit;
 
 use super::RepoManager;
@@ -76,6 +78,17 @@ fn bisect_mark(
         None => head_id(ctx)?.ok_or_else(|| YagguiError::revision_not_found("HEAD"))?,
     };
     ensure_clean(ctx)?;
+    if started && let Some(mut state) = read_bisect(ctx.repo)? {
+        // Checked before Git runs: no mark is recorded for a refused order.
+        match mark {
+            BisectMark::Good => state.good.push(id.to_string()),
+            BisectMark::Bad => state.bad = Some(id.to_string()),
+            BisectMark::Skip => {}
+        }
+        if good_after_bad(ctx.repo, &state)? {
+            return Err(YagguiError::bisect_wrong_order());
+        }
+    }
     let terms = if started {
         terms(ctx.repo.path())
     } else {
@@ -133,35 +146,27 @@ fn finish(ctx: &WriteContext<'_>, run: &GitRun) -> Result<BisectState, YagguiErr
     if let Some(paths) = overwritten_paths(&run.stderr) {
         return Err(YagguiError::bisect_checkout_failed(paths).with_detail(&run.stderr));
     }
-    if is_wrong_order(&format!("{}\n{}", run.stdout, run.stderr)) {
+    if good_after_bad(ctx.repo, &state)? {
         return Err(YagguiError::bisect_wrong_order().with_detail(&run.stderr));
     }
     Err(classify(ctx, run))
 }
 
-/// `The merge base <sha> is bad.` (a good commit is a descendant of the bad one), `Some good
-/// revs are not ancestors of the bad rev.` (older Git).
-fn is_wrong_order(output: &str) -> bool {
-    let lower = output.to_ascii_lowercase();
-    (lower.contains("the merge base ") && lower.contains("this means"))
-        || lower.contains("not ancestors of the bad rev")
-        || lower.contains("not ancestors of the new rev")
+/// A good commit that descends from the bad one: Git cannot bisect between them. Read from the
+/// marks rather than from Git's message, whose wording changes between versions.
+fn good_after_bad(repo: &gix::Repository, state: &BisectState) -> Result<bool, YagguiError> {
+    let Some(bad) = state.bad.as_deref().and_then(parse_id) else {
+        return Ok(false);
+    };
+    for good in state.good.iter().filter_map(|sha| parse_id(sha)) {
+        // The bad commit is an ancestor of the good one: nothing of it is left once hidden.
+        if good != bad && count_exclusive(repo, bad, good)? == 0 {
+            return Ok(true);
+        }
+    }
+    Ok(false)
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn recognizes_marks_in_the_wrong_order() {
-        assert!(is_wrong_order(
-            "The merge base 1234 is bad.\nThis means the bug has been fixed between 1234 and [5678].\n"
-        ));
-        assert!(is_wrong_order(
-            "Some good revs are not ancestors of the bad rev.\ngit bisect cannot work properly in this case.\n"
-        ));
-        assert!(!is_wrong_order(
-            "Bisecting: 3 revisions left to test after this (roughly 2 steps)\n"
-        ));
-    }
+fn parse_id(sha: &str) -> Option<ObjectId> {
+    ObjectId::from_hex(sha.as_bytes()).ok()
 }
