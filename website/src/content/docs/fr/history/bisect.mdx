@@ -1,0 +1,92 @@
+---
+title: Trouver un bug avec bisect
+description: Marquez un commit bon et un mauvais depuis le graphe, testez les commits que yaggui extrait, et obtenez le premier commit mauvais.
+sidebar:
+  order: 9
+sources:
+  - src/features/bisect/**
+  - src/features/graph/CommitContextMenu.tsx
+  - src/features/graph/GraphRowView.tsx
+  - src/features/repo/RepoBanners.tsx
+  - src-tauri/src/repo/bisect.rs
+  - src-tauri/src/git/read/bisect.rs
+requirements: [F-263]
+---
+
+import Screenshot from '~/components/Screenshot.astro';
+import bisectBannerDark from '../../../../assets/screens/bisect-banner-fr-dark.png';
+import bisectBannerLight from '../../../../assets/screens/bisect-banner-fr-light.png';
+import bisectResultDark from '../../../../assets/screens/bisect-result-fr-dark.png';
+import bisectResultLight from '../../../../assets/screens/bisect-result-fr-light.png';
+
+Un bisect trouve le commit qui a introduit un bug en testant le moins de commits possible : vous indiquez quel commit est mauvais (le bug est là) et lequel est bon (il n’y est pas), yaggui extrait un commit à mi-chemin, vous le testez et le marquez, et ainsi de suite jusqu’à ce qu’il ne reste qu’un commit. yaggui lance [git bisect](https://git-scm.com/docs/git-bisect) à chaque étape.
+
+## Démarrer un bisect
+
+Faites un clic droit sur un commit du graphe et ouvrez **Démarrer un bisect** :
+
+- **Marquer comme mauvais** : le bug est présent dans ce commit, en général HEAD ou le bout d’une branche.
+- **Marquer comme bon** : le bug est absent, en général un commit plus ancien ou un tag de version.
+
+Le premier marquage démarre le bisect (`git bisect start`, puis `git bisect bad <sha>` ou `git bisect good <sha>`). Une bannière apparaît au-dessus du graphe et demande l’autre marquage : « Marque un commit bon, où le bug est absent : HEAD avec les boutons, ou un commit plus ancien depuis son menu dans le graphe. » (ou le mauvais). Marquez-le de la même façon, depuis le menu d’un autre commit, désormais nommé **Bisect**, ou pour HEAD avec les boutons de la bannière.
+
+Dès qu’un commit bon et un mauvais sont connus, Git extrait le commit à tester, en HEAD détachée.
+
+Un bisect demande une copie de travail propre : chaque étape extrait un autre commit, et vos modifications seraient testées avec lui. Si des fichiers suivis ont des modifications locales, le marquage est refusé avec « Tu as des modifications locales : un bisect teste chaque commit tel qu'il a été commité. Mets-les de côté (stash) ou commite-les d'abord. » et une boîte de dialogue, **Mettre tes modifications de côté pour le bisect ?**, propose **Stash et continuer** : les modifications sont mises de côté (`git stash push`, message `yaggui : avant le bisect`) et le marquage est relancé. Les fichiers non suivis restent en place. Des fichiers en conflit refusent aussi le marquage.
+
+Tant qu’une autre opération (merge, rebase, cherry-pick, revert) est en cours, **Démarrer un bisect** est désactivé.
+
+## Tester et marquer chaque commit
+
+<Screenshot
+  dark={bisectBannerDark}
+  light={bisectBannerLight}
+  alt="Bannière de bisect affichant Test de suivi du SHA court et du résumé du commit testé, environ 3 étapes restantes et 10 commits à tester, les boutons Bon, Mauvais et Passer et Arrêter le bisect ; le graphe montre les pastilles bon, mauvais, passé et en test"
+/>
+
+La bannière affiche :
+
+- **Test de** suivi du SHA court et du résumé du commit extrait. Cliquez dessus pour sélectionner le commit dans le graphe.
+- **environ \{count\} étapes restantes · \{count\} commits à tester** : l’estimation que donne Git (« roughly N steps »), et les commits qui peuvent encore être le premier mauvais et ne sont pas encore testés.
+- **Bon**, **Mauvais** et **Passer**, qui marquent le commit testé (HEAD) : `git bisect good`, `git bisect bad` ou `git bisect skip`. Utilisez **Passer** pour un commit impossible à tester, par exemple un commit qui ne compile pas.
+- **Arrêter le bisect**, décrit dans [Terminer le bisect](#terminer-le-bisect).
+
+Testez le commit (compilez-le, lancez-le, lancez le test qui échoue), puis cliquez sur le bouton qui correspond. Git extrait le commit suivant, la bannière se met à jour et la barre d’état indique **Bisect : étape faite**.
+
+Vous pouvez aussi marquer n’importe quel commit depuis le graphe : clic droit, **Bisect**, puis **Marquer comme bon**, **Marquer comme mauvais** ou **Passer ce commit**. C’est utile quand vous connaissez déjà la réponse pour un commit autre que HEAD.
+
+### Marqueurs dans le graphe
+
+Pendant un bisect, le graphe affiche une pastille avant les étiquettes de refs des commits que le bisect connaît : **bon**, **mauvais**, **passé**, **en test** pour le commit extrait, et **premier mauvais** à la fin.
+
+### Quand le commit suivant ne peut pas être extrait
+
+Si un fichier non suivi gêne le commit suivant, le marquage est enregistré mais l’extraction échoue : « Le marquage est enregistré, mais le prochain commit à tester n'a pas pu être extrait : des fichiers gênent. Déplace-les ou supprime-les, puis extrais le commit suivant. » La bannière indique alors « Le prochain commit à tester n'a pas pu être extrait. » avec **Extraire le commit suivant** (`git bisect next`). Le même bouton apparaît si vous avez déplacé HEAD à la main sur un commit déjà marqué.
+
+### Marquages dans le mauvais ordre
+
+Si un commit bon vient après le mauvais dans l’historique, Git ne peut pas faire de bisect entre eux : « Un commit bon n'est pas un ancêtre du mauvais : Git ne peut pas faire de bisect entre eux. Vérifie les marquages, ou termine le bisect et recommence. » Les marquages ne peuvent pas être retirés un par un : arrêtez le bisect et recommencez.
+
+## Le résultat
+
+<Screenshot
+  dark={bisectResultDark}
+  light={bisectResultLight}
+  alt="Bannière de bisect affichant Premier commit mauvais trouvé avec le SHA court, le résumé, l’auteur et la date du commit, les boutons Voir le commit et Terminer le bisect ; le commit porte une pastille premier mauvais dans le graphe"
+/>
+
+Quand il ne reste qu’un commit, la bannière indique **Premier commit mauvais trouvé** avec son SHA court, son résumé, son auteur et sa date. Une notification indique **Premier commit mauvais : \{sha\}** et le commit est sélectionné dans le graphe, avec ses détails dans le panneau de droite. **Voir le commit** le sélectionne à nouveau.
+
+S’il ne reste que des commits passés entre les commits bons et le mauvais, Git ne peut pas dire lequel est le premier mauvais. La bannière indique **Bisect non concluant** et « Il ne reste que des commits passés : le premier commit mauvais est l'un de ces \{count\} », suivi de leurs SHA courts (cliquez sur l’un d’eux pour le sélectionner).
+
+## Terminer le bisect
+
+**Arrêter le bisect** (ou **Terminer le bisect** une fois le résultat connu) demande **Arrêter le bisect ?** « HEAD revient où il était avant le début du bisect. » et lance `git bisect reset` : la branche sur laquelle vous étiez est de nouveau extraite. Les marquages sont supprimés.
+
+## Un bisect démarré ailleurs
+
+yaggui lit le bisect dans le dossier `.git` : les marquages (`refs/bisect/`), le point de départ (`BISECT_START`) et les termes (`BISECT_TERMS`). Un bisect démarré dans un terminal, ou laissé ouvert à la fermeture de yaggui, affiche sa bannière et ses marqueurs à l’ouverture du dépôt, et vous pouvez le poursuivre. Un bisect démarré avec des termes personnalisés (`--term-old` / `--term-new`) est marqué avec eux ; yaggui les appelle toujours bon et mauvais. `git bisect run` n’est pas disponible depuis yaggui.
+
+## Bisect et annulation
+
+Les étapes du bisect ne figurent pas dans l’historique d’annulation : elles ne font que déplacer HEAD, et le retour en arrière passe par la réinitialisation du bisect. Tant qu’un bisect est en cours, l’annulation et le rétablissement sont refusés, comme pendant toute autre opération ; voir [Annuler et rétablir](../undo-and-redo/).

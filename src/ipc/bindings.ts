@@ -448,6 +448,54 @@ export const commands = {
 	fixups: number,
 } | null, YagguiError>(__TAURI_INVOKE("autosquash_plan", { repoId, base })),
 	/**
+	 *  The bisect in progress (F-263): marks, commit under test, commits and steps left,
+	 *  result. `None` when there is none. Read-only, not queued.
+	 */
+	bisectState: (repoId: number) => typedError<{
+	/**  The commit marked bad, `None` until one is. */
+	bad: string | null,
+	/**  Commits marked good. */
+	good: string[],
+	/**  Commits marked skipped. */
+	skipped: string[],
+	/**  The commit checked out for testing (HEAD); `None` when HEAD is unborn. */
+	current: BisectCommit | null,
+	/**
+	 *  The current commit already has a mark while commits are left to test: checking out
+	 *  the next one failed (a file in the way) or HEAD was moved by hand. `bisect_next`
+	 *  checks out the commit to test.
+	 */
+	awaitingCheckout: boolean,
+	/**
+	 *  Commits that can still be the first bad one and are not skipped, the bad commit
+	 *  included; `None` until a good and a bad commit are known.
+	 */
+	remaining: number | null,
+	/**  Steps left, estimated the way `git bisect` does (about log2 of the commits left). */
+	steps: number | null,
+	/**  Set once Git has nothing left to test. */
+	result: BisectResult | null,
+	/**
+	 *  Where `bisect reset` takes HEAD back: the branch checked out when the bisect started,
+	 *  or a commit SHA when HEAD was detached.
+	 */
+	original: string | null,
+} | null, YagguiError>(__TAURI_INVOKE("bisect_state", { repoId })),
+	/**
+	 *  Marks a commit (HEAD when `rev` is `None`) good, bad or skipped; a good or bad mark with
+	 *  no bisect in progress starts one. Git then checks out the next commit to test. Not
+	 *  journaled (undo is refused during a bisect; `abortOperation` ends it). Errors:
+	 *  `dirtyWorktree` (tracked changes), `unresolvedConflicts`, `operationInProgress`,
+	 *  `bisectCheckoutFailed` (mark saved, next commit not checked out), `bisectWrongOrder`,
+	 *  `revisionNotFound`.
+	 */
+	bisectMark: (repoId: number, rev: string | null, mark: BisectMark) => typedError<BisectState, YagguiError>(__TAURI_INVOKE("bisect_mark", { repoId, rev, mark })),
+	/**
+	 *  Checks out the next commit to test when a step could not (`awaitingCheckout`). Errors:
+	 *  `noOperation`, `dirtyWorktree`, `bisectCheckoutFailed`.
+	 */
+	bisectNext: (repoId: number) => typedError<BisectState, YagguiError>(__TAURI_INVOKE("bisect_next", { repoId })),
+	/**
 	 *  One page (≤ 500 entries, newest first) of the commits that changed `path`, following
 	 *  renames like `git log --follow`. Starts at `rev` (HEAD when `None`), or continues at
 	 *  `cursor` (the `next` of the previous page). Errors: `revisionNotFound`,
@@ -814,6 +862,70 @@ export type AutosquashPlan = {
 	unmatched: string[],
 	/**  Number of `fixup` entries of `todo`. */
 	fixups: number,
+};
+
+/**  A commit of the bisect, with what its banner and result show. */
+export type BisectCommit = {
+	sha: string,
+	summary: string,
+	authorName: string,
+	/**  Author date, seconds since the Unix epoch. */
+	authorTime: number | null,
+};
+
+/**  A mark given to a commit during a bisect (F-263). */
+export type BisectMark = 
+/**  The bug is absent (`git bisect good`, or the repository's own "old" term). */
+"good" | 
+/**  The bug is present (`git bisect bad`, or the "new" term). */
+"bad" | 
+/**  The commit cannot be tested (`git bisect skip`). */
+"skip";
+
+/**  How a bisect ended: Git has nothing left to test. */
+export type BisectResult = 
+/**  The first bad commit. */
+{ kind: "found"; commit: BisectCommit } | 
+/**
+ *  Only skipped commits are left between the good and bad ones: the first bad commit
+ *  is one of `candidates` (the bad commit and those skipped commits), newest first.
+ */
+{ kind: "inconclusive"; candidates: BisectCommit[] };
+
+/**
+ *  The bisect in progress, read from `refs/bisect/*`, `BISECT_START` and `BISECT_TERMS`
+ *  (the same files `git bisect` reads, so a bisect started in a terminal or interrupted by
+ *  closing the app is found as it was).
+ */
+export type BisectState = {
+	/**  The commit marked bad, `None` until one is. */
+	bad: string | null,
+	/**  Commits marked good. */
+	good: string[],
+	/**  Commits marked skipped. */
+	skipped: string[],
+	/**  The commit checked out for testing (HEAD); `None` when HEAD is unborn. */
+	current: BisectCommit | null,
+	/**
+	 *  The current commit already has a mark while commits are left to test: checking out
+	 *  the next one failed (a file in the way) or HEAD was moved by hand. `bisect_next`
+	 *  checks out the commit to test.
+	 */
+	awaitingCheckout: boolean,
+	/**
+	 *  Commits that can still be the first bad one and are not skipped, the bad commit
+	 *  included; `None` until a good and a bad commit are known.
+	 */
+	remaining: number | null,
+	/**  Steps left, estimated the way `git bisect` does (about log2 of the commits left). */
+	steps: number | null,
+	/**  Set once Git has nothing left to test. */
+	result: BisectResult | null,
+	/**
+	 *  Where `bisect reset` takes HEAD back: the branch checked out when the bisect started,
+	 *  or a commit SHA when HEAD was detached.
+	 */
+	original: string | null,
 };
 
 export type Blame = {
@@ -1597,6 +1709,13 @@ export type ErrorCode =
 "noOperation" | 
 /**  A merge, rebase, cherry-pick, revert or bisect is already in progress. */
 "operationInProgress" | 
+/**
+ *  A bisect mark is saved but the next commit to test could not be checked out (files in
+ *  the way, listed in `payload`): move them, then `bisect_next`.
+ */
+"bisectCheckoutFailed" | 
+/**  The good commits are not ancestors of the bad one: Git cannot bisect between them. */
+"bisectWrongOrder" | 
 /**  No external merge tool is configured (`merge.tool`). */
 "mergeToolMissing" | 
 /**  The external merge tool could not be started (unknown or not installed). */
@@ -2517,7 +2636,9 @@ export type OpNote =
 /**  A continue, skip or interactive rebase that halted on the next stop (`edit`). */
 "paused" | 
 /**  An abort of the operation in progress. */
-"aborted";
+"aborted" | 
+/**  A bisect mark or checkout that leaves the bisect going (no result yet). */
+"step";
 
 export type OpOutcome = 
 /**  `note`: the operation succeeded but did not complete what it started (see `OpNote`). */

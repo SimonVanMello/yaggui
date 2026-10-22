@@ -111,6 +111,7 @@ Redo re-applies the operation you last undid. Undo several operations, then redo
 - It holds the last 100 operations of each repository, and none older than 30 days; older ones are dropped.
 - Removing a repository from yaggui (**Remove from recents**) deletes its history.
 - Undo needs a quiet repository: while a merge, rebase, cherry-pick, revert or bisect is in progress, undo and redo are refused ("Another operation (merge, rebase, cherry-pick, revert or bisect) is in progress: continue or abort it first."), and while files are in conflict too ("Some files are still in conflict: resolve them (and stage them) first."). Discards, stashes of selected files, files applied from a stash, `.gitignore` and LFS tracking changes, stash drops and remote changes can still be undone meanwhile.
+- The steps of a bisect are not recorded: they only move HEAD, and **Stop bisect** brings it back; see [Find a bug with bisect](../bisect/).
 - yaggui does not detect a push made from a terminal: if you push from a terminal and then undo a commit, only your local branch moves.
 
 ## When the repository changed outside yaggui

@@ -1,4 +1,6 @@
 import type {
+  BisectMark,
+  BisectState,
   BranchStart,
   CheckoutMode,
   CheckoutResult,
@@ -106,6 +108,16 @@ import {
   normalizeMockMessage,
   type MockTodoLine,
 } from './mock/interactive';
+import {
+  applyMark,
+  bisectDirty,
+  bisectNotStarted,
+  bisectOutcome,
+  bisectWrongOrder,
+  mockBisectState,
+  wrongOrder,
+  type MockBisect,
+} from './mock/bisect';
 import {
   conflictSide,
   checkMainline,
@@ -452,6 +464,8 @@ export class MockBackend {
   private commitStore = new MockCommitStore();
   /** Merges, rebases, cherry-picks and reverts stopped on conflicts, by repository. */
   private operations = new Map<number, MockOperation>();
+  /** Bisect marks per repository while `operation` is a bisect (`refs/bisect/*`). */
+  private bisects = new Map<number, MockBisect>();
   /** Undo journal of each repository, kept when it closes (like `OpJournal` in `yaggui.db`). */
   private journals = new Map<number, MockJournal>();
   /** Repositories whose next interactive rebase stops on conflicts (`simulateRebaseConflict`). */
@@ -2672,6 +2686,67 @@ export class MockBackend {
     });
   }
 
+  /** The marks of the bisect in progress; one simulated or in the fixture starts empty. */
+  private bisectOf(repoId: number, graph: MockGraph): MockBisect | null {
+    if (this.operation(repoId)?.operation.kind !== 'bisect') return null;
+    let bisect = this.bisects.get(repoId);
+    if (!bisect) {
+      bisect = { bad: null, good: [], skipped: [], original: structuredClone(graph.history.head) };
+      this.bisects.set(repoId, bisect);
+    }
+    return bisect;
+  }
+
+  /** Like `git bisect <mark>`, then the checkout of the next commit to test. */
+  private bisectWork(
+    repoId: number,
+    commit: number,
+    mark: BisectMark | null,
+  ): { ok: BisectState } | { error: YagguiError } {
+    const repo = this.find(repoId);
+    if (!repo) return { error: this.notOpen(repoId) };
+    return this.editHistory<BisectState>(repoId, (graph) => {
+      let bisect = this.bisectOf(repoId, graph);
+      if (!bisect) {
+        bisect = {
+          bad: null,
+          good: [],
+          skipped: [],
+          original: structuredClone(graph.history.head),
+        };
+        this.bisects.set(repoId, bisect);
+        const operation: RepoOperation = { kind: 'bisect' };
+        this.operations.set(repoId, {
+          operation,
+          labels: { ours: this.headLabel(graph), theirs: this.sideLabel(graph, null, null) },
+          message: null,
+          conflicts: [],
+          complete: (g) => this.historyResult(g, 'commits', g.headCommit()),
+          skip: null,
+          stopsAgain: 0,
+        });
+        repo.state = { ...repo.state, operation };
+      }
+      const { commits } = graph.history;
+      if (mark) applyMark(bisect, commit, mark);
+      if (wrongOrder(commits, bisect)) return { error: bisectWrongOrder() };
+      const outcome = bisectOutcome(commits, bisect);
+      if (outcome.result === null && outcome.next !== null) {
+        graph.history.head = { kind: 'detached', commit: outcome.next };
+      }
+      return { ok: mockBisectState(graph.history, bisect, graph.headCommit()) };
+    });
+  }
+
+  /** Validation of `bisectMark` / `bisectNext` before the queue, like the backend. */
+  private bisectCheck(repoId: number): YagguiError | null {
+    const wip = this.wip(repoId);
+    if (!wip) return this.notOpen(repoId);
+    if (wip.hasConflicts()) return unresolvedConflicts();
+    const tracked = wip.trackedChanges();
+    return tracked.length > 0 ? bisectDirty(tracked) : null;
+  }
+
   private abortWork(repoId: number): { ok: null } | { error: YagguiError } {
     const op = this.operation(repoId);
     const wip = this.wip(repoId);
@@ -2682,8 +2757,17 @@ export class MockBackend {
         if (wip.isConflicted(c.path) || c.resolved) wip.resolveConflict(c.path, c.ours);
       }
       for (const path of wip.conflictedPaths()) wip.resolveConflict(path, wip.worktreeText(path));
-      // HEAD goes back to where it was: the rebased branch, checked out again.
+      // HEAD goes back to where it was: the rebased branch, checked out again; the HEAD a
+      // bisect started from.
       const { operation } = op;
+      const bisect = this.bisects.get(repoId);
+      if (operation.kind === 'bisect' && bisect) {
+        const { original } = bisect;
+        const exists =
+          original.kind !== 'branch' || graph.history.local.some((b) => b.name === original.name);
+        if (exists) graph.history.head = structuredClone(original);
+      }
+      this.bisects.delete(repoId);
       if (operation.kind === 'rebase' && operation.headName) {
         const branch = graph.history.local.find((b) => b.name === operation.headName);
         if (branch) graph.history.head = { kind: 'branch', name: branch.name };
@@ -4017,6 +4101,46 @@ export class MockBackend {
       const plan = mockPlan(graph, head.name, tip, commit);
       return 'code' in plan ? fail(plan) : ok(mockAutosquashPlan(plan));
     },
+    bisectState: (repoId) => {
+      const graph = this.graph(repoId);
+      if (!graph || !this.wip(repoId)) return fail(this.notOpen(repoId));
+      const bisect = this.bisectOf(repoId, graph);
+      return ok(bisect ? mockBisectState(graph.history, bisect, graph.headCommit()) : null);
+    },
+    bisectMark: (repoId, rev, mark) => {
+      const graph = this.graph(repoId);
+      if (!graph || !this.wip(repoId)) return fail(this.notOpen(repoId));
+      const op = this.operation(repoId);
+      if (op && op.operation.kind !== 'bisect') return fail(operationInProgress());
+      if (!op && mark === 'skip') return fail(bisectNotStarted());
+      const commit = graph.resolve(rev ?? 'HEAD');
+      if (commit === null) return fail(this.revisionNotFound(rev ?? 'HEAD'));
+      const refused = this.bisectCheck(repoId);
+      if (refused) return fail(refused);
+      const term = mark === 'skip' ? 'skip' : mark;
+      return this.runWrite(
+        repoId,
+        'bisect',
+        ['bisect', term, this.commitSha(graph, commit)],
+        () => this.bisectWork(repoId, commit, mark),
+        { delayMs: 200, refs: true, note: (state) => (state.result ? null : 'step') },
+      );
+    },
+    bisectNext: (repoId) => {
+      const graph = this.graph(repoId);
+      if (!graph || !this.wip(repoId)) return fail(this.notOpen(repoId));
+      if (!this.bisectOf(repoId, graph)) return fail(noOperation());
+      const refused = this.bisectCheck(repoId);
+      if (refused) return fail(refused);
+      const head = graph.headCommit() ?? 0;
+      return this.runWrite(
+        repoId,
+        'bisect',
+        ['bisect', 'next'],
+        () => this.bisectWork(repoId, head, null),
+        { delayMs: 200, refs: true, note: (state) => (state.result ? null : 'step') },
+      );
+    },
     operationDetail: (repoId) => {
       if (!this.wip(repoId)) return fail(this.notOpen(repoId));
       const op = this.operation(repoId);
@@ -4053,6 +4177,23 @@ export class MockBackend {
       // Like the backend, refused before reaching the queue: no `op-started`.
       if (!this.wip(repoId)) return fail(this.notOpen(repoId));
       if (!op) return fail(noOperation());
+      const graph = this.graph(repoId);
+      if (op.operation.kind === 'bisect' && graph) {
+        // `git bisect skip`: the same step as a skip mark on HEAD.
+        const head = graph.headCommit() ?? 0;
+        const refused = this.bisectCheck(repoId);
+        if (refused) return fail(refused);
+        return this.runWrite(
+          repoId,
+          'bisect',
+          ['bisect', 'skip'],
+          () => {
+            const done = this.bisectWork(repoId, head, 'skip');
+            return 'ok' in done ? { ok: this.historyResult(graph, 'commits', head) } : done;
+          },
+          { delayMs: 200, refs: true },
+        );
+      }
       const kind = this.operationKind(op.operation);
       return this.runWrite(
         repoId,

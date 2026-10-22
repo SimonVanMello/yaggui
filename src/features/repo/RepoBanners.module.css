@@ -22,6 +22,10 @@
   --tone: var(--info);
 }
 
+.banner[data-tone='success'] {
+  --tone: var(--success);
+}
+
 .icon {
   flex: none;
   align-self: flex-start;

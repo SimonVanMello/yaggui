@@ -39,7 +39,7 @@ yaggui lit l’état de l’opération dans le dossier `.git` (`MERGE_HEAD`, `re
 
 Le bandeau affiche :
 
-- **Un titre** : pour un rebase dont l’étape est connue, **Rebase \{step\}/\{total\}** (par exemple « Rebase 3/7 ») avec une barre de progression. Sinon **Merge en cours**, **Rebase en cours**, **Cherry-pick en cours**, **Revert en cours**, **Bisect en cours** ou **Application de patchs (git am)**.
+- **Un titre** : pour un rebase dont l’étape est connue, **Rebase \{step\}/\{total\}** (par exemple « Rebase 3/7 ») avec une barre de progression. Sinon **Merge en cours**, **Rebase en cours**, **Cherry-pick en cours**, **Revert en cours** ou **Application de patchs (git am)**. Un bisect a sa propre bannière, avec ses étapes et son résultat : voir [Trouver un bug avec bisect](../bisect/).
 - **Un résumé** : **Rebase de \{branch\} sur \{onto\}**, **Merge de \{source\} dans \{target\}**, **Merge squash de \{source\} dans \{target\}**, **Cherry-pick de \{commit\} sur \{target\}** ou **Revert de \{commit\} sur \{target\}**.
 - **Le nombre de conflits** encore non résolus, et **Voir les conflits**, qui sélectionne le travail en cours pour afficher le panneau des conflits.
 - Les boutons **Continuer**, **Passer** et d’annulation décrits ci-dessous.
@@ -48,7 +48,7 @@ Tant qu’une opération est en cours, les autres actions d’historique (merge,
 
 ### Continuer
 
-**Continuer** est désactivé tant que tous les conflits ne sont pas résolus ; son info-bulle indique **Résous d’abord les \{count\} conflits restants**. Il est masqué pendant un bisect.
+**Continuer** est désactivé tant que tous les conflits ne sont pas résolus ; son info-bulle indique **Résous d’abord les \{count\} conflits restants**.
 
 Pour un merge, un cherry-pick ou un revert, une boîte de dialogue **Continuer** permet de modifier le message du commit sur le point d’être créé (« Modifie si besoin le message du commit qui va être créé. »), prérempli avec le message préparé par Git. Cliquez sur **Continuer** ou appuyez sur <kbd>⌘Enter</kbd> (<kbd>Ctrl+Enter</kbd> sous Windows et Linux). Si Git n’a préparé aucun message, yaggui continue sans afficher la boîte de dialogue. Un rebase continue directement.
 

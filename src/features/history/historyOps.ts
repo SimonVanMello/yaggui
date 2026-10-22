@@ -49,6 +49,7 @@ export function refreshHistory(repoId: number): void {
     queryKeys.repoRefs(repoId),
     queryKeys.repoState(repoId),
     queryKeys.operationDetail(repoId),
+    queryKeys.bisectState(repoId),
     queryKeys.conflicts(repoId),
     diffKeys.worktree(repoId),
   ]) {

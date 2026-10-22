@@ -2,7 +2,7 @@ import { useShortcut } from '../keybindings/registry';
 import type { ReactElement } from 'react';
 
 import { useT } from '../../i18n/useT';
-import type { ResetMode } from '../../ipc';
+import type { BisectMark, ResetMode } from '../../ipc';
 import { ContextMenu } from '../../ui/ContextMenu';
 import { ContextMenuItem } from '../../ui/ContextMenuItem';
 import { ContextMenuSeparator } from '../../ui/ContextMenuSeparator';
@@ -14,6 +14,7 @@ import { openTree } from '../inspect/inspectStore';
 import { RefContextMenu } from '../sidebar/RefContextMenu';
 import { refTargetOf } from '../sidebar/sidebarRows';
 import { useRepoRefs } from '../sidebar/useRepoRefs';
+import { markBisect } from '../bisect/bisectOps';
 import { cherryPickCommits, revertCommit } from '../history/historyOps';
 import { openCreateBranch, openCreateTag } from '../refs/refCommands';
 import { createFixup, fixupBlock, startAutosquash } from '../rebase/fixupOps';
@@ -49,6 +50,7 @@ export function copyText(text: string, message: string): void {
 }
 
 const RESET_MODES: readonly ResetMode[] = ['soft', 'mixed', 'hard'];
+const BISECT_MARKS: readonly BisectMark[] = ['good', 'bad', 'skip'];
 
 /**
  * Commit context menu (F-025). Opens with the right button, `Shift+F10` or the menu key, on the
@@ -73,7 +75,12 @@ export function CommitContextMenu({
   const refs = useRepoRefs(repoId).data;
   const refTarget = refLabel && refs ? refTargetOf(refs, refLabel.kind, refLabel.name) : null;
   const isHead = target?.refs.some((r) => r.isHead || r.kind === 'head') ?? false;
-  const fixupBlocked = fixupBlock(useRepoState(repoId).data);
+  const repoState = useRepoState(repoId).data;
+  const fixupBlocked = fixupBlock(repoState);
+  const operationKind = repoState?.operation?.kind ?? null;
+  const bisecting = operationKind === 'bisect';
+  // Another operation in progress: a bisect would start over it (`operationInProgress`).
+  const bisectBlocked = operationKind !== null && !bisecting;
 
   const refContent = refTarget ? (
     <RefContextMenu repoId={repoId} target={refTarget} current={current} />
@@ -265,6 +272,23 @@ export function CommitContextMenu({
             {t('graph.menu.autosquash')}
           </ContextMenuItem>
         )}
+        <ContextMenuSub
+          label={t(bisecting ? 'bisect.menu.title' : 'bisect.menu.start')}
+          icon="search"
+          disabled={bisectBlocked}
+        >
+          {BISECT_MARKS.filter((mark) => bisecting || mark !== 'skip').map((mark) => (
+            <ContextMenuItem
+              key={mark}
+              hint={t(`bisect.mark.${mark}Hint`)}
+              onSelect={() => {
+                void markBisect(repoId, target.sha, mark);
+              }}
+            >
+              {t(`bisect.menu.${mark}`)}
+            </ContextMenuItem>
+          ))}
+        </ContextMenuSub>
         <ContextMenuItem
           icon="compare"
           onSelect={() => {

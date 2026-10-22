@@ -27,7 +27,8 @@
       "history/cherry-pick-revert-reset",
       "history/interactive-rebase",
       "history/conflicts",
-      "history/undo-and-redo"
+      "history/undo-and-redo",
+      "history/bisect"
     ]
   },
   {

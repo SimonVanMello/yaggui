@@ -2,6 +2,8 @@ import { memo } from 'react';
 
 import type { Locale } from '../../i18n/i18n';
 import { formatRelativeTime } from '../../i18n/relativeTime';
+import { BisectMarkPill } from '../bisect/BisectMarkPill';
+import type { BisectRowMark } from '../bisect/bisectModel';
 import { Avatar } from './Avatar';
 import type { GraphRow } from './pageCache';
 import { RefPills } from './RefPills';
@@ -31,6 +33,10 @@ interface Props {
   pillMetrics: PillMetrics;
   now: number;
   locale: Locale;
+  /** Bisect mark of the commit, when a bisect is in progress (F-263). */
+  bisect?: BisectRowMark;
+  /** Label of `bisect`, measured to leave the ref pills the rest of the message column. */
+  bisectLabel?: string;
 }
 
 const dateFormats = new Map<Locale, Intl.DateTimeFormat>();
@@ -58,6 +64,8 @@ export const GraphRowView = memo(function GraphRowView({
   pillMetrics,
   now,
   locale,
+  bisect,
+  bisectLabel,
 }: Props) {
   const classes = [
     styles.row,
@@ -80,6 +88,10 @@ export const GraphRowView = memo(function GraphRowView({
     );
   }
   const time = data.authorTime;
+  const markWidth =
+    bisect && bisectLabel
+      ? pillMetrics.measure(bisectLabel, false) + pillMetrics.padding + pillMetrics.messageGap
+      : 0;
   return (
     <div
       className={classes}
@@ -91,12 +103,13 @@ export const GraphRowView = memo(function GraphRowView({
       id={`graph-row-${String(index)}`}
     >
       <span className={styles.message}>
+        {bisect && bisectLabel && <BisectMarkPill mark={bisect} label={bisectLabel} />}
         <RefPills
           repoId={repoId}
           labels={data.refs}
           color={data.color}
           space={{
-            width: messageWidth,
+            width: messageWidth - markWidth,
             signed: data.signature !== null,
             summary: data.summary,
             metrics: pillMetrics,

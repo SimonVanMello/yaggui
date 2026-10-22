@@ -1,0 +1,31 @@
+/* Shape from the ref pills (`pill` of RefPills.module.css), so the row budget measures it. */
+.mark {
+  border-color: color-mix(in srgb, var(--mark-color) 55%, transparent);
+  background: color-mix(in srgb, var(--mark-color) 16%, transparent);
+  color: var(--fg-primary);
+}
+
+.mark[data-mark='good'] {
+  --mark-color: var(--success);
+}
+
+.mark[data-mark='bad'] {
+  --mark-color: var(--danger);
+}
+
+.mark[data-mark='skip'] {
+  --mark-color: var(--fg-muted);
+}
+
+.mark[data-mark='current'] {
+  --mark-color: var(--info);
+}
+
+/* The result: solid, it is what the bisect was for. */
+.mark[data-mark='found'] {
+  --mark-color: var(--danger);
+
+  border-color: var(--danger);
+  background: var(--danger);
+  color: var(--bg-panel);
+}

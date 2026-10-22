@@ -150,6 +150,8 @@ pub enum OpNote {
     Paused,
     /// An abort of the operation in progress.
     Aborted,
+    /// A bisect mark or checkout that leaves the bisect going (no result yet).
+    Step,
 }
 
 /// An operation finished; the frontend should refresh what it touched.

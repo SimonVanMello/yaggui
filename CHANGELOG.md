@@ -28,6 +28,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - First-parent history in the graph: each branch's main line only, merges without the commits
   they brought in. Toggle it from the toolbar, the palette or `Mod+Alt+R`; it is kept per
   repository, and search and jumps follow it.
+- Assisted bisect: mark a commit good or bad from its menu in the graph to start, then mark each
+  commit yaggui checks out from the banner (good, bad or skip) while it shows the steps left;
+  markers in the graph, the first bad commit at the end, and a bisect started in a terminal or
+  left open is picked up again.
 - History of a range of lines (`git log -L`): select lines in the blame (Shift-click) or in a
   commit diff (gutter), then "History of lines": every commit that changed them, with its change to
   those lines, followed across renames; the search can be stopped on long histories.

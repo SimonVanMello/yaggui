@@ -1,0 +1,92 @@
+---
+title: Find a bug with bisect
+description: Mark a good and a bad commit from the graph, test the commits yaggui checks out, and get the first bad commit.
+sidebar:
+  order: 9
+sources:
+  - src/features/bisect/**
+  - src/features/graph/CommitContextMenu.tsx
+  - src/features/graph/GraphRowView.tsx
+  - src/features/repo/RepoBanners.tsx
+  - src-tauri/src/repo/bisect.rs
+  - src-tauri/src/git/read/bisect.rs
+requirements: [F-263]
+---
+
+import Screenshot from '~/components/Screenshot.astro';
+import bisectBannerDark from '../../../../assets/screens/bisect-banner-dark.png';
+import bisectBannerLight from '../../../../assets/screens/bisect-banner-light.png';
+import bisectResultDark from '../../../../assets/screens/bisect-result-dark.png';
+import bisectResultLight from '../../../../assets/screens/bisect-result-light.png';
+
+A bisect finds the commit that introduced a bug by testing as few commits as possible: you say which commit is bad (the bug is there) and which one is good (it is not), yaggui checks out a commit halfway between them, you test it and mark it, and so on until one commit is left. yaggui runs [git bisect](https://git-scm.com/docs/git-bisect) for every step.
+
+## Start a bisect
+
+Right-click a commit in the graph and open **Start bisect**:
+
+- **Mark as bad**: the bug is present in this commit, usually HEAD or the tip of a branch.
+- **Mark as good**: the bug is absent, usually an older commit or a release tag.
+
+The first mark starts the bisect (`git bisect start`, then `git bisect bad <sha>` or `git bisect good <sha>`). A banner appears above the graph and asks for the other kind of mark: "Mark a good commit, where the bug is absent: HEAD with the buttons, or an older commit from its menu in the graph." (or the bad one). Mark it the same way, from the menu of another commit, now named **Bisect**, or for HEAD with the banner buttons.
+
+As soon as a good and a bad commit are known, Git checks out the commit to test, in detached HEAD.
+
+A bisect needs a clean working copy: each step checks out another commit, and your changes would be tested with it. If tracked files have local changes, the mark is refused with "You have local changes: a bisect tests each commit as it was committed. Stash or commit them first." and a dialog, **Stash your changes to bisect?**, offers **Stash and continue**: the changes are stashed (`git stash push`, message `yaggui: before bisect`) and the mark is retried. Untracked files stay where they are. Files in conflict refuse the mark too.
+
+While another operation (merge, rebase, cherry-pick, revert) is in progress, **Start bisect** is disabled.
+
+## Test and mark each commit
+
+<Screenshot
+  dark={bisectBannerDark}
+  light={bisectBannerLight}
+  alt="Bisect banner reading Testing with the short SHA and summary of the commit under test, about 3 steps left and 10 commits to test, the Good, Bad and Skip buttons and Stop bisect; the graph shows good, bad, skipped and testing pills"
+/>
+
+The banner shows:
+
+- **Testing** followed by the short SHA and summary of the commit checked out. Click it to select the commit in the graph.
+- **about \{count\} steps left · \{count\} commits to test**: the estimate Git gives ("roughly N steps"), and the commits that can still be the first bad one and are not tested yet.
+- **Good**, **Bad** and **Skip**, which mark the commit under test (HEAD): `git bisect good`, `git bisect bad` or `git bisect skip`. Use **Skip** for a commit you cannot test, for example one that does not build.
+- **Stop bisect**, described in [End the bisect](#end-the-bisect).
+
+Test the commit (build it, run it, run the failing test), then click the button that matches. Git checks out the next commit, the banner updates, and the status bar reads **Bisect: step done**.
+
+You can also mark any commit from the graph: right-click it, open **Bisect** and choose **Mark as good**, **Mark as bad** or **Skip this commit**. This helps when you already know the answer for a commit other than HEAD.
+
+### Markers in the graph
+
+During a bisect, the graph shows a pill before the ref labels of the commits the bisect knows: **good**, **bad**, **skipped**, **testing** for the commit checked out, and **first bad** at the end.
+
+### When the next commit cannot be checked out
+
+If an untracked file is in the way of the next commit, the mark is saved but the checkout fails: "The mark is saved, but the next commit to test could not be checked out: files are in the way. Move or remove them, then check out the next commit." The banner then reads "The next commit to test could not be checked out." with **Check out next commit** (`git bisect next`). The same button appears if you moved HEAD by hand to a commit that already has a mark.
+
+### Marks in the wrong order
+
+If a good commit comes after the bad one in the history, Git cannot bisect between them: "A good commit is not an ancestor of the bad one: Git cannot bisect between them. Check the marks, or end the bisect and start again." Marks cannot be removed one by one: stop the bisect and start again.
+
+## The result
+
+<Screenshot
+  dark={bisectResultDark}
+  light={bisectResultLight}
+  alt="Bisect banner reading First bad commit found with the short SHA, summary, author and date of the commit, the Show commit and End bisect buttons; the commit has a first bad pill in the graph"
+/>
+
+When one commit is left, the banner reads **First bad commit found** with its short SHA, summary, author and date. A toast says **First bad commit: \{sha\}** and the commit is selected in the graph, with its details in the right panel. **Show commit** selects it again.
+
+If only skipped commits are left between the good and bad commits, Git cannot tell which one is the first bad commit. The banner reads **Bisect inconclusive** and "Only skipped commits are left: the first bad commit is one of these \{count\}", followed by their short SHAs (click one to select it).
+
+## End the bisect
+
+**Stop bisect** (or **End bisect** once there is a result) asks **Stop the bisect?** "HEAD goes back to where it was before the bisect started." and runs `git bisect reset`: the branch you were on is checked out again. The marks are dropped.
+
+## A bisect started elsewhere
+
+yaggui reads the bisect from the `.git` folder: the marks (`refs/bisect/`), the starting point (`BISECT_START`) and the terms (`BISECT_TERMS`). A bisect started in a terminal, or one left open when you closed yaggui, shows its banner and markers when you open the repository, and you can go on from there. A bisect started with custom terms (`--term-old` / `--term-new`) is marked with them; yaggui still calls them good and bad. `git bisect run` is not available from yaggui.
+
+## Bisect and undo
+
+The bisect steps are not in the undo history: they only move HEAD, and the way back is the bisect's own reset. While a bisect is in progress, undo and redo are refused, like during any other operation; see [Undo and redo](../undo-and-redo/).

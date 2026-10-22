@@ -138,7 +138,7 @@ Every message and what to do about it is listed in [Error messages](../../refere
 
 Banners appear above the graph when the repository needs your attention.
 
-- **Operation in progress**: a merge, rebase, cherry-pick, revert, bisect or `git am` is stopped, for example on conflicts. The banner shows the progress (such as "Rebase 3/7") and, depending on the state, **Show conflicts**, **Continue**, **Skip** and an abort button such as **Abort rebase** or **Stop bisect**. See [Conflicts](../../history/conflicts/).
+- **Operation in progress**: a merge, rebase, cherry-pick, revert, bisect or `git am` is stopped, for example on conflicts. The banner shows the progress (such as "Rebase 3/7") and, depending on the state, **Show conflicts**, **Continue**, **Skip** and an abort button such as **Abort rebase**. See [Conflicts](../../history/conflicts/). A bisect shows the commit under test, the steps left and **Good**, **Bad** and **Skip**; see [Find a bug with bisect](../../history/bisect/).
 - **index.lock**: a `.git/index.lock` file exists. When it is recent, the banner says **Another Git process is using this repository** and goes away when that process ends. When it is older than 10 seconds, the banner says **A Git process probably crashed and left index.lock** and offers **Remove the lock…**. Make sure no other Git program is working on the repository, then confirm with **Remove lock**.
 - **Automatic refresh unavailable**: yaggui cannot watch the folder for changes, often because the system limit on watched files is reached. Changes made outside yaggui show after you click **Refresh**. See [Troubleshooting](../../help/troubleshooting/).
 

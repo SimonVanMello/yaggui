@@ -15,6 +15,7 @@ export const queryKeys = {
   repoState: (repoId: number) => ['repo-state', repoId] as const,
   repoRefs: (repoId: number) => ['repo-refs', repoId] as const,
   operationDetail: (repoId: number) => ['operation-detail', repoId] as const,
+  bisectState: (repoId: number) => ['bisect-state', repoId] as const,
   conflicts: (repoId: number) => ['conflicts', repoId] as const,
   undoState: (repoId: number) => ['undo-state', repoId] as const,
   opHistory: (repoId: number) => ['op-history', repoId] as const,
