@@ -38,7 +38,12 @@
   {
     "label": "Inspecting history",
     "translations": { "fr": "Explorer l’historique" },
-    "items": ["inspect/compare", "inspect/file-history-and-blame", "inspect/reflog"]
+    "items": [
+      "inspect/compare",
+      "inspect/file-history-and-blame",
+      "inspect/commit-tree",
+      "inspect/reflog"
+    ]
   },
   {
     "label": "Repository features",
