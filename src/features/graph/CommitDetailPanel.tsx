@@ -12,11 +12,14 @@ import {
   type DiffTarget,
   type Signature,
 } from '../../ipc';
+import { Button } from '../../ui/Button';
+import { Icon } from '../../ui/Icon';
 import { Spinner } from '../../ui/Spinner';
 import { ChangedFileList } from '../diff/ChangedFileList';
 import { useChangedFiles } from '../diff/diffQueries';
 import { closeDiff, openDiff, useDiffSelection } from '../diff/diffStore';
 import { FileInspectMenu } from '../inspect/FileInspectButtons';
+import { openTree } from '../inspect/inspectStore';
 import { useNow } from '../../ui/useNow';
 import { Avatar } from './Avatar';
 import { CommitMessageHeader } from './CommitMessageHeader';
@@ -248,6 +251,18 @@ export function CommitDetailPanel({
             </>
           )}
         </dl>
+        <div className={styles.actions}>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => {
+              openTree(repoId, commit.sha);
+            }}
+          >
+            <Icon name="tree" />
+            {t('tree.action.browse')}
+          </Button>
+        </div>
         <CommitFiles repoId={repoId} tabId={tabId} sha={commit.sha} />
       </div>
     </section>

@@ -475,6 +475,26 @@ export const commands = {
 	reflog: (repoId: number, reference: string, start: number, limit: number) => typedError<ReflogPage, YagguiError>(__TAURI_INVOKE("reflog", { repoId, reference, start, limit })),
 	/**  Stops the file history or blame started with `token` (or the next one to start with it). */
 	cancelRead: (token: number) => typedError<null, YagguiError>(__TAURI_INVOKE("cancel_read", { token })),
+	/**
+	 *  Entries `start .. start + limit` (≤ 500) of the folder `path` of `rev`, folders first
+	 *  then by name; an empty `path` is the root. `rev` may be a branch, `HEAD` or a SHA: the
+	 *  page carries the commit it resolved to. Errors: `revisionNotFound`, `invalidArgument`
+	 *  (`path` is not a folder of `rev`).
+	 */
+	treeList: (repoId: number, rev: string, path: string, start: number, limit: number) => typedError<TreePage, YagguiError>(__TAURI_INVOKE("tree_list", { repoId, rev, path, start, limit })),
+	/**
+	 *  The file at `path` of `rev` for display: text, image, binary, LFS pointer, symbolic link
+	 *  or submodule. A text above the render limit comes back as `tooLarge` unless `force`.
+	 *  Errors: `revisionNotFound`, `invalidArgument` (not a file of `rev`).
+	 */
+	treeFile: (repoId: number, rev: string, path: string, force: boolean) => typedError<TreeFile, YagguiError>(__TAURI_INVOKE("tree_file", { repoId, rev, path, force })),
+	/**
+	 *  Asks where to save, then writes the version of `path` stored in `rev`. The native dialog
+	 *  asks before replacing a file; nothing is written when the user cancels. Returns the file
+	 *  written, `None` on cancel. Errors: `revisionNotFound`, `invalidArgument` (not a saveable
+	 *  file of `rev`).
+	 */
+	saveTreeFile: (repoId: number, rev: string, path: string, title: string) => typedError<string | null, YagguiError>(__TAURI_INVOKE("save_tree_file", { repoId, rev, path, title })),
 	/**  Configured remotes, `origin` first. Read-only, not queued. */
 	listRemotes: (repoId: number) => typedError<string[], YagguiError>(__TAURI_INVOKE("list_remotes", { repoId })),
 	/**
@@ -3207,6 +3227,53 @@ export type ToolIssue =
 "notInstalled" | 
 /**  Git does not know the tool and no `<family>tool.<name>.cmd` defines it. */
 "unknown";
+
+export type TreeEntry = {
+	/**  Name in its folder (not the full path). */
+	name: string,
+	kind: TreeEntryKind,
+	/**  Object id: the blob, the subtree or the submodule commit. */
+	oid: string,
+	/**  Size in bytes of a file or a symlink target; `None` for folders and submodules. */
+	size: number | null,
+};
+
+export type TreeEntryKind = "dir" | "file" | 
+/**  A file with the executable bit. */
+"executable" | "symlink" | 
+/**  A submodule: the commit of another repository. */
+"submodule";
+
+export type TreeFile = {
+	rev: string,
+	path: string,
+	oid: string,
+	/**  Size in bytes of the blob stored in Git (the pointer for an LFS file). */
+	size: number | null,
+	executable: boolean,
+	content: TreeFileContent,
+};
+
+export type TreeFileContent = { kind: "text"; text: string; encoding: TextEncoding } | 
+/**  An image the webview can show, as a `data:` URL. */
+{ kind: "image"; url: string } | 
+/**  Binary content, or an image too large to preview. */
+{ kind: "binary" } | 
+/**  Text above the render limit: only read when the request forces it. */
+{ kind: "tooLarge"; limit: number | null } | 
+/**  An LFS pointer: the content lives on the LFS server, not in Git. */
+{ kind: "lfs"; object: LfsObject } | { kind: "symlink"; target: string } | { kind: "submodule"; commit: string };
+
+/**  One page of a folder, folders first then by name (case-insensitive). */
+export type TreePage = {
+	/**  The commit read, resolved (the request may name a branch or `HEAD`). */
+	rev: string,
+	/**  The folder listed, empty for the root. */
+	path: string,
+	entries: TreeEntry[],
+	/**  Entries in the whole folder. */
+	total: number,
+};
 
 /**  Why an operation cannot be undone (or redone) now. */
 export type UndoBlock = 
