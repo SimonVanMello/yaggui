@@ -1,6 +1,13 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import type { FileHistoryCursor, FileHistoryEntry, FileHistoryPage } from '../bindings';
+import type {
+  FileHistoryCursor,
+  FileHistoryEntry,
+  FileHistoryPage,
+  LineHistoryCursor,
+  LineHistoryEntry,
+  LineHistoryPage,
+} from '../bindings';
 import { mockBackend, mockClient } from '../mockClient';
 import { unwrap } from '../result';
 import { MOCK_HUGE_FILE_LINES } from './inspect';
@@ -58,6 +65,46 @@ describe('mock file history, blame and reflog', () => {
       }),
     );
     expect(diff.content.kind).toBe('text');
+  });
+
+  it('pages the history of a line range, oldest entry adding the lines', async () => {
+    const id = await yaggui();
+    const request = { path: 'src/app/Thing.ts', rev: null, start: 10, end: 14 };
+    const all = await unwrap(mock.lineHistory(id, request, null, 500, 1));
+    expect(all.range).toMatchObject({ path: 'src/app/Thing.ts', start: 10, end: 14 });
+    expect(all.entries.length).toBeGreaterThan(1);
+    const last = all.entries.at(-1);
+    expect(last?.origin).toBe(true);
+    expect(last?.diff?.hunks[0]?.kinds).toBe('+++++');
+    for (const entry of all.entries.slice(0, -1)) {
+      if (entry.diff === null) continue;
+      expect(entry.diff.hunks[0]?.newStart).toBe(10);
+      expect(entry.diff.additions).toBeGreaterThan(0);
+    }
+
+    const paged: LineHistoryEntry[] = [];
+    let cursor: LineHistoryCursor | null = null;
+    do {
+      const page: LineHistoryPage = await unwrap(mock.lineHistory(id, request, cursor, 2, 1));
+      expect(page.entries.length).toBeLessThanOrEqual(2);
+      paged.push(...page.entries);
+      cursor = page.next;
+    } while (cursor);
+    expect(paged).toEqual(all.entries);
+  });
+
+  it('refuses invalid line ranges like the backend', async () => {
+    const id = await yaggui();
+    const code = async (start: number, end: number, path = 'src/app/Thing.ts') => {
+      const result = await mock.lineHistory(id, { path, rev: null, start, end }, null, 500, 1);
+      return result.status === 'error' ? result.error.code : null;
+    };
+    expect(await code(0, 2)).toBe('invalidArgument');
+    expect(await code(5, 4)).toBe('invalidArgument');
+    expect(await code(1, 6_000)).toBe('invalidArgument');
+    expect(await code(1, 4_000)).toBe('invalidArgument');
+    expect(await code(1, 1, 'assets/logo.png')).toBe('invalidArgument');
+    expect(await code(1, 1)).toBeNull();
   });
 
   it('blames every line once, binaries and new files apart', async () => {

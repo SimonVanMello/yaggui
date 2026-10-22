@@ -74,6 +74,12 @@
   background: var(--accent-soft);
 }
 
+/* Lines selected for their history (M7-7). */
+.row[data-range='true'] .number {
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+
 .age {
   flex: none;
   width: var(--blame-age-bar-width);

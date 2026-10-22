@@ -128,6 +128,7 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             commands::history::commit_fixup,
             commands::history::autosquash_plan,
             commands::inspect::file_history,
+            commands::inspect::line_history,
             commands::inspect::blame,
             commands::inspect::reflog,
             commands::inspect::cancel_read,

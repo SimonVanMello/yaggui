@@ -12,6 +12,7 @@ import {
 import { useT } from '../../i18n/useT';
 import type { DiffViewMode, HunkSelection, TextDiff } from '../../ipc';
 import { Button } from '../../ui/Button';
+import { Icon } from '../../ui/Icon';
 import { Kbd } from '../../ui/Kbd';
 import { adjacentStop, changeStarts, splitModel, unifiedModel, type DiffLine } from './diffModel';
 import {
@@ -32,6 +33,8 @@ import {
   rowRange,
   selectableRows,
   selectedLineCount,
+  newLineSpan,
+  newSideRows,
   selectionToHunks,
   wholeHunk,
   type SelectionKey,
@@ -66,6 +69,11 @@ interface CodeDiffProps {
   actionsDisabled?: string | null;
   /** Soft-wrap long lines (the two columns of a split view stay aligned). */
   wrap?: boolean;
+  /**
+   * Commit diffs: the gutter selects lines of the new version, and the selection bar opens
+   * their history (`start ..= end`, 1-based).
+   */
+  onLineHistory?: (span: { start: number; end: number }) => void;
   /** The line selection is dropped when this changes (e.g. the diff options). */
   resetKey?: string;
   ref?: Ref<CodeDiffHandle>;
@@ -87,6 +95,7 @@ export function CodeDiff({
   path,
   worktree,
   onHunks,
+  onLineHistory,
   actionsDisabled = null,
   wrap = false,
   resetKey = '',
@@ -117,6 +126,7 @@ export function CodeDiff({
     () => (model.kind === 'split' ? [model.left, model.right] : [model.lines]),
     [model],
   );
+  const history = worktree === null && onLineHistory !== undefined;
   const selectable = useMemo(
     () =>
       worktree && onHunks
@@ -125,8 +135,10 @@ export function CodeDiff({
               ? selectableRows(model.left, model.right)
               : selectableRows(model.lines),
           )
-        : undefined,
-    [model, worktree, onHunks],
+        : history
+          ? new Set(newSideRows(sides))
+          : undefined,
+    [model, worktree, onHunks, history, sides],
   );
 
   // The selection belongs to one diff: a refreshed diff (other lines) starts empty.
@@ -429,6 +441,11 @@ export function CodeDiff({
         return true;
       }
       if (event.shiftKey || rowsRef.current.size === 0) return false;
+      if (history && event.key === 'Enter') {
+        const span = newLineSpan(rowsRef.current, sides);
+        if (span) onLineHistory(span);
+        return true;
+      }
       const keyed =
         event.key === 'Enter'
           ? worktree === 'staged'
@@ -483,6 +500,38 @@ export function CodeDiff({
             }}
           >
             {worktree === 'staged' ? t('diff.lines.unstage') : t('diff.lines.stage')}
+            <Kbd shortcut="Enter" />
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => {
+              selectRows(NO_ROWS);
+            }}
+          >
+            {t('diff.lines.clear')}
+            <Kbd shortcut="Escape" />
+          </Button>
+        </div>
+      )}
+      {rows.size > 0 && history && (
+        <div className={styles.selection} role="toolbar" aria-label={t('diff.lines.label')}>
+          <div className={styles.selectionText}>
+            <span className={styles.selectionCount} role="status">
+              {t('diff.lines.selected', { count: rows.size })}
+            </span>
+          </div>
+          <Button
+            size="sm"
+            variant="primary"
+            aria-keyshortcuts="Enter"
+            onClick={() => {
+              const span = newLineSpan(rows, sides);
+              if (span) onLineHistory(span);
+            }}
+          >
+            <Icon name="history" />
+            {t('diff.lines.history')}
             <Kbd shortcut="Enter" />
           </Button>
           <Button
