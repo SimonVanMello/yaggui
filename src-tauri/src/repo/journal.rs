@@ -9,12 +9,21 @@
 //! a ref moved elsewhere is `undoDiverged`, a file changed since is `undoWouldOverwrite`.
 //! Fetch (without prune) and the other operations that are not journaled are not barriers:
 //! only what the undo would change is checked.
+//!
+//! The journal is saved in `yaggui.db` after each journaled write, undo and redo, and loaded
+//! when the repository opens (F-244). An entry from a previous session goes through the same
+//! checks, plus one: every object the step needs must still exist. The saved file contents
+//! are unreachable blobs and `git gc` may prune them between sessions; nothing is written into
+//! the repository to keep them (spec §8), so such an entry is refused with
+//! `undoObjectsMissing` before anything changes.
 
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use gix::ObjectId;
 use gix::bstr::{BStr, ByteSlice};
+use serde::{Deserialize, Serialize};
 
 use crate::events::{BackendEvent, JournalChanged, OpKind};
 use crate::git::errors::{BackendError, YagguiError};
@@ -28,17 +37,23 @@ use super::history::{STATUS_ARGS, ensure_idle, preview};
 use super::ref_ops::{classify, overwritten_paths, raw};
 use super::remotes::{RemoteChange, remote_step};
 use super::write::{
-    IndexSide, MODE_EXECUTABLE, MODE_FILE, MODE_SYMLINK, SavedPath, SavedWorktree, WriteContext,
+    IndexSide, MODE_EXECUTABLE, MODE_FILE, MODE_SYMLINK, SavedPath, SavedWorktree, StageEntry,
+    WriteContext,
 };
 use super::{RepoManager, lock};
+use crate::store::{JOURNAL_MAX_ENTRIES, Store, StoredJournalRow};
 
-/// Operations kept per session; the oldest are forgotten first.
-const JOURNAL_MAX: usize = 100;
+/// Operations kept per repository; the oldest are forgotten first.
+const JOURNAL_MAX: usize = JOURNAL_MAX_ENTRIES as usize;
+/// Version of the saved `state` encoding: bump it when `Mode` or `Side` change in a way old
+/// rows cannot be read with (they are then kept, blocked as `unreadable`).
+const STATE_FORMAT: u32 = 1;
 /// Files per `git hash-object` invocation.
 const HASH_BATCH: usize = 200;
 
 /// How an undo (or redo) moves the repository between the two sides of an operation.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "mode", rename_all = "camelCase")]
 pub(super) enum Mode {
     /// Refs and HEAD's commit only (`update-ref`), the working tree stays; the index takes
     /// its recorded tree back when the operation changed it (mixed reset). Commit, amend,
@@ -56,7 +71,11 @@ pub(super) enum Mode {
     /// `git branch -m`, which also moves the branch config and reflog.
     Rename { from: String, to: String },
     /// `git stash store` puts the entry back (on top of the list); the redo drops it again.
-    StashDrop { sha: ObjectId, message: String },
+    StashDrop {
+        #[serde(with = "oid")]
+        sha: ObjectId,
+        message: String,
+    },
     /// A linked worktree at `path` on `checkout` (a branch, or a commit with `detach`), added
     /// by the operation (`added`) or removed. Adding it back recreates the branch first;
     /// removing it is refused while it has local changes. The refs part (a branch created
@@ -69,7 +88,11 @@ pub(super) enum Mode {
     },
     /// A stash of selected files (`Files` plus the stash entry): the undo writes the files
     /// back and drops the entry, the redo stores the entry again and reverts the files.
-    StashPush { sha: ObjectId, message: String },
+    StashPush {
+        #[serde(with = "oid")]
+        sha: ObjectId,
+        message: String,
+    },
     /// A remote added, renamed or removed: its config section and tracking refs (M4-7c).
     Remote(RemoteChange),
 }
@@ -119,13 +142,15 @@ impl Plan {
 }
 
 /// HEAD: a branch (`commit` is `None` while unborn) or a detached commit.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 enum Head {
     Branch {
         name: String,
+        #[serde(with = "oid::option")]
         commit: Option<ObjectId>,
     },
-    Detached(ObjectId),
+    Detached(#[serde(with = "oid")] ObjectId),
 }
 
 impl Head {
@@ -168,7 +193,7 @@ impl Snapshot {
 }
 
 /// One file on one side of a discard or hard reset.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 struct FileState {
     path: String,
     worktree: IndexSide,
@@ -176,14 +201,16 @@ struct FileState {
 }
 
 /// The state an undo or redo leads to, restricted to what the operation changed.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 struct Side {
     /// Full ref name → target (`None`: absent).
+    #[serde(with = "oid::map")]
     refs: BTreeMap<String, Option<ObjectId>>,
     /// Upstreams of the branches in `refs`, by short name.
     upstreams: BTreeMap<String, Option<Upstream>>,
     head: Option<Head>,
     /// Index tree, when the operation changed it without touching the files (mixed reset).
+    #[serde(with = "oid::option")]
     index: Option<ObjectId>,
     files: Vec<FileState>,
 }
@@ -196,7 +223,22 @@ struct Record {
     after: Side,
 }
 
-/// Journal of the operations of one repository session.
+/// What a saved row holds besides the entry (`StoredJournalRow::state`).
+#[derive(Serialize)]
+struct StateRef<'a> {
+    mode: &'a Mode,
+    before: &'a Side,
+    after: &'a Side,
+}
+
+#[derive(Deserialize)]
+struct StoredState {
+    mode: Mode,
+    before: Side,
+    after: Side,
+}
+
+/// Journal of the operations of one repository, this session's after the restored ones.
 #[derive(Default)]
 pub struct OpJournal {
     records: VecDeque<Record>,
@@ -205,13 +247,90 @@ pub struct OpJournal {
     next_id: u32,
 }
 
+fn now_ms() -> f64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0.0, |d| d.as_secs_f64() * 1000.0)
+        .floor()
+}
+
 impl OpJournal {
+    /// The journal saved by previous sessions; empty when it cannot be read (logged).
+    pub(super) fn load(store: &Store, repo_id: u32) -> Self {
+        let rows = match store.load_journal(repo_id, now_ms() as i64) {
+            Ok(rows) => rows,
+            Err(err) => {
+                tracing::warn!(repo_id, error = %err, "undo journal not loaded");
+                return Self::default();
+            }
+        };
+        let mut journal = Self::default();
+        let mut redo = Vec::new();
+        for row in rows {
+            journal.next_id = journal.next_id.max(row.seq);
+            let mut entry = match serde_json::from_str::<JournalEntry>(&row.entry) {
+                Ok(entry) => entry,
+                Err(err) => {
+                    tracing::warn!(repo_id, seq = row.seq, error = %err, "journal entry skipped");
+                    continue;
+                }
+            };
+            entry.id = row.seq;
+            entry.at = row.at as f64;
+            entry.undone = row.undone;
+            entry.restored = true;
+            let state = (row.format == STATE_FORMAT)
+                .then(|| serde_json::from_str::<StoredState>(&row.state))
+                .and_then(Result::ok);
+            let (mode, before, after) = match state {
+                Some(state) => (state.mode, state.before, state.after),
+                None => {
+                    entry.blocked.get_or_insert(UndoBlock::Unreadable);
+                    (Mode::Refs, Side::default(), Side::default())
+                }
+            };
+            if let Some(order) = row.redo_order {
+                redo.push((order, row.seq));
+            }
+            journal.records.push_back(Record {
+                entry,
+                mode,
+                before,
+                after,
+            });
+        }
+        redo.sort_unstable();
+        journal.redo = redo.into_iter().map(|(_, seq)| seq).collect();
+        journal
+    }
+
+    /// Saves the latest record, just journaled (best effort: the write already happened).
+    fn save_last(&self, store: &Store, repo_id: u32) {
+        let Some(record) = self.records.back() else {
+            return;
+        };
+        let saved = stored_row(record)
+            .map_err(|e| e.to_string())
+            .and_then(|row| {
+                store
+                    .append_journal(repo_id, &row, now_ms() as i64)
+                    .map_err(|e| e.to_string())
+            });
+        if let Err(err) = saved {
+            tracing::warn!(repo_id, error = %err, "undo journal entry not saved");
+        }
+    }
+
+    /// Saves an undo or redo of `id` (best effort, like [`save_last`](Self::save_last)).
+    fn save_mark(&self, store: &Store, repo_id: u32, id: u32, undone: bool) {
+        if let Err(err) = store.mark_journal(repo_id, id, undone, &self.redo) {
+            tracing::warn!(repo_id, error = %err, "undo journal position not saved");
+        }
+    }
+
     fn push(&mut self, op: JournalOp, blocked: Option<UndoBlock>) -> &mut Record {
         self.next_id += 1;
-        let at = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .map_or(0.0, |d| d.as_secs_f64() * 1000.0)
-            .floor();
+        let at = now_ms();
         if self.records.len() >= JOURNAL_MAX {
             self.records.pop_front();
         }
@@ -223,6 +342,7 @@ impl OpJournal {
                 at,
                 undone: false,
                 blocked,
+                restored: false,
             },
             mode: Mode::Refs,
             before: Side::default(),
@@ -253,8 +373,94 @@ impl OpJournal {
         Some(record.entry.clone())
     }
 
-    fn history(&self) -> Vec<JournalEntry> {
-        self.records.iter().rev().map(|r| r.entry.clone()).collect()
+    /// Newest first; `blocked` also says when what an entry needs was pruned since.
+    fn history(&self, repo: &gix::Repository) -> Vec<JournalEntry> {
+        self.records
+            .iter()
+            .rev()
+            .map(|r| {
+                let mut entry = r.entry.clone();
+                if entry.blocked.is_none() {
+                    entry.blocked = objects_block(repo, r, !r.entry.undone);
+                }
+                entry
+            })
+            .collect()
+    }
+}
+
+fn stored_row(record: &Record) -> Result<StoredJournalRow, serde_json::Error> {
+    Ok(StoredJournalRow {
+        seq: record.entry.id,
+        at: record.entry.at as i64,
+        undone: record.entry.undone,
+        redo_order: None,
+        entry: serde_json::to_string(&record.entry)?,
+        format: STATE_FORMAT,
+        state: serde_json::to_string(&StateRef {
+            mode: &record.mode,
+            before: &record.before,
+            after: &record.after,
+        })?,
+    })
+}
+
+/// Hex object ids in the saved state.
+pub(super) mod oid {
+    use std::collections::BTreeMap;
+
+    use gix::ObjectId;
+    use serde::de::Error;
+    use serde::{Deserialize, Deserializer, Serializer};
+
+    pub fn serialize<S: Serializer>(id: &ObjectId, s: S) -> Result<S::Ok, S::Error> {
+        s.collect_str(id)
+    }
+
+    pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<ObjectId, D::Error> {
+        parse::<D>(&String::deserialize(d)?)
+    }
+
+    fn parse<'de, D: Deserializer<'de>>(hex: &str) -> Result<ObjectId, D::Error> {
+        ObjectId::from_hex(hex.as_bytes()).map_err(D::Error::custom)
+    }
+
+    pub mod option {
+        use super::*;
+
+        pub fn serialize<S: Serializer>(id: &Option<ObjectId>, s: S) -> Result<S::Ok, S::Error> {
+            match id {
+                Some(id) => s.collect_str(id),
+                None => s.serialize_none(),
+            }
+        }
+
+        pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Option<ObjectId>, D::Error> {
+            Option::<String>::deserialize(d)?
+                .map(|hex| parse::<D>(&hex))
+                .transpose()
+        }
+    }
+
+    pub mod map {
+        use super::*;
+        use serde::Serialize;
+
+        type Refs = BTreeMap<String, Option<ObjectId>>;
+
+        pub fn serialize<S: Serializer>(refs: &Refs, s: S) -> Result<S::Ok, S::Error> {
+            refs.iter()
+                .map(|(name, id)| (name, id.map(|id| id.to_string())))
+                .collect::<BTreeMap<_, _>>()
+                .serialize(s)
+        }
+
+        pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Refs, D::Error> {
+            BTreeMap::<String, Option<String>>::deserialize(d)?
+                .into_iter()
+                .map(|(name, hex)| Ok((name, hex.map(|h| parse::<D>(&h)).transpose()?)))
+                .collect()
+        }
     }
 }
 
@@ -273,13 +479,18 @@ impl RepoManager {
         job: impl FnOnce(&WriteContext<'_>) -> Result<(T, Option<Plan>), YagguiError> + Send + 'static,
     ) -> Result<T, YagguiError> {
         let session = self.session(repo_id)?;
+        let store = Arc::clone(&self.store);
         let (value, recorded) = self.write_op(repo_id, kind, cancellable, move |ctx| {
             let before = take_before(ctx, capture_index);
             let (value, plan) = job(ctx)?;
             let Some(plan) = plan else {
                 return Ok((value, false));
             };
-            let recorded = record(ctx, &mut lock(&session.journal), before, plan);
+            let mut journal = lock(&session.journal);
+            let recorded = record(ctx, &mut journal, before, plan);
+            if recorded {
+                journal.save_last(&store, repo_id);
+            }
             Ok((value, recorded))
         })?;
         if recorded {
@@ -510,7 +721,29 @@ fn open_index(repo: &gix::Repository) -> Result<gix::index::File, YagguiError> {
 }
 
 fn index_side(index: &gix::index::File, path: &str) -> IndexSide {
-    match index.entry_by_path(BStr::new(path.as_bytes())) {
+    use gix::index::entry::Stage;
+
+    let key = BStr::new(path.as_bytes());
+    let entries = index
+        .entry_range(key)
+        .map_or(&[][..], |range| &index.entries()[range]);
+    if entries.iter().any(|e| e.stage() != Stage::Unconflicted) {
+        let mut stages = [None; 3];
+        for entry in entries {
+            let slot = match entry.stage() {
+                Stage::Base => 0,
+                Stage::Ours => 1,
+                Stage::Theirs => 2,
+                Stage::Unconflicted => continue,
+            };
+            stages[slot] = Some(StageEntry {
+                id: entry.id,
+                mode: entry.mode.bits(),
+            });
+        }
+        return IndexSide::Unmerged { stages };
+    }
+    match index.entry_by_path(key) {
         Some(entry) if entry.mode.is_submodule() => IndexSide::Unmanaged,
         Some(entry) => IndexSide::Blob {
             id: entry.id,
@@ -622,6 +855,7 @@ impl RepoManager {
 
     fn undo_redo(&self, repo_id: u32, undo: bool) -> Result<JournalEntry, YagguiError> {
         let session = self.session(repo_id)?;
+        let store = Arc::clone(&self.store);
         let kind = if undo { OpKind::Undo } else { OpKind::Redo };
         let entry = self.write_op(repo_id, kind, false, move |ctx| {
             let record = {
@@ -640,9 +874,12 @@ impl RepoManager {
                 })?
             };
             step(ctx, &record, undo)?;
-            lock(&session.journal)
-                .mark(record.entry.id, undo)
-                .ok_or_else(|| BackendError::Invariant("journal entry vanished".into()).into())
+            let mut journal = lock(&session.journal);
+            let entry = journal.mark(record.entry.id, undo).ok_or_else(|| {
+                YagguiError::from(BackendError::Invariant("journal entry vanished".into()))
+            })?;
+            journal.save_mark(&store, repo_id, entry.id, undo);
+            Ok(entry)
         })?;
         self.sink
             .emit(BackendEvent::JournalChanged(JournalChanged { repo_id }));
@@ -660,9 +897,14 @@ impl RepoManager {
                 let moved = moved_refs(&current, from, to);
                 UndoStep {
                     entry: record.entry.clone(),
-                    blocked: record.entry.blocked.clone().or_else(|| {
-                        (!moved.is_empty()).then_some(UndoBlock::Diverged { refs: moved })
-                    }),
+                    blocked: record
+                        .entry
+                        .blocked
+                        .clone()
+                        .or_else(|| objects_block(&repo, record, undo))
+                        .or_else(|| {
+                            (!moved.is_empty()).then_some(UndoBlock::Diverged { refs: moved })
+                        }),
                 }
             })
         };
@@ -674,8 +916,65 @@ impl RepoManager {
 
     pub fn op_history(&self, repo_id: u32) -> Result<Vec<JournalEntry>, YagguiError> {
         let session = self.session(repo_id)?;
-        Ok(lock(&session.journal).history())
+        let repo = session.repo()?.to_thread_local();
+        Ok(lock(&session.journal).history(&repo))
     }
+}
+
+/// `objectsMissing` when objects the step needs are no longer in the repository.
+fn objects_block(repo: &gix::Repository, record: &Record, undo: bool) -> Option<UndoBlock> {
+    let count = missing_objects(repo, record, undo);
+    (count > 0).then_some(UndoBlock::ObjectsMissing { count })
+}
+
+/// How many of the objects the step writes back are gone: the targets of the refs and HEAD,
+/// the index tree, the file contents, and the stash, tracking refs or detached commit the mode
+/// restores. Only the objects themselves are looked up: `git gc` prunes an unreachable commit
+/// with its trees, never one without the other.
+fn missing_objects(repo: &gix::Repository, record: &Record, undo: bool) -> u32 {
+    if record.entry.blocked.is_some() {
+        return 0;
+    }
+    let (_, to) = sides_of(record, undo);
+    let mut needed: BTreeSet<ObjectId> = to.refs.values().flatten().copied().collect();
+    needed.extend(to.head.as_ref().and_then(Head::commit));
+    needed.extend(to.index);
+    for file in &to.files {
+        for side in [file.worktree, file.index] {
+            match side {
+                IndexSide::Blob { id, .. } => {
+                    needed.insert(id);
+                }
+                IndexSide::Unmerged { stages } => {
+                    needed.extend(stages.iter().flatten().map(|s| s.id))
+                }
+                IndexSide::Unmanaged | IndexSide::Absent => {}
+            }
+        }
+    }
+    let parse = |hex: &str| ObjectId::from_hex(hex.as_bytes()).ok();
+    match &record.mode {
+        Mode::StashDrop { sha, .. } if undo => {
+            needed.insert(*sha);
+        }
+        Mode::StashPush { sha, .. } if !undo => {
+            needed.insert(*sha);
+        }
+        Mode::Remote(RemoteChange::Removed { tracking, .. }) if undo => {
+            needed.extend(tracking.iter().filter_map(|r| parse(&r.sha)));
+        }
+        Mode::Worktree {
+            checkout,
+            detach: true,
+            added,
+            ..
+        } if *added != undo => {
+            needed.extend(parse(checkout));
+        }
+        _ => {}
+    }
+    let missing = needed.iter().filter(|id| !repo.has_object(id)).count();
+    u32::try_from(missing).unwrap_or(u32::MAX)
 }
 
 /// (from, to): where the repository must be, and where the step takes it.
@@ -706,6 +1005,11 @@ fn moved_refs(current: &Snapshot, from: &Side, to: &Side) -> Vec<String> {
 fn step(ctx: &WriteContext<'_>, record: &Record, undo: bool) -> Result<(), YagguiError> {
     if let Some(reason) = &record.entry.blocked {
         return Err(YagguiError::undo_blocked(reason.clone()));
+    }
+    // Before anything else: a step that cannot finish must not start.
+    let missing = missing_objects(ctx.repo, record, undo);
+    if missing > 0 {
+        return Err(YagguiError::undo_objects_missing(missing));
     }
     let (from, to) = sides_of(record, undo);
     if !matches!(
@@ -1141,7 +1445,7 @@ fn write_files(ctx: &WriteContext<'_>, files: &[FileState]) -> Result<(), Yaggui
     for file in files {
         let full = ctx.workdir.join(&file.path);
         match file.worktree {
-            IndexSide::Unmanaged => {}
+            IndexSide::Unmanaged | IndexSide::Unmerged { .. } => {}
             IndexSide::Absent => remove_file(&full)?,
             IndexSide::Blob { id, mode } => {
                 let object = ctx
@@ -1165,6 +1469,18 @@ fn write_files(ctx: &WriteContext<'_>, files: &[FileState]) -> Result<(), Yaggui
             }
             IndexSide::Blob { id, mode } => {
                 entries.extend_from_slice(format!("{mode:o} {id}\t{}\0", file.path).as_bytes());
+            }
+            IndexSide::Unmerged { stages } => {
+                // The stage 0 entry goes first, then the stages are added back.
+                let null = ObjectId::null(ctx.repo.object_hash());
+                entries.extend_from_slice(format!("0 {null}\t{}\0", file.path).as_bytes());
+                for (stage, entry) in (1..).zip(stages) {
+                    if let Some(StageEntry { id, mode }) = entry {
+                        entries.extend_from_slice(
+                            format!("{mode:o} {id} {stage}\t{}\0", file.path).as_bytes(),
+                        );
+                    }
+                }
             }
         }
     }

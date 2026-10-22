@@ -8,7 +8,7 @@ use std::process::Command;
 use common::{Backend, Fixture, backend};
 use yaggui_lib::git::errors::ErrorCode;
 use yaggui_lib::git::read::state::HeadState;
-use yaggui_lib::graph::types::{CommitSearch, GraphPage, RefKind, edge_kind};
+use yaggui_lib::graph::types::{CommitSearch, GraphFilter, GraphPage, RefKind, edge_kind};
 
 /// Runs git in `dir` with the fixture's isolated config and a fixed, late date.
 fn git(dir: &Path, args: &[&str]) -> String {
@@ -749,4 +749,171 @@ fn watched_sessions_see_ref_updates() {
     let after = b.repos.graph_page(id, 0, 500).unwrap();
     assert_ne!(after.version, before.version);
     assert_eq!(after.summaries[0], "new tip");
+}
+
+// --- First-parent mode (F-032) --------------------------------------------------------------
+
+fn first_parent() -> GraphFilter {
+    GraphFilter {
+        first_parent: true,
+        ..GraphFilter::default()
+    }
+}
+
+/// `git log --topo-order --first-parent` over the same tips as the graph. Git follows first
+/// parents only in its incremental walk, the one it takes with a commit-graph: without one it
+/// sorts the commits listed by every edge between them, which merges with a listed second
+/// parent can reorder. The first-parent graph is that first walk, with or without the file.
+fn git_first_parent_order(dir: &Path) -> Vec<String> {
+    let graph = dir.join(".git/objects/info/commit-graph");
+    assert!(graph.exists(), "the oracle needs a commit-graph");
+    git(
+        dir,
+        &[
+            "-c",
+            "core.commitGraph=true",
+            "log",
+            "--topo-order",
+            "--first-parent",
+            "--branches",
+            "--remotes",
+            "--tags",
+            "HEAD",
+            "--format=%H",
+        ],
+    )
+    .lines()
+    .map(str::to_owned)
+    .collect()
+}
+
+/// `check_page` for a first-parent graph: rows are linked to their first parent only.
+fn check_first_parent_page(page: &GraphPage) {
+    let mut cut = page.clone();
+    for parents in &mut cut.parents {
+        parents.truncate(1);
+    }
+    check_page(&cut);
+    assert!(
+        page.edges.chunks(4).all(|e| e[3] != edge_kind::MERGE),
+        "no line to a merge's other parents"
+    );
+}
+
+#[test]
+fn first_parent_order_matches_git_with_and_without_commit_graph() {
+    for scenario in ["history", "history-detached"] {
+        let fx = Fixture::new(scenario);
+        let b = backend(false);
+        let id = b.repos.open(&fx.repo_str()).unwrap().id;
+        let full = all_rows(&b, id);
+        b.repos.set_graph_filter(id, first_parent()).unwrap();
+        let without_graph = all_rows(&b, id);
+        assert_ne!(without_graph.version, full.version);
+        check_first_parent_page(&without_graph);
+        b.repos.close(id);
+
+        git(&fx.repo(), &["commit-graph", "write", "--reachable"]);
+        let expected = git_first_parent_order(&fx.repo());
+        assert_eq!(
+            without_graph.shas, expected,
+            "{scenario} without commit-graph"
+        );
+        assert!(expected.len() < full.shas.len());
+
+        // The mode is kept per repository: reopening finds it.
+        let id = b.repos.open(&fx.repo_str()).unwrap().id;
+        assert!(b.repos.graph_filter(id).unwrap().first_parent);
+        let with_graph = all_rows(&b, id);
+        assert_eq!(with_graph.shas, expected, "{scenario} with commit-graph");
+        check_first_parent_page(&with_graph);
+
+        git(
+            &fx.repo(),
+            &["commit", "-q", "--allow-empty", "-m", "after graph"],
+        );
+        let partial = all_rows(&b, id);
+        assert_eq!(
+            partial.shas,
+            git_first_parent_order(&fx.repo()),
+            "{scenario} with a partial commit-graph"
+        );
+        assert_eq!(partial.summaries[0], "after graph");
+
+        // Leaving the mode gives the whole graph back.
+        b.repos
+            .set_graph_filter(id, GraphFilter::default())
+            .unwrap();
+        assert_eq!(all_rows(&b, id).shas, git_topo_order(&fx.repo()));
+    }
+}
+
+#[test]
+fn first_parent_layout_snapshot_and_pages() {
+    let fx = Fixture::new("history");
+    let b = backend(false);
+    let id = b.repos.open(&fx.repo_str()).unwrap().id;
+    b.repos.set_graph_filter(id, first_parent()).unwrap();
+    let page = b.repos.graph_page(id, 0, 500).unwrap();
+    check_first_parent_page(&page);
+    // HEAD is a tip: the WIP line still ends on it.
+    assert_eq!(
+        page.wip.as_ref().map(|w| (w.lane, w.head_row)),
+        Some((0, 0))
+    );
+    // Merges stay rows and keep every parent.
+    assert!(page.parents.iter().any(|p| p.len() == 4), "octopus merge");
+    assert_snapshot("history-first-parent.txt", &render(&page));
+
+    // Pages of any size join up into the same layout.
+    let mut start = 0;
+    while start < page.total_rows {
+        let part = b.repos.graph_page(id, start, 3).unwrap();
+        assert_eq!(part.version, page.version);
+        check_first_parent_page(&part);
+        assert_eq!(part.lanes, page.lanes[start as usize..][..part.lanes.len()]);
+        for k in 0..part.shas.len() {
+            assert_eq!(row_edges(&part, k), row_edges(&page, start as usize + k));
+        }
+        start += 3;
+    }
+}
+
+#[test]
+fn first_parent_search_and_jumps_stay_in_the_mode() {
+    let fx = Fixture::new("history");
+    let b = backend(false);
+    let id = b.repos.open(&fx.repo_str()).unwrap().id;
+    let octo = |b: &Backend| {
+        search(
+            b,
+            id,
+            CommitSearch {
+                text: Some("octo".into()),
+                ..CommitSearch::default()
+            },
+        )
+    };
+    assert_eq!(octo(&b), ["Octopus", "octo 3", "octo 2", "octo 1"]);
+    let octo_1 = git(&fx.repo(), &["rev-parse", "main~1^2"])
+        .trim()
+        .to_owned();
+    assert!(b.repos.graph_index_of(id, &octo_1).unwrap().row.is_some());
+
+    b.repos.set_graph_filter(id, first_parent()).unwrap();
+    // The octopus branches were deleted: their commits are only reachable through the merge.
+    assert_eq!(octo(&b), ["Octopus"]);
+    let location = b.repos.graph_index_of(id, &octo_1).unwrap();
+    assert_eq!(location.row, None);
+    assert_eq!(location.sha, octo_1);
+    // Branch tips and HEAD are always rows.
+    for rev in ["HEAD", "feat/a", "feat/b", "x", "y", "pages", "v0.1"] {
+        assert!(
+            b.repos.graph_index_of(id, rev).unwrap().row.is_some(),
+            "{rev}"
+        );
+    }
+    // The merge-base of two branches is on the first-parent line of the older one here.
+    let base = b.repos.merge_base(id, "feat/a", "feat/b").unwrap().unwrap();
+    assert!(base.row.is_some());
 }

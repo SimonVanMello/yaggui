@@ -6,6 +6,8 @@ import { Menu } from '../../ui/Menu';
 import { MenuCheckboxItem } from '../../ui/MenuCheckboxItem';
 import {
   isFilterActive,
+  isFirstParent,
+  setFirstParent,
   shortName,
   showAll,
   updateGraphFilter,
@@ -15,13 +17,15 @@ import styles from './GraphFilterBar.module.css';
 
 /**
  * Says that the graph does not show every ref (F-028): soloed branch, hidden refs, hidden
- * remotes or stashes, with the way back to everything.
+ * remotes or stashes, first-parent history (F-032), with the way back to everything.
  */
 export function GraphFilterBar({ repoId }: { repoId: number }) {
   const t = useT();
   const filter = useGraphFilter(repoId);
   if (!isFilterActive(filter)) return null;
+  const firstParent = isFirstParent(filter);
   const parts: string[] = [];
+  if (firstParent) parts.push(t('graph.filter.firstParent'));
   if (filter.solo !== null) parts.push(t('graph.filter.solo', { name: shortName(filter.solo) }));
   if (filter.hidden.length > 0) {
     parts.push(
@@ -35,7 +39,15 @@ export function GraphFilterBar({ repoId }: { repoId: number }) {
   if (filter.hideStashes) parts.push(t('graph.filter.stashes'));
   return (
     <div className={styles.bar} role="status" aria-label={t('graph.filter.label')}>
-      <Icon name={filter.solo !== null ? 'solo' : 'eyeOff'} />
+      <Icon
+        name={
+          filter.solo !== null
+            ? 'solo'
+            : firstParent && parts.length === 1
+              ? 'firstParent'
+              : 'eyeOff'
+        }
+      />
       <span className={styles.text} title={filter.hidden.map(shortName).join('\n') || undefined}>
         {parts.join(' · ')}
       </span>
@@ -58,6 +70,14 @@ export function GraphFilterBar({ repoId }: { repoId: number }) {
           }}
         >
           {t('graph.filter.hideStashes')}
+        </MenuCheckboxItem>
+        <MenuCheckboxItem
+          checked={firstParent}
+          onCheckedChange={(on) => {
+            void setFirstParent(repoId, on);
+          }}
+        >
+          {t('graph.filter.firstParentOnly')}
         </MenuCheckboxItem>
       </Menu>
       <Button

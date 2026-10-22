@@ -3,6 +3,7 @@ import { defaultShortcutOf, execShellAction, type ShellAction } from '../../app/
 import { useThemeStore, type ThemePreference } from '../../theme/themeStore';
 import { queryClient, queryKeys } from '../../app/queryClient';
 import type { RepoState, UndoState } from '../../ipc';
+import { exportPreferencesFile, startPreferencesImport } from '../preferences/prefsSync';
 import { openHistoryDialog } from '../history/historyDialogsStore';
 import {
   abortOperation,
@@ -18,6 +19,7 @@ import { INSPECT_ACTIONS } from '../inspect/inspectActions';
 import { fetchTags, forcePushRepo, pushAllTags } from '../network/networkOps';
 import { openRemoteDialog } from '../remotes/remoteDialogsStore';
 import { useGraphNavigation } from '../repo/graphNavigation';
+import { createFixup, fixupBlock, startAutosquash } from '../rebase/fixupOps';
 import { openInteractiveRebase } from '../rebase/rebaseStore';
 import { activeRepoId } from '../repo/repoSessions';
 import { FOCUS_REFS_FILTER_EVENT } from '../sidebar/RefsSidebar';
@@ -42,6 +44,14 @@ const noRepoOr = (reason: MessageKey) => (): MessageKey =>
   hasRepo() ? reason : 'palette.disabled.noRepo';
 const historyBlocked = noRepoOr('palette.disabled.operationRunning');
 const noOperation = noRepoOr('palette.disabled.noOperation');
+
+/** Why "Create a fixup for the selected commit" is unavailable; `null` when it can run. */
+function fixupBlockedReason(): MessageKey | null {
+  const repoId = activeRepoId();
+  if (repoId === null) return 'palette.disabled.noRepo';
+  if (!useGraphNavigation.getState().selected[repoId]) return 'palette.disabled.noCommit';
+  return fixupBlock(queryClient.getQueryData<RepoState>(queryKeys.repoState(repoId)));
+}
 
 /** Runs `work` on the active repository, if any. */
 function onRepo(work: (repoId: number) => unknown): () => void {
@@ -159,6 +169,18 @@ const BUILTIN: readonly PaletteAction[] = [
   theme('light', 'palette.action.view.theme.light'),
   theme('dark', 'palette.action.view.theme.dark'),
   shell('app.preferences', 'preferences', 'palette.action.app.preferences', 'app'),
+  {
+    id: 'app.exportPreferences',
+    title: 'palette.action.app.exportPreferences',
+    group: 'app',
+    run: () => void exportPreferencesFile(),
+  },
+  {
+    id: 'app.importPreferences',
+    title: 'palette.action.app.importPreferences',
+    group: 'app',
+    run: () => void startPreferencesImport(),
+  },
   shell('app.terminalSettings', 'terminalSettings', 'palette.action.app.terminal', 'app'),
   shell('app.shortcuts', 'shortcuts', 'palette.action.app.shortcuts', 'app'),
   shell('app.changelog', 'changelog', 'palette.action.app.changelog', 'app'),
@@ -204,6 +226,25 @@ const BUILTIN: readonly PaletteAction[] = [
       // The selected commit is the base; HEAD itself would leave nothing to rebase.
       openInteractiveRebase(repoId, selected !== null && selected !== head ? selected : null);
     }),
+  },
+  {
+    id: 'git.fixup',
+    title: 'palette.action.git.fixup',
+    group: 'git',
+    enabled: () => fixupBlockedReason() === null,
+    disabledReason: () => fixupBlockedReason() ?? 'palette.disabled.unavailable',
+    run: onRepo((repoId) => {
+      const selected = useGraphNavigation.getState().selected[repoId];
+      if (selected) void createFixup(repoId, selected);
+    }),
+  },
+  {
+    id: 'git.autosquash',
+    title: 'palette.action.git.autosquash',
+    group: 'git',
+    enabled: canStartHistory,
+    disabledReason: historyBlocked,
+    run: onRepo(startAutosquash),
   },
   shell('git.branch.create', 'createBranch', 'palette.action.git.branchCreate', 'git', hasRepo),
   shell('git.tag.create', 'createTag', 'palette.action.git.tagCreate', 'git', hasRepo),

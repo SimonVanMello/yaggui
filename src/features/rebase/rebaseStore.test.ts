@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   chooseRebaseBase,
   closeInteractiveRebase,
+  openAutosquash,
   openInteractiveRebase,
   setRebaseRows,
   setRebaseStop,
@@ -18,7 +19,7 @@ afterEach(() => {
 describe('interactive rebase sessions', () => {
   it('opens without a base for the picker, then takes the chosen one', () => {
     openInteractiveRebase(1, null);
-    expect(session(1)).toEqual({ base: null, rows: null, stop: null });
+    expect(session(1)).toEqual({ base: null, rows: null, stop: null, autosquash: false });
     chooseRebaseBase(1, 'abc');
     expect(session(1)?.base).toBe('abc');
   });
@@ -29,7 +30,20 @@ describe('interactive rebase sessions', () => {
     openInteractiveRebase(1, 'abc');
     expect(session(1)?.rows).toEqual([]);
     openInteractiveRebase(1, 'def');
-    expect(session(1)).toEqual({ base: 'def', rows: null, stop: null });
+    expect(session(1)).toEqual({ base: 'def', rows: null, stop: null, autosquash: false });
+  });
+
+  it('opens an autosquash over any session, and a plain rebase replaces it', () => {
+    openInteractiveRebase(1, 'abc');
+    setRebaseRows(1, []);
+    openAutosquash(1, 'abc');
+    expect(session(1)).toEqual({ base: 'abc', rows: null, stop: null, autosquash: true });
+    setRebaseRows(1, []);
+    openInteractiveRebase(1, 'abc');
+    expect(session(1)).toEqual({ base: 'abc', rows: null, stop: null, autosquash: false });
+    openAutosquash(1, null);
+    chooseRebaseBase(1, 'def');
+    expect(session(1)?.autosquash).toBe(false);
   });
 
   it('is per repository and closes one at a time', () => {

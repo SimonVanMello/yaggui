@@ -278,6 +278,7 @@ fn launch(candidate: &Candidate, dir: &Path) -> Result<bool, String> {
 #[cfg(not(windows))]
 fn launch(candidate: &Candidate, dir: &Path) -> Result<bool, String> {
     let mut command = Command::new(&candidate.program);
+    crate::system::shell_env::apply(&mut command);
     command
         .args(&candidate.args)
         .current_dir(dir)

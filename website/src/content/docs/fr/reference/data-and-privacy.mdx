@@ -68,6 +68,7 @@ yaggui ne nettoie jamais `backups/` de lui-même. Le dossier grossit à chaque a
 - **Workspaces** et leurs dépôts.
 - **Aides à la saisie des commits** : les profils d’identité (libellé, nom, e-mail), les modèles de message de commit et les derniers messages de commit de chaque dépôt.
 - **Filtres du graphe** : les branches masquées ou isolées dans chaque graphe.
+- **Historique d’annulation** : les 100 dernières opérations de chaque dépôt (30 jours au plus), avec ce que leur [annulation](../../history/undo-and-redo/) restaure : identifiants de commits et d’objets, noms de refs et chemins de fichiers, jamais le contenu des fichiers. Retirer un dépôt des récents supprime son historique.
 - **Dossiers récents** utilisés par les boîtes de dialogue de clonage et d’initialisation.
 
 Si `yaggui.db` ne peut pas être ouvert (fichier corrompu, pas de droit d’écriture), yaggui démarre quand même avec une base de données vide conservée en mémoire : vos préférences et vos récents sont absents pour cette session et rien n’est enregistré. Voir [Préférences ou données perdues](../../help/troubleshooting/#préférences-récents-ou-onglets-disparus).
@@ -84,7 +85,6 @@ Tout ce qui se trouve dans le dossier de cache peut être supprimé à tout mome
 ### Ce qui n’est pas stocké
 
 - Le [journal des commandes](../../reference/command-log/) : en mémoire uniquement, vide à chaque lancement.
-- L’historique d’annulation : en mémoire, par dépôt, perdu quand vous fermez le dépôt.
 - yaggui n’écrit aucun fichier de journal. Les messages de diagnostic vont dans le terminal depuis lequel yaggui a été lancé (voir `RUST_LOG` plus bas).
 
 ## Ce que yaggui écrit dans vos dépôts
@@ -92,7 +92,7 @@ Tout ce qui se trouve dans le dossier de cache peut être supprimé à tout mome
 yaggui ne modifie un dépôt qu’en exécutant des commandes Git, toutes listées dans le journal des commandes. En plus des opérations que vous demandez, il peut écrire :
 
 - **Le fichier commit-graph** (`.git/objects/info/commit-graph`) : quand il est absent ou qu’il lui manque 1 000 commits accessibles ou plus (sauf dans les clones superficiels), yaggui exécute `git commit-graph write --reachable --changed-paths --no-progress` en arrière-plan. Il ne fait qu’accélérer les lectures de l’historique. Définissez `core.commitGraph` à `false` dans le dépôt pour l’empêcher.
-- **Des objets Git pour l’annulation** : avant une opération qui écrase des fichiers (abandon de modifications, reset hard…), yaggui stocke leur contenu avec `git hash-object -w`. Ces objets ne sont référencés par rien ; Git les supprime lors de son ramasse-miettes habituel.
+- **Des objets Git pour l’annulation** : avant une opération qui écrase des fichiers (abandon de modifications, reset hard…), yaggui stocke leur contenu avec `git hash-object -w`. Ces objets ne sont référencés par rien ; Git les supprime lors de son ramasse-miettes habituel, après quoi une [annulation](../../history/undo-and-redo/#après-un-redémarrage) qui en a besoin est refusée.
 
 yaggui n’ajoute aucun fichier ni dossier qui lui soit propre à vos dépôts (pas de dossier `.yaggui`, pas de fichier de réglages caché).
 
@@ -117,11 +117,11 @@ yaggui retire aussi de l’environnement des commandes qu’il exécute les vari
 
 Quittez d’abord yaggui, puis supprimez dans le dossier de configuration ce que vous voulez réinitialiser :
 
-| Pour réinitialiser                                                     | Supprimer                                                                                      |
-| ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| Préférences, récents, favoris, onglets, workspaces, modèles et profils | `yaggui.db`                                                                                    |
-| Raccourcis                                                             | `keybindings.json`, ou utilisez **Tout remettre par défaut** dans **Préférences → Raccourcis** |
-| Sauvegardes d’annulation                                               | les sous-dossiers de `backups/`                                                                |
-| Avatars et mises à jour téléchargées                                   | le dossier de cache                                                                            |
+| Pour réinitialiser                                                                              | Supprimer                                                                                      |
+| ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Préférences, récents, favoris, onglets, workspaces, modèles, profils et historique d’annulation | `yaggui.db`                                                                                    |
+| Raccourcis                                                                                      | `keybindings.json`, ou utilisez **Tout remettre par défaut** dans **Préférences → Raccourcis** |
+| Sauvegardes d’annulation                                                                        | les sous-dossiers de `backups/`                                                                |
+| Avatars et mises à jour téléchargées                                                            | le dossier de cache                                                                            |
 
 Supprimer ces fichiers ne touche jamais à vos dépôts. Avec Homebrew sous macOS, `brew uninstall --zap --cask yaggui` supprime l’application avec ses réglages et ses caches.

@@ -81,6 +81,24 @@ export const commands = {
 	/**  Replaces `keybindings.json` with these overrides and returns what was written. */
 	setKeybindings: (overrides: KeybindingOverride[]) => typedError<KeybindingsFile, YagguiError>(__TAURI_INVOKE("set_keybindings", { overrides })),
 	/**
+	 *  Asks where to save, then writes the preferences and shortcuts file (F-326). Returns the
+	 *  file written, `None` when the user cancels.
+	 */
+	exportPreferences: (title: string) => typedError<string | null, YagguiError>(__TAURI_INVOKE("export_preferences", { title })),
+	/**
+	 *  Asks for a preferences file and lists what importing it would change, without changing
+	 *  anything. `None` when the user cancels.
+	 */
+	previewPreferencesImport: (title: string) => typedError<{
+	/**  The file the preview was read from; passed back to apply it. */
+	path: string,
+	changes: PreferenceChange[],
+	keybindingChanges: KeybindingChange[],
+	ignored: IgnoredKey[],
+} | null, YagguiError>(__TAURI_INVOKE("preview_preferences_import", { title })),
+	/**  Applies the file a preview was made from, in one step. The file is validated again. */
+	applyPreferencesImport: (path: string) => typedError<AppliedImport, YagguiError>(__TAURI_INVOKE("apply_preferences_import", { path })),
+	/**
 	 *  Entries of the global or local Git config file (F-325). `repo_id` is required for the
 	 *  repository scope.
 	 */
@@ -253,6 +271,13 @@ export const commands = {
 	/**  Applies a stash and keeps it. Errors: `stashConflict`, `dirtyWorktree`, `staleRefs`. */
 	stashApply: (repoId: number, stash: StashId) => typedError<null, YagguiError>(__TAURI_INVOKE("stash_apply", { repoId, stash })),
 	/**
+	 *  Applies one file of a stash into the working tree and keeps the stash (F-185), undoable
+	 *  like a discard. Errors: `stashConflict` (journaled: the undo puts the file back),
+	 *  `dirtyWorktree` (local changes to the file, or a file already at its path),
+	 *  `invalidArgument`, `staleRefs`.
+	 */
+	stashApplyFile: (repoId: number, request: StashFileRequest) => typedError<null, YagguiError>(__TAURI_INVOKE("stash_apply_file", { repoId, request })),
+	/**
 	 *  Applies a stash, then drops it when it applied without conflict (`stashConflict`: kept).
 	 *  Returns the dropped entry, for the undo.
 	 */
@@ -397,6 +422,31 @@ export const commands = {
 	 *  `detachedHead` (older commit). Cancellable.
 	 */
 	rewordCommit: (repoId: number, sha: string, message: string) => typedError<CommitResult, YagguiError>(__TAURI_INVOKE("reword_commit", { repoId, sha, message })),
+	/**
+	 *  Commits the staged changes as `fixup! <subject of target>` (`git commit --fixup`), hooks
+	 *  included; journaled and undoable like a commit (F-147). Errors: `nothingToCommit`,
+	 *  `hookFailed`, `identityUnknown`, `revisionNotFound`, `invalidArgument` (commit not on
+	 *  the current branch). Cancellable.
+	 */
+	commitFixup: (repoId: number, target: string) => typedError<CommitResult, YagguiError>(__TAURI_INVOKE("commit_fixup", { repoId, target })),
+	/**
+	 *  The plan of `base..HEAD` with its `fixup!` commits moved under their targets, for the
+	 *  interactive rebase view (F-147). Without `base`: from the parent of the oldest commit a
+	 *  fixup of the current branch targets (first parents from HEAD, up to the first merge),
+	 *  `None` when no fixup has a target. Read-only. Errors: as `interactiveRebasePlan`.
+	 */
+	autosquashPlan: (repoId: number, base: string | null) => typedError<{
+	plan: InteractiveRebasePlan,
+	/**
+	 *  Every commit of `plan` once, oldest first: each matched `fixup!` commit as a `fixup`
+	 *  right after its target, the others as `pick`. No messages.
+	 */
+	todo: RebaseTodoEntry[],
+	/**  SHAs of the `fixup!` commits whose target is not in the plan: left in place, picked. */
+	unmatched: string[],
+	/**  Number of `fixup` entries of `todo`. */
+	fixups: number,
+} | null, YagguiError>(__TAURI_INVOKE("autosquash_plan", { repoId, base })),
 	/**
 	 *  One page (≤ 500 entries, newest first) of the commits that changed `path`, following
 	 *  renames like `git log --follow`. Starts at `rev` (HEAD when `None`), or continues at
@@ -722,6 +772,28 @@ export type AppInfo = {
 	/**  `false` when the detected git is older than `min_git_version` (warning shown in the UI). */
 	gitSupported: boolean,
 	minGitVersion: string,
+};
+
+export type AppliedImport = {
+	preferences: Preferences,
+	keybindings: KeybindingsFile,
+};
+
+/**
+ *  An interactive rebase plan with the `fixup!` commits already moved under their targets
+ *  (F-147), for review before running it.
+ */
+export type AutosquashPlan = {
+	plan: InteractiveRebasePlan,
+	/**
+	 *  Every commit of `plan` once, oldest first: each matched `fixup!` commit as a `fixup`
+	 *  right after its target, the others as `pick`. No messages.
+	 */
+	todo: RebaseTodoEntry[],
+	/**  SHAs of the `fixup!` commits whose target is not in the plan: left in place, picked. */
+	unmatched: string[],
+	/**  Number of `fixup` entries of `todo`. */
+	fixups: number,
 };
 
 export type Blame = {
@@ -1545,7 +1617,7 @@ export type ErrorCode =
 "invalidRemoteName" | 
 /**  The remote refused a tag: one of that name points elsewhere there, or a hook declined it. */
 "tagRejected" | 
-/**  `undo` with no operation to undo in this session. */
+/**  `undo` with no operation to undo (in this session or a previous one). */
 "nothingToUndo" | 
 /**  `redo` with no undone operation (or an operation was journaled since). */
 "nothingToRedo" | 
@@ -1565,6 +1637,12 @@ export type ErrorCode =
  */
 "undoWouldOverwrite" | 
 /**
+ *  An entry (usually from a previous session) needs objects that are no longer in the
+ *  repository, pruned by `git gc` since: it can never be undone or redone. Reason
+ *  (`objectsMissing`) in `payload`; nothing was changed.
+ */
+"undoObjectsMissing" | 
+/**
  *  Git could not sign the commit (`commit.gpgsign`): no key, a key whose passphrase no
  *  agent provides (yaggui never asks for it), or the signing program failed.
  */
@@ -1576,7 +1654,14 @@ export type ErrorCode =
 /**  A branch protected by the preferences is refused by a batch deletion. */
 "protectedBranchDelete" | 
 /**  The branch is checked out in a worktree: it cannot be deleted. */
-"branchCheckedOut";
+"branchCheckedOut" | 
+/**
+ *  A preferences file (F-326) that cannot be read, is not a yaggui export or holds a value
+ *  yaggui refuses. Nothing was changed; the keys at fault are in `detail`.
+ */
+"preferencesFileInvalid" | 
+/**  A preferences file written by a newer format version than this yaggui reads. */
+"preferencesFileTooNew";
 
 /**  Structured data attached to some errors, for a dedicated display. */
 export type ErrorPayload = 
@@ -1764,8 +1849,8 @@ export type GitignoreRuleKind =
 export type GitignoreTemplate = "node" | "rust" | "dotNet" | "python" | "macOs" | "windows";
 
 /**
- *  Refs left out of the graph (F-028), kept per repository. HEAD's commit always stays,
- *  except in solo mode on another ref.
+ *  Refs left out of the graph (F-028) and first-parent mode (F-032), kept per repository.
+ *  HEAD's commit always stays, except in solo mode on another ref.
  */
 export type GraphFilter = {
 	/**
@@ -1783,6 +1868,12 @@ export type GraphFilter = {
 	hideRemotes: boolean,
 	/**  Stash labels hidden. */
 	hideStashes: boolean,
+	/**
+	 *  First-parent history (F-032): every tip shown follows its first parents only, so a
+	 *  commit only reachable through a merge's other parents is not a row. Merges stay rows,
+	 *  without the lines to their other parents.
+	 */
+	firstParent?: boolean,
 };
 
 /**  Result of `graph_index_of`. */
@@ -1960,6 +2051,17 @@ export type IdentityProfile = {
 	email: string,
 };
 
+export type IgnoredKey = {
+	key: string,
+	reason: IgnoredReason,
+};
+
+export type IgnoredReason = 
+/**  A path or program of the machine that exported the file. */
+"machineSpecific" | 
+/**  Not a setting this version of yaggui has (hand edit, or a newer version). */
+"unknown";
+
 export type ImportFailure = {
 	path: string,
 	error: YagguiError,
@@ -2057,15 +2159,20 @@ export type JournalChanged = {
 
 /**  One operation of the session journal. */
 export type JournalEntry = {
-	/**  Unique within the repository session. */
+	/**  Unique within the repository, across sessions (the journal is kept in `yaggui.db`). */
 	id: number,
 	op: JournalOp,
 	/**  When the operation finished, Unix time in milliseconds (`f64`: specta refuses `u64`). */
 	at: number | null,
 	/**  Undone, and not redone since. */
 	undone: boolean,
-	/**  Set for operations that can never be undone (push, fetch with prune, pull). */
+	/**
+	 *  Set for operations that can never be undone (push, fetch with prune, pull). In
+	 *  `op_history`, also `objectsMissing` when what the entry needs was pruned since.
+	 */
 	blocked: UndoBlock | null,
+	/**  Recorded by a previous session of the repository, reloaded from `yaggui.db` (M7-1). */
+	restored: boolean,
 };
 
 /**  A journaled operation, with what its label needs. The frontend writes the text (i18n). */
@@ -2105,6 +2212,8 @@ export type JournalOp =
 { kind: "updateSubmodules"; count: number } | 
 /**  Stash of selected files (F-182). `paths` / `count` as for `Discard`. */
 { kind: "stashPush"; message: string; paths: string[]; count: number } | 
+/**  One file applied from a stash (F-185); the stash itself is untouched. */
+{ kind: "stashApplyFile"; message: string; path: string } | 
 /**  A rule appended to the repository's `.gitignore` (F-069). */
 { kind: "gitignore"; rule: string } | 
 /**
@@ -2112,6 +2221,12 @@ export type JournalOp =
  *  `count`: how many in total.
  */
 { kind: "deleteBranches"; names: string[]; count: number };
+
+export type KeybindingChange = {
+	action: string,
+	before: ShortcutState,
+	after: ShortcutState,
+};
 
 export type KeybindingOverride = {
 	/**  Stable action id (`tab.new`, `git.push`…). */
@@ -2441,6 +2556,13 @@ export type PathSelection =
 /**  Repository-relative, `/`-separated paths, as listed by `changed_files`. */
 { kind: "paths"; paths: string[] };
 
+/**  One setting that the import would change. Values are JSON text. */
+export type PreferenceChange = {
+	key: string,
+	before: string,
+	after: string,
+};
+
 export type Preferences = {
 	theme: ThemePreference,
 	/**  Visual style (F-320). */
@@ -2500,6 +2622,14 @@ export type Preferences = {
 	 *  one-time question: the check is opt-in, nothing is asked of GitHub before.
 	 */
 	checkUpdates?: boolean | null,
+};
+
+export type PreferencesImportPreview = {
+	/**  The file the preview was read from; passed back to apply it. */
+	path: string,
+	changes: PreferenceChange[],
+	keybindingChanges: KeybindingChange[],
+	ignored: IgnoredKey[],
 };
 
 /**  The shell of an integrated terminal exited (or was closed); sent after its last output. */
@@ -2911,6 +3041,12 @@ export type SearchChunk = {
 	totalRows: number,
 };
 
+/**  What an action's shortcut is: the default one, or an override (`None` = no shortcut). */
+export type ShortcutState = {
+	custom: boolean,
+	shortcut: string | null,
+};
+
 /**
  *  One side of a conflict, described by what the UI shows instead of "ours" / "theirs"
  *  (F-163): a branch name when one is known, otherwise the commit.
@@ -2969,6 +3105,18 @@ export type SigningFormat = "openpgp" | "ssh" | "x509";
 export type StashEntryInfo = {
 	sha: string,
 	message: string,
+};
+
+/**  One file of a stash to bring back into the working tree (F-185). */
+export type StashFileRequest = {
+	stash: StashId,
+	/**  Repository-relative path, as the stash preview lists it. */
+	path: string,
+	/**
+	 *  The file comes from the untracked files of the stash (its third parent), not from
+	 *  its tracked changes.
+	 */
+	untracked: boolean,
 };
 
 /**
@@ -3165,11 +3313,18 @@ export type UndoBlock =
  *  Refs moved since the operation (in a terminal, or by an operation that is not
  *  journaled): full names (`refs/heads/main`, `HEAD`).
  */
-{ kind: "diverged"; refs: string[] };
+{ kind: "diverged"; refs: string[] } | 
+/**
+ *  Objects the step needs (commits the refs pointed to, index trees, saved file contents)
+ *  are no longer in the repository, usually pruned by `git gc` (M7-1). `count`: how many.
+ */
+{ kind: "objectsMissing"; count: number } | 
+/**  An entry from a previous session that this version of yaggui cannot read (M7-1). */
+{ kind: "unreadable" };
 
 /**  State of the undo / redo buttons of a repository. */
 export type UndoState = {
-	/**  Latest operation not undone; `None`: nothing to undo in this session. */
+	/**  Latest operation not undone (this session or a previous one); `None`: nothing to undo. */
 	undo: UndoStep | null,
 	/**
 	 *  Latest undone operation; `None` when nothing was undone, or when an operation was
@@ -3182,8 +3337,8 @@ export type UndoState = {
 export type UndoStep = {
 	entry: JournalEntry,
 	/**
-	 *  Why it would be refused: the entry's own `blocked`, or `diverged` when refs moved
-	 *  since. Local changes it would overwrite are only found when it runs
+	 *  Why it would be refused: the entry's own `blocked`, `objectsMissing` when what it
+	 *  needs was pruned, or `diverged` when refs moved since. Local changes it would overwrite are only found when it runs
 	 *  (`undoWouldOverwrite`).
 	 */
 	blocked: UndoBlock | null,

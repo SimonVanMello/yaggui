@@ -79,6 +79,34 @@ export function stashConflict(paths: string[], stashSha: string, checkedOut: boo
   return { ...error, payload: { kind: 'stashConflict', paths, stashSha, checkedOut } };
 }
 
+export function stashFileConflict(path: string, stashSha: string): YagguiError {
+  const error = mockError(
+    'stashConflict',
+    `"${path}" from the stash conflicts with your version. Resolve the conflict, or undo to get your file back; the stash is untouched.`,
+    `« ${path} » du stash entre en conflit avec ta version. Résous le conflit, ou annule pour retrouver ton fichier ; le stash n'est pas modifié.`,
+  );
+  return {
+    ...error,
+    payload: { kind: 'stashConflict', paths: [path], stashSha, checkedOut: false },
+  };
+}
+
+/** `exists`: a file is already at the path; otherwise local changes to the tracked file. */
+export function stashFileInTheWay(path: string, exists: boolean): YagguiError {
+  const error = exists
+    ? mockError(
+        'dirtyWorktree',
+        `"${path}" already exists in your working tree: the file from the stash would overwrite it. Move or delete it first.`,
+        `« ${path} » existe déjà dans ton arbre de travail : le fichier du stash l'écraserait. Déplace-le ou supprime-le d'abord.`,
+      )
+    : mockError(
+        'dirtyWorktree',
+        `Your local changes to "${path}" would be overwritten by the file from the stash. Commit, stash or discard them first.`,
+        `Tes modifications locales de « ${path} » seraient écrasées par le fichier du stash. Commite-les, mets-les de côté (stash) ou annule-les d'abord.`,
+      );
+  return { ...error, payload: { kind: 'dirtyWorktree', paths: [path], canCarry: false } };
+}
+
 export function nothingToStash(): YagguiError {
   return mockError(
     'nothingToStash',

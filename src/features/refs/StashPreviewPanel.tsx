@@ -2,12 +2,13 @@ import { ErrorPanel } from '../../app/errors/ErrorPanel';
 import { useT } from '../../i18n/useT';
 import { YagguiIpcError, type ChangedFile, type DiffTarget, type StashRef } from '../../ipc';
 import { Button } from '../../ui/Button';
+import { ContextMenuItem } from '../../ui/ContextMenuItem';
 import { ChangedFileList } from '../diff/ChangedFileList';
 import { useChangedFiles } from '../diff/diffQueries';
 import { closeDiff, openDiff, useDiffSelection } from '../diff/diffStore';
 import { shortOid } from '../repo/repoStatus';
 import { stashId } from './refCommands';
-import { stashApply, stashDrop, stashPop } from './refOps';
+import { stashApply, stashApplyFile, stashDrop, stashPop } from './refOps';
 import styles from './StashPreviewPanel.module.css';
 
 /** Details panel of a selected stash (F-183): its changed files, and the actions on it. */
@@ -37,6 +38,27 @@ export function StashPreviewPanel({
       ? selection.path
       : null;
   const id = stashId(stash);
+  // F-185: one file back into the working tree, the stash kept.
+  const applyFile = (file: ChangedFile, untracked: boolean) => {
+    void stashApplyFile(repoId, { stash: id, path: file.path, untracked });
+  };
+  const fileAction = (untracked: boolean) => (file: ChangedFile) => ({
+    icon: 'pop' as const,
+    label: t('stash.preview.applyFile'),
+    onClick: () => {
+      applyFile(file, untracked);
+    },
+  });
+  const fileMenu = (untracked: boolean) => (file: ChangedFile) => (
+    <ContextMenuItem
+      icon="pop"
+      onSelect={() => {
+        applyFile(file, untracked);
+      }}
+    >
+      {t('stash.preview.applyFile')}
+    </ContextMenuItem>
+  );
 
   return (
     <section className={styles.panel} aria-label={t('stash.preview.label')}>
@@ -105,6 +127,8 @@ export function StashPreviewPanel({
               openDiff(tabId, { repoId, target, path: file.path, oldPath: file.oldPath });
             }}
             emptyText={query.data ? t('stash.preview.empty') : undefined}
+            fileAction={fileAction(false)}
+            fileMenu={fileMenu(false)}
             fit
           />
         )}
@@ -126,6 +150,8 @@ export function StashPreviewPanel({
                 oldPath: file.oldPath,
               });
             }}
+            fileAction={fileAction(true)}
+            fileMenu={fileMenu(true)}
             fit
           />
         )}

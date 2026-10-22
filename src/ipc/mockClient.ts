@@ -97,6 +97,8 @@ import {
   type MockSnapshot,
 } from './mock/journal';
 import {
+  mockAutosquashBase,
+  mockAutosquashPlan,
   mockPlan,
   mockRange,
   mockTodo,
@@ -135,6 +137,7 @@ import {
   splitRemoteBranch,
   staleRefs,
   stashConflict,
+  stashFileConflict,
 } from './mock/refs';
 import {
   authFailed,
@@ -185,6 +188,12 @@ import {
   type MockHistory,
 } from './mockGraph';
 import { mockChangelog } from './mock/changelog';
+import {
+  exportPreferencesText,
+  parsePreferencesFile,
+  previewOf,
+  sampleImportFile,
+} from './mock/prefsSync';
 import { MockSettings } from './mock/settings';
 import type { IpcResult } from './result';
 
@@ -247,6 +256,10 @@ function pathArgs(paths: PathSelection): string[] {
 function folderName(path: string): string {
   return path.split(/[\\/]/).filter(Boolean).pop() ?? path;
 }
+
+/** Where the mock "file dialogs" save to and read from. */
+const MOCK_EXPORT_PATH = '~/Documents/yaggui-preferences.json';
+const MOCK_IMPORT_PATH = '~/Downloads/yaggui-preferences.json';
 
 /** Key under which the mock keeps what the real backend stores in SQLite, so reloads keep it. */
 export const MOCK_STORE_KEY = 'yaggui.mock.store';
@@ -378,6 +391,10 @@ export class MockBackend {
   private legacyMigrated = false;
   /** Next answers of the folder picker; when empty, a browser prompt stands in for it. */
   private pickedFolders: (string | null)[] = [];
+  /** Texts the next preferences-file pickers open (`null` = the user cancelled). */
+  private pickedPreferencesFiles: (string | null)[] = [];
+  /** Files "on disk" by path: what was exported, and what a preview read. */
+  private preferencesFiles = new Map<string, string>();
   /** `false` simulates a system where no terminal can be found. */
   terminalAvailable = true;
   /** Hashes asked of `avatar`, for tests: nothing is asked while Gravatar is off. */
@@ -432,7 +449,7 @@ export class MockBackend {
   private commitStore = new MockCommitStore();
   /** Merges, rebases, cherry-picks and reverts stopped on conflicts, by repository. */
   private operations = new Map<number, MockOperation>();
-  /** Undo journal of each open repository (session only, like `OpJournal`). */
+  /** Undo journal of each repository, kept when it closes (like `OpJournal` in `yaggui.db`). */
   private journals = new Map<number, MockJournal>();
   /** Repositories whose next interactive rebase stops on conflicts (`simulateRebaseConflict`). */
   private rebaseConflicts = new Set<number>();
@@ -500,6 +517,8 @@ export class MockBackend {
     this.preferences = { ...DEFAULT_MOCK_PREFERENCES };
     this.legacyMigrated = false;
     this.pickedFolders = [];
+    this.pickedPreferencesFiles = [];
+    this.preferencesFiles.clear();
     this.creator.reset();
     this.settings.reset();
     this.terminalAvailable = true;
@@ -551,6 +570,16 @@ export class MockBackend {
     } catch {
       // Storage unavailable: data lives for this page only.
     }
+  }
+
+  /** Queues the file the next import preview opens (`null` = the user cancelled). */
+  setPickedPreferencesFile(text: string | null): void {
+    this.pickedPreferencesFiles.push(text);
+  }
+
+  /** The last file `exportPreferences` wrote, for tests. */
+  exportedPreferences(): string | null {
+    return this.preferencesFiles.get(MOCK_EXPORT_PATH) ?? null;
   }
 
   /** Queues the answer of the next `pickRepoFolder` call (`null` = the user cancelled). */
@@ -809,6 +838,19 @@ export class MockBackend {
   }
 
   /**
+   * Simulates a restart: the journal entries of a repository become entries of a previous
+   * session (`restored`). With `pruned`, a `git gc` ran meanwhile: they lose what they need
+   * and are refused with `undoObjectsMissing`.
+   */
+  simulateRestoredJournal(repoId: number, { pruned = false } = {}): void {
+    const journal = this.journals.get(repoId);
+    if (!journal) return;
+    journal.restore();
+    if (pruned) journal.prune();
+    this.emit('journalChanged', { repoId });
+  }
+
+  /**
    * Makes the next pull of a repository that has diverged from its upstream (merge or rebase
    * strategy) stop on the scenario conflicts, as the backend's `pull_conflicts` does. A
    * repository whose path contains `conflict` always does.
@@ -916,6 +958,7 @@ export class MockBackend {
       progress = false,
       steps,
       journal,
+      journalError,
       note,
       logged = true,
     }: {
@@ -928,6 +971,8 @@ export class MockBackend {
       steps?: { phase: string; total: number };
       /** How a success is journaled for the undo (`null`: it is not). */
       journal?: (result: T) => MockJournalSpec | null;
+      /** How a failure is journaled anyway (a conflict that changed files). */
+      journalError?: (error: YagguiError) => MockJournalSpec | null;
       /** `op-finished` note of a success that did not complete (paused, aborted). */
       note?: (result: T) => OpNote | null;
       /** A Git command, recorded in the log (a file save is not). */
@@ -939,9 +984,10 @@ export class MockBackend {
     const opId = this.nextOpId++;
     let journaled = false;
     const run = (): { ok: T } | { error: YagguiError } => {
-      const before = journal ? this.snapshot(repoId) : null;
+      const before = journal || journalError ? this.snapshot(repoId) : null;
       const result = work();
-      const spec = 'ok' in result && journal ? journal(result.ok) : null;
+      const spec =
+        'ok' in result ? (journal?.(result.ok) ?? null) : (journalError?.(result.error) ?? null);
       const after = spec ? this.snapshot(repoId) : null;
       if (spec && before && after) {
         let log = this.journals.get(repoId);
@@ -1103,7 +1149,8 @@ export class MockBackend {
     if (!log || !record) {
       return { error: direction === 'undo' ? nothingToUndo() : nothingToRedo() };
     }
-    if (record.entry.blocked) return { error: undoBlocked(record.entry.blocked) };
+    const block = MockJournal.block(record);
+    if (block) return { error: undoBlocked(block) };
     const guard = this.historyGuard(repoId);
     if (guard) return { error: guard };
     const [from, to] =
@@ -2803,7 +2850,8 @@ export class MockBackend {
       if (refs > 0) this.open.set(repoId, refs);
       else {
         this.open.delete(repoId);
-        this.journals.delete(repoId);
+        // Like `yaggui.db`: the journal outlives the session.
+        this.journals.get(repoId)?.restore();
         this.ptys.closeRepo(repoId);
       }
       return ok(null);
@@ -2943,6 +2991,7 @@ export class MockBackend {
       }));
       this.open.delete(repoId);
       this.repoUiStates.delete(repoId);
+      this.journals.delete(repoId);
       // `ON DELETE SET NULL`: saved tabs of the repo become "new tab" tabs.
       this.tabs = {
         ...this.tabs,
@@ -2999,6 +3048,38 @@ export class MockBackend {
       this.preferences = normalized.ok;
       this.persist();
       return ok({ ...this.preferences });
+    },
+    exportPreferences: () => {
+      this.preferencesFiles.set(
+        MOCK_EXPORT_PATH,
+        exportPreferencesText(this.preferences, this.settings.overridesSnapshot()),
+      );
+      return ok(MOCK_EXPORT_PATH);
+    },
+    previewPreferencesImport: () => {
+      const text = this.pickedPreferencesFiles.length
+        ? this.pickedPreferencesFiles.shift()
+        : sampleImportFile();
+      if (text === null || text === undefined) return ok(null);
+      this.preferencesFiles.set(MOCK_IMPORT_PATH, text);
+      const parsed = parsePreferencesFile(text, this.preferences, normalizePreferences);
+      if ('code' in parsed) return fail(parsed);
+      return ok(
+        previewOf(MOCK_IMPORT_PATH, parsed, this.preferences, this.settings.overridesSnapshot()),
+      );
+    },
+    applyPreferencesImport: (path) => {
+      const parsed = parsePreferencesFile(
+        this.preferencesFiles.get(path) ?? '',
+        this.preferences,
+        normalizePreferences,
+      );
+      if ('code' in parsed) return fail(parsed);
+      const failure = this.settings.setKeybindings(parsed.keybindings);
+      if ('code' in failure) return fail(failure);
+      this.preferences = parsed.preferences;
+      this.persist();
+      return ok({ preferences: { ...this.preferences }, keybindings: failure });
     },
     migrateLegacyPreferences: (legacy: LegacyPreferences) => {
       if (!this.legacyMigrated) {
@@ -3511,6 +3592,46 @@ export class MockBackend {
         },
         { refs: true, delayMs: 120 },
       ),
+    stashApplyFile: (repoId, request) => {
+      const { stash, path, untracked } = request;
+      let message = '';
+      const spec = (): MockJournalSpec => ({
+        op: { kind: 'stashApplyFile', message, path },
+        files: true,
+      });
+      return this.runWrite(
+        repoId,
+        'stash',
+        untracked
+          ? ['restore', `--source=stash@{${String(stash.index)}}^3`, '--worktree', '--', path]
+          : ['apply', '--3way', '--whitespace=nowarn', '<stash.patch>'],
+        () =>
+          this.editHistory<null>(repoId, (graph) => {
+            const stale = this.findStash(graph, stash);
+            if (stale) return { error: stale };
+            const wip = this.wip(repoId);
+            const entry = graph.history.stashes[stash.index];
+            if (!wip || !entry) return { error: this.notOpen(repoId) };
+            message = entry.message;
+            const result = wip.applyStashFile(
+              path,
+              untracked,
+              this.stashStates.get(entry.sha)?.worktree.get(path)?.text ?? null,
+              /conflict/.test(entry.message),
+            );
+            if ('error' in result) return result;
+            return result.ok === 'conflict'
+              ? { error: stashFileConflict(path, entry.sha) }
+              : { ok: null };
+          }),
+        {
+          refs: true,
+          delayMs: 120,
+          journal: spec,
+          journalError: (error) => (error.code === 'stashConflict' ? spec() : null),
+        },
+      );
+    },
     stashPop: (repoId, stash) =>
       this.runWrite(
         repoId,
@@ -3810,6 +3931,53 @@ export class MockBackend {
         },
         { cancellable: true, delayMs: 300, refs: true },
       );
+    },
+    commitFixup: (repoId, target) => {
+      const graph = this.graph(repoId);
+      if (!graph || !this.wip(repoId)) return fail(this.notOpen(repoId));
+      const commit = graph.resolve(target);
+      if (commit === null) return fail(this.revisionNotFound(target));
+      const head = graph.headCommit();
+      if (head === null || !ancestors(graph.history.commits, head).has(commit)) {
+        return fail(
+          invalidHistoryArgument(
+            'This commit is not on the current branch: check out its branch to create a fixup for it.',
+            "Ce commit n'est pas sur la branche courante : bascule sur sa branche pour lui créer un fixup.",
+          ),
+        );
+      }
+      const summary = `fixup! ${graph.history.commits[commit]?.summary ?? ''}`;
+      const request = { summary, description: '', amend: false, skipHooks: false };
+      return this.runWrite<{ sha: string }>(
+        repoId,
+        'commit',
+        ['commit', `--fixup=${this.commitSha(graph, commit)}`],
+        () => this.commitWork(repoId, request),
+        {
+          cancellable: true,
+          delayMs: 600,
+          refs: true,
+          journal: ({ sha }) => ({ op: { kind: 'commit', sha, summary } }),
+        },
+      );
+    },
+    autosquashPlan: (repoId, base) => {
+      const graph = this.graph(repoId);
+      if (!graph || !this.wip(repoId)) return fail(this.notOpen(repoId));
+      const { head } = graph.history;
+      const tip = graph.headCommit();
+      if (tip === null) return fail(noCommitToRebase());
+      if (head.kind !== 'branch') return fail(detachedHead());
+      let commit: number | null;
+      if (base === null) {
+        commit = mockAutosquashBase(graph, tip);
+        if (commit === null) return ok(null);
+      } else {
+        commit = graph.resolve(base);
+        if (commit === null) return fail(this.revisionNotFound(base));
+      }
+      const plan = mockPlan(graph, head.name, tip, commit);
+      return 'code' in plan ? fail(plan) : ok(mockAutosquashPlan(plan));
     },
     operationDetail: (repoId) => {
       if (!this.wip(repoId)) return fail(this.notOpen(repoId));

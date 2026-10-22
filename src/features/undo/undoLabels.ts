@@ -93,6 +93,8 @@ export function opMessage(op: JournalOp): Message {
         ? { key: 'undo.op.stashPush.file', params: { path: first } }
         : { key: 'undo.op.stashPush', params: { count: op.count } };
     }
+    case 'stashApplyFile':
+      return { key: 'undo.op.stashApplyFile', params: { path: op.path, message: op.message } };
     case 'gitignore':
       return { key: 'undo.op.gitignore', params: { rule: op.rule } };
     case 'deleteBranches': {
@@ -121,6 +123,10 @@ export function blockMessage(block: UndoBlock): Message {
       return { key: 'undo.blocked.filesDeleted' };
     case 'diverged':
       return { key: 'undo.blocked.diverged', params: { refs: refList(block.refs) } };
+    case 'objectsMissing':
+      return { key: 'undo.blocked.objectsMissing' };
+    case 'unreadable':
+      return { key: 'undo.blocked.unreadable' };
   }
 }
 

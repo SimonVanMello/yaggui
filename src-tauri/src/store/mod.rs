@@ -4,8 +4,10 @@ mod commit_prefs;
 mod graph_filters;
 pub mod keybindings;
 mod migrations;
+pub mod prefs_sync;
 mod repo_ui_state;
 mod types;
+mod undo_journal;
 mod workspaces;
 
 use std::path::Path;
@@ -20,6 +22,7 @@ pub use commit_prefs::{
 };
 pub use repo_ui_state::MAX_REPO_UI_STATE;
 pub use types::*;
+pub use undo_journal::{JOURNAL_MAX_AGE_DAYS, JOURNAL_MAX_ENTRIES, StoredJournalRow};
 pub use workspaces::{MAX_WORKSPACE_NAME, Workspace};
 
 const PREF_THEME: &str = "theme";

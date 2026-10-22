@@ -4,7 +4,14 @@ import { useConfirmStore } from '../../app/errors/confirmStore';
 import { ipc, type YagguiError } from '../../ipc';
 import { useToastStore } from '../../ui/toastStore';
 import { useRefDialogs } from './refDialogsStore';
-import { checkout, createBranch, deleteBranch, stashDrop, stashPop } from './refOps';
+import {
+  checkout,
+  createBranch,
+  deleteBranch,
+  stashApplyFile,
+  stashDrop,
+  stashPop,
+} from './refOps';
 
 function error(code: YagguiError['code'], payload: YagguiError['payload'] = null): YagguiError {
   return { code, message: { en: code, fr: code }, action: null, detail: null, payload };
@@ -53,6 +60,7 @@ describe('checkout', () => {
       repoId: 1,
       paths: ['b.ts'],
       checkedOut: true,
+      file: null,
     });
   });
 
@@ -120,5 +128,50 @@ describe('deleteBranch', () => {
     const result = await deleteBranch(1, { name: 'x', force: false, deleteRemote: true });
     expect(result.ok).toBe(true);
     expect(useToastStore.getState().toasts[0]?.variant).toBe('warning');
+  });
+});
+
+describe('stashApplyFile', () => {
+  const request = { stash: { index: 0, sha: 'abc' }, path: 'src/a.ts', untracked: false };
+
+  it('applies the file and says the stash is kept', async () => {
+    const spy = vi
+      .spyOn(ipc.commands, 'stashApplyFile')
+      .mockResolvedValue({ status: 'ok', data: null });
+    await expect(stashApplyFile(1, request)).resolves.toBe(true);
+    expect(spy).toHaveBeenCalledWith(1, request);
+    const toast = useToastStore.getState().toasts.at(-1);
+    expect(toast?.variant).toBe('success');
+    expect(toast?.title).toBe('src/a.ts applied from the stash');
+  });
+
+  it('opens the conflict dialog for that file', async () => {
+    vi.spyOn(ipc.commands, 'stashApplyFile').mockResolvedValue(
+      fail(
+        error('stashConflict', {
+          kind: 'stashConflict',
+          paths: ['src/a.ts'],
+          stashSha: 'abc',
+          checkedOut: false,
+        }),
+      ),
+    );
+    await expect(stashApplyFile(1, request)).resolves.toBe(false);
+    expect(useRefDialogs.getState().dialog).toEqual({
+      kind: 'stashConflict',
+      repoId: 1,
+      paths: ['src/a.ts'],
+      checkedOut: false,
+      file: 'src/a.ts',
+    });
+  });
+
+  it('toasts local changes in the way', async () => {
+    vi.spyOn(ipc.commands, 'stashApplyFile').mockResolvedValue(
+      fail(error('dirtyWorktree', { kind: 'dirtyWorktree', paths: ['src/a.ts'], canCarry: false })),
+    );
+    await expect(stashApplyFile(1, request)).resolves.toBe(false);
+    expect(useRefDialogs.getState().dialog).toBeNull();
+    expect(useToastStore.getState().toasts.at(-1)?.variant).toBe('error');
   });
 });

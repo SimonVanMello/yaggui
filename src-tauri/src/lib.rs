@@ -50,6 +50,9 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             commands::store::migrate_legacy_preferences,
             commands::settings::get_keybindings,
             commands::settings::set_keybindings,
+            commands::settings::export_preferences,
+            commands::settings::preview_preferences_import,
+            commands::settings::apply_preferences_import,
             commands::settings::git_config_list,
             commands::settings::git_config_set,
             commands::settings::check_external_tool,
@@ -96,6 +99,7 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             commands::refs::unset_upstream,
             commands::refs::stash_push,
             commands::refs::stash_apply,
+            commands::refs::stash_apply_file,
             commands::refs::stash_pop,
             commands::refs::stash_drop,
             commands::refs::stash_rename,
@@ -121,6 +125,8 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             commands::history::interactive_rebase_plan,
             commands::history::interactive_rebase,
             commands::history::reword_commit,
+            commands::history::commit_fixup,
+            commands::history::autosquash_plan,
             commands::inspect::file_history,
             commands::inspect::line_history,
             commands::inspect::blame,
@@ -313,6 +319,8 @@ pub fn run() {
 
     // Before the webview reads its text input settings.
     system::keyboard::enable_key_repeat();
+    // In the background: the first Git command waits for it only if it is still running.
+    system::shell_env::resolve_in_background();
 
     let builder = specta_builder();
 

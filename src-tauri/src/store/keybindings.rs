@@ -51,7 +51,7 @@ pub fn is_valid_shortcut(shortcut: &str) -> bool {
     key_ok && modifiers_ok
 }
 
-fn valid_action_id(id: &str) -> bool {
+pub fn is_valid_action_id(id: &str) -> bool {
     !id.is_empty()
         && id.len() <= 100
         && id
@@ -87,7 +87,8 @@ pub fn read(config_dir: &Path) -> KeybindingsFile {
     let mut overrides = Vec::new();
     let mut skipped = Vec::new();
     for (action, shortcut) in parsed {
-        let valid = valid_action_id(&action) && shortcut.as_deref().is_none_or(is_valid_shortcut);
+        let valid =
+            is_valid_action_id(&action) && shortcut.as_deref().is_none_or(is_valid_shortcut);
         if valid {
             overrides.push(KeybindingOverride { action, shortcut });
         } else {
@@ -109,7 +110,7 @@ pub fn write(
     let mut map = BTreeMap::new();
     for entry in overrides {
         let shortcut_ok = entry.shortcut.as_deref().is_none_or(is_valid_shortcut);
-        if !valid_action_id(&entry.action) || !shortcut_ok {
+        if !is_valid_action_id(&entry.action) || !shortcut_ok {
             return Err(YagguiError::invalid_argument(
                 format!("\"{}\" cannot be bound like this.", entry.action),
                 format!("« {} » ne peut pas être associé ainsi.", entry.action),

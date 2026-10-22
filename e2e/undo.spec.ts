@@ -44,6 +44,19 @@ async function createBranch(page: Page, name: string, checkout: boolean) {
   await expect(dialog(page)).toHaveCount(0);
 }
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Closes and reopens yaggui (M7-1): the journal comes back from `yaggui.db`, optionally after a `git gc`. */
+async function restart(page: Page, pruned: boolean) {
+  await page.evaluate(async (pruned) => {
+    const mock = window.__yagguiMock;
+    const opened = await mock?.commands.openRepo('/Users/alex/dev/yaggui');
+    if (!mock || opened?.status !== 'ok') return;
+    mock.simulateRestoredJournal(opened.data.id, { pruned });
+    await mock.commands.closeRepo(opened.data.id);
+  }, pruned);
+}
+
 for (const { name: theme, colorScheme } of THEMES) {
   test.describe(`${theme} theme`, () => {
     test.use({ colorScheme, locale: 'en-US' });
@@ -93,7 +106,7 @@ for (const { name: theme, colorScheme } of THEMES) {
         page.getByText('Undone: creation of branch qa-two', { exact: true }),
       ).toBeVisible();
       await toolbar(page).getByRole('button', { name: 'Operation history' }).click();
-      const history = page.getByRole('region', { name: 'Session history' });
+      const history = page.getByRole('region', { name: 'Operation history' });
       const rows = history.getByRole('listitem');
       await expect(rows).toHaveCount(2);
       await expect(rows.nth(0)).toContainText('creation of branch qa-two');
@@ -110,7 +123,7 @@ for (const { name: theme, colorScheme } of THEMES) {
       await page.keyboard.press('Control+k');
       await page.getByRole('combobox').fill('operation');
       await page.getByRole('option', { name: /Show the operation history/ }).click();
-      await expect(page.getByRole('region', { name: 'Session history' })).toBeVisible();
+      await expect(page.getByRole('region', { name: 'Operation history' })).toBeVisible();
     });
 
     test('a push cannot be undone: the button is greyed out and says why', async ({ page }) => {
@@ -143,6 +156,91 @@ for (const { name: theme, colorScheme } of THEMES) {
       await capture(page, theme, 'diverged');
       await dialog(page).getByRole('button', { name: 'OK' }).click();
       await expect(dialog(page)).toHaveCount(0);
+    });
+
+    test('an entry of a previous session whose objects were pruned is refused', async ({
+      page,
+    }) => {
+      await openYaggui(page);
+      await createBranch(page, 'qa-restored', false);
+      // A restart with a `git gc` in between (M7-1).
+      await page.evaluate(async () => {
+        const mock = window.__yagguiMock;
+        const opened = await mock?.commands.openRepo('/Users/alex/dev/yaggui');
+        if (!mock || opened?.status !== 'ok') return;
+        mock.simulateRestoredJournal(opened.data.id, { pruned: true });
+        await mock.commands.closeRepo(opened.data.id);
+      });
+      const blocked = toolbar(page).getByRole('button', {
+        name: /^Undo: creation of branch qa-restored/,
+      });
+      await expect(blocked).toHaveAttribute('aria-disabled', 'true', { timeout: 5000 });
+      await blocked.hover();
+      await expect(page.getByRole('tooltip')).toContainText(
+        "Cannot undo creation of branch qa-restored: what it needs was deleted by Git's garbage collection since",
+      );
+      await page.keyboard.press('Control+z');
+      await expect(page.getByText('Cannot undo', { exact: true })).toBeVisible();
+      await expect(page.getByText(/^Git deleted what this undo needs/)).toBeVisible();
+      await capture(page, theme, 'objects-missing');
+    });
+
+    test('earlier sessions follow this one, unrestorable entries grayed, ⌘Z still works', async ({
+      page,
+    }) => {
+      await openYaggui(page);
+      // Three days ago, then pruned by a `git gc`; two days ago, kept; today, this session.
+      await page.clock.setFixedTime(new Date(MOCK_NOW_MS - 3 * DAY_MS));
+      await createBranch(page, 'qa-pruned', false);
+      await restart(page, true);
+      await page.clock.setFixedTime(new Date(MOCK_NOW_MS - 2 * DAY_MS));
+      await createBranch(page, 'qa-kept', false);
+      await restart(page, false);
+      await page.clock.setFixedTime(new Date(MOCK_NOW_MS));
+      await createBranch(page, 'qa-today', false);
+
+      await toolbar(page).getByRole('button', { name: 'Operation history' }).click();
+      const history = page.getByRole('region', { name: 'Operation history' });
+      const current = history.getByRole('list', { name: 'This session' }).getByRole('listitem');
+      const earlier = history.getByRole('list', { name: 'Earlier sessions' }).getByRole('listitem');
+      await expect(current).toHaveCount(1);
+      await expect(current.nth(0)).toContainText('creation of branch qa-today');
+      await expect(current.nth(0).locator('time')).toHaveText(/^\d{1,2}:\d{2}:\d{2}/);
+      await expect(history.getByRole('heading', { name: 'Earlier sessions' })).toBeVisible();
+      await expect(earlier).toHaveCount(2);
+      await expect(earlier.nth(0)).toContainText('creation of branch qa-kept');
+      await expect(earlier.nth(0)).toHaveAttribute('data-blocked', 'false');
+      await expect(earlier.nth(0).locator('time')).toHaveText(/2026/);
+      const pruned = earlier.nth(1);
+      await expect(pruned).toContainText('creation of branch qa-pruned');
+      await expect(pruned).toContainText('cannot be restored');
+      await expect(pruned).toHaveAttribute('data-blocked', 'true');
+      await expect(pruned).toHaveAttribute(
+        'title',
+        "Cannot undo creation of branch qa-pruned: what it needs was deleted by Git's garbage collection since",
+      );
+      await expect(pruned).toHaveAccessibleDescription(
+        "what it needs was deleted by Git's garbage collection since",
+      );
+      await capture(page, theme, 'history-restored');
+      await page.keyboard.press('Escape');
+      await expect(history).toHaveCount(0);
+
+      await page.keyboard.press('Control+z');
+      await expect(
+        page.getByText('Undone: creation of branch qa-today', { exact: true }),
+      ).toBeVisible();
+      // An entry of the previous session undoes like any other.
+      await page.keyboard.press('Control+z');
+      await expect(
+        page.getByText('Undone: creation of branch qa-kept', { exact: true }),
+      ).toBeVisible();
+      // The next one cannot be restored: disabled with the reason, and the shortcut says why.
+      await expect(
+        toolbar(page).getByRole('button', { name: /^Undo: creation of branch qa-pruned/ }),
+      ).toHaveAttribute('aria-disabled', 'true');
+      await page.keyboard.press('Control+z');
+      await expect(page.getByText(/^Git deleted what this undo needs/)).toBeVisible();
     });
 
     test('local changes in the way are listed before anything is stashed', async ({ page }) => {

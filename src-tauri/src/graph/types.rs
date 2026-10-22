@@ -253,8 +253,8 @@ pub struct CommitDetail {
 /// Most refs a graph filter may hide (a hand-edited store must not slow every page down).
 pub const GRAPH_FILTER_MAX: u32 = 1_000;
 
-/// Refs left out of the graph (F-028), kept per repository. HEAD's commit always stays,
-/// except in solo mode on another ref.
+/// Refs left out of the graph (F-028) and first-parent mode (F-032), kept per repository.
+/// HEAD's commit always stays, except in solo mode on another ref.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Hash, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct GraphFilter {
@@ -269,12 +269,22 @@ pub struct GraphFilter {
     pub hide_remotes: bool,
     /// Stash labels hidden.
     pub hide_stashes: bool,
+    /// First-parent history (F-032): every tip shown follows its first parents only, so a
+    /// commit only reachable through a merge's other parents is not a row. Merges stay rows,
+    /// without the lines to their other parents.
+    #[serde(default)]
+    pub first_parent: bool,
 }
 
 impl GraphFilter {
     /// Shows everything.
     pub fn is_empty(&self) -> bool {
-        self.hidden.is_empty() && self.solo.is_none() && !self.hide_remotes && !self.hide_stashes
+        !self.filters_refs() && !self.first_parent
+    }
+
+    /// Leaves out some tips or labels.
+    pub fn filters_refs(&self) -> bool {
+        !self.hidden.is_empty() || self.solo.is_some() || self.hide_remotes || self.hide_stashes
     }
 
     /// Whether the tip and label of `full_name` are left out (solo aside).

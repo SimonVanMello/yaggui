@@ -75,6 +75,35 @@ describe('mock refs operations', () => {
     expect((await unwrap(mock.repoState(id))).dirty.unstaged).toBeGreaterThan(0);
   });
 
+  it('applies one file of a stash, keeps the stash, and the undo removes it again', async () => {
+    const id = await openYaggui();
+    const untracked = async () =>
+      (await unwrap(mock.changedFiles(id, { kind: 'unstaged' }))).files
+        .filter((f) => f.status === 'untracked')
+        .map((f) => f.path);
+    const [path] = await untracked();
+    expect(path).toBeDefined();
+    if (path === undefined) return;
+    const pushed = await unwrap(
+      mock.stashPush(id, { message: 'wip', includeUntracked: true, keepIndex: false }),
+    );
+    expect(await untracked()).toEqual([]);
+    const stash = { index: 0, sha: pushed.sha };
+    await unwrap(mock.stashApplyFile(id, { stash, path, untracked: true }));
+    expect(await untracked()).toEqual([path]);
+    expect((await unwrap(mock.listRefs(id))).stashes[0]?.sha).toBe(pushed.sha);
+    // Already there now: refused rather than overwritten.
+    const again = await mock.stashApplyFile(id, { stash, path, untracked: true });
+    expect(again).toMatchObject({ status: 'error', error: { code: 'dirtyWorktree' } });
+    const undone = await unwrap(mock.undo(id));
+    expect(undone.op).toEqual({
+      kind: 'stashApplyFile',
+      message: 'On feat/graph-lanes: wip',
+      path,
+    });
+    expect(await untracked()).toEqual([]);
+  });
+
   it('refuses to delete the current branch and an unmerged one', async () => {
     const id = await openYaggui();
     const current = await mock.deleteBranch(id, {

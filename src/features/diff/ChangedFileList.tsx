@@ -24,7 +24,7 @@ import {
   pick,
   type Picked,
 } from '../staging/fileSelection';
-import { ChangedFileRow } from './ChangedFileRow';
+import { ChangedFileRow, type FileAction } from './ChangedFileRow';
 import { preloadCodeDiffWhenIdle } from './codeDiffModule';
 import { setFileLayout, useDiffStore } from './diffStore';
 import { treeRows, type TreeRow } from './fileTree';
@@ -79,6 +79,8 @@ interface ChangedFileListProps {
   lfsPaths?: readonly string[];
   /** Right-click menu of a file (file history, blame). */
   fileMenu?: (file: ChangedFile) => ReactNode;
+  /** Hover button of a file outside the working tree lists. */
+  fileAction?: (file: ChangedFile) => FileAction;
 }
 
 /**
@@ -98,6 +100,7 @@ export function ChangedFileList({
   staging,
   lfsPaths,
   fileMenu,
+  fileAction,
 }: ChangedFileListProps) {
   const t = useT();
   const layout = useDiffStore((state) => state.fileLayout);
@@ -355,6 +358,7 @@ export function ChangedFileList({
                         press(row.file, modifiers, true);
                       }}
                       actions={rowActions(row.file)}
+                      fileAction={fileAction?.(row.file)}
                       lfs={lfs.has(row.file.path)}
                     />
                   )}

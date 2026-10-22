@@ -2,6 +2,7 @@ import { showYagguiError } from '../../app/errors/presentError';
 import { translate, useI18nStore, type MessageKey, type MessageParams } from '../../i18n/i18n';
 import { ipc } from '../../ipc';
 import { toast } from '../../ui/toastStore';
+import { currentFilter, isFirstParent } from '../graph/graphFilter';
 import type { PickedCommit } from '../graph/selectionModel';
 import { revealCommit } from '../repo/graphNavigation';
 import { shortOid } from '../repo/repoStatus';
@@ -42,7 +43,8 @@ export async function jumpToMergeBase(repoId: number, a: string, b: string): Pro
     toast({ variant: 'info', title: tr('graph.mergeBase.none') });
     return;
   }
-  if (base.row === null) {
+  // In first-parent mode, the reveal below explains it and offers the full history.
+  if (base.row === null && !isFirstParent(currentFilter(repoId))) {
     toast({
       variant: 'info',
       title: tr('graph.mergeBase.hidden', { sha: shortOid(base.sha) }),

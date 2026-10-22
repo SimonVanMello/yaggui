@@ -7,6 +7,7 @@ sources:
   - src-tauri/src/git/errors.rs
   - src-tauri/src/git/cli.rs
   - src-tauri/src/system/git_binary.rs
+  - src-tauri/src/system/shell_env.rs
   - src-tauri/src/repo/mod.rs
   - src-tauri/src/repo/watcher.rs
   - src-tauri/src/repo/write.rs
@@ -134,7 +135,7 @@ When a `pre-commit`, `prepare-commit-msg` or `commit-msg` hook fails, the commit
 
 If the hook works in a terminal but fails in yaggui:
 
-- **A command is not found** (`node`, `npx`, `python`…): on macOS, apps started from the Dock or Finder do not get your shell's `PATH`. Make the hook use full paths, or start yaggui from a terminal with `/Applications/yaggui.app/Contents/MacOS/yaggui` so it inherits your shell's `PATH`.
+- **A command is not found** (`node`, `npx`, `python`…): apps started from the Dock or Finder (and some Linux launchers) do not get your shell's `PATH`, so at startup yaggui asks your login shell (`$SHELL`) for its `PATH` and gives it to Git, hooks and the tools it opens. If the command is still not found, it is set up somewhere your login shell does not read (check that `$SHELL -l -i -c 'command -v npx'` finds it in a terminal), or your shell took more than 5 seconds to start: yaggui then keeps its own `PATH`. Your shell configuration can test the `YAGGUI_RESOLVING_ENVIRONMENT` variable to skip slow steps while yaggui reads it. Making the hook use full paths always works.
 - **The hook waits for input**: hooks run without a terminal and without input, so interactive prompts fail. Make the hook non-interactive.
 - **The hook hangs**: cancel the commit with **Cancel** in the status bar. yaggui stops the hook too.
 

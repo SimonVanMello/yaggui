@@ -1,5 +1,6 @@
 import { useShortcut } from '../keybindings/registry';
 import { useTabsStore, type ShellTab } from '../../app/tabs/tabsStore';
+import { isFirstParent, setFirstParent, useGraphFilter } from '../graph/graphFilter';
 import { useT } from '../../i18n/useT';
 import type { RepoInfo, RepoState } from '../../ipc';
 import { IconButton } from '../../ui/IconButton';
@@ -17,7 +18,10 @@ import styles from './Toolbar.module.css';
 import { StashButton } from './StashButton';
 import { ToolbarButton } from './ToolbarButton';
 
-/** Repository toolbar: network actions, branch, tag, stash and pop, terminal, file manager. */
+/**
+ * Repository toolbar: network actions, branch, tag, stash and pop, first-parent history,
+ * terminal, file manager.
+ */
 export function Toolbar({ tab, repo, state }: { tab: ShellTab; repo: RepoInfo; state: RepoState }) {
   const t = useT();
   const branchShortcut = useShortcut('git.branch.create');
@@ -26,6 +30,8 @@ export function Toolbar({ tab, repo, state }: { tab: ShellTab; repo: RepoInfo; s
   const sidebarShortcut = useShortcut('view.sidebar');
   const detailsShortcut = useShortcut('view.details');
   const terminalShortcut = useShortcut('terminal.toggle');
+  const firstParentShortcut = useShortcut('graph.toggleFirstParent');
+  const firstParent = isFirstParent(useGraphFilter(repo.id));
   const integrated = usePreferences().terminalMode === 'integrated';
   const terminalOpen = useRepoTerminals(repo.id).open;
   const setPanel = useTabsStore((store) => store.setPanel);
@@ -71,6 +77,17 @@ export function Toolbar({ tab, repo, state }: { tab: ShellTab; repo: RepoInfo; s
         }}
       />
       <span className={styles.separator} />
+      <ToolbarButton
+        icon="firstParent"
+        label={t('toolbar.firstParent')}
+        description={t('toolbar.firstParent.tooltip')}
+        command="git log --first-parent"
+        shortcut={firstParentShortcut}
+        aria-pressed={firstParent}
+        onClick={() => {
+          void setFirstParent(repo.id);
+        }}
+      />
       <ToolbarButton
         icon="terminal"
         label={t('toolbar.terminal')}

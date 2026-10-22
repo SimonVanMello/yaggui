@@ -7,6 +7,7 @@ import {
   EMPTY_FILTER,
   graphFilterKey,
   isFilterActive,
+  setFirstParent,
   showAll,
   updateGraphFilter,
 } from '../graph/graphFilter';
@@ -38,7 +39,10 @@ function openDiff() {
   return diff?.repoId === tab.repoId ? diff : null;
 }
 
-/** Palette actions of M4-7b (F-028 to F-030, F-087, F-104, F-105); ids are public, never renamed. */
+/**
+ * Palette actions of M4-7b (F-028 to F-030, F-087, F-104, F-105) and first-parent mode (F-032);
+ * ids are public, never renamed.
+ */
 export const GRAPH_TOOL_ACTIONS: readonly PaletteAction[] = [
   {
     id: 'graph.showAll',
@@ -77,6 +81,17 @@ export const GRAPH_TOOL_ACTIONS: readonly PaletteAction[] = [
       if (repoId !== null) {
         void updateGraphFilter(repoId, (f) => ({ ...f, hideStashes: !f.hideStashes }));
       }
+    },
+  },
+  {
+    id: 'graph.toggleFirstParent',
+    title: 'palette.action.graph.toggleFirstParent',
+    shortcut: 'Mod+Alt+R',
+    group: 'view',
+    enabled: hasRepo,
+    run: () => {
+      const repoId = activeRepoId();
+      if (repoId !== null) void setFirstParent(repoId);
     },
   },
   {

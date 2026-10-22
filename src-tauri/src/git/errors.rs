@@ -143,7 +143,7 @@ pub enum ErrorCode {
     InvalidRemoteName,
     /// The remote refused a tag: one of that name points elsewhere there, or a hook declined it.
     TagRejected,
-    /// `undo` with no operation to undo in this session.
+    /// `undo` with no operation to undo (in this session or a previous one).
     NothingToUndo,
     /// `redo` with no undone operation (or an operation was journaled since).
     NothingToRedo,
@@ -156,6 +156,10 @@ pub enum ErrorCode {
     /// Undoing (or redoing) would overwrite local changes; files in `payload`. Commit or
     /// stash them first.
     UndoWouldOverwrite,
+    /// An entry (usually from a previous session) needs objects that are no longer in the
+    /// repository, pruned by `git gc` since: it can never be undone or redone. Reason
+    /// (`objectsMissing`) in `payload`; nothing was changed.
+    UndoObjectsMissing,
     /// Git could not sign the commit (`commit.gpgsign`): no key, a key whose passphrase no
     /// agent provides (yaggui never asks for it), or the signing program failed.
     SigningFailed,
@@ -167,6 +171,11 @@ pub enum ErrorCode {
     ProtectedBranchDelete,
     /// The branch is checked out in a worktree: it cannot be deleted.
     BranchCheckedOut,
+    /// A preferences file (F-326) that cannot be read, is not a yaggui export or holds a value
+    /// yaggui refuses. Nothing was changed; the keys at fault are in `detail`.
+    PreferencesFileInvalid,
+    /// A preferences file written by a newer format version than this yaggui reads.
+    PreferencesFileTooNew,
 }
 
 /// A user-facing text provided in every supported language.
@@ -369,6 +378,30 @@ impl YagguiError {
             format!("« {path} » n'est pas un Git utilisable : le fichier doit exister et répondre à --version."),
         )
         .with_detail(detail.unwrap_or_default())
+    }
+
+    pub fn preferences_file_invalid(detail: impl Into<String>) -> Self {
+        Self::new(
+            ErrorCode::PreferencesFileInvalid,
+            "This is not a valid yaggui preferences file. Nothing was changed.",
+            "Ce n'est pas un fichier de préférences yaggui valide. Rien n'a été modifié. \
+             Vérifie que tu as choisi le bon fichier.",
+        )
+        .with_detail(detail)
+    }
+
+    pub fn preferences_file_too_new(found: u32, supported: u32) -> Self {
+        Self::new(
+            ErrorCode::PreferencesFileTooNew,
+            format!(
+                "This file uses format version {found}, but this yaggui reads up to version \
+                 {supported}. Update yaggui to import it."
+            ),
+            format!(
+                "Ce fichier utilise la version {found} du format, mais cette version de yaggui \
+                 lit jusqu'à la version {supported}. Mets yaggui à jour pour l'importer."
+            ),
+        )
     }
 
     pub fn remote_branch_not_found(branch: Option<&str>) -> Self {
@@ -839,6 +872,71 @@ impl YagguiError {
         })
     }
 
+    /// Conflicts left by applying one file of a stash (F-185): same code and payload as a
+    /// stash apply, the stash itself is untouched and the undo puts the file back.
+    pub fn stash_file_conflict(path: &str, stash_sha: String) -> Self {
+        Self::new(
+            ErrorCode::StashConflict,
+            format!("\"{path}\" from the stash conflicts with your version. Resolve the conflict, or undo to get your file back; the stash is untouched."),
+            format!("« {path} » du stash entre en conflit avec ta version. Résous le conflit, ou annule pour retrouver ton fichier ; le stash n'est pas modifié."),
+        )
+        .with_payload(ErrorPayload::StashConflict {
+            paths: vec![path.to_owned()],
+            stash_sha,
+            checked_out: false,
+        })
+    }
+
+    /// Applying one file of a stash would overwrite something in the working tree: local
+    /// changes to a tracked file (`exists`: false), or a file already at the path of one the
+    /// stash adds (`exists`: true). Code `dirtyWorktree`, never carried.
+    pub fn stash_file_in_the_way(path: &str, exists: bool) -> Self {
+        let (en, fr) = if exists {
+            (
+                format!(
+                    "\"{path}\" already exists in your working tree: the file from the stash would overwrite it. Move or delete it first."
+                ),
+                format!(
+                    "« {path} » existe déjà dans ton arbre de travail : le fichier du stash l'écraserait. Déplace-le ou supprime-le d'abord."
+                ),
+            )
+        } else {
+            (
+                format!(
+                    "Your local changes to \"{path}\" would be overwritten by the file from the stash. Commit, stash or discard them first."
+                ),
+                format!(
+                    "Tes modifications locales de « {path} » seraient écrasées par le fichier du stash. Commite-les, mets-les de côté (stash) ou annule-les d'abord."
+                ),
+            )
+        };
+        Self::new(ErrorCode::DirtyWorktree, en, fr).with_payload(ErrorPayload::DirtyWorktree {
+            paths: vec![path.to_owned()],
+            can_carry: false,
+        })
+    }
+
+    /// The stash changes a file that is no longer in the index: there is nothing to merge
+    /// its change into.
+    pub fn stash_file_missing(path: &str) -> Self {
+        Self::invalid_argument(
+            format!(
+                "\"{path}\" no longer exists on your side: the change the stash holds for it cannot be merged. Open the file in the stash to see its stashed version."
+            ),
+            format!(
+                "« {path} » n'existe plus de ton côté : la modification que le stash garde pour lui ne peut pas y être fusionnée. Ouvre le fichier dans le stash pour voir sa version mise de côté."
+            ),
+        )
+    }
+
+    /// The path asked for is not a file the stash changed (or stashed as untracked).
+    pub fn not_in_stash(path: &str) -> Self {
+        Self::invalid_argument(
+            format!("\"{path}\" is not a file of this stash."),
+            format!("« {path} » n'est pas un fichier de ce stash."),
+        )
+    }
+
     pub fn nothing_to_stash() -> Self {
         Self::new(
             ErrorCode::NothingToStash,
@@ -1160,8 +1258,8 @@ impl YagguiError {
     pub fn nothing_to_undo() -> Self {
         Self::new(
             ErrorCode::NothingToUndo,
-            "Nothing to undo in this session.",
-            "Rien à annuler dans cette session.",
+            "Nothing to undo.",
+            "Rien à annuler.",
         )
     }
 
@@ -1199,9 +1297,14 @@ impl YagguiError {
                 "The state before this operation could not be recorded: it cannot be undone.",
                 "L'état d'avant cette opération n'a pas pu être enregistré : elle ne peut pas être annulée.",
             ),
+            UndoBlock::Unreadable => (
+                "This operation was recorded by another version of yaggui and cannot be read: it cannot be undone. Use the reflog to find the earlier state if you need it.",
+                "Cette opération a été enregistrée par une autre version de yaggui et ne peut pas être lue : elle ne peut pas être annulée. Passe par le reflog pour retrouver l'état d'avant si besoin.",
+            ),
             UndoBlock::Diverged { refs } => {
                 return Self::undo_diverged(refs.clone(), Vec::new());
             }
+            UndoBlock::ObjectsMissing { count } => return Self::undo_objects_missing(*count),
         };
         Self::new(ErrorCode::UndoBlocked, en, fr).with_payload(ErrorPayload::UndoBlocked { reason })
     }
@@ -1214,6 +1317,18 @@ impl YagguiError {
         )
         .with_payload(ErrorPayload::UndoChanges { refs, paths })
         .with_action(ErrorAction::Refresh)
+    }
+
+    /// What a step needs was pruned (`git gc`): refused before anything changed.
+    pub fn undo_objects_missing(count: u32) -> Self {
+        Self::new(
+            ErrorCode::UndoObjectsMissing,
+            "Git deleted what this undo needs (old commits or saved file contents, removed by a garbage collection since): it can no longer be undone. Nothing was changed; redo the change by hand if you still need it.",
+            "Git a supprimé ce dont cette annulation a besoin (anciens commits ou contenus de fichiers sauvegardés, effacés par un nettoyage depuis) : elle ne peut plus être annulée. Rien n'a été modifié ; refais le changement à la main si tu en as encore besoin.",
+        )
+        .with_payload(ErrorPayload::UndoBlocked {
+            reason: UndoBlock::ObjectsMissing { count },
+        })
     }
 
     pub fn undo_would_overwrite(paths: Vec<String>) -> Self {

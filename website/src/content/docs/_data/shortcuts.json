@@ -368,6 +368,23 @@
             "Ctrl",
             "J"
           ]
+        },
+        {
+          "id": "graph.toggleFirstParent",
+          "title": {
+            "en": "Graph: turn first-parent history on or off",
+            "fr": "Graphe : activer ou désactiver l'historique premier parent"
+          },
+          "mac": [
+            "⌘",
+            "⌥",
+            "R"
+          ],
+          "other": [
+            "Ctrl",
+            "Alt",
+            "R"
+          ]
         }
       ]
     },

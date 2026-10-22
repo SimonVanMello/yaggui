@@ -1,21 +1,23 @@
 ---
 title: Annuler et rétablir
-description: Annulez et rétablissez les opérations de yaggui avec un raccourci ou la barre d’outils, consultez l’historique de la session et sachez quelles opérations peuvent être annulées, et pourquoi d’autres ne le peuvent pas.
+description: Annulez et rétablissez les opérations de yaggui avec un raccourci ou la barre d’outils, même après un redémarrage, consultez l’historique et sachez quelles opérations peuvent être annulées, et pourquoi d’autres ne le peuvent pas.
 sidebar:
   order: 8
 sources:
   - src/features/undo/**
   - src/features/toolbar/Toolbar.tsx
   - src-tauri/src/repo/journal.rs
+  - src-tauri/src/repo/stash_file.rs
   - src-tauri/src/commands/undo.rs
-requirements: [F-240, F-241, F-242, F-243]
+  - src-tauri/src/store/undo_journal.rs
+requirements: [F-240, F-241, F-242, F-243, F-244]
 ---
 
 import Screenshot from '~/components/Screenshot.astro';
 import undoHistoryDark from '../../../../assets/screens/undo-history-fr-dark.png';
 import undoHistoryLight from '../../../../assets/screens/undo-history-fr-light.png';
 
-yaggui enregistre les opérations que vous lancez depuis l’application et peut les annuler une à une, de la plus récente à la plus ancienne, puis les rétablir. Cette page indique ce que restaure chaque annulation, ce qui ne peut pas être annulé et les limites de l’historique.
+yaggui enregistre les opérations que vous lancez depuis l’application et peut les annuler une à une, de la plus récente à la plus ancienne, puis les rétablir, y compris après avoir fermé le dépôt ou quitté yaggui. Cette page indique ce que restaure chaque annulation, ce qui ne peut pas être annulé et les limites de l’historique.
 
 ## Annuler et rétablir
 
@@ -31,26 +33,27 @@ Sous macOS, le menu **Édition** propose aussi **Annuler** et **Rétablir**. Les
 - Ils sont ignorés tant qu’une boîte de dialogue est ouverte.
 - Une seule annulation ou un seul rétablissement s’exécute à la fois par dépôt ; appuyer de nouveau sur le raccourci pendant qu’un autre est en cours ne fait rien.
 
-Les boutons **Annuler** et **Rétablir** se trouvent à gauche de la barre d’outils. Leur info-bulle nomme l’opération : **Annuler : \{op\}** / **Rétablir : \{op\}**. Quand il n’y a rien à annuler, le bouton est désactivé avec **Rien à annuler dans cette session** (**Rien à rétablir**). Quand la dernière opération ne peut pas être annulée, le bouton a l’apparence d’un bouton désactivé avec **Impossible d'annuler \{op\} : \{reason\}** ; le raccourci affiche alors une notification **Annulation impossible** avec la raison.
+Les boutons **Annuler** et **Rétablir** se trouvent à gauche de la barre d’outils. Leur info-bulle nomme l’opération : **Annuler : \{op\}** / **Rétablir : \{op\}**. Quand il n’y a rien à annuler, le bouton est désactivé avec **Rien à annuler** (**Rien à rétablir**). Quand la dernière opération ne peut pas être annulée, le bouton a l’apparence d’un bouton désactivé avec **Impossible d'annuler \{op\} : \{reason\}** ; le raccourci affiche alors une notification **Annulation impossible** avec la raison.
 
 Après une annulation ou un rétablissement, une notification le confirme : **Annulé : \{op\}** ou **Rétabli : \{op\}**, par exemple « Annulé : création de la branche qa-undo ». L’annulation et le rétablissement ne sont eux-mêmes pas enregistrés comme des opérations.
 
-## L’historique de la session
+## L’historique des opérations
 
-Cliquez sur la flèche à côté de **Rétablir** pour ouvrir **Historique de la session**.
+Cliquez sur la flèche à côté de **Rétablir** pour ouvrir **Historique des opérations**.
 
 <Screenshot
   dark={undoHistoryDark}
   light={undoHistoryLight}
-  alt="Panneau flottant Historique de la session listant les opérations de la plus récente à la plus ancienne, l’une barrée et marquée annulée, avec leur heure"
+  alt="Panneau flottant Historique des opérations : d’abord les opérations de cette session, l’une barrée et marquée annulée, puis sous Sessions précédentes une opération plus ancienne avec sa date et une autre en gris marquée non restaurable, avec sa raison"
 />
 
-- Les opérations sont listées de la plus récente à la plus ancienne, chacune avec son heure (heures, minutes, secondes).
+- Les opérations sont listées de la plus récente à la plus ancienne. Celles de cette session viennent en premier ; celles des sessions précédentes du dépôt suivent sous **Sessions précédentes** (voir [Après un redémarrage](#après-un-redémarrage)).
+- Chaque opération affiche son heure (heures, minutes, secondes), et sa date et son heure quand elle n’est pas d’aujourd’hui.
 - Les opérations annulées sont barrées et marquées **annulée**.
-- Les opérations qui ne peuvent pas être annulées sont marquées **non annulable** ; survolez le badge pour en voir la raison.
-- La liste est en lecture seule : l’annulation et le rétablissement agissent toujours sur les entrées les plus récentes.
+- Les opérations qui ne peuvent plus être annulées sont en gris, avec la raison sous leur nom (et dans leur info-bulle : **Impossible d'annuler \{op\} : \{reason\}**). Elles sont marquées **non annulable** quand l’opération elle-même ne peut pas être annulée (un push, un pull…), et **non restaurable** quand elle pouvait l’être mais ne le peut plus : ce dont elle a besoin a été supprimé par le nettoyage de Git, ou elle a été enregistrée par une autre version de yaggui.
+- La liste est en lecture seule : l’annulation et le rétablissement agissent toujours sur les entrées les plus récentes.
 
-Tant que rien n’a été enregistré : **Aucune opération pour l'instant dans cette session.**
+Tant que rien n’a été enregistré : **Aucune opération pour l'instant dans cette session.** Quand seules des sessions précédentes ont des opérations, cette ligne est suivie de **Sessions précédentes**.
 
 ## Ce qui peut être annulé
 
@@ -72,6 +75,7 @@ L’annulation cible toujours l’opération la plus récente qui n’est pas d�
 | Reset hard                                                    | reset hard vers \{target\}                                                                                                                | La branche revient en arrière et les fichiers écrasés sont réécrits depuis la sauvegarde                                   |
 | Abandon de modifications (fichiers ou blocs)                  | abandon des modifications de \{path\}, abandon des modifications de \{count\} fichiers                                                    | Le contenu abandonné revient dans le répertoire de travail et dans l’index                                                 |
 | Stash de fichiers sélectionnés                                | stash de \{path\}, stash de \{count\} fichiers                                                                                            | Les fichiers reviennent et l’entrée de stash est supprimée                                                                 |
+| Application d’un seul fichier d’un stash                      | application de \{path\} depuis le stash « \{message\} »                                                                                   | Le fichier précédent revient dans le répertoire de travail et dans l’index ; le stash n’est pas modifié                    |
 | Suppression d’un stash                                        | suppression du stash « \{message\} »                                                                                                      | Le stash revient, en haut de la liste                                                                                      |
 | Ajout à `.gitignore`                                          | ajout de \{rule\} au .gitignore                                                                                                           | `.gitignore` est restauré                                                                                                  |
 | Suivi d’un motif avec Git LFS                                 | suivi LFS de \{pattern\}                                                                                                                  | `.gitattributes` est restauré                                                                                              |
@@ -82,7 +86,7 @@ Le rétablissement applique de nouveau l’opération, à l’identique.
 
 ## Ce qui ne peut pas être annulé
 
-Certaines opérations sont enregistrées mais marquées **non annulable**. Comme l’annulation part toujours de l’entrée la plus récente, une telle opération est une **barrière** : dès qu’elle est l’opération la plus récente, plus rien de plus ancien ne peut être annulé pour le reste de la session.
+Certaines opérations sont enregistrées mais marquées **non annulable**. Comme l’annulation part toujours de l’entrée la plus récente, une telle opération est une **barrière** : dès qu’elle est l’opération la plus récente, plus rien de plus ancien ne peut être annulé, dans cette session comme après un redémarrage.
 
 | Opération                                                                                                                                                      | Pourquoi                                                                      |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
@@ -93,7 +97,7 @@ Certaines opérations sont enregistrées mais marquées **non annulable**. Comme
 | Suppression d’un worktree qui avait des modifications locales                                                                                                  | Les modifications locales du worktree ont été supprimées avec lui             |
 | Toute opération dont l’état précédent n’a pas pu être enregistré                                                                                               | Son état précédent n’a pas pu être enregistré                                 |
 
-Par exemple, après un commit puis un push dans yaggui, le commit ne peut plus être annulé durant cette session.
+Par exemple, après un commit puis un push dans yaggui, le commit ne peut plus être annulé.
 
 D’autres actions ne sont pas enregistrées du tout : elles n’apparaissent jamais dans l’historique, ne sont pas des barrières, et <kbd>⌘Z</kbd> les saute. Il s’agit de l’indexation et de la désindexation, de l’enregistrement d’un fichier, d’un stash complet, de l’application, du pop et du renommage d’un stash, de la création d’une branche depuis un stash, de la définition d’un upstream, des rebases (y compris [interactifs](../../history/interactive-rebase/)), de **Continuer**, **Passer** et de l’annulation d’une opération, des résolutions de [conflits](../../history/conflicts/), des fetchs sans prune, des changements de configuration, du clone et de l’init, ainsi que des opérations qui ont échoué ou se sont arrêtées sur des conflits. Un merge, un cherry-pick ou un revert terminé avec **Continuer** après des conflits n’est pas annulable. Pour revenir en arrière après l’une de ces actions, passez par le [reflog](../../inspect/reflog/).
 
@@ -103,9 +107,10 @@ Le rétablissement réapplique l’opération que vous venez d’annuler. Annule
 
 ## Limites de l’historique
 
-- L’historique est conservé en mémoire pour le dépôt, pour cette session uniquement. Il est perdu quand vous fermez le dernier onglet de ce dépôt ou quittez yaggui.
-- Il contient les 100 dernières opérations ; les plus anciennes sont supprimées.
-- L’annulation exige un dépôt au calme : tant qu’un merge, un rebase, un cherry-pick, un revert ou un bisect est en cours, l’annulation et le rétablissement sont refusés (« Une autre opération (merge, rebase, cherry-pick, revert ou bisect) est en cours : continue-la ou annule-la d'abord. »), de même quand des fichiers sont en conflit (« Des fichiers sont encore en conflit : résous-les (et stage-les) d'abord. »). Les abandons de modifications, les stashs de fichiers sélectionnés, les modifications de `.gitignore` et du suivi LFS, les suppressions de stash et les changements de remote peuvent en revanche toujours être annulés.
+- L’historique est enregistré par dépôt dans la base de yaggui (`yaggui.db`, voir [Données et confidentialité](../../reference/data-and-privacy/)) après chaque opération, annulation et rétablissement, et revient quand vous rouvrez le dépôt, y compris les opérations annulées qui peuvent être rétablies.
+- Il contient les 100 dernières opérations de chaque dépôt, et aucune de plus de 30 jours ; les plus anciennes sont supprimées.
+- Retirer un dépôt de yaggui (**Retirer des récents**) supprime son historique.
+- L’annulation exige un dépôt au calme : tant qu’un merge, un rebase, un cherry-pick, un revert ou un bisect est en cours, l’annulation et le rétablissement sont refusés (« Une autre opération (merge, rebase, cherry-pick, revert ou bisect) est en cours : continue-la ou annule-la d'abord. »), de même quand des fichiers sont en conflit (« Des fichiers sont encore en conflit : résous-les (et stage-les) d'abord. »). Les abandons de modifications, les stashs de fichiers sélectionnés, les fichiers appliqués depuis un stash, les modifications de `.gitignore` et du suivi LFS, les suppressions de stash et les changements de remote peuvent en revanche toujours être annulés.
 - yaggui ne détecte pas un push fait depuis un terminal : si vous poussez depuis un terminal puis annulez un commit, seule votre branche locale bouge.
 
 ## Quand le dépôt a changé en dehors de yaggui
@@ -115,8 +120,16 @@ Avant d’annuler quoi que ce soit, yaggui vérifie que chaque branche que l’a
 - Si une branche a bougé depuis (un commit fait dans un terminal, par exemple), le bouton affiche **Impossible d'annuler \{op\} : \{refs\} a bougé depuis, hors de yaggui**, et le raccourci ouvre **Annulation impossible : le dépôt a changé depuis** : « Des branches ou des fichiers ont changé après cette opération, dans un terminal ou par une action que yaggui n'enregistre pas. L'annuler ferait perdre ces changements : rien n'a été touché. » La boîte liste ce qui a bougé ou changé. Rien n’est modifié.
 - Si vos modifications locales gênent (vous avez modifié un fichier après l’avoir abandonné ou après un reset hard, ou les fichiers que l’annulation d’un merge toucherait), yaggui demande **Des modifications locales gênent** : « Tes modifications locales des fichiers ci-dessous seraient écrasées. Mets-les de côté (stash) et l'annulation est relancée aussitôt ; fais un pop du stash ensuite pour les récupérer. » **Mettre de côté et réessayer** exécute `git stash push --include-untracked`, puis annule. Faites ensuite un pop du stash (voir [Stash](../../everyday/stash/)).
 
+## Après un redémarrage
+
+Une opération d’une session précédente s’annule exactement comme une opération récente, avec les mêmes vérifications (voir ci-dessus) : si une branche a bougé pendant que yaggui était fermé, l’annulation est refusée et rien n’est modifié.
+
+Elle a aussi besoin des objets Git qu’elle restaure : les commits sur lesquels pointaient les branches et le contenu sauvegardé des fichiers abandonnés ou écrasés. yaggui garde ces contenus sous forme d’objets Git que rien ne référence et n’ajoute rien à votre dépôt pour les conserver ; le nettoyage de Git (`git gc`, que Git lance aussi automatiquement de temps en temps) peut donc les supprimer. yaggui refuse alors l’annulation avant de toucher à quoi que ce soit : le bouton affiche **Impossible d'annuler \{op\} : ce dont elle a besoin a été supprimé depuis par le nettoyage de Git**, et le raccourci une notification **Annulation impossible** : « Git a supprimé ce dont cette annulation a besoin (anciens commits ou contenus de fichiers sauvegardés, effacés par un nettoyage depuis) : elle ne peut plus être annulée. Rien n'a été modifié ; refais le changement à la main si tu en as encore besoin. » L’entrée reste dans l’historique, en gris et marquée **non restaurable**, et, comme toute entrée qui ne peut pas être annulée, fait barrière aux plus anciennes. Les copies de `backups/` (ci-dessous) peuvent encore contenir les fichiers.
+
+Une opération enregistrée par une autre version de yaggui que celle-ci ne sait pas lire reste dans l’historique mais n’est pas annulable : **elle a été enregistrée par une autre version de yaggui**.
+
 ## Sauvegardes avant abandon de modifications
 
-Avant d’abandonner des modifications, avant un reset hard, et avant de mettre de côté des fichiers sélectionnés, d’ajouter à `.gitignore` ou de suivre un motif avec LFS, yaggui copie les fichiers concernés dans un dossier de sauvegarde (`backups/` dans le dossier de configuration de yaggui). L’annulation utilise ces copies pour réécrire les fichiers.
+Avant d’abandonner des modifications, avant un reset hard, avant de mettre de côté des fichiers sélectionnés ou d’appliquer un seul fichier d’un stash, d’ajouter à `.gitignore` ou de suivre un motif avec LFS, yaggui copie les fichiers concernés dans un dossier de sauvegarde (`backups/` dans le dossier de configuration de yaggui). L’annulation utilise ces copies pour réécrire les fichiers.
 
-Les sauvegardes restent sur le disque après la fin de la session, alors que l’historique d’annulation, lui, disparaît ; yaggui ne les supprime pas. Vous pouvez récupérer un fichier à la main depuis ce dossier, ou le supprimer pour libérer de l’espace. Son emplacement est indiqué dans [Données et confidentialité](../../reference/data-and-privacy/).
+Les sauvegardes restent sur le disque, même une fois l’opération sortie de l’historique d’annulation ; yaggui ne les supprime pas. Vous pouvez récupérer un fichier à la main depuis ce dossier, ou le supprimer pour libérer de l’espace. Son emplacement est indiqué dans [Données et confidentialité](../../reference/data-and-privacy/).

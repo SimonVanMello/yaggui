@@ -4,6 +4,7 @@ import { queryClient, queryKeys } from '../../app/queryClient';
 import { ipc, unwrap } from '../../ipc';
 import { diffKeys } from '../diff/diffQueries';
 import { invalidateGraph } from '../graph/graphSource';
+import { forgetAutosquash } from './fixupOps';
 import { closeInteractiveRebase } from './rebaseStore';
 
 const planKey = (repoId: number) => ['rebase-plan', repoId] as const;
@@ -40,6 +41,7 @@ export function refreshAfterRebase(repoId: number): void {
 export function leaveRebase(repoId: number): void {
   closeInteractiveRebase(repoId);
   queryClient.removeQueries({ queryKey: planKey(repoId) });
+  forgetAutosquash(repoId);
 }
 
 export interface BaseCandidate {

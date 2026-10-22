@@ -209,7 +209,7 @@ fn reword_older(
 }
 
 /// Current branch and HEAD, refused when detached or unborn.
-fn branch_and_head(repo: &gix::Repository) -> Result<(String, ObjectId), YagguiError> {
+pub(super) fn branch_and_head(repo: &gix::Repository) -> Result<(String, ObjectId), YagguiError> {
     let Some(name) = repo.head_name().map_err(gix_err("read HEAD"))? else {
         return Err(YagguiError::detached_head());
     };
@@ -321,7 +321,10 @@ fn pushed_commits(
     Ok((Some(name), pushed))
 }
 
-fn read_plan(repo: &gix::Repository, base: &str) -> Result<InteractiveRebasePlan, YagguiError> {
+pub(super) fn read_plan(
+    repo: &gix::Repository,
+    base: &str,
+) -> Result<InteractiveRebasePlan, YagguiError> {
     let (branch, head) = branch_and_head(repo)?;
     let base = resolve_commit(repo, rev_arg(base)?)?;
     let (ids, has_merges) = range(repo, base, head)?;

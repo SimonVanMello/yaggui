@@ -7,7 +7,7 @@
 //! keep its message verbatim (lines starting with `#` included). Only `pick`, `edit`,
 //! `fixup` and `drop` are written, all known to Git ≥ 2.30.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use gix::ObjectId;
 
@@ -164,6 +164,96 @@ pub fn normalize_message(message: &str) -> Option<String> {
     Some(out)
 }
 
+/// Prefix of the message `git commit --fixup` writes.
+const FIXUP_PREFIX: &str = "fixup! ";
+
+/// Subject a `fixup!` commit points to, every `fixup! ` prefix removed (a fixup of a fixup
+/// points to the same commit); `None` for any other commit.
+pub fn fixup_subject(summary: &str) -> Option<&str> {
+    let mut rest = summary.strip_prefix(FIXUP_PREFIX)?;
+    while let Some(next) = rest.strip_prefix(FIXUP_PREFIX) {
+        rest = next;
+    }
+    Some(rest)
+}
+
+/// The todo order `git rebase --autosquash` would give a range (F-147).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Autosquash {
+    /// Every commit once, as `(index in the input, action)`: each matched `fixup!` commit
+    /// right after its target and the fixups already under it, as a `Fixup`; the others
+    /// picked, in their order.
+    pub order: Vec<(usize, RebaseAction)>,
+    /// Indexes of the `fixup!` commits whose target is not in the range: left in place.
+    pub unmatched: Vec<usize>,
+}
+
+impl Autosquash {
+    /// Index of the oldest commit that receives a fixup.
+    pub fn oldest_target(&self) -> Option<usize> {
+        self.order
+            .windows(2)
+            .find(|pair| pair[1].1 == RebaseAction::Fixup)
+            .map(|pair| pair[0].0)
+    }
+}
+
+/// Moves the `fixup!` commits of `commits` (oldest first, with their summary) under their
+/// target, the way Git's `--autosquash` matches them: the first earlier commit whose summary
+/// is the fixup's subject, else the earlier commit whose SHA starts with it, else the first
+/// earlier commit whose summary starts with it.
+pub fn autosquash(commits: &[(ObjectId, &str)]) -> Autosquash {
+    // The kept commit each matched fixup melds into.
+    let mut targets: Vec<Option<usize>> = vec![None; commits.len()];
+    let mut by_summary: HashMap<&str, usize> = HashMap::new();
+    let mut unmatched = Vec::new();
+    for (i, (_, summary)) in commits.iter().enumerate() {
+        if let Some(subject) = fixup_subject(summary) {
+            let found = (!subject.trim().is_empty())
+                .then(|| {
+                    by_summary
+                        .get(subject)
+                        .copied()
+                        .or_else(|| sha_match(&commits[..i], subject))
+                        .or_else(|| (0..i).find(|&j| commits[j].1.starts_with(subject)))
+                })
+                .flatten()
+                .map(|j| targets[j].unwrap_or(j));
+            if let Some(target) = found {
+                targets[i] = Some(target);
+                continue;
+            }
+            unmatched.push(i);
+        }
+        by_summary.entry(summary).or_insert(i);
+    }
+    let mut fixups: Vec<Vec<usize>> = vec![Vec::new(); commits.len()];
+    for (i, target) in targets.iter().enumerate() {
+        if let Some(target) = target {
+            fixups[*target].push(i);
+        }
+    }
+    let mut order = Vec::with_capacity(commits.len());
+    for (i, target) in targets.iter().enumerate() {
+        if target.is_none() {
+            order.push((i, RebaseAction::Pick));
+            order.extend(fixups[i].iter().map(|&k| (k, RebaseAction::Fixup)));
+        }
+    }
+    Autosquash { order, unmatched }
+}
+
+/// Index of the commit of `commits` whose SHA starts with `subject` (4 hex digits or more).
+fn sha_match(commits: &[(ObjectId, &str)], subject: &str) -> Option<usize> {
+    let prefix = subject.to_ascii_lowercase();
+    if prefix.len() < 4 || !prefix.bytes().all(|b| b.is_ascii_hexdigit()) {
+        return None;
+    }
+    commits
+        .iter()
+        .position(|(id, _)| id.to_string().starts_with(&prefix))
+}
+
 fn stale() -> YagguiError {
     YagguiError::invalid_argument(
         "The list of commits no longer matches the branch (it changed meanwhile): reload it.",
@@ -294,6 +384,70 @@ mod tests {
             ErrorCode::InvalidArgument
         );
         assert_eq!(refused(&[]), ErrorCode::InvalidArgument);
+    }
+
+    fn arranged(summaries: &[&str]) -> (Vec<(usize, RebaseAction)>, Vec<usize>) {
+        let commits: Vec<_> = summaries
+            .iter()
+            .enumerate()
+            .map(|(i, s)| (id(u8::try_from(i).unwrap() + 0xa0), *s))
+            .collect();
+        let result = autosquash(&commits);
+        (result.order, result.unmatched)
+    }
+
+    #[test]
+    fn strips_fixup_prefixes() {
+        assert_eq!(fixup_subject("fixup! Add x"), Some("Add x"));
+        assert_eq!(fixup_subject("fixup! fixup! Add x"), Some("Add x"));
+        assert_eq!(fixup_subject("Add x"), None);
+        assert_eq!(fixup_subject("squash! Add x"), None);
+    }
+
+    #[test]
+    fn moves_fixups_under_their_target() {
+        let (order, unmatched) =
+            arranged(&["A", "B", "fixup! A", "C", "fixup! fixup! A", "fixup! B"]);
+        assert_eq!(
+            order,
+            [
+                (0, Pick),
+                (2, Fixup),
+                (4, Fixup),
+                (1, Pick),
+                (5, Fixup),
+                (3, Pick)
+            ]
+        );
+        assert!(unmatched.is_empty());
+        let result = autosquash(&[(id(1), "A"), (id(2), "fixup! A")]);
+        assert_eq!(result.oldest_target(), Some(0));
+    }
+
+    #[test]
+    fn matches_like_git() {
+        // The first commit with the subject wins; then a SHA prefix; then a summary prefix.
+        let (order, _) = arranged(&["Same", "Same", "fixup! Same"]);
+        assert_eq!(order, [(0, Pick), (2, Fixup), (1, Pick)]);
+        let sha = id(0xa1).to_string();
+        let by_sha = format!("fixup! {}", &sha[..7]);
+        let (order, _) = arranged(&["A", "B", &by_sha]);
+        assert_eq!(order, [(0, Pick), (1, Pick), (2, Fixup)]);
+        let (order, _) = arranged(&["Add the parser and tests", "fixup! Add the parser"]);
+        assert_eq!(order, [(0, Pick), (1, Fixup)]);
+    }
+
+    #[test]
+    fn leaves_unmatched_fixups_in_place() {
+        // No target, a target after the fixup, an empty subject.
+        let (order, unmatched) = arranged(&["fixup! Gone", "fixup! Later", "Later", "fixup! "]);
+        assert_eq!(order, [(0, Pick), (1, Pick), (2, Pick), (3, Pick)]);
+        assert_eq!(unmatched, [0, 1, 3]);
+        // A fixup of an unmatched fixup has no target either: every prefix is stripped.
+        let (order, unmatched) = arranged(&["fixup! Gone", "fixup! fixup! Gone"]);
+        assert_eq!(order, [(0, Pick), (1, Pick)]);
+        assert_eq!(unmatched, [0, 1]);
+        assert_eq!(autosquash(&[(id(1), "A")]).oldest_target(), None);
     }
 
     #[test]

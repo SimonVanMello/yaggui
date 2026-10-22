@@ -68,6 +68,7 @@ yaggui never cleans `backups/` on its own. It grows with each discard or hard re
 - **Workspaces** and their repositories.
 - **Commit helpers**: identity profiles (label, name, email), commit message templates, and the recent commit messages of each repository.
 - **Graph filters**: the branches hidden or soloed in each graph.
+- **Undo history**: the last 100 operations of each repository (30 days at most), with what their [undo](../../history/undo-and-redo/) restores: commit and object ids, ref names and file paths, never file contents. Removing a repository from the recents deletes its history.
 - **Recent folders** used by the clone and initialize dialogs.
 
 If `yaggui.db` cannot be opened (corrupted file, no write permission), yaggui still starts with an empty database kept in memory: your preferences and recents are missing for that session and nothing is saved. See [Preferences or data lost](../../help/troubleshooting/#preferences-recents-or-tabs-are-gone).
@@ -84,7 +85,6 @@ Everything in the cache folder can be deleted at any time: yaggui downloads it a
 ### Not stored
 
 - The [command log](../../reference/command-log/): in memory only, empty at each launch.
-- The undo history: in memory, per repository, lost when you close the repository.
 - yaggui writes no log file. Diagnostic messages go to the terminal yaggui was started from (see `RUST_LOG` below).
 
 ## What yaggui writes to your repositories
@@ -92,7 +92,7 @@ Everything in the cache folder can be deleted at any time: yaggui downloads it a
 yaggui changes a repository only by running Git commands, all of them listed in the command log. Besides the operations you ask for, it can write:
 
 - **The commit-graph file** (`.git/objects/info/commit-graph`): when it is missing or lacks 1,000 or more reachable commits (shallow clones excepted), yaggui runs `git commit-graph write --reachable --changed-paths --no-progress` in the background. It only speeds up history reads. Set `core.commitGraph` to `false` in the repository to prevent it.
-- **Git objects for undo**: before an operation that overwrites files (discard, hard reset…), yaggui stores their content with `git hash-object -w`. These objects are referenced by nothing; Git removes them during its usual garbage collection.
+- **Git objects for undo**: before an operation that overwrites files (discard, hard reset…), yaggui stores their content with `git hash-object -w`. These objects are referenced by nothing; Git removes them during its usual garbage collection, after which an [undo](../../history/undo-and-redo/#after-a-restart) that needs them is refused.
 
 yaggui adds no file or folder of its own to your repositories (no `.yaggui` folder, no hidden settings file).
 
@@ -117,11 +117,11 @@ yaggui also removes Git variables such as `GIT_DIR`, `GIT_WORK_TREE` and `GIT_CO
 
 Quit yaggui first, then delete what you want to reset in the config folder:
 
-| To reset                                                                  | Delete                                                                              |
-| ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| Preferences, recents, favorites, tabs, workspaces, templates and profiles | `yaggui.db`                                                                         |
-| Shortcuts                                                                 | `keybindings.json`, or use **Reset all to defaults** in **Preferences → Shortcuts** |
-| Undo backups                                                              | the sub-folders of `backups/`                                                       |
-| Avatars and downloaded updates                                            | the cache folder                                                                    |
+| To reset                                                                                | Delete                                                                              |
+| --------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Preferences, recents, favorites, tabs, workspaces, templates, profiles and undo history | `yaggui.db`                                                                         |
+| Shortcuts                                                                               | `keybindings.json`, or use **Reset all to defaults** in **Preferences → Shortcuts** |
+| Undo backups                                                                            | the sub-folders of `backups/`                                                       |
+| Avatars and downloaded updates                                                          | the cache folder                                                                    |
 
 Deleting these files never touches your repositories. With Homebrew on macOS, `brew uninstall --zap --cask yaggui` removes the app together with its settings and caches.
