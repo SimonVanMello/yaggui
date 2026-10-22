@@ -150,6 +150,8 @@ fn unquote(raw: &str) -> String {
 
 /// Path of a `--- ` / `+++ ` line without its `a/` / `b/` prefix; `None` for `/dev/null`.
 fn side_path(raw: &str, prefix: &str) -> Option<String> {
+    // Git ends a name that contains a space with one tab, so that trailing spaces stay part of it.
+    let raw = raw.strip_suffix('\t').unwrap_or(raw);
     if raw == "/dev/null" {
         return None;
     }
@@ -527,6 +529,12 @@ mod tests {
             Some("sp ace\n.txt")
         );
         assert_eq!(side_path("/dev/null", "a/"), None);
+        assert_eq!(
+            side_path("b/docs/café notes.txt\t", "b/").as_deref(),
+            Some("docs/café notes.txt")
+        );
+        // Only the tab Git adds: trailing spaces belong to the name.
+        assert_eq!(side_path("a/name  \t", "a/").as_deref(), Some("name  "));
     }
 
     #[test]
