@@ -240,6 +240,21 @@ test('line-history', async ({ page }, testInfo) => {
   await capture(page, testInfo, 'line-history', view);
 });
 
+test('commit-tree', async ({ page }, testInfo) => {
+  await openYaggui(page);
+  await graphRow(page, 2).click();
+  await details(page).getByRole('button', { name: 'Browse files at this commit' }).click();
+  const view = page.getByRole('region', { name: /^Files at / });
+  const files = view.getByRole('tree');
+  await files.getByRole('treeitem', { name: /^src( |$)/ }).click();
+  await files.getByRole('treeitem', { name: /^app( |$)/ }).click();
+  await files.getByRole('treeitem', { name: /^Thing\.ts( |$)/ }).click();
+  await expect(view.locator('.cm-editor')).toBeVisible();
+  await expect(view.locator('.cm-line').first()).toBeVisible();
+  await page.mouse.move(0, 0);
+  await capture(page, testInfo, 'commit-tree', view);
+});
+
 test('reflog', async ({ page }, testInfo) => {
   const { view } = await openReflog(page);
   await page.mouse.move(0, 0);

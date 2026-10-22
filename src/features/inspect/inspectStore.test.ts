@@ -8,6 +8,8 @@ import {
   openBlame,
   openFileHistory,
   openReflog,
+  openTree,
+  selectTreePath,
   useInspectStore,
 } from './inspectStore';
 
@@ -49,5 +51,18 @@ describe('inspect store', () => {
     // A new blame starts a new trail.
     openBlame(1, 'x.txt');
     expect(inspectViewOf(1)).toMatchObject({ trail: [] });
+  });
+
+  it('browses the tree of a commit and remembers the file shown', () => {
+    openTree(1, 'abc', 'src/a.ts');
+    expect(inspectViewOf(1)).toEqual({ kind: 'tree', rev: 'abc', path: 'src/a.ts' });
+    selectTreePath(1, 'src/b.ts');
+    expect(inspectViewOf(1)).toEqual({ kind: 'tree', rev: 'abc', path: 'src/b.ts' });
+    selectTreePath(1, null);
+    expect(inspectViewOf(1)).toEqual({ kind: 'tree', rev: 'abc', path: null });
+    // Another view is left alone.
+    openReflog(1);
+    selectTreePath(1, 'x');
+    expect(inspectViewOf(1)).toEqual({ kind: 'reflog', reference: 'HEAD' });
   });
 });

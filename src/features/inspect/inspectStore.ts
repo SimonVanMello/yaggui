@@ -47,6 +47,13 @@ export type InspectView =
       kind: 'reflog';
       /** `HEAD` or `refs/heads/<branch>`. */
       reference: string;
+    }
+  | {
+      kind: 'tree';
+      /** Commit whose tree is browsed (a SHA, or a revision such as `HEAD`). */
+      rev: string;
+      /** File or folder shown: its folders are open and the file is read. `null`: none yet. */
+      path: string | null;
     };
 
 interface InspectState {
@@ -110,6 +117,20 @@ export function blameBack(repoId: number): boolean {
     },
   }));
   return true;
+}
+
+/** Browses the files of the commit `rev`, with `path` (a file or a folder) shown. */
+export function openTree(repoId: number, rev: string, path: string | null = null): void {
+  show(repoId, { kind: 'tree', rev, path });
+}
+
+/** The file or folder shown in the open tree changes (the commit stays). */
+export function selectTreePath(repoId: number, path: string | null): void {
+  const view = inspectViewOf(repoId);
+  if (view?.kind !== 'tree' || view.path === path) return;
+  useInspectStore.setState((state) => ({
+    views: { ...state.views, [repoId]: { ...view, path } },
+  }));
 }
 
 export function openReflog(repoId: number, reference = 'HEAD'): void {

@@ -11,6 +11,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ### Added
 
+- Files at a commit: browse the folders and files of any commit (commit details, graph menu or
+  palette), read a file read-only with syntax highlighting, and jump to its history or blame at
+  that commit. "Save as…" writes that version of the file to disk without ever replacing a file
+  silently. Binary files, large texts, LFS pointers, symbolic links and submodules each get their
+  own view.
 - Fixup commits: "Create a fixup for this commit" in the commit menu and the palette commits the
   staged changes as `fixup! <summary>`, undoable like a commit; "Autosquash" opens the interactive
   rebase with the fixups already under their targets, to review before running it.

@@ -42,6 +42,7 @@
       "inspect/compare",
       "inspect/file-history-and-blame",
       "inspect/line-history",
+      "inspect/commit-tree",
       "inspect/reflog"
     ]
   },

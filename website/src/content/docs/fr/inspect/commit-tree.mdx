@@ -1,0 +1,87 @@
+---
+title: Fichiers d’un commit
+description: Parcourez les dossiers et les fichiers de n’importe quel commit dans yaggui, lisez un fichier tel qu’il était alors, enregistrez cette version, ou passez à son historique et à son blame.
+sidebar:
+  order: 4
+sources:
+  - src/features/tree/**
+  - src/features/inspect/inspectStore.ts
+  - src/features/inspect/inspectActions.ts
+  - src/features/graph/CommitContextMenu.tsx
+  - src/features/graph/CommitDetailPanel.tsx
+  - src-tauri/src/repo/tree.rs
+  - src-tauri/src/git/read/tree.rs
+  - src-tauri/src/commands/tree.rs
+requirements: [F-224]
+---
+
+import Screenshot from '~/components/Screenshot.astro';
+import commitTreeDark from '../../../../assets/screens/commit-tree-fr-dark.png';
+import commitTreeLight from '../../../../assets/screens/commit-tree-fr-light.png';
+
+L’arborescence d’un commit montre tout le contenu du dépôt tel qu’il était dans ce commit : les dossiers à gauche, le fichier sélectionné à droite. Elle est en lecture seule et ne touche jamais votre arbre de travail. Comme l’[historique d’un fichier et le blame](../file-history-and-blame/), elle remplace le graphe dans la vue du dépôt ; appuyez sur <kbd>Esc</kbd> ou cliquez sur **Graphe** pour y revenir.
+
+## Ouvrir l’arborescence d’un commit
+
+| Point d’entrée                                                                                                                | Commit affiché                    |
+| ----------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| Panneau de détail du commit, bouton **Parcourir les fichiers de ce commit**                                                   | Le commit sélectionné             |
+| Clic droit sur un commit du graphe → **Parcourir les fichiers de ce commit**                                                  | Le commit sous le pointeur        |
+| Palette (<kbd>⌘K</kbd>, <kbd>Ctrl+K</kbd> sous Windows et Linux) → **Parcourir les fichiers du commit sélectionné (ou HEAD)** | Le commit sélectionné, sinon HEAD |
+
+L’en-tête affiche le SHA court du commit. L’arborescence reste sur ce commit même si une branche avance pendant qu’elle est ouverte.
+
+<Screenshot
+  dark={commitTreeDark}
+  light={commitTreeLight}
+  alt="Fichiers d’un commit : les dossiers et fichiers du commit à gauche, et à droite le contenu coloré en lecture seule de src/app/Thing.ts avec sa taille et quatre boutons à icône"
+/>
+
+## Parcourir l’arborescence
+
+Les dossiers viennent d’abord, puis les fichiers, chacun trié par nom sans tenir compte de la casse. Un fichier affiche sa taille. Les dossiers se chargent quand vous les ouvrez : un dépôt de centaines de milliers de fichiers s’ouvre aussitôt, car seule la racine est lue, puis chaque dossier que vous ouvrez. Un dossier de plus de 500 éléments affiche tout de suite les 500 premiers et charge le reste en arrière-plan ; une ligne **Chargement…** reste à sa fin tant qu’il n’est pas complet.
+
+| Touche                                                        | Action                                                                      |
+| ------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| <kbd>↑</kbd> / <kbd>↓</kbd>, <kbd>Home</kbd> / <kbd>End</kbd> | Se déplacer dans les lignes visibles                                        |
+| <kbd>→</kbd>                                                  | Ouvrir un dossier fermé ; sur un dossier ouvert, aller à sa première entrée |
+| <kbd>←</kbd>                                                  | Fermer un dossier ouvert ; sinon aller au dossier parent                    |
+| <kbd>Enter</kbd> / <kbd>Space</kbd>                           | Ouvrir ou fermer le dossier sélectionné                                     |
+| <kbd>Esc</kbd>                                                | Retour au graphe                                                            |
+
+Un clic sur un dossier le sélectionne et l’ouvre ou le ferme. Sélectionner un fichier l’affiche à droite ; en parcourant vite les fichiers aux flèches, seul celui où vous vous arrêtez est chargé.
+
+Clic droit sur une ligne pour **Historique du fichier**, **Blame à ce commit**, **Enregistrer sous…** et **Copier le chemin** (les dossiers n’ont que **Copier le chemin**).
+
+## À quoi ressemble chaque entrée
+
+| Entrée                             | Ce que vous voyez                                                                                                                                                                                        |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Fichier texte                      | Son contenu, en lecture seule, avec numéros de ligne et coloration syntaxique. Un fichier qui n’est pas en UTF-8 est affiché en Windows-1252, avec un avertissement : l’encodage est deviné.             |
+| Image (PNG, JPEG, GIF, WebP, SVG…) | L’image. Un SVG est seulement dessiné, jamais exécuté. Les images de plus de 8 Mo sont traitées comme des binaires.                                                                                      |
+| Fichier binaire                    | « Fichier binaire (48,2 Ko) : pas d’aperçu. »                                                                                                                                                            |
+| Texte de plus de 1 Mo              | « Ce fichier fait 1,2 Mo : l’afficher comme du texte peut ralentir l’application. » **Afficher quand même** le lit.                                                                                      |
+| Fichier Git LFS                    | Git ne contient qu’un pointeur dans le commit. yaggui indique la taille du vrai contenu et son identifiant d’objet, et que le contenu est sur le serveur LFS. Voir [Git LFS](../../repository/git-lfs/). |
+| Lien symbolique                    | « Lien symbolique vers _cible_ », avec **Aller à la cible** quand la cible existe dans ce commit. Une cible hors du dépôt n’est pas suivie.                                                              |
+| Sous-module                        | « Sous-module figé à _sha_. » Ses fichiers sont dans un autre dépôt ; voir [Sous-modules](../../repository/submodules/).                                                                                 |
+| Fichier ou dossier vide            | « Ce fichier est vide. » ou « Ce dossier est vide. »                                                                                                                                                     |
+
+Un fichier exécutable a une pastille **Exécutable** à côté de sa taille.
+
+## D’un fichier à son historique, son blame et le disque
+
+La barre au-dessus du fichier a quatre boutons :
+
+- **Historique du fichier** : l’[historique du fichier](../file-history-and-blame/), à partir de ce commit plutôt que de HEAD.
+- **Blame à ce commit** : le blame du fichier tel qu’il était ici. Indisponible pour les liens symboliques et les sous-modules.
+- **Enregistrer sous…** : demande où enregistrer, puis y écrit cette version du fichier. La boîte de dialogue du système propose le nom du fichier et demande confirmation avant de remplacer un fichier existant : un fichier n’est donc jamais écrasé en silence. Rien n’est écrit si vous annulez. Ce sont exactement les octets que Git conserve : pour un fichier Git LFS, **Enregistrer le pointeur sous…** enregistre le pointeur, pas le gros contenu ; pour un lien symbolique, le texte de sa cible. Un sous-module n’a rien à enregistrer.
+- **Copier le chemin**.
+
+L’enregistrement ne modifie jamais votre arbre de travail ni le dépôt.
+
+## Détails
+
+- La lecture de l’arborescence n’exécute aucune commande Git : rien n’apparaît dans le [journal des commandes](../../reference/command-log/).
+- L’arborescence d’un commit ne change jamais : yaggui garde ce qu’il a lu tant que l’onglet est ouvert.
+- Si un dossier ou un fichier ne peut pas être lu, l’arborescence affiche « Impossible de lire ce dossier » ou « Impossible de lire le fichier » avec la raison ; une révision qui n’existe pas affiche « Impossible de lire l’arborescence ».
+- La lecture de l’arborescence et des fichiers ne modifie pas le dépôt : il n’y a rien à annuler.
