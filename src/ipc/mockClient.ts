@@ -83,7 +83,7 @@ import {
   normalizeFilter,
 } from './mock/graphTools';
 import { MockPtys } from './mock/pty';
-import { mockBlame, mockFileHistory, mockReflog } from './mock/inspect';
+import { mockBlame, mockFileHistory, mockLineHistory, mockReflog } from './mock/inspect';
 import {
   MockJournal,
   mockRefs,
@@ -3173,6 +3173,12 @@ export class MockBackend {
       const graph = this.graph(repoId);
       if (!graph) return fail(this.notOpen(repoId));
       const result = mockFileHistory(graph, path, rev, cursor, limit);
+      return 'error' in result ? fail(result.error) : ok(result.ok);
+    },
+    lineHistory: (repoId, request, cursor, limit) => {
+      const graph = this.graph(repoId);
+      if (!graph) return fail(this.notOpen(repoId));
+      const result = mockLineHistory(graph, request, cursor, limit, this.wip(repoId));
       return 'error' in result ? fail(result.error) : ok(result.ok);
     },
     blame: (repoId, request) => {

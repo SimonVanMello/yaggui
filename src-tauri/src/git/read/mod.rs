@@ -6,6 +6,7 @@ pub mod diff;
 pub mod file_history;
 pub mod image;
 pub mod lfs;
+pub mod line_history;
 pub mod operation;
 pub mod reflog;
 pub mod refs;

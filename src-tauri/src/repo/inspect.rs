@@ -6,7 +6,10 @@
 //!   gix-blame, which also needs a new crate and cannot blame uncommitted content;
 //! - file history: `git log -- <path>` per name of the file, 0.14 s for 500 entries, against
 //!   1.6 s for `git log --follow`, which cannot use the Bloom filters;
-//! - reflog: `gix`, a file read.
+//! - reflog: `gix`, a file read;
+//! - history of a line range: `git log -L`, the only implementation of Git's range tracking
+//!   (gix has none). Paged with `--skip`: Git walks incrementally and stops at `--max-count`,
+//!   so a page costs the walk up to its last entry.
 
 use std::collections::HashMap;
 use std::path::Path;
@@ -14,6 +17,7 @@ use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
 use gix::ObjectId;
+use gix::diff::blob::Algorithm;
 
 use crate::git::cli::{CancelToken, GitCommand};
 use crate::git::errors::{BackendError, YagguiError};
@@ -21,12 +25,16 @@ use crate::git::read::blame::{
     Blame, BlameContent, BlameRequest, is_binary, parse_incremental, split_lines,
 };
 use crate::git::read::diff::has_symlink_parent;
-use crate::git::read::diff::text::decode;
-use crate::git::read::diff::types::FileStatus;
+use crate::git::read::diff::text::{decode, hunk_spans};
+use crate::git::read::diff::types::{DiffOptions, FileStatus};
 use crate::git::read::diff::validate_path;
 use crate::git::read::file_history::{
     FILE_HISTORY_PAGE_MAX, FileHistoryCursor, FileHistoryEntry, FileHistoryPage, LOG_FORMAT,
     find_rename, parse_log,
+};
+use crate::git::read::line_history::{
+    self, LINE_RANGE_MAX, LineHistoryCursor, LineHistoryPage, LineHistoryRequest, LineRange,
+    map_to_head, page_size,
 };
 use crate::git::read::reflog::{self, ReflogPage};
 use crate::graph::resolve_commit;
@@ -85,6 +93,49 @@ fn not_in_rev(path: &str, rev: &str) -> YagguiError {
         format!("\"{path}\" is not a file of {rev}."),
         format!("« {path} » n'est pas un fichier de {rev}."),
     )
+}
+
+fn check_range(start: u32, end: u32) -> Result<(), YagguiError> {
+    if start == 0 || end < start {
+        return Err(YagguiError::invalid_argument(
+            format!("Lines {start}–{end} are not a valid range."),
+            format!("Les lignes {start}–{end} ne forment pas une plage valide."),
+        ));
+    }
+    let lines = end - start + 1;
+    if lines > LINE_RANGE_MAX {
+        return Err(YagguiError::invalid_argument(
+            format!(
+                "The range has {lines} lines: the history of a line range is limited to \
+                 {LINE_RANGE_MAX} lines. Open the file history instead."
+            ),
+            format!(
+                "La plage compte {lines} lignes : l'historique d'une plage est limité à \
+                 {LINE_RANGE_MAX} lignes. Ouvrez plutôt l'historique du fichier."
+            ),
+        ));
+    }
+    Ok(())
+}
+
+/// Checks that `bytes` is text with at least `end` lines (counted like Git: a last line without
+/// a newline counts).
+fn check_lines(bytes: &[u8], path: &str, end: u32, version: &str) -> Result<(), YagguiError> {
+    if is_binary(bytes) {
+        return Err(YagguiError::invalid_argument(
+            format!("\"{path}\" is a binary file: it has no lines to follow."),
+            format!("« {path} » est un fichier binaire : il n'a pas de lignes à suivre."),
+        ));
+    }
+    let newlines = bytes.iter().filter(|&&b| b == b'\n').count();
+    let count = newlines + usize::from(bytes.last().is_some_and(|&b| b != b'\n'));
+    if usize::try_from(end).unwrap_or(usize::MAX) > count {
+        return Err(YagguiError::invalid_argument(
+            format!("\"{path}\" has only {count} lines in {version}."),
+            format!("« {path} » n'a que {count} lignes dans {version}."),
+        ));
+    }
+    Ok(())
 }
 
 impl RepoManager {
@@ -251,6 +302,140 @@ impl RepoManager {
             path: old_path,
             skip: 0,
         }))
+    }
+
+    /// One page of the history of the lines `request.start ..= request.end` of `request.path`
+    /// (`git log -L`), or the page after `cursor`.
+    pub fn line_history(
+        &self,
+        repo_id: u32,
+        request: &LineHistoryRequest,
+        cursor: Option<LineHistoryCursor>,
+        limit: u32,
+        token: u32,
+    ) -> Result<LineHistoryPage, YagguiError> {
+        let guard = self.read_guard(token);
+        let session = self.session(repo_id)?;
+        let repo = session.repo()?.to_thread_local();
+        let (range, skip) = match cursor {
+            Some(cursor) => {
+                validate_path(&cursor.range.path)?;
+                let rev = resolve_commit(&repo, &cursor.range.rev)?.to_string();
+                (
+                    LineRange {
+                        rev,
+                        ..cursor.range
+                    },
+                    cursor.skip,
+                )
+            }
+            None => (self.committed_range(&session, &repo, request)?, 0),
+        };
+        check_range(range.start, range.end)?;
+        let size = page_size(limit, range.end - range.start + 1);
+        let command = self
+            .read_command(
+                &session,
+                [
+                    "-c",
+                    "log.showSignature=false",
+                    "-c",
+                    "core.quotePath=false",
+                    "log",
+                    line_history::LOG_FORMAT,
+                    "--no-color",
+                    "--no-ext-diff",
+                    "--no-textconv",
+                    // Whatever `diff.noprefix` / `diff.mnemonicPrefix` say: the parser strips these.
+                    "--src-prefix=a/",
+                    "--dst-prefix=b/",
+                ],
+            )
+            // Not a pathspec: `-L` takes the file in its own argument and refuses paths after
+            // `--`, which is still there so that `rev` cannot be read as a path.
+            .arg(format!("-L{},{}:{}", range.start, range.end, range.path))
+            .arg(format!("--skip={skip}"))
+            .arg(format!("--max-count={}", size + 1))
+            .arg(&range.rev)
+            .arg("--");
+        let output = self.git.run_with(&command, Some(&guard.cancel), None)?;
+        let mut entries = line_history::parse_log(&output.stdout, &range.path);
+        let next = (entries.len() > size as usize).then(|| {
+            entries.truncate(size as usize);
+            LineHistoryCursor {
+                range: range.clone(),
+                skip: skip + size,
+            }
+        });
+        Ok(LineHistoryPage {
+            range,
+            entries,
+            next,
+        })
+    }
+
+    /// The range of a request in committed line numbers: as is for a commit, mapped from the
+    /// working tree file to HEAD otherwise.
+    fn committed_range(
+        &self,
+        session: &RepoSession,
+        repo: &gix::Repository,
+        request: &LineHistoryRequest,
+    ) -> Result<LineRange, YagguiError> {
+        let path = request.path.as_str();
+        validate_path(path)?;
+        check_range(request.start, request.end)?;
+        let (rev, start, end) = match &request.rev {
+            Some(rev) => {
+                let id = resolve_commit(repo, rev)?;
+                check_lines(&blob_at(repo, id, path, rev)?, path, request.end, rev)?;
+                (id, request.start, request.end)
+            }
+            None => {
+                if !in_head(repo, path)? {
+                    return Err(YagguiError::invalid_argument(
+                        format!("\"{path}\" is not committed yet: its lines have no history."),
+                        format!(
+                            "« {path} » n'est pas encore commité : ses lignes n'ont pas \
+                             d'historique."
+                        ),
+                    ));
+                }
+                let head = resolve_commit(repo, "HEAD")?;
+                let base = blob_at(repo, head, path, "HEAD")?;
+                match worktree_bytes(&session.workdir, path)? {
+                    // Deleted from the working tree: the blame shows its HEAD version.
+                    None => {
+                        check_lines(&base, path, request.end, "HEAD")?;
+                        (head, request.start, request.end)
+                    }
+                    Some(bytes) => {
+                        check_lines(&bytes, path, request.end, "the working tree")?;
+                        check_lines(&base, path, 0, "HEAD")?;
+                        let options = DiffOptions {
+                            context_lines: 0,
+                            ..DiffOptions::default()
+                        };
+                        let spans = hunk_spans(&base, &bytes, Algorithm::default(), &options);
+                        let (start, end) = map_to_head(&spans, request.start, request.end)
+                            .ok_or_else(|| {
+                                YagguiError::invalid_argument(
+                                    "These lines are not committed yet: they have no history.",
+                                    "Ces lignes ne sont pas encore commitées : elles n'ont pas \
+                                     d'historique.",
+                                )
+                            })?;
+                        (head, start, end)
+                    }
+                }
+            }
+        };
+        Ok(LineRange {
+            rev: rev.to_string(),
+            path: path.to_owned(),
+            start,
+            end,
+        })
     }
 
     /// Blame of `request.path` at `request.rev`, or of the working tree file.

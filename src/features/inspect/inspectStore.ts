@@ -1,5 +1,6 @@
 /**
- * The file history, blame or reflog shown in place of the graph (M4-4, F-220 to F-222).
+ * The file history, line history, blame or reflog shown in place of the graph (M4-4, M7-7,
+ * F-220 to F-223).
  *
  * Keyed by repository, like `graphNavigation`: a repository is open in one tab at most
  * (F-004), so entry points that only know the repository (sidebar, palette) can open a view.
@@ -26,6 +27,15 @@ export type InspectView =
       path: string;
       /** Commit the history starts from; `null`: HEAD. */
       rev: string | null;
+    }
+  | {
+      kind: 'lineHistory';
+      path: string;
+      /** Version the line numbers refer to; `null`: the working tree. */
+      rev: string | null;
+      /** 1-based, inclusive. */
+      start: number;
+      end: number;
     }
   | {
       kind: 'blame';
@@ -64,6 +74,14 @@ function show(repoId: number, view: InspectView): void {
 
 export function openFileHistory(repoId: number, path: string, rev: string | null = null): void {
   show(repoId, { kind: 'fileHistory', path, rev });
+}
+
+/** History of the lines `start ..= end` (1-based) of `path` in `rev` (`null`: working tree). */
+export function openLineHistory(
+  repoId: number,
+  range: { path: string; rev: string | null; start: number; end: number },
+): void {
+  show(repoId, { kind: 'lineHistory', ...range });
 }
 
 export function openBlame(repoId: number, path: string, rev: string | null = null): void {

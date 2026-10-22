@@ -122,6 +122,7 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             commands::history::interactive_rebase,
             commands::history::reword_commit,
             commands::inspect::file_history,
+            commands::inspect::line_history,
             commands::inspect::blame,
             commands::inspect::reflog,
             commands::inspect::cancel_read,

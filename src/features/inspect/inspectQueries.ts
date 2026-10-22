@@ -2,17 +2,35 @@ import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 
 import { queryClient } from '../../app/queryClient';
 import { useRepoEvent } from '../../app/tabs/tabSuspension';
-import { ipc, unwrap, type FileHistoryCursor } from '../../ipc';
+import {
+  ipc,
+  unwrap,
+  type FileHistoryCursor,
+  type LineHistoryCursor,
+  type LineHistoryRequest,
+} from '../../ipc';
 import type { BlameTarget } from './inspectStore';
 import { readToken } from './readToken';
 
 export const FILE_HISTORY_PAGE = 500;
 export const REFLOG_PAGE = 500;
+/** The backend shortens pages of wide ranges (about 100 000 range lines per page). */
+export const LINE_HISTORY_PAGE = 500;
 
 export const inspectKeys = {
   repo: (repoId: number) => ['inspect', repoId] as const,
   history: (repoId: number, path: string, rev: string | null) =>
     ['inspect', repoId, 'history', path, rev] as const,
+  lineHistory: (repoId: number, request: LineHistoryRequest) =>
+    [
+      'inspect',
+      repoId,
+      'lineHistory',
+      request.path,
+      request.rev,
+      request.start,
+      request.end,
+    ] as const,
   blame: (repoId: number, target: BlameTarget) =>
     ['inspect', repoId, 'blame', target.path, target.rev] as const,
   reflog: (repoId: number, reference: string) => ['inspect', repoId, 'reflog', reference] as const,
@@ -34,6 +52,23 @@ export function useFileHistory(repoId: number, path: string, rev: string | null)
         ),
       ),
     initialPageParam: null as FileHistoryCursor | null,
+    getNextPageParam: (page) => page.next,
+    staleTime: 30_000,
+  });
+}
+
+/**
+ * Pages of the history of a line range (`git log -L`), newest first. Not refreshed on working
+ * tree changes: the range was mapped to HEAD when the view opened, and keeps that meaning.
+ */
+export function useLineHistory(repoId: number, request: LineHistoryRequest) {
+  return useInfiniteQuery({
+    queryKey: inspectKeys.lineHistory(repoId, request),
+    queryFn: ({ pageParam, signal }) =>
+      unwrap(
+        ipc.commands.lineHistory(repoId, request, pageParam, LINE_HISTORY_PAGE, readToken(signal)),
+      ),
+    initialPageParam: null as LineHistoryCursor | null,
     getNextPageParam: (page) => page.next,
     staleTime: 30_000,
   });

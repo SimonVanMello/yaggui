@@ -25,7 +25,8 @@ export function currentFile(): CurrentFile | null {
   }
   const view = inspectViewOf(tab.repoId);
   if (view?.kind === 'blame') return { repoId: tab.repoId, ...view.target };
-  if (view?.kind === 'fileHistory') return { repoId: tab.repoId, path: view.path, rev: view.rev };
+  if (view?.kind === 'fileHistory' || view?.kind === 'lineHistory')
+    return { repoId: tab.repoId, path: view.path, rev: view.rev };
   return null;
 }
 

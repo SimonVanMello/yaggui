@@ -9,6 +9,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Added
+
+- History of a range of lines (`git log -L`): select lines in the blame (Shift-click) or in a
+  commit diff (gutter), then "History of lines": every commit that changed them, with its change to
+  those lines, followed across renames; the search can be stopped on long histories.
+
 ## [0.6.0] - 2026-10-20
 
 ### Added

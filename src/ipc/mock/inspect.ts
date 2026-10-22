@@ -6,6 +6,11 @@ import type {
   FileHistoryCursor,
   FileHistoryEntry,
   FileHistoryPage,
+  LineHistoryCursor,
+  LineHistoryEntry,
+  LineHistoryPage,
+  LineHistoryRequest,
+  TextDiff,
   YagguiError,
   ReflogEntry,
   ReflogPage,
@@ -150,6 +155,172 @@ export function mockFileHistory(
     ok: {
       entries,
       next: skip + size < all.length ? { rev: sha, path: name, skip: skip + size } : null,
+    },
+  };
+}
+
+/** Same limit as the backend (`LINE_RANGE_MAX`). */
+const LINE_RANGE_MAX = 5_000;
+
+function lineCount(text: string): number {
+  return text.length === 0
+    ? 0
+    : (text.endsWith('\n') ? text.slice(0, -1) : text).split('\n').length;
+}
+
+/** The range `start ..= end` (1-based) as one hunk: old and new lines paired, Git style. */
+function rangeDiff(old: string[] | null, now: string[], start: number): TextDiff {
+  const kinds: string[] = [];
+  const lines: string[] = [];
+  if (old === null) {
+    for (const line of now) {
+      kinds.push('+');
+      lines.push(line);
+    }
+  } else {
+    for (let i = 0; i < now.length; i++) {
+      const before = old[i] ?? '';
+      const after = now[i] ?? '';
+      if (before === after) {
+        kinds.push(' ');
+        lines.push(after);
+      } else {
+        kinds.push('-', '+');
+        lines.push(before, after);
+      }
+    }
+  }
+  const additions = kinds.filter((k) => k === '+').length;
+  const deletions = kinds.filter((k) => k === '-').length;
+  const oldLines = old === null ? 0 : now.length;
+  const oldStart = old === null ? 0 : start;
+  return {
+    hunks: [
+      {
+        id: `-${String(oldStart)},${String(oldLines)}+${String(start)},${String(now.length)}`,
+        oldStart,
+        oldLines,
+        newStart: start,
+        newLines: now.length,
+        header: '',
+        kinds: kinds.join(''),
+        lines,
+      },
+    ],
+    additions,
+    deletions,
+    oldEncoding: 'utf8',
+    newEncoding: 'utf8',
+    oldLineEnding: 'lf',
+    newLineEnding: 'lf',
+    oldMissingNewline: false,
+    newMissingNewline: false,
+    oldLineCount: oldStart + oldLines - 1,
+    newLineCount: start + now.length - 1,
+  };
+}
+
+/**
+ * History of a line range (`git log -L`): about half of the file's history touches the range,
+ * merges come without a diff, the oldest entry adds the lines. Working tree lines are taken as
+ * HEAD lines (the backend maps them through a diff).
+ */
+export function mockLineHistory(
+  graph: MockGraph,
+  request: LineHistoryRequest,
+  cursor: LineHistoryCursor | null,
+  limit: number,
+  wip: MockWip | null,
+): Result<LineHistoryPage> {
+  const range = cursor?.range ?? null;
+  const path = range?.path ?? request.path;
+  const bad = invalidPath(path);
+  if (bad) return { error: bad };
+  const start = range?.start ?? request.start;
+  const end = range?.end ?? request.end;
+  if (start < 1 || end < start) {
+    return {
+      error: invalid(
+        `Lines ${String(start)}–${String(end)} are not a valid range.`,
+        `Les lignes ${String(start)}–${String(end)} ne forment pas une plage valide.`,
+      ),
+    };
+  }
+  if (end - start + 1 > LINE_RANGE_MAX) {
+    const lines = String(end - start + 1);
+    return {
+      error: invalid(
+        `The range has ${lines} lines: the history of a line range is limited to ${String(LINE_RANGE_MAX)} lines. Open the file history instead.`,
+        `La plage compte ${lines} lignes : l'historique d'une plage est limité à ${String(LINE_RANGE_MAX)} lignes. Ouvrez plutôt l'historique du fichier.`,
+      ),
+    };
+  }
+  const head = startCommit(graph, range?.rev ?? request.rev);
+  if ('error' in head) return head;
+  if (head.ok === null) return { error: notFound('HEAD') };
+  if (BINARY.test(path)) {
+    return {
+      error: invalid(
+        `"${path}" is a binary file: it has no lines to follow.`,
+        `« ${path} » est un fichier binaire : il n'a pas de lignes à suivre.`,
+      ),
+    };
+  }
+  const sha = graph.history.commits[head.ok]?.sha ?? '';
+  const local = request.rev === null && !range ? (wip?.worktreeText(path) ?? null) : null;
+  const count = lineCount(local ?? mockFileText(path, hash(sha)));
+  if (end > count) {
+    const where = local === null ? sha.slice(0, 7) : 'the working tree';
+    return {
+      error: invalid(
+        `"${path}" has only ${String(count)} lines in ${where}.`,
+        `« ${path} » n'a que ${String(count)} lignes dans ${where}.`,
+      ),
+    };
+  }
+  const items = historyOf(graph, path, head.ok);
+  const salt = hash(`${path}:${String(start)}:${String(end)}`);
+  const picked = items.filter(
+    (item, index) => index === items.length - 1 || (hash(item.entry.sha) ^ salt) % 2 === 0,
+  );
+  const all: LineHistoryEntry[] = picked.map((item, index) => {
+    const { entry } = item;
+    const origin = index === picked.length - 1;
+    const seed = hash(entry.sha);
+    const slice = (text: string) =>
+      (text.endsWith('\n') ? text.slice(0, -1) : text).split('\n').slice(start - 1, end);
+    const now = slice(mockFileText(entry.path, seed));
+    const old = origin ? null : slice(mockFileText(entry.path, seed + 1));
+    // Every commit listed changed the range: at least its first line.
+    if (old && old.every((line, i) => line === now[i])) old[0] = `${old[0] ?? ''} // before`;
+    const merge = entry.parents.length > 1;
+    return {
+      sha: entry.sha,
+      parents: entry.parents,
+      authorName: entry.authorName,
+      authorEmail: entry.authorEmail,
+      authorTime: entry.authorTime,
+      summary: entry.summary,
+      path: entry.path,
+      oldPath: entry.status === 'renamed' ? entry.oldPath : null,
+      status:
+        origin && entry.status === 'added'
+          ? 'added'
+          : entry.status === 'renamed'
+            ? 'renamed'
+            : 'modified',
+      diff: merge && !origin ? null : rangeDiff(old, now, start),
+      origin,
+    };
+  });
+  const skip = cursor?.skip ?? 0;
+  const size = Math.max(1, Math.min(limit, PAGE_MAX, Math.floor(100_000 / (end - start + 1))));
+  const resolved = { rev: sha, path, start, end };
+  return {
+    ok: {
+      range: resolved,
+      entries: all.slice(skip, skip + size),
+      next: skip + size < all.length ? { range: resolved, skip: skip + size } : null,
     },
   };
 }

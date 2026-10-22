@@ -412,6 +412,19 @@ export const commands = {
 	skip: number,
 } | null, limit: number, token: number) => typedError<FileHistoryPage, YagguiError>(__TAURI_INVOKE("file_history", { repoId, path, rev, cursor, limit, token })),
 	/**
+	 *  One page (≤ 500 entries, fewer for wide ranges, newest first) of the commits that changed
+	 *  the lines `request.start ..= request.end` (1-based, inclusive) of `request.path`, with the
+	 *  diff of the range (`git log -L`): the range is followed as lines move around it and across
+	 *  renames. Working tree line numbers (`rev: None`) are mapped to HEAD first; the page says
+	 *  which range was followed. Continues at `cursor` (the `next` of the previous page). Errors:
+	 *  `revisionNotFound`, `invalidArgument` (range, binary or uncommitted lines), `cancelled`.
+	 */
+	lineHistory: (repoId: number, request: LineHistoryRequest, cursor: {
+	range: LineRange,
+	/**  Entries already returned. */
+	skip: number,
+} | null, limit: number, token: number) => typedError<LineHistoryPage, YagguiError>(__TAURI_INVOKE("line_history", { repoId, request, cursor, limit, token })),
+	/**
 	 *  Line attribution of a file at a commit, or of the working tree file (uncommitted lines
 	 *  attributed to the null SHA). Binary files and files not in HEAD yet are not blamed (see
 	 *  `BlameContent`). Errors: `revisionNotFound`, `invalidArgument` (not a file of `rev`),
@@ -423,7 +436,7 @@ export const commands = {
 	 *  `refs/heads/…`, `refs/remotes/…`), newest first.
 	 */
 	reflog: (repoId: number, reference: string, start: number, limit: number) => typedError<ReflogPage, YagguiError>(__TAURI_INVOKE("reflog", { repoId, reference, start, limit })),
-	/**  Stops the file history or blame started with `token` (or the next one to start with it). */
+	/**  Stops the file history, line history or blame started with `token` (or the next one to start with it). */
 	cancelRead: (token: number) => typedError<null, YagguiError>(__TAURI_INVOKE("cancel_read", { token })),
 	/**  Configured remotes, `origin` first. Read-only, not queued. */
 	listRemotes: (repoId: number) => typedError<string[], YagguiError>(__TAURI_INVOKE("list_remotes", { repoId })),
@@ -2161,6 +2174,77 @@ export type LfsStatus = {
 export type LineEnding = 
 /**  No line break at all (empty or single-line file). */
 "none" | "lf" | "crlf" | "mixed";
+
+/**  Where the next page starts. */
+export type LineHistoryCursor = {
+	range: LineRange,
+	/**  Entries already returned. */
+	skip: number,
+};
+
+/**  One commit that changed the range. */
+export type LineHistoryEntry = {
+	sha: string,
+	parents: string[],
+	authorName: string,
+	authorEmail: string,
+	/**  Seconds since the Unix epoch. */
+	authorTime: number | null,
+	summary: string,
+	/**  Path of the file in this commit. */
+	path: string,
+	/**  Path in the parent when this commit renamed the file. */
+	oldPath: string | null,
+	/**  `added` when the commit created the file, `renamed` with `old_path`, else `modified`. */
+	status: FileStatus,
+	/**
+	 *  The range before and after the commit. `None` for a merge, which Git lists without a
+	 *  diff when the range differs from every parent.
+	 */
+	diff: TextDiff | null,
+	/**
+	 *  The lines do not exist before this commit (file created, or lines written or moved
+	 *  here): the history of the range ends with it.
+	 */
+	origin: boolean,
+};
+
+export type LineHistoryPage = {
+	/**
+	 *  The range followed, in committed line numbers (the working tree lines of the request
+	 *  mapped to HEAD).
+	 */
+	range: LineRange,
+	/**  Newest first. */
+	entries: LineHistoryEntry[],
+	/**  `None` at the end of the range's history. */
+	next: LineHistoryCursor | null,
+};
+
+/**  Lines to follow, as the user selected them. */
+export type LineHistoryRequest = {
+	/**  Repository-relative path in `rev` (or the working tree). */
+	path: string,
+	/**
+	 *  Version the line numbers refer to; `None`: the working tree file, whose lines are
+	 *  mapped to those of HEAD first.
+	 */
+	rev: string | null,
+	/**  First line, 1-based. */
+	start: number,
+	/**  Last line, 1-based, inclusive. */
+	end: number,
+};
+
+/**  The range the walk follows: a commit, the file's path in it and committed line numbers. */
+export type LineRange = {
+	/**  Full SHA. */
+	rev: string,
+	path: string,
+	/**  1-based, inclusive. */
+	start: number,
+	end: number,
+};
 
 export type LocalBranch = {
 	/**  Short name, `feat/graph`. */

@@ -6,7 +6,8 @@
 # The worktree is created at <target>/repo (plus <target>/origin.git when a remote is needed).
 #
 # Scenarios: clean, dirty, detached, rebase, merge, diverged, unborn, stale-lock, worktree,
-# not-a-repo, history, history-detached, diff, wide, inspect, submodule, lfs, branches
+# not-a-repo, history, history-detached, diff, wide, inspect, line-history, submodule, lfs,
+# branches
 set -euo pipefail
 
 scenario=$1
@@ -262,6 +263,40 @@ case "$scenario" in
     lines ONE TWO local four FIVE six > core/library.txt
     lines staged > staged.txt && git add staged.txt
     lines untracked > untracked.txt
+    ;;
+  line-history)
+    # History of a line range (M7-7): a range edited over several commits, shifted by lines
+    # added above it, renamed with an edit inside it, lines moved within the file, a merge with
+    # the range edited on both sides, and an uncommitted edit.
+    git init -q -b main repo
+    cd repo
+    mkdir -p src
+    lines() { printf '%s\n' "$@"; }
+    lines a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 > src/app.txt
+    lines other > other.txt
+    git add -A && tick && git commit -q -m "add app"
+    lines a1 a2 a3 a4 "a5 v2" a6 a7 a8 a9 a10 > src/app.txt
+    git add -A && tick && git commit -q -m "edit a5"
+    lines h1 h2 h3 a1 a2 a3 a4 "a5 v2" a6 a7 a8 a9 a10 > src/app.txt
+    git add -A && tick && git commit -q -m "add header"
+    lines h1 h2 h3 a1 a2 a3 a4 "a5 v2" "a6 v2" a7 a8 a9 a10 > src/app.txt
+    git add -A && tick && git commit -q -m "edit a6"
+    lines noise > other.txt
+    git add -A && tick && git commit -q -m "touch other"
+    mkdir -p lib && git mv src/app.txt lib/app.txt
+    lines h1 h2 h3 a1 a2 a3 a4 "a5 v3" "a6 v2" a7 a8 a9 a10 > lib/app.txt
+    git add -A && tick && git commit -q -m "move app to lib"
+    lines a9 a10 h1 h2 h3 a1 a2 a3 a4 "a5 v3" "a6 v2" a7 a8 > lib/app.txt
+    git add -A && tick && git commit -q -m "move tail to top"
+    git checkout -q -b side
+    lines a9 a10 h1 h2 h3 a1 a2 a3 a4 "a5 v3" "a6 v2" "a7 side" a8 > lib/app.txt
+    git add -A && tick && git commit -q -m "side: edit a7"
+    git checkout -q main
+    lines a9 a10 h1 h2 h3 a1 a2 a3 "a4 main" "a5 v3" "a6 v2" a7 a8 > lib/app.txt
+    git add -A && tick && git commit -q -m "main: edit a4"
+    merge "merge side" side
+    # Working tree: two lines inserted above the range, one line of it edited.
+    lines new1 new2 a9 a10 h1 h2 h3 a1 a2 a3 "a4 main" "a5 v3" "a6 local" "a7 side" a8 > lib/app.txt
     ;;
   wide)
     # P-05: a large flat-ish worktree, YAGGUI_WIDE_FILES files (default 50 000) in folders of
