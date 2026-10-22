@@ -19,6 +19,7 @@ pub mod repo;
 pub mod settings;
 pub mod store;
 pub mod system;
+pub mod tree;
 pub mod undo;
 pub mod updates;
 pub mod workspaces;

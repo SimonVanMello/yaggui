@@ -11,3 +11,4 @@ pub mod reflog;
 pub mod refs;
 pub mod state;
 pub mod submodules;
+pub mod tree;

@@ -101,6 +101,12 @@
   margin-inline-end: var(--space-1);
 }
 
+.actions {
+  display: flex;
+  flex: none;
+  margin-inline-start: calc(-1 * var(--space-2));
+}
+
 .avatarSlot {
   display: inline-block;
   margin-inline-end: var(--space-2);

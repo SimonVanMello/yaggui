@@ -90,6 +90,9 @@
   --blame-info-width: 300px;
   --blame-age-bar-width: 3px;
   --blame-row-height: 20px;
+  /* Tree at a commit (M7-8) */
+  --tree-width: 340px;
+  --tree-indent: 16px;
   /* Rendered Markdown diff (F-089) */
   --markdown-width: 780px;
   --markdown-bar-width: 3px;

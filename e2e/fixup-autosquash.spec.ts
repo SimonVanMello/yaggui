@@ -7,6 +7,9 @@ import { expect, test, type Page } from '@playwright/test';
  */
 
 const MOCK_NOW_MS = 1_791_795_600_000;
+// A toast's text is also announced in a live region: scope the match to the toast list.
+const toastWith = (page: Page, text: string | RegExp) =>
+  page.locator('ol > li').filter({ hasText: text });
 
 const THEMES = [
   { name: 'graphite', colorScheme: 'dark' },
@@ -61,7 +64,7 @@ for (const { name: theme, colorScheme } of THEMES) {
       await expect(fixupItem(page)).not.toHaveAttribute('aria-disabled', 'true');
       await capture(page, theme, 'menu');
       await fixupItem(page).click();
-      await expect(page.getByText(/^Fixup [0-9a-f]{7} created for/)).toBeVisible();
+      await expect(toastWith(page, /Fixup [0-9a-f]{7} created for/)).toBeVisible();
       const fixupRow = page.locator('[data-row]').filter({ hasText: `fixup! ${target.summary}` });
       await expect(fixupRow.first()).toBeVisible();
 
@@ -98,7 +101,7 @@ for (const { name: theme, colorScheme } of THEMES) {
       await page.keyboard.press('ControlOrMeta+K');
       await page.keyboard.type('autosquash');
       await page.keyboard.press('Enter');
-      await expect(page.getByText('No fixup commit to squash on this branch')).toBeVisible();
+      await expect(toastWith(page, 'No fixup commit to squash on this branch')).toBeVisible();
       await expect(todo(page)).toBeHidden();
     });
   });
