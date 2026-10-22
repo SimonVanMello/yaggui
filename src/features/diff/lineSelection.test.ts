@@ -5,6 +5,8 @@ import { splitModel, unifiedModel } from './diffModel';
 import {
   adjacentRow,
   applySelectionKey,
+  newLineSpan,
+  newSideRows,
   rowRange,
   selectableRows,
   selectedLineCount,
@@ -155,5 +157,24 @@ describe('keyboard selection', () => {
     );
     expect(state).toMatchObject({ cursor: 5, anchor: 5 });
     expect([...state.rows]).toEqual([1, 2]);
+  });
+});
+
+describe('line history selection', () => {
+  it('keeps the rows with a line of the new version, context included', () => {
+    const { lines } = unifiedModel(diff);
+    expect(newSideRows([lines])).toEqual([0, 3, 4, 5, 6, 7]);
+    const { left, right } = splitModel(diff);
+    const rows = newSideRows([left, right]);
+    expect(rows.length).toBe(6);
+    expect(rows.every((row) => right[row]?.newNo != null)).toBe(true);
+  });
+
+  it('spans from the first to the last selected new line, 1-based', () => {
+    const { lines } = unifiedModel(diff);
+    expect(newLineSpan(new Set([7, 3]), [lines])).toEqual({ start: 2, end: 22 });
+    expect(newLineSpan(new Set([5]), [lines])).toEqual({ start: 4, end: 4 });
+    // Removed lines have no number in the new version.
+    expect(newLineSpan(new Set([1, 2]), [lines])).toBeNull();
   });
 });

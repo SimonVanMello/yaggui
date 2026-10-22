@@ -28,6 +28,7 @@ import { emptyDiffReason } from './emptyDiff';
 import { ExternalDiffButtons } from './ExternalDiffButtons';
 import { ImageDiff } from './ImageDiff';
 import { applyHunks } from '../staging/stagingActions';
+import { openLineHistory } from '../inspect/inspectStore';
 import { DiffPlaceholder } from './DiffPlaceholder';
 import { ModuleDiffActions } from '../submodules/ModuleDiffActions';
 import { DiffToolbar } from './DiffToolbar';
@@ -278,6 +279,13 @@ export function DiffView({ selection, onClose, onSelect, stepper, actions }: Dif
             : query.isPlaceholderData
               ? t('diff.hunk.loading')
               : null
+        }
+        onLineHistory={
+          target.kind === 'commits'
+            ? (span) => {
+                openLineHistory(repoId, { path, rev: target.to, ...span });
+              }
+            : undefined
         }
         onHunks={
           worktree

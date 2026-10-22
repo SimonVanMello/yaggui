@@ -105,13 +105,15 @@ Each **Blame of the parent** adds a step to a trail: the **Back to** _version_ b
 
 ### Navigate and copy
 
-| Action                                                     | How                                     |
-| ---------------------------------------------------------- | --------------------------------------- |
-| Next / previous block                                      | <kbd>↓</kbd> / <kbd>↑</kbd> in the grid |
-| Blame of the parent, Show in graph, File history, Copy SHA | Right-click a line                      |
-| Back to the graph                                          | <kbd>Esc</kbd> or **Graph**             |
+| Action                                                     | How                                                                               |
+| ---------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Next / previous block                                      | <kbd>↓</kbd> / <kbd>↑</kbd> in the grid                                           |
+| Blame of the parent, Show in graph, File history, Copy SHA | Right-click a line                                                                |
+| Select a range of lines                                    | Click, then <kbd>Shift</kbd>-click or <kbd>Shift+↓</kbd> / <kbd>Shift+↑</kbd>     |
+| History of the selected lines                              | **History of lines 10–14** in the **Selected commit** bar or the right-click menu |
+| Back to the graph                                          | <kbd>Esc</kbd> or **Graph**                                                       |
 
-**Show in graph** and **Copy SHA** are disabled on uncommitted lines.
+**Show in graph** and **Copy SHA** are disabled on uncommitted lines. The history of selected lines is described in [Line history](../line-history/).
 
 A working tree blame updates when the file or branches change. A blame at a commit never changes, so yaggui keeps it.
 

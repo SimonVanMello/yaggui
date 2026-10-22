@@ -1,9 +1,11 @@
 import { BlameView } from './BlameView';
 import { FileHistoryView } from './FileHistoryView';
 import type { InspectView as View } from './inspectStore';
+import { LineHistoryView } from './LineHistoryView';
 import { ReflogView } from './ReflogView';
+import { TreeView } from '../tree/TreeView';
 
-/** The file history, blame or reflog shown in place of the graph. */
+/** The file history, line history, blame or reflog shown in place of the graph. */
 export function InspectView({ repoId, view }: { repoId: number; view: View }) {
   switch (view.kind) {
     case 'fileHistory':
@@ -15,8 +17,18 @@ export function InspectView({ repoId, view }: { repoId: number; view: View }) {
           rev={view.rev}
         />
       );
+    case 'lineHistory':
+      return (
+        <LineHistoryView
+          key={`${view.path}@${view.rev ?? ''}:${String(view.start)}-${String(view.end)}`}
+          repoId={repoId}
+          request={{ path: view.path, rev: view.rev, start: view.start, end: view.end }}
+        />
+      );
     case 'blame':
       return <BlameView repoId={repoId} target={view.target} trail={view.trail} />;
+    case 'tree':
+      return <TreeView key={view.rev} repoId={repoId} rev={view.rev} path={view.path} />;
     case 'reflog':
       return <ReflogView key={view.reference} repoId={repoId} reference={view.reference} />;
   }

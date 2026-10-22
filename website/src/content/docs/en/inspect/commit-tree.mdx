@@ -1,0 +1,87 @@
+---
+title: Files at a commit
+description: Browse the folders and files of any commit in yaggui, read a file as it was then, save that version, or jump to its history and blame.
+sidebar:
+  order: 4
+sources:
+  - src/features/tree/**
+  - src/features/inspect/inspectStore.ts
+  - src/features/inspect/inspectActions.ts
+  - src/features/graph/CommitContextMenu.tsx
+  - src/features/graph/CommitDetailPanel.tsx
+  - src-tauri/src/repo/tree.rs
+  - src-tauri/src/git/read/tree.rs
+  - src-tauri/src/commands/tree.rs
+requirements: [F-224]
+---
+
+import Screenshot from '~/components/Screenshot.astro';
+import commitTreeDark from '../../../../assets/screens/commit-tree-dark.png';
+import commitTreeLight from '../../../../assets/screens/commit-tree-light.png';
+
+The commit tree shows the whole content of the repository as it was in one commit: the folders on the left, the selected file on the right. It is read-only and never touches your working tree. Like [file history and blame](../file-history-and-blame/), it replaces the graph in the repository view; press <kbd>Esc</kbd> or click **Graph** to go back.
+
+## Open the tree of a commit
+
+| Entry point                                                                                                             | Commit shown                   |
+| ----------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| Commit details panel, **Browse files at this commit** button                                                            | The selected commit            |
+| Right-click a commit in the graph → **Browse files at this commit**                                                     | The commit under the pointer   |
+| Palette (<kbd>⌘K</kbd>, <kbd>Ctrl+K</kbd> on Windows and Linux) → **Browse the files of the selected commit (or HEAD)** | The selected commit, else HEAD |
+
+The header shows the short SHA of the commit. The tree stays on that commit even if a branch moves while it is open.
+
+<Screenshot
+  dark={commitTreeDark}
+  light={commitTreeLight}
+  alt="Files at a commit: the folders and files of the commit on the left, and the highlighted, read-only content of src/app/Thing.ts with its size and four icon buttons on the right"
+/>
+
+## Browse the tree
+
+Folders come first, then files, each sorted by name without regard to case. A file shows its size. Folders load when you open them, so a repository with hundreds of thousands of files opens at once: only the root is read, then each folder you open. A folder with more than 500 entries shows its first 500 immediately and loads the rest in the background; a **Loading…** row stays at its end until it is complete.
+
+| Key                                                           | Action                                                         |
+| ------------------------------------------------------------- | -------------------------------------------------------------- |
+| <kbd>↑</kbd> / <kbd>↓</kbd>, <kbd>Home</kbd> / <kbd>End</kbd> | Move through the visible rows                                  |
+| <kbd>→</kbd>                                                  | Open a closed folder; on an open folder, go to its first entry |
+| <kbd>←</kbd>                                                  | Close an open folder; otherwise go to the parent folder        |
+| <kbd>Enter</kbd> / <kbd>Space</kbd>                           | Open or close the selected folder                              |
+| <kbd>Esc</kbd>                                                | Back to the graph                                              |
+
+Clicking a folder selects it and opens or closes it. Selecting a file shows it on the right; moving quickly through files with the arrow keys only loads the one you stop on.
+
+Right-click a row for **File history**, **Blame at this commit**, **Save as…** and **Copy path** (folders only have **Copy path**).
+
+## What each entry looks like
+
+| Entry                              | What you see                                                                                                                                                                                 |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Text file                          | Its content, read-only, with line numbers and syntax highlighting. A file that is not UTF-8 is shown as Windows-1252, with a notice that the encoding is a guess.                            |
+| Image (PNG, JPEG, GIF, WebP, SVG…) | The image. An SVG is only drawn, never run. Images over 8 MB are treated as binary.                                                                                                          |
+| Binary file                        | "Binary file (48.2 KB): no preview."                                                                                                                                                         |
+| Text over 1 MB                     | "This file is 1.2 MB: showing it as text may slow the app down." **Show anyway** reads it.                                                                                                   |
+| Git LFS file                       | Git only holds a pointer in the commit. yaggui shows the size of the real content and its object id, and that the content lives on the LFS server. See [Git LFS](../../repository/git-lfs/). |
+| Symbolic link                      | "Symbolic link to _target_", with **Go to the target** when the target exists in this commit. A target outside the repository is not followed.                                               |
+| Submodule                          | "Submodule pinned at _sha_." Its files live in another repository; see [Submodules](../../repository/submodules/).                                                                           |
+| Empty file or folder               | "This file is empty." or "This folder is empty."                                                                                                                                             |
+
+An executable file has an **Executable** chip next to its size.
+
+## From a file to its history, blame and disk
+
+The bar above the file has four buttons:
+
+- **File history**: the [history of the file](../file-history-and-blame/), starting from this commit rather than HEAD.
+- **Blame at this commit**: the blame of the file as it was here. Not available for symbolic links and submodules.
+- **Save as…**: asks where to save, then writes this version of the file there. The native dialog proposes the file name and asks before replacing an existing file, so a file is never overwritten silently. Nothing is written if you cancel. The bytes are exactly the ones Git stores: for a Git LFS file, **Save the pointer as…** saves the pointer, not the large content; for a symbolic link, the text of its target. A submodule has nothing to save.
+- **Copy path**.
+
+Saving never changes your working tree or the repository.
+
+## Details
+
+- Reading the tree uses no Git command, so nothing appears in the [command log](../../reference/command-log/).
+- A commit's tree never changes, so yaggui keeps what it has read while the tab is open.
+- If a folder or a file cannot be read, the tree shows "Could not read this folder" or "Could not read the file" with the reason; a revision that does not exist shows "Could not read the tree".
+- The tree and file reads do not change the repository: there is nothing to undo.

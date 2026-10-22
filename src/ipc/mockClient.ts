@@ -85,7 +85,8 @@ import {
   normalizeFilter,
 } from './mock/graphTools';
 import { MockPtys } from './mock/pty';
-import { mockBlame, mockFileHistory, mockReflog } from './mock/inspect';
+import { mockBlame, mockFileHistory, mockLineHistory, mockReflog } from './mock/inspect';
+import { mockTreeFile, mockTreeList, mockTreeSavable } from './mock/tree';
 import {
   MockJournal,
   mockRefs,
@@ -403,6 +404,8 @@ export class MockBackend {
   private legacyMigrated = false;
   /** Next answers of the folder picker; when empty, a browser prompt stands in for it. */
   private pickedFolders: (string | null)[] = [];
+  private pickedSaves: (string | null)[] = [];
+  private savedTreeFiles: { rev: string; path: string; dest: string }[] = [];
   /** Texts the next preferences-file pickers open (`null` = the user cancelled). */
   private pickedPreferencesFiles: (string | null)[] = [];
   /** Files "on disk" by path: what was exported, and what a preview read. */
@@ -531,6 +534,8 @@ export class MockBackend {
     this.preferences = { ...DEFAULT_MOCK_PREFERENCES };
     this.legacyMigrated = false;
     this.pickedFolders = [];
+    this.pickedSaves = [];
+    this.savedTreeFiles = [];
     this.pickedPreferencesFiles = [];
     this.preferencesFiles.clear();
     this.creator.reset();
@@ -594,6 +599,16 @@ export class MockBackend {
   /** The last file `exportPreferences` wrote, for tests. */
   exportedPreferences(): string | null {
     return this.preferencesFiles.get(MOCK_EXPORT_PATH) ?? null;
+  }
+
+  /** Queues the answer of the next "Save as…" of a tree file (`null` = the user cancelled). */
+  setPickedSave(dest: string | null): void {
+    this.pickedSaves.push(dest);
+  }
+
+  /** The versions "Save as…" wrote, for tests. */
+  savedTreeFilesList(): readonly { rev: string; path: string; dest: string }[] {
+    return this.savedTreeFiles;
   }
 
   /** Queues the answer of the next `pickRepoFolder` call (`null` = the user cancelled). */
@@ -3340,6 +3355,12 @@ export class MockBackend {
       const result = mockFileHistory(graph, path, rev, cursor, limit);
       return 'error' in result ? fail(result.error) : ok(result.ok);
     },
+    lineHistory: (repoId, request, cursor, limit) => {
+      const graph = this.graph(repoId);
+      if (!graph) return fail(this.notOpen(repoId));
+      const result = mockLineHistory(graph, request, cursor, limit, this.wip(repoId));
+      return 'error' in result ? fail(result.error) : ok(result.ok);
+    },
     blame: (repoId, request) => {
       const graph = this.graph(repoId);
       if (!graph) return fail(this.notOpen(repoId));
@@ -3354,6 +3375,29 @@ export class MockBackend {
     },
     // Mock reads answer at once: nothing to cancel.
     cancelRead: () => ok(null),
+    treeList: (repoId, rev, path, start, limit) => {
+      const graph = this.graph(repoId);
+      if (!graph) return fail(this.notOpen(repoId));
+      const result = mockTreeList(graph, rev, path, start, limit);
+      return 'error' in result ? fail(result.error) : ok(result.ok);
+    },
+    treeFile: (repoId, rev, path, force) => {
+      const graph = this.graph(repoId);
+      if (!graph) return fail(this.notOpen(repoId));
+      const result = mockTreeFile(graph, rev, path, force);
+      return 'error' in result ? fail(result.error) : ok(result.ok);
+    },
+    saveTreeFile: (repoId, rev, path) => {
+      const graph = this.graph(repoId);
+      if (!graph) return fail(this.notOpen(repoId));
+      const name = mockTreeSavable(graph, rev, path);
+      if ('error' in name) return fail(name.error);
+      const picked =
+        this.pickedSaves.length > 0 ? this.pickedSaves.shift() : `~/Downloads/${name.ok}`;
+      if (picked === null || picked === undefined) return ok(null);
+      this.savedTreeFiles.push({ rev, path, dest: picked });
+      return ok(picked);
+    },
     stagePaths: (repoId, paths) =>
       this.runWrite(repoId, 'stage', ['add', '-A', '--', ...pathArgs(paths)], () => {
         this.wip(repoId)?.stagePaths(paths);

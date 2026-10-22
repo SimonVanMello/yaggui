@@ -2,7 +2,10 @@ import { expect, test, type Locator, type Page, type TestInfo } from '@playwrigh
 
 import { capture, frenchUi, lang, openRepo, start } from './capture';
 
-/** Docs screenshots: remotes (fetch, pull, push, manage) and inspect (file history, blame, reflog). */
+/**
+ * Docs screenshots: remotes (fetch, pull, push, manage) and inspect (file history, line history,
+ * blame, reflog).
+ */
 
 const graphRow = (page: Page, index: number) => page.locator(`[data-row="${String(index)}"]`);
 const tree = (page: Page) => page.getByRole('tree');
@@ -211,6 +214,45 @@ test('blame', async ({ page }, testInfo) => {
   await expect(view.getByLabel('Selected commit')).toBeVisible();
   await page.mouse.move(0, 0);
   await capture(page, testInfo, 'blame', view);
+});
+
+test('line-history', async ({ page }, testInfo) => {
+  await openYaggui(page);
+  await commitFileAction(page, / layout\.ts /, /^Blame at this commit$/);
+  const blame = page.getByRole('region', { name: /^Blame of / });
+  const lines = blame.getByRole('grid');
+  await lines.getByRole('row').nth(9).click();
+  await lines
+    .getByRole('row')
+    .nth(13)
+    .click({ modifiers: ['Shift'] });
+  await blame
+    .getByLabel('Selected commit')
+    .getByRole('button', { name: 'History of lines 10–14' })
+    .click();
+  // Room for the range diff: the commit details are not part of this view.
+  await page.getByRole('button', { name: 'Toggle right panel' }).click();
+  const view = page.getByRole('region', { name: /^Line history of / });
+  const commits = view.getByRole('listbox', { name: 'Commits that changed the lines' });
+  await expect(commits.getByRole('option').first()).toHaveAttribute('aria-selected', 'true');
+  await expect(view.locator('.cm-editor').first()).toBeVisible();
+  await page.mouse.move(0, 0);
+  await capture(page, testInfo, 'line-history', view);
+});
+
+test('commit-tree', async ({ page }, testInfo) => {
+  await openYaggui(page);
+  await graphRow(page, 2).click();
+  await details(page).getByRole('button', { name: 'Browse files at this commit' }).click();
+  const view = page.getByRole('region', { name: /^Files at / });
+  const files = view.getByRole('tree');
+  await files.getByRole('treeitem', { name: /^src( |$)/ }).click();
+  await files.getByRole('treeitem', { name: /^app( |$)/ }).click();
+  await files.getByRole('treeitem', { name: /^Thing\.ts( |$)/ }).click();
+  await expect(view.locator('.cm-editor')).toBeVisible();
+  await expect(view.locator('.cm-line').first()).toBeVisible();
+  await page.mouse.move(0, 0);
+  await capture(page, testInfo, 'commit-tree', view);
 });
 
 test('reflog', async ({ page }, testInfo) => {

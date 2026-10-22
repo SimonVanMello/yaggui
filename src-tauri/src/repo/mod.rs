@@ -17,6 +17,7 @@ mod ref_ops;
 mod remotes;
 pub mod scan;
 mod stash_file;
+mod tree;
 pub mod watcher;
 pub mod workspace;
 mod write;

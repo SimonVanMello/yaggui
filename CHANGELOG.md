@@ -11,6 +11,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ### Added
 
+- Files at a commit: browse the folders and files of any commit (commit details, graph menu or
+  palette), read a file read-only with syntax highlighting, and jump to its history or blame at
+  that commit. "Save as…" writes that version of the file to disk without ever replacing a file
+  silently. Binary files, large texts, LFS pointers, symbolic links and submodules each get their
+  own view.
 - Fixup commits: "Create a fixup for this commit" in the commit menu and the palette commits the
   staged changes as `fixup! <summary>`, undoable like a commit; "Autosquash" opens the interactive
   rebase with the fixups already under their targets, to review before running it.
@@ -27,6 +32,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
   commit yaggui checks out from the banner (good, bad or skip) while it shows the steps left;
   markers in the graph, the first bad commit at the end, and a bisect started in a terminal or
   left open is picked up again.
+- History of a range of lines (`git log -L`): select lines in the blame (Shift-click) or in a
+  commit diff (gutter), then "History of lines": every commit that changed them, with its change to
+  those lines, followed across renames; the search can be stopped on long histories.
 
 ### Fixed
 

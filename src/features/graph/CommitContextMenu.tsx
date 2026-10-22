@@ -10,6 +10,7 @@ import { ContextMenuSub } from '../../ui/ContextMenuSub';
 import { toast } from '../../ui/toastStore';
 import { compareCommits, compareWithHead, jumpToMergeBase } from '../compare/compareActions';
 import { openHistoryDialog } from '../history/historyDialogsStore';
+import { openTree } from '../inspect/inspectStore';
 import { RefContextMenu } from '../sidebar/RefContextMenu';
 import { refTargetOf } from '../sidebar/sidebarRows';
 import { useRepoRefs } from '../sidebar/useRepoRefs';
@@ -167,6 +168,14 @@ export function CommitContextMenu({
           }}
         >
           {t('graph.menu.tagHere')}
+        </ContextMenuItem>
+        <ContextMenuItem
+          icon="tree"
+          onSelect={() => {
+            openTree(repoId, target.sha);
+          }}
+        >
+          {t('graph.menu.browseFiles')}
         </ContextMenuItem>
         <ContextMenuSeparator />
         <ContextMenuItem

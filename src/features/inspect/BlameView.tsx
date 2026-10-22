@@ -34,9 +34,11 @@ import {
   blameBack,
   closeInspect,
   openFileHistory,
+  openLineHistory,
   type BlameTarget,
 } from './inspectStore';
 import { errorOf } from './ipcError';
+import { inSpan, spanOf, type LineSpan } from './lineRange';
 import { useCssPixels } from './useCssPixels';
 import { useEscapeToClose } from './useEscapeToClose';
 import styles from './Blame.module.css';
@@ -71,6 +73,8 @@ interface BlameRowProps {
   first: boolean;
   ageStep: number;
   selected: boolean;
+  /** In the line range selected for its history. */
+  inRange: boolean;
   date: string;
   uncommittedLabel: string;
 }
@@ -87,6 +91,7 @@ const BlameRow = memo(function BlameRow({
   first,
   ageStep,
   selected,
+  inRange,
   date,
   uncommittedLabel,
 }: BlameRowProps) {
@@ -99,6 +104,7 @@ const BlameRow = memo(function BlameRow({
       data-age={ageStep}
       data-chunk={first}
       data-selected={selected}
+      data-range={inRange}
       data-uncommitted={commit?.uncommitted === true}
       style={{ transform: `translateY(${String(top)}px)` }}
     >
@@ -127,11 +133,14 @@ const BlameRow = memo(function BlameRow({
 function BlameLines({
   repoId,
   path,
+  rev,
   content,
   focusLine,
 }: {
   repoId: number;
   path: string;
+  /** Version blamed (full SHA), `null` for the working tree. */
+  rev: string | null;
   content: TextBlame;
   focusLine: number | undefined;
 }) {
@@ -142,6 +151,9 @@ function BlameLines({
   const rows = useMemo(() => blameRows(lines.length, commits, chunks), [lines, commits, chunks]);
   const [selected, setSelected] = useState<number | null>(null);
   const [menuLine, setMenuLine] = useState<number | null>(null);
+  /** Lines selected for their history (0-based): a click sets both ends, `Shift` the focus. */
+  const [range, setRange] = useState<{ anchor: number; focus: number } | null>(null);
+  const span = range && spanOf(range.anchor, range.focus);
   const scrollRef = useRef<HTMLDivElement>(null);
   const rowHeight = useCssPixels('--blame-row-height', 20);
   const digits = String(lines.length).length;
@@ -184,9 +196,32 @@ function BlameLines({
       line: chunk?.sourceStart ?? line,
     });
   };
+  const historyOf = (lines: LineSpan) => {
+    openLineHistory(repoId, { path, rev, ...lines });
+  };
+  /** The range a menu opened on `line` acts on: the selection when it holds the line. */
+  const menuSpan = (line: number): LineSpan =>
+    span && inSpan(span, line) ? span : spanOf(line, line);
+  const spanLabel = (lines: LineSpan) =>
+    lines.start === lines.end
+      ? t('inspect.blame.lineHistorySingle', { line: lines.start })
+      : t('inspect.blame.lineHistory', { start: lines.start, end: lines.end });
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
     event.preventDefault();
+    if (event.shiftKey) {
+      // Extends the line range by one line.
+      const start = selected === null ? 0 : Math.max(0, rows.commitOf.indexOf(selected));
+      const anchor = range?.anchor ?? start;
+      const from = range?.focus ?? anchor;
+      const focus = Math.min(
+        lines.length - 1,
+        Math.max(0, from + (event.key === 'ArrowDown' ? 1 : -1)),
+      );
+      setRange({ anchor, focus });
+      virtualizer.scrollToIndex(focus, { align: 'auto' });
+      return;
+    }
     const current = selected === null ? -1 : rows.commitOf.indexOf(selected);
     // Moves to the next / previous chunk.
     let line = current;
@@ -197,6 +232,7 @@ function BlameLines({
     }
     if (line < 0 || line >= lines.length) return;
     select(line);
+    setRange({ anchor: line, focus: line });
     virtualizer.scrollToIndex(line, { align: 'auto' });
   };
 
@@ -233,6 +269,14 @@ function BlameLines({
               <ContextMenuItem
                 icon="history"
                 onSelect={() => {
+                  historyOf(menuSpan(menuLine));
+                }}
+              >
+                {spanLabel(menuSpan(menuLine))}
+              </ContextMenuItem>
+              <ContextMenuItem
+                icon="history"
+                onSelect={() => {
                   openFileHistory(repoId, path);
                 }}
               >
@@ -261,9 +305,19 @@ function BlameLines({
           aria-rowcount={lines.length}
           tabIndex={0}
           onKeyDown={onKeyDown}
+          onMouseDown={(event) => {
+            // Shift-click extends the line range, not the text selection.
+            if (event.shiftKey) event.preventDefault();
+          }}
           onClick={(event) => {
             const line = lineOf(event.target);
-            if (line !== null) select(line);
+            if (line === null) return;
+            if (event.shiftKey && range) {
+              setRange({ anchor: range.anchor, focus: line });
+              return;
+            }
+            select(line);
+            setRange({ anchor: line, focus: line });
           }}
           onContextMenu={(event) => {
             setMenuLine(lineOf(event.target));
@@ -288,6 +342,7 @@ function BlameLines({
                   first={first}
                   ageStep={rows.ageStep[index] ?? 0}
                   selected={selected === index}
+                  inRange={inSpan(span, line)}
                   date={first ? relative(commits[index]?.authorTime ?? null) : ''}
                   uncommittedLabel={uncommittedLabel}
                 />
@@ -313,6 +368,19 @@ function BlameLines({
             </>
           )}
           <span className={common.spacer} />
+          {span && (
+            <Button
+              size="sm"
+              variant="ghost"
+              title={t('inspect.blame.rangeHint')}
+              onClick={() => {
+                historyOf(span);
+              }}
+            >
+              <Icon name="history" />
+              {spanLabel(span)}
+            </Button>
+          )}
           <Button
             size="sm"
             variant="ghost"
@@ -413,6 +481,7 @@ export function BlameView({
         key={`${blame.path}@${blame.rev ?? ''}`}
         repoId={repoId}
         path={blame.path}
+        rev={blame.rev}
         content={content}
         focusLine={target.line}
       />

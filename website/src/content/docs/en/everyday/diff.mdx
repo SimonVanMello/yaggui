@@ -89,6 +89,8 @@ If **Ignore whitespace** hides everything that changed, the diff says **Only whi
 
 yaggui computes diffs itself (no `git diff` process). It honors `diff.algorithm` and the `binary` and `-diff` attributes of `.gitattributes`, but does not run external diff drivers (`diff.<driver>.command`) or text conversions (`textconv`).
 
+In the diff of a commit, clicking the line numbers gutter selects lines of the new version (<kbd>Shift</kbd>-click extends, <kbd>⌘</kbd>/<kbd>Ctrl</kbd>-click adds a line); **Line history** (<kbd>Enter</kbd>) in the bar above the code opens their history, see [Line history](../../inspect/line-history/).
+
 ## Navigate with the keyboard
 
 These keys work when focus is not in a text field:

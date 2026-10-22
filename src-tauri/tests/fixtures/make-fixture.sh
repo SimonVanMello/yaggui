@@ -6,7 +6,8 @@
 # The worktree is created at <target>/repo (plus <target>/origin.git when a remote is needed).
 #
 # Scenarios: clean, dirty, detached, rebase, merge, diverged, unborn, stale-lock, worktree,
-# not-a-repo, history, history-detached, diff, wide, inspect, submodule, lfs, branches
+# not-a-repo, history, history-detached, diff, wide, inspect, line-history, tree, submodule,
+# lfs, branches
 set -euo pipefail
 
 scenario=$1
@@ -262,6 +263,73 @@ case "$scenario" in
     lines ONE TWO local four FIVE six > core/library.txt
     lines staged > staged.txt && git add staged.txt
     lines untracked > untracked.txt
+    ;;
+  line-history)
+    # History of a line range (M7-7): a range edited over several commits, shifted by lines
+    # added above it, renamed with an edit inside it, lines moved within the file, a merge with
+    # the range edited on both sides, and an uncommitted edit.
+    git init -q -b main repo
+    cd repo
+    mkdir -p src
+    lines() { printf '%s\n' "$@"; }
+    lines a1 a2 a3 a4 a5 a6 a7 a8 a9 a10 > src/app.txt
+    lines other > other.txt
+    git add -A && tick && git commit -q -m "add app"
+    lines a1 a2 a3 a4 "a5 v2" a6 a7 a8 a9 a10 > src/app.txt
+    git add -A && tick && git commit -q -m "edit a5"
+    lines h1 h2 h3 a1 a2 a3 a4 "a5 v2" a6 a7 a8 a9 a10 > src/app.txt
+    git add -A && tick && git commit -q -m "add header"
+    lines h1 h2 h3 a1 a2 a3 a4 "a5 v2" "a6 v2" a7 a8 a9 a10 > src/app.txt
+    git add -A && tick && git commit -q -m "edit a6"
+    lines noise > other.txt
+    git add -A && tick && git commit -q -m "touch other"
+    mkdir -p lib && git mv src/app.txt lib/app.txt
+    lines h1 h2 h3 a1 a2 a3 a4 "a5 v3" "a6 v2" a7 a8 a9 a10 > lib/app.txt
+    git add -A && tick && git commit -q -m "move app to lib"
+    lines a9 a10 h1 h2 h3 a1 a2 a3 a4 "a5 v3" "a6 v2" a7 a8 > lib/app.txt
+    git add -A && tick && git commit -q -m "move tail to top"
+    git checkout -q -b side
+    lines a9 a10 h1 h2 h3 a1 a2 a3 a4 "a5 v3" "a6 v2" "a7 side" a8 > lib/app.txt
+    git add -A && tick && git commit -q -m "side: edit a7"
+    git checkout -q main
+    lines a9 a10 h1 h2 h3 a1 a2 a3 "a4 main" "a5 v3" "a6 v2" a7 a8 > lib/app.txt
+    git add -A && tick && git commit -q -m "main: edit a4"
+    merge "merge side" side
+    # Working tree: two lines inserted above the range, one line of it edited.
+    lines new1 new2 a9 a10 h1 h2 h3 a1 a2 a3 "a4 main" "a5 v3" "a6 local" "a7 side" a8 > lib/app.txt
+    ;;
+  tree)
+    # Tree at a commit (M7-8): nested folders, an executable, a symlink, a binary, a PNG, a
+    # text above the render limit, a Latin-1 text, an LFS pointer, a submodule entry and a
+    # folder of 1 200 files (pages of 500). Later commits add the submodule entry, then edit
+    # and delete files.
+    git init -q -b main repo
+    cd repo
+    mkdir -p src/deep/er docs many
+    printf 'fn main() {}\n' > src/main.rs
+    printf 'deep\n' > src/deep/er/leaf.txt
+    printf '# Readme\n' > README.md
+    printf '#!/bin/sh\necho hi\n' > run.sh && chmod +x run.sh
+    printf 'caf\xe9\n' > docs/latin1.txt
+    printf 'a\0b\0' > docs/blob.bin
+    printf '\x89PNG\r\n\x1a\n\x00\x00\x00\x0dIHDR\x00\x00\x00\x01' > docs/logo.png
+    head -c 1200000 /dev/zero | tr '\0' 'x' > docs/big.txt
+    printf '*.lfs filter=lfs diff=lfs merge=lfs -text\n' > .gitattributes
+    printf 'version https://git-lfs.github.com/spec/v1\noid sha256:%s\nsize 4096\n' \
+      "$(printf "%064d" 0 | tr 0 a)" > docs/model.lfs
+    awk 'BEGIN { for (i = 0; i < 1200; i++) printf "n%d\n", i > sprintf("many/f%04d.txt", i) }'
+    git add -A
+    # Recorded in the index directly: a worktree symlink or exec bit depends on the OS.
+    git update-index --chmod=+x run.sh
+    link=$(printf '../README.md' | git hash-object -w --stdin)
+    git update-index --add --cacheinfo "120000,$link,docs/readme-link"
+    tick && git commit -q -m "tree"
+    git update-index --add --cacheinfo 160000,1111111111111111111111111111111111111111,libs/sub
+    tick && git commit -q -m "add a submodule entry"
+    printf 'fn main() { println!("v2"); }\n' > src/main.rs
+    git rm -q docs/blob.bin
+    git add src/main.rs
+    tick && git commit -q -m "edit main, drop the blob"
     ;;
   wide)
     # P-05: a large flat-ish worktree, YAGGUI_WIDE_FILES files (default 50 000) in folders of

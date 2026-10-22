@@ -1,5 +1,6 @@
 /**
- * The file history, blame or reflog shown in place of the graph (M4-4, F-220 to F-222).
+ * The file history, line history, blame or reflog shown in place of the graph (M4-4, M7-7,
+ * F-220 to F-223).
  *
  * Keyed by repository, like `graphNavigation`: a repository is open in one tab at most
  * (F-004), so entry points that only know the repository (sidebar, palette) can open a view.
@@ -28,6 +29,15 @@ export type InspectView =
       rev: string | null;
     }
   | {
+      kind: 'lineHistory';
+      path: string;
+      /** Version the line numbers refer to; `null`: the working tree. */
+      rev: string | null;
+      /** 1-based, inclusive. */
+      start: number;
+      end: number;
+    }
+  | {
       kind: 'blame';
       target: BlameTarget;
       /** Versions blamed before ("blame of the parent"), most recent last, for going back. */
@@ -37,6 +47,13 @@ export type InspectView =
       kind: 'reflog';
       /** `HEAD` or `refs/heads/<branch>`. */
       reference: string;
+    }
+  | {
+      kind: 'tree';
+      /** Commit whose tree is browsed (a SHA, or a revision such as `HEAD`). */
+      rev: string;
+      /** File or folder shown: its folders are open and the file is read. `null`: none yet. */
+      path: string | null;
     };
 
 interface InspectState {
@@ -66,6 +83,14 @@ export function openFileHistory(repoId: number, path: string, rev: string | null
   show(repoId, { kind: 'fileHistory', path, rev });
 }
 
+/** History of the lines `start ..= end` (1-based) of `path` in `rev` (`null`: working tree). */
+export function openLineHistory(
+  repoId: number,
+  range: { path: string; rev: string | null; start: number; end: number },
+): void {
+  show(repoId, { kind: 'lineHistory', ...range });
+}
+
 export function openBlame(repoId: number, path: string, rev: string | null = null): void {
   show(repoId, { kind: 'blame', target: { path, rev }, trail: [] });
 }
@@ -92,6 +117,20 @@ export function blameBack(repoId: number): boolean {
     },
   }));
   return true;
+}
+
+/** Browses the files of the commit `rev`, with `path` (a file or a folder) shown. */
+export function openTree(repoId: number, rev: string, path: string | null = null): void {
+  show(repoId, { kind: 'tree', rev, path });
+}
+
+/** The file or folder shown in the open tree changes (the commit stays). */
+export function selectTreePath(repoId: number, path: string | null): void {
+  const view = inspectViewOf(repoId);
+  if (view?.kind !== 'tree' || view.path === path) return;
+  useInspectStore.setState((state) => ({
+    views: { ...state.views, [repoId]: { ...view, path } },
+  }));
 }
 
 export function openReflog(repoId: number, reference = 'HEAD'): void {

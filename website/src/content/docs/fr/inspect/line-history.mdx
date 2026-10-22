@@ -1,0 +1,118 @@
+---
+title: Historique de lignes
+description: Suivre une plage de lignes dans l'historique d'un fichier avec yaggui, avec la modification que chaque commit a faite à ces lignes.
+sidebar:
+  order: 3
+sources:
+  - src/features/inspect/LineHistoryView.tsx
+  - src/features/inspect/LineHistory.module.css
+  - src/features/inspect/lineRange.ts
+  - src/features/inspect/BlameView.tsx
+  - src/features/diff/CodeDiff.tsx
+  - src/features/diff/lineSelection.ts
+  - src-tauri/src/git/read/line_history.rs
+  - src-tauri/src/repo/inspect.rs
+  - src-tauri/src/commands/inspect.rs
+requirements: [F-223]
+---
+
+import Screenshot from '~/components/Screenshot.astro';
+import lineHistoryDark from '../../../../assets/screens/line-history-fr-dark.png';
+import lineHistoryLight from '../../../../assets/screens/line-history-fr-light.png';
+
+L’historique de lignes liste les commits qui ont modifié une plage de lignes d’un fichier, avec la modification que chacun a faite à ces lignes seulement. Il suit les lignes quand du code est ajouté ou supprimé autour d’elles, et à travers les renommages du fichier. Comme l’[historique du fichier](../file-history-and-blame/), il remplace le graphe dans la vue du dépôt ; appuyez sur <kbd>Esc</kbd> ou cliquez sur **Graphe** pour y revenir.
+
+## Sélectionner les lignes
+
+### Dans le blame
+
+Dans un [blame](../file-history-and-blame/#faire-le-blame-dun-fichier), cliquez sur une ligne, puis <kbd>Maj</kbd>-cliquez sur une autre : les numéros des lignes de la plage sont mis en évidence. <kbd>Maj+↓</kbd> / <kbd>Maj+↑</kbd> étendent la plage d’une ligne. Ensuite :
+
+- cliquez sur **Historique des lignes 10–14** (**Historique de la ligne 10** pour une seule ligne) dans la barre **Commit sélectionné**, ou
+- clic droit sur une ligne → **Historique des lignes 10–14**. Quand la ligne cliquée est hors de la plage sélectionnée, l’entrée porte sur cette seule ligne.
+
+Les numéros de ligne sont ceux de la version qui fait l’objet du blame : un commit, ou le fichier sur le disque pour un blame de la copie de travail.
+
+### Dans le diff d’un commit
+
+Dans le diff d’un commit (depuis le panneau de détail du commit ou un historique de fichier), cliquez dans la gouttière des numéros de ligne pour sélectionner des lignes de la nouvelle version, <kbd>Maj</kbd>-clic pour étendre, <kbd>⌘</kbd>/<kbd>Ctrl</kbd>-clic pour ajouter une ligne. Les lignes inchangées peuvent aussi être sélectionnées ; les lignes supprimées non (elles ne sont pas dans la nouvelle version). La barre au-dessus du code affiche **3 lignes sélectionnées** : cliquez sur **Historique des lignes** ou appuyez sur <kbd>Entrée</kbd>. <kbd>Esc</kbd> efface la sélection.
+
+L’historique porte sur une seule plage continue : de la première à la dernière ligne sélectionnée.
+
+La même sélection fonctionne dans le diff de l’historique de lignes lui-même, pour se restreindre à moins de lignes à un commit plus ancien.
+
+## Lire l’historique de lignes
+
+<Screenshot
+  dark={lineHistoryDark}
+  light={lineHistoryLight}
+  alt="Historique de lignes de layout.ts, lignes 10–14 : les commits qui ont modifié les lignes à gauche, la modification du commit sélectionné sur ces lignes à droite"
+/>
+
+L’en-tête affiche le nom du fichier, la plage (**Lignes 10–14**), la version de départ (un SHA court) et le nombre de commits. La partie gauche liste les **Commits qui ont modifié les lignes**, du plus récent au plus ancien. Chaque ligne affiche :
+
+- la lettre de la modification (ajouté, modifié, renommé), ou une icône de merge,
+- le résumé du commit et son SHA court,
+- l’auteur, la date relative et l’emplacement des lignes dans ce commit (**Lignes 8–12**) : elles se déplacent quand du code est ajouté ou supprimé au-dessus,
+- **depuis** _ancien chemin_ sur le commit qui a renommé le fichier.
+
+La partie droite affiche la modification du commit sélectionné sur la plage : la plage entière telle qu’elle était avant et après le commit, en disposition unifiée ou côte à côte (<kbd>⌘D</kbd>, <kbd>Ctrl+D</kbd> sous Windows et Linux). Sa barre d’outils propose les flèches **Commit plus récent** / **Commit plus ancien**, **Voir dans le graphe**, **Historique du fichier** et **Blame à ce commit**.
+
+| Touche                                                        | Action                                                                    |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| <kbd>↑</kbd> / <kbd>↓</kbd>, <kbd>Home</kbd> / <kbd>End</kbd> | Se déplacer dans la liste (quand elle a le focus)                         |
+| <kbd>j</kbd> / <kbd>k</kbd>                                   | Commit plus ancien / plus récent                                          |
+| <kbd>Esc</kbd>                                                | Effacer la sélection de lignes, arrêter la recherche, ou retour au graphe |
+
+### Où l’historique s’arrête
+
+Le commit le plus ancien de la liste est celui où les lignes apparaissent. Son diff ne fait qu’ajouter des lignes, avec un avertissement :
+
+- « Les lignes apparaissent avec le fichier, dans ce commit. » quand le commit a créé le fichier,
+- « Les lignes apparaissent dans ce commit. Git ne suit pas les lignes déplacées ou copiées depuis un autre endroit. » sinon : les lignes ont été écrites là, ou coupées et collées depuis un autre endroit du fichier ou depuis un autre fichier. Faites le blame de la version parente pour remonter plus loin.
+
+### Renommages et lignes déplacées
+
+La plage est suivie à travers les renommages du fichier : les commits plus anciens affichent l’ancien chemin, et le commit qui a renommé le fichier affiche « Le fichier a été renommé de _ancien chemin_ en _nouveau chemin_ dans ce commit. » quand il a aussi modifié les lignes. Un renommage qui n’a pas touché aux lignes n’est pas listé.
+
+Les commits qui ont seulement décalé la plage (lignes ajoutées ou supprimées au-dessus) ne sont pas listés non plus ; les **Lignes** de chaque ligne de la liste indiquent où se trouvait la plage.
+
+### Merges
+
+Un merge est listé quand les lignes diffèrent de chaque parent, en général quand les deux côtés les ont modifiées. Git n’affiche pas de diff pour lui : la vue l’indique, et les commits de chaque côté sont listés en dessous. Un merge qui a repris les lignes d’un parent telles quelles n’est pas listé.
+
+## Lignes de la copie de travail
+
+Depuis un blame de la copie de travail, les lignes sélectionnées sont celles du fichier sur le disque, qui peut différer de HEAD. yaggui les fait d’abord correspondre à HEAD, par un diff des deux versions :
+
+- les lignes inchangées gardent leur ligne de HEAD,
+- une ligne modifiée représente les lignes de HEAD qu’elle remplace,
+- les lignes seulement ajoutées sur le disque sont écartées.
+
+Quand la plage s’est déplacée, une ligne sous l’en-tête l’indique, par exemple « Dans HEAD : Lignes 10–11 (copie de travail : Lignes 12–13) ». Quand toutes les lignes sélectionnées sont nouvelles, il n’y a rien à suivre : « Ces lignes ne sont pas encore commitées : elles n’ont pas d’historique. » L’historique ne change ensuite pas quand le fichier change sur le disque ; il se met à jour quand les branches bougent.
+
+## Longs historiques
+
+yaggui exécute, pour la plage d’une version :
+
+```bash
+git log -L<début>,<fin>:<chemin> --skip=<n> --max-count=<page + 1> <commit> --
+```
+
+La liste se charge par pages de 500 commits au défilement (moins pour les plages larges : Git affiche la plage entière pour chaque commit, une page contient donc environ 100 000 lignes de plage). Le compteur affiche `500+` tant qu’il en reste.
+
+Git lit l’historique dans l’ordre jusqu’à trouver assez de commits qui ont modifié les lignes, ce qui peut prendre du temps sur un gros dépôt. Pendant la recherche, la vue affiche « Suivi des lignes dans l’historique… », ou « 500 commits pour l’instant… » sous la liste pour les pages suivantes, avec un bouton **Arrêter** (<kbd>Esc</kbd>). Une recherche arrêtée affiche « Recherche arrêtée. » avec **Relancer la recherche** ; quand des commits étaient déjà chargés, **Charger les commits plus anciens** continue.
+
+## Limites et erreurs
+
+| Cas                                              | Ce qu’affiche la vue                                                                                                    |
+| ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
+| Plus de 5 000 lignes                             | La plage compte 6000 lignes : l’historique d’une plage est limité à 5000 lignes. Ouvrez plutôt l’historique du fichier. |
+| Une plage au-delà de la fin du fichier           | « src/app.ts » n’a que 120 lignes dans HEAD.                                                                            |
+| Un fichier binaire                               | « src/logo.png » est un fichier binaire : il n’a pas de lignes à suivre.                                                |
+| Un fichier pas encore commité (copie de travail) | « src/new.ts » n’est pas encore commité : ses lignes n’ont pas d’historique.                                            |
+| Aucun commit n’a modifié les lignes              | Aucun commit n’a modifié ces lignes.                                                                                    |
+
+Les erreurs s’affichent sous « Impossible de lire l’historique de ces lignes » avec **Réessayer** ; la commande figure dans le [journal des commandes](../../reference/command-log/).
+
+L’historique de lignes ne fait que lire : rien à annuler.

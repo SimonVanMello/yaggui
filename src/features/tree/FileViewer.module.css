@@ -1,0 +1,55 @@
+.viewer {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  background: var(--bg-app);
+}
+
+/* CodeMirror: classes from fileViewerView.ts, styled with the theme tokens only. */
+.viewer :global(.cm-editor) {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  color: var(--fg-primary);
+  font-size: var(--text-sm);
+}
+
+.viewer :global(.cm-editor.cm-focused) {
+  outline: none;
+}
+
+.viewer :global(.cm-scroller) {
+  font-family: var(--font-code);
+  font-variant-ligatures: none;
+  line-height: var(--leading-normal);
+}
+
+.viewer :global(.cm-content) {
+  padding: 0;
+}
+
+.viewer :global(.cm-line) {
+  padding: 0 var(--space-3);
+}
+
+.viewer :global(.cm-selectionBackground),
+.viewer :global(.cm-content ::selection) {
+  background: var(--accent-soft);
+}
+
+.viewer :global(.cm-gutters) {
+  border-right: var(--border-width) solid var(--border-subtle);
+  background: var(--bg-panel);
+  color: var(--fg-muted);
+  user-select: none;
+}
+
+.viewer :global(.cm-lineNumbers .cm-gutterElement) {
+  padding: 0 var(--space-2) 0 var(--space-3);
+}
+
+.viewer :global(.cm-content:focus-visible) {
+  outline: var(--focus-ring-width) solid var(--accent);
+  outline-offset: calc(-1 * var(--focus-ring-width));
+}

@@ -11,6 +11,38 @@ export function selectableRows(left: readonly DiffLine[], right?: readonly DiffL
   return rows;
 }
 
+/**
+ * Rendered rows with a line of the new version (the right column of a split view): what a
+ * selection for the history of a line range can contain.
+ */
+export function newSideRows(sides: readonly (readonly DiffLine[])[]): number[] {
+  const rows: number[] = [];
+  sides[sides.length - 1]?.forEach((line, row) => {
+    if (line.newNo !== null) rows.push(row);
+  });
+  return rows;
+}
+
+/**
+ * The lines of the new version from the first to the last selected row, 1-based and
+ * inclusive (`git log -L` takes one contiguous range); `null` when no row has one.
+ */
+export function newLineSpan(
+  rows: ReadonlySet<number>,
+  sides: readonly (readonly DiffLine[])[],
+): { start: number; end: number } | null {
+  const side = sides[sides.length - 1];
+  let span: { start: number; end: number } | null = null;
+  for (const row of rows) {
+    const line = side?.[row]?.newNo;
+    if (line == null) continue;
+    span = span
+      ? { start: Math.min(span.start, line), end: Math.max(span.end, line) }
+      : { start: line, end: line };
+  }
+  return span;
+}
+
 function isChange(line: DiffLine): boolean {
   return line.kind === 'add' || line.kind === 'del';
 }
