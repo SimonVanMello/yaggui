@@ -495,6 +495,70 @@ pub struct OperationDetail {
     pub can_skip: bool,
 }
 
+/// A mark given to a commit during a bisect (F-263).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub enum BisectMark {
+    /// The bug is absent (`git bisect good`, or the repository's own "old" term).
+    Good,
+    /// The bug is present (`git bisect bad`, or the "new" term).
+    Bad,
+    /// The commit cannot be tested (`git bisect skip`).
+    Skip,
+}
+
+/// A commit of the bisect, with what its banner and result show.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct BisectCommit {
+    pub sha: String,
+    pub summary: String,
+    pub author_name: String,
+    /// Author date, seconds since the Unix epoch.
+    pub author_time: f64,
+}
+
+/// How a bisect ended: Git has nothing left to test.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Type)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum BisectResult {
+    /// The first bad commit.
+    Found { commit: BisectCommit },
+    /// Only skipped commits are left between the good and bad ones: the first bad commit
+    /// is one of `candidates` (the bad commit and those skipped commits), newest first.
+    Inconclusive { candidates: Vec<BisectCommit> },
+}
+
+/// The bisect in progress, read from `refs/bisect/*`, `BISECT_START` and `BISECT_TERMS`
+/// (the same files `git bisect` reads, so a bisect started in a terminal or interrupted by
+/// closing the app is found as it was).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct BisectState {
+    /// The commit marked bad, `None` until one is.
+    pub bad: Option<String>,
+    /// Commits marked good.
+    pub good: Vec<String>,
+    /// Commits marked skipped.
+    pub skipped: Vec<String>,
+    /// The commit checked out for testing (HEAD); `None` when HEAD is unborn.
+    pub current: Option<BisectCommit>,
+    /// The current commit already has a mark while commits are left to test: checking out
+    /// the next one failed (a file in the way) or HEAD was moved by hand. `bisect_next`
+    /// checks out the commit to test.
+    pub awaiting_checkout: bool,
+    /// Commits that can still be the first bad one and are not skipped, the bad commit
+    /// included; `None` until a good and a bad commit are known.
+    pub remaining: Option<u32>,
+    /// Steps left, estimated the way `git bisect` does (about log2 of the commits left).
+    pub steps: Option<u32>,
+    /// Set once Git has nothing left to test.
+    pub result: Option<BisectResult>,
+    /// Where `bisect reset` takes HEAD back: the branch checked out when the bisect started,
+    /// or a commit SHA when HEAD was detached.
+    pub original: Option<String>,
+}
+
 /// How a path is in conflict (index stages, as `git status` reports them).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]

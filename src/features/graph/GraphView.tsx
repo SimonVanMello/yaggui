@@ -11,6 +11,9 @@ import type { RepoState } from '../../ipc';
 import { Icon } from '../../ui/Icon';
 import { matchBinding } from '../keybindings/registry';
 import { useNow } from '../../ui/useNow';
+import { BISECT_MARK_LABELS } from '../bisect/BisectMarkPill';
+import { bisectMarks } from '../bisect/bisectModel';
+import { useBisectState } from '../bisect/useBisectState';
 import { startPress } from '../history/dnd/pointerDrag';
 import { changedFiles, shortOid } from '../repo/repoStatus';
 import { CommitContextMenu, copyText } from './CommitContextMenu';
@@ -193,6 +196,9 @@ export function GraphView({
   const graphWidth = columns.graph ?? autoGraphWidth(cache.laneCount);
   const widths = fitColumns(columns, graphWidth, size.width);
   const pillMetrics = usePillMetrics();
+  const bisectState = useBisectState(repoId).data;
+  // One map per bisect state: each visible row only looks its SHA up (P-04).
+  const marks = useMemo(() => bisectMarks(bisectState), [bisectState]);
   const messageWidth = Math.max(
     0,
     size.width - widths.graph - widths.author - widths.date - widths.sha - pillMetrics.rowPadding,
@@ -486,23 +492,29 @@ export function GraphView({
                   </span>
                 </div>
               )}
-              {items.map((item) => (
-                <GraphRowView
-                  key={item.index}
-                  repoId={repoId}
-                  index={item.index}
-                  data={cache.row(item.index)}
-                  top={item.start - offset}
-                  selected={selectedRow === item.index || source.pickedRows.has(item.index)}
-                  match={search.matches.length > 0 && source.isMatch(item.index)}
-                  activeMatch={search.active >= 0 && search.matches[search.active] === item.index}
-                  columns={rowColumns}
-                  messageWidth={messageWidth}
-                  pillMetrics={pillMetrics}
-                  now={now}
-                  locale={locale}
-                />
-              ))}
+              {items.map((item) => {
+                const row = cache.row(item.index);
+                const mark = row && marks.size > 0 ? marks.get(row.sha) : undefined;
+                return (
+                  <GraphRowView
+                    key={item.index}
+                    repoId={repoId}
+                    index={item.index}
+                    data={row}
+                    top={item.start - offset}
+                    selected={selectedRow === item.index || source.pickedRows.has(item.index)}
+                    match={search.matches.length > 0 && source.isMatch(item.index)}
+                    activeMatch={search.active >= 0 && search.matches[search.active] === item.index}
+                    columns={rowColumns}
+                    messageWidth={messageWidth}
+                    pillMetrics={pillMetrics}
+                    now={now}
+                    locale={locale}
+                    bisect={mark}
+                    bisectLabel={mark && t(BISECT_MARK_LABELS[mark])}
+                  />
+                );
+              })}
             </div>
           )}
         </div>

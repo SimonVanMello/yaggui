@@ -1,6 +1,7 @@
 //! Read-only repository access through `gix`.
 
 pub mod ahead_behind;
+pub mod bisect;
 pub mod blame;
 pub mod diff;
 pub mod file_history;

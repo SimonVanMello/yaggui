@@ -10,10 +10,10 @@ use tauri::State;
 use super::blocking;
 use crate::git::errors::YagguiError;
 use crate::git::ops::types::{
-    AutosquashPlan, CherryPickRequest, CommitResult, ConflictList, ConflictResolution,
-    ConflictStage, ConflictVersions, HistoryResult, InteractiveRebasePlan, InteractiveRebaseResult,
-    MergeRequest, MergeToolResult, OperationDetail, RebaseRequest, RebaseTodoEntry, ResetPreview,
-    ResetRequest, ResetResult, RevertRequest,
+    AutosquashPlan, BisectMark, BisectState, CherryPickRequest, CommitResult, ConflictList,
+    ConflictResolution, ConflictStage, ConflictVersions, HistoryResult, InteractiveRebasePlan,
+    InteractiveRebaseResult, MergeRequest, MergeToolResult, OperationDetail, RebaseRequest,
+    RebaseTodoEntry, ResetPreview, ResetRequest, ResetResult, RevertRequest,
 };
 use crate::state::AppState;
 
@@ -302,4 +302,46 @@ pub async fn autosquash_plan(
 ) -> Result<Option<AutosquashPlan>, YagguiError> {
     let repos = Arc::clone(&state.repos);
     blocking(move || repos.autosquash_plan(repo_id, base)).await
+}
+
+/// The bisect in progress (F-263): marks, commit under test, commits and steps left,
+/// result. `None` when there is none. Read-only, not queued.
+#[tauri::command]
+#[specta::specta]
+pub async fn bisect_state(
+    state: State<'_, AppState>,
+    repo_id: u32,
+) -> Result<Option<BisectState>, YagguiError> {
+    let repos = Arc::clone(&state.repos);
+    blocking(move || repos.bisect_state(repo_id)).await
+}
+
+/// Marks a commit (HEAD when `rev` is `None`) good, bad or skipped; a good or bad mark with
+/// no bisect in progress starts one. Git then checks out the next commit to test. Not
+/// journaled (undo is refused during a bisect; `abortOperation` ends it). Errors:
+/// `dirtyWorktree` (tracked changes), `unresolvedConflicts`, `operationInProgress`,
+/// `bisectCheckoutFailed` (mark saved, next commit not checked out), `bisectWrongOrder`,
+/// `revisionNotFound`.
+#[tauri::command]
+#[specta::specta]
+pub async fn bisect_mark(
+    state: State<'_, AppState>,
+    repo_id: u32,
+    rev: Option<String>,
+    mark: BisectMark,
+) -> Result<BisectState, YagguiError> {
+    let repos = Arc::clone(&state.repos);
+    blocking(move || repos.bisect_mark(repo_id, rev, mark)).await
+}
+
+/// Checks out the next commit to test when a step could not (`awaitingCheckout`). Errors:
+/// `noOperation`, `dirtyWorktree`, `bisectCheckoutFailed`.
+#[tauri::command]
+#[specta::specta]
+pub async fn bisect_next(
+    state: State<'_, AppState>,
+    repo_id: u32,
+) -> Result<BisectState, YagguiError> {
+    let repos = Arc::clone(&state.repos);
+    blocking(move || repos.bisect_next(repo_id)).await
 }

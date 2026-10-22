@@ -6,6 +6,7 @@ import type { YagguiError, RepoState } from '../../ipc';
 import { Button } from '../../ui/Button';
 import { Icon } from '../../ui/Icon';
 import { Tooltip } from '../../ui/Tooltip';
+import { BisectBanner } from '../bisect/BisectBanner';
 import { abortOperation, showConflicts, skipOperation, startContinue } from '../history/historyOps';
 import { useOperationDetail } from '../history/useOperationDetail';
 import { shortOid } from './repoStatus';
@@ -173,9 +174,14 @@ export function RepoBanners({
   const t = useT();
   const { operation, indexLock, dirty } = state;
 
-  const operationBanner = operation && (
-    <OperationBanner repoId={repoId} operation={operation} conflicted={dirty.conflicted} />
-  );
+  const operationBanner =
+    operation?.kind === 'bisect' ? (
+      <BisectBanner repoId={repoId} />
+    ) : (
+      operation && (
+        <OperationBanner repoId={repoId} operation={operation} conflicted={dirty.conflicted} />
+      )
+    );
 
   let lockBanner = null;
   if (indexLock) {

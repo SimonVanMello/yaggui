@@ -75,6 +75,7 @@ function shownInline(kind: OpKind, error: YagguiError): boolean {
 /** The banner and the conflict list follow the repo state: no polling, no global render. */
 function invalidateOperation(repoId: number): void {
   void queryClient.invalidateQueries({ queryKey: queryKeys.operationDetail(repoId) });
+  void queryClient.invalidateQueries({ queryKey: queryKeys.bisectState(repoId) });
   void queryClient.invalidateQueries({ queryKey: queryKeys.conflicts(repoId) });
 }
 

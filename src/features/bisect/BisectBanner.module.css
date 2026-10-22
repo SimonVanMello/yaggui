@@ -1,0 +1,60 @@
+/* A commit of the bisect: short SHA (and summary), selects it in the graph. */
+.commit {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  max-width: 100%;
+  padding: 0 var(--space-1);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--fg-primary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.commit:hover {
+  background: var(--bg-hover);
+}
+
+.commit:focus-visible {
+  outline: var(--border-width) solid var(--accent);
+}
+
+.commit code {
+  color: var(--fg-secondary);
+  font-family: var(--font-code);
+  font-size: var(--text-xs);
+}
+
+.summary {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.candidates {
+  flex-wrap: wrap;
+}
+
+/* Color of a mark in its button, as in the graph. */
+.dot {
+  flex: none;
+  width: var(--space-2);
+  height: var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--mark-color);
+}
+
+.dot[data-mark='good'] {
+  --mark-color: var(--success);
+}
+
+.dot[data-mark='bad'] {
+  --mark-color: var(--danger);
+}
+
+.dot[data-mark='skip'] {
+  --mark-color: var(--fg-muted);
+}

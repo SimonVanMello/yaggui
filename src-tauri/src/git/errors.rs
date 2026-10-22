@@ -103,6 +103,11 @@ pub enum ErrorCode {
     NoOperation,
     /// A merge, rebase, cherry-pick, revert or bisect is already in progress.
     OperationInProgress,
+    /// A bisect mark is saved but the next commit to test could not be checked out (files in
+    /// the way, listed in `payload`): move them, then `bisect_next`.
+    BisectCheckoutFailed,
+    /// The good commits are not ancestors of the bad one: Git cannot bisect between them.
+    BisectWrongOrder,
     /// No external merge tool is configured (`merge.tool`).
     MergeToolMissing,
     /// The external merge tool could not be started (unknown or not installed).
@@ -1105,6 +1110,40 @@ impl YagguiError {
             ErrorCode::OperationInProgress,
             "Another operation (merge, rebase, cherry-pick, revert or bisect) is in progress: continue or abort it first.",
             "Une autre opération (merge, rebase, cherry-pick, revert ou bisect) est en cours : continue-la ou annule-la d'abord.",
+        )
+    }
+
+    /// Local changes refuse a bisect mark: each step checks out a commit and the changes
+    /// would be tested with it.
+    pub fn bisect_dirty(paths: Vec<String>) -> Self {
+        Self::new(
+            ErrorCode::DirtyWorktree,
+            "You have local changes: a bisect tests each commit as it was committed. Stash or commit them first.",
+            "Tu as des modifications locales : un bisect teste chaque commit tel qu'il a été commité. Mets-les de côté (stash) ou commite-les d'abord.",
+        )
+        .with_payload(ErrorPayload::DirtyWorktree {
+            paths,
+            can_carry: false,
+        })
+    }
+
+    pub fn bisect_checkout_failed(paths: Vec<String>) -> Self {
+        Self::new(
+            ErrorCode::BisectCheckoutFailed,
+            "The mark is saved, but the next commit to test could not be checked out: files are in the way. Move or remove them, then check out the next commit.",
+            "Le marquage est enregistré, mais le prochain commit à tester n'a pas pu être extrait : des fichiers gênent. Déplace-les ou supprime-les, puis extrais le commit suivant.",
+        )
+        .with_payload(ErrorPayload::DirtyWorktree {
+            paths,
+            can_carry: false,
+        })
+    }
+
+    pub fn bisect_wrong_order() -> Self {
+        Self::new(
+            ErrorCode::BisectWrongOrder,
+            "A good commit is not an ancestor of the bad one: Git cannot bisect between them. Check the marks, or end the bisect and start again.",
+            "Un commit bon n'est pas un ancêtre du mauvais : Git ne peut pas faire de bisect entre eux. Vérifie les marquages, ou termine le bisect et recommence.",
         )
     }
 

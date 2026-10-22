@@ -1,5 +1,6 @@
 //! `RepoManager`, `RepoSession`, `OpQueue` and `Watcher`.
 
+mod bisect;
 mod commit_tools;
 mod config;
 pub mod create;
