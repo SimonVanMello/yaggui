@@ -112,6 +112,9 @@ for (const { name: theme, colorScheme } of THEMES) {
       await openRepo(page);
       // HEAD (`main`, row 4 of the mock) is bad: the failed checkout leaves it there, marked.
       await markFromMenu(page, 4, 'Start bisect', 'Mark as bad');
+      // The banner shifts the graph down: wait for it before opening the next menu.
+      await expect(banner(page)).toContainText('Mark a good commit');
+      await expect(page.locator('[data-row="4"]').getByTestId('bisect-mark')).toHaveText('bad');
       await page.evaluate(() => window.__yagguiMock?.simulateBisectCheckoutFailure(3));
       await markFromMenu(page, 12, 'Bisect', 'Mark as good');
       await expect(page.getByText(/^The mark is saved, but the next commit/)).toBeVisible();
