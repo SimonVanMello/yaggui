@@ -17,6 +17,7 @@ sources:
   - src/features/staging/conventional.ts
   - src/features/staging/commitToolsOps.ts
   - src-tauri/src/repo/write.rs
+  - src-tauri/src/system/shell_env.rs
   - src-tauri/src/repo/commit_tools.rs
   - src-tauri/src/store/commit_prefs.rs
   - src-tauri/src/commands/commit_tools.rs
@@ -96,7 +97,7 @@ Check **Push after commit** to push right after a successful commit, exactly as 
 
 ## Hooks
 
-Git runs your hooks (`pre-commit`, `prepare-commit-msg`, `commit-msg` and the others) as in a terminal. yaggui never passes `--no-verify` and offers no option to skip hooks. See [Git hooks](https://git-scm.com/docs/githooks).
+Git runs your hooks (`pre-commit`, `prepare-commit-msg`, `commit-msg` and the others) as in a terminal, with the `PATH` of your login shell even when yaggui was started from the Dock, so tools such as `npx` (husky, lint-staged) are found. yaggui never passes `--no-verify` and offers no option to skip hooks. See [Git hooks](https://git-scm.com/docs/githooks).
 
 When a hook rejects the commit, a panel opens at the top of the commit area instead of a toast:
 

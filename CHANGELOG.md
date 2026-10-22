@@ -24,6 +24,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
   they brought in. Toggle it from the toolbar, the palette or `Mod+Alt+R`; it is kept per
   repository, and search and jumps follow it.
 
+### Fixed
+
+- Git hooks that call `npx`, `node` or other tools installed with Homebrew, nvm or Volta failed
+  with "command not found" when yaggui was started from the Dock or Finder: Git, its hooks and the
+  editor and terminal yaggui opens now get the `PATH` of the login shell, read in the background at
+  startup.
+
 ## [0.6.0] - 2026-10-20
 
 ### Added
