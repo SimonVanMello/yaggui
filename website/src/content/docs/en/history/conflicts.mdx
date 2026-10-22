@@ -39,7 +39,7 @@ yaggui reads the operation state from the `.git` folder (`MERGE_HEAD`, `rebase-m
 
 The banner shows:
 
-- **A title**: for a rebase with a known step, **Rebase \{step\}/\{total\}** (for example "Rebase 3/7") with a progress bar. Otherwise **Merge in progress**, **Rebase in progress**, **Cherry-pick in progress**, **Revert in progress**, **Bisect in progress** or **Applying patches (git am)**.
+- **A title**: for a rebase with a known step, **Rebase \{step\}/\{total\}** (for example "Rebase 3/7") with a progress bar. Otherwise **Merge in progress**, **Rebase in progress**, **Cherry-pick in progress**, **Revert in progress** or **Applying patches (git am)**. A bisect has its own banner, with its steps and result: see [Find a bug with bisect](../bisect/).
 - **A summary**: **Rebasing \{branch\} onto \{onto\}**, **Merging \{source\} into \{target\}**, **Squash-merging \{source\} into \{target\}**, **Cherry-picking \{commit\} onto \{target\}** or **Reverting \{commit\} on \{target\}**.
 - **The number of conflicts** still unresolved, and **Show conflicts**, which selects the working copy so the conflicts panel appears.
 - The **Continue**, **Skip** and abort buttons described below.
@@ -48,7 +48,7 @@ While an operation is in progress, the other history actions (merge, rebase, che
 
 ### Continue
 
-**Continue** is disabled until every conflict is resolved; its tooltip says **Resolve the \{count\} remaining conflicts first**. It is hidden during a bisect.
+**Continue** is disabled until every conflict is resolved; its tooltip says **Resolve the \{count\} remaining conflicts first**.
 
 For a merge, cherry-pick or revert, a **Continue** dialog lets you edit the message of the commit about to be created ("Edit the message of the commit that is about to be created, if needed."), prefilled with the message Git prepared. Click **Continue** or press <kbd>⌘Enter</kbd> (<kbd>Ctrl+Enter</kbd> on Windows and Linux). If Git prepared no message, yaggui continues without the dialog. A rebase continues directly.
 

@@ -407,3 +407,44 @@ test.describe(() => {
     await capture(page, testInfo, 'conflicts-panel', conflictsPanel(page));
   });
 });
+
+/** Bisect (M7-9) on `blog`, a clean repository: marks set through the mock, as from the graph. */
+async function bisectOnBlog(page: Page) {
+  await start(page);
+  await openRepo(page, /^blog\b/);
+  await expect(graphRow(page, 12)).toBeVisible();
+  await page.evaluate(async () => {
+    const mock = window.__yagguiMock;
+    if (!mock) return;
+    const page = await mock.commands.graphPage(3, 0, 20);
+    if (page.status !== 'ok') return;
+    await mock.commands.bisectMark(3, page.data.shas[0] ?? null, 'bad');
+    await mock.commands.bisectMark(3, page.data.shas[12] ?? null, 'good');
+    await mock.commands.bisectMark(3, null, 'skip');
+  });
+}
+
+const bisectBanner = (page: Page) => page.getByTestId('bisect-banner');
+
+test('bisect-banner', async ({ page }, testInfo) => {
+  await bisectOnBlog(page);
+  await expect(bisectBanner(page)).toContainText('Testing');
+  await expect(page.getByTestId('bisect-mark').filter({ hasText: 'skipped' })).toBeVisible();
+  await page.mouse.move(0, 0);
+  await captureUnion(page, testInfo, 'bisect-banner', [bisectBanner(page), graphRow(page, 13)]);
+});
+
+test('bisect-result', async ({ page }, testInfo) => {
+  await bisectOnBlog(page);
+  await page.evaluate(async () => {
+    const mock = window.__yagguiMock;
+    for (let i = 0; i < 10 && mock; i++) {
+      const state = await mock.commands.bisectState(3);
+      if (state.status !== 'ok' || state.data?.result) break;
+      await mock.commands.bisectMark(3, null, 'good');
+    }
+  });
+  await expect(bisectBanner(page)).toContainText('First bad commit found');
+  await page.mouse.move(0, 0);
+  await captureUnion(page, testInfo, 'bisect-result', [bisectBanner(page), graphRow(page, 13)]);
+});

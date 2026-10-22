@@ -111,6 +111,7 @@ Le rétablissement réapplique l’opération que vous venez d’annuler. Annule
 - Il contient les 100 dernières opérations de chaque dépôt, et aucune de plus de 30 jours ; les plus anciennes sont supprimées.
 - Retirer un dépôt de yaggui (**Retirer des récents**) supprime son historique.
 - L’annulation exige un dépôt au calme : tant qu’un merge, un rebase, un cherry-pick, un revert ou un bisect est en cours, l’annulation et le rétablissement sont refusés (« Une autre opération (merge, rebase, cherry-pick, revert ou bisect) est en cours : continue-la ou annule-la d'abord. »), de même quand des fichiers sont en conflit (« Des fichiers sont encore en conflit : résous-les (et stage-les) d'abord. »). Les abandons de modifications, les stashs de fichiers sélectionnés, les fichiers appliqués depuis un stash, les modifications de `.gitignore` et du suivi LFS, les suppressions de stash et les changements de remote peuvent en revanche toujours être annulés.
+- Les étapes d’un bisect ne sont pas enregistrées : elles ne font que déplacer HEAD, et **Arrêter le bisect** le ramène ; voir [Trouver un bug avec bisect](../bisect/).
 - yaggui ne détecte pas un push fait depuis un terminal : si vous poussez depuis un terminal puis annulez un commit, seule votre branche locale bouge.
 
 ## Quand le dépôt a changé en dehors de yaggui
