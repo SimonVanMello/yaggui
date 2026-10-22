@@ -313,7 +313,11 @@ describe('mock / backend parity (M7)', () => {
   });
 
   it('an untracked file must come from the stash third parent (`not_in_stash`)', async () => {
-    const { id, stash } = await applyUntrackedFromStash();
+    const { id } = await unwrap(mock.openRepo('/Users/alex/dev/yaggui'));
+    const pushed = await unwrap(
+      mock.stashPush(id, { message: 'tracked only', includeUntracked: false, keepIndex: false }),
+    );
+    const stash = { index: 0, sha: pushed.sha };
     const missing = await mock.stashApplyFile(id, { stash, path: 'nope.txt', untracked: true });
     expect(missing).toMatchObject({
       error: {

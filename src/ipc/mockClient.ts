@@ -3848,14 +3848,19 @@ export class MockBackend {
             if (!wip || !entry) return { error: this.notOpen(repoId) };
             message = entry.message;
             // Like the backend: an untracked file must come from the stash's third parent.
+            if (untracked && !entry.untrackedSha) return { error: notInStash(path) };
+            // The preview also lists fixture files the saved state does not hold: unknown
+            // content. A file in the saved index but not in its working tree was deleted.
             const saved = this.stashStates.get(entry.sha);
-            if (untracked && (!entry.untrackedSha || (saved && !saved.worktree.has(path)))) {
-              return { error: notInStash(path) };
-            }
+            const stashed = saved?.worktree.has(path)
+              ? (saved.worktree.get(path)?.text ?? null)
+              : saved?.index.has(path)
+                ? null
+                : undefined;
             const result = wip.applyStashFile(
               path,
               untracked,
-              saved ? (saved.worktree.get(path)?.text ?? null) : undefined,
+              stashed,
               /conflict/.test(entry.message),
             );
             if ('error' in result) return result;
