@@ -16,7 +16,7 @@ const PAGE_MAX = 500;
 const MAX_RENDER_BYTES = 1024 * 1024;
 const MANY_FILES = 1_200;
 
-type Variant = 'text' | 'image' | 'binary' | 'lfs' | 'big' | 'symlink' | 'submodule';
+type Variant = 'text' | 'latin1' | 'image' | 'binary' | 'lfs' | 'big' | 'symlink' | 'submodule';
 
 interface MockNode {
   path: string;
@@ -49,6 +49,8 @@ const SHOWCASE: readonly MockNode[] = [
   text('docs/SPEC.md'),
   { ...text('docs/changelog.md'), oddOnly: true },
   { path: 'docs/readme-link', kind: 'symlink', variant: 'symlink' },
+  // Not UTF-8: decoded as Windows-1252, like the backend.
+  { path: 'docs/legacy-notes.txt', kind: 'file', variant: 'latin1' },
   { path: 'scripts/run.sh', kind: 'executable', variant: 'text' },
   { path: 'assets/logo.png', kind: 'file', variant: 'image' },
   { path: 'assets/archive.bin', kind: 'file', variant: 'binary' },
@@ -112,6 +114,7 @@ function present(node: MockNode, sha: string): boolean {
 function contentText(node: MockNode, sha: string): string {
   if (node.kind === 'executable') return '#!/bin/sh\nset -e\necho "build"\n';
   if (node.variant === 'big') return 'x'.repeat(MAX_RENDER_BYTES + 200_000);
+  if (node.variant === 'latin1') return 'Café crème – résumé\n';
   return mockFileText(node.path, node.versioned ? hash(sha) : 0);
 }
 
@@ -184,10 +187,14 @@ export function mockTreeList(
       ),
     };
   }
+  // `dirs_first` in `git/read/tree.rs`: code point order of the lowercased names, then the
+  // names themselves, never the locale's collation.
+  const order = (x: string, y: string) => (x < y ? -1 : x > y ? 1 : 0);
   entries.sort(
     (a, b) =>
       Number(b.kind === 'dir') - Number(a.kind === 'dir') ||
-      a.name.toLowerCase().localeCompare(b.name.toLowerCase()),
+      order(a.name.toLowerCase(), b.name.toLowerCase()) ||
+      order(a.name, b.name),
   );
   const size = Math.max(1, Math.min(limit, PAGE_MAX));
   return {
@@ -247,6 +254,8 @@ export function mockTreeFile(
         kind: 'lfs',
         object: { oid: `sha256:${'a'.repeat(64)}`, size: 734_003_200 },
       });
+    case 'latin1':
+      return file({ kind: 'text', text: contentText(node, sha), encoding: 'windows1252' });
     case 'big':
       if (!force) return file({ kind: 'tooLarge', limit: MAX_RENDER_BYTES });
       return file({ kind: 'text', text: contentText(node, sha), encoding: 'utf8' });

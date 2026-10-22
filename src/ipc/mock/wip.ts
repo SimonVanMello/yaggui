@@ -568,13 +568,14 @@ export class MockWip {
   }
 
   /**
-   * One file of a stash (`stash_apply_file`): `stashed` is its stashed content when the mock
-   * knows it. Refused over local changes or a file in the way; `conflict` leaves it conflicted.
+   * One file of a stash (`stash_apply_file`): `stashed` is its stashed content, `null` when
+   * the stash deletes it, `undefined` when the mock does not know it (fixture stashes).
+   * Refused over local changes or a file in the way; `conflict` leaves it conflicted.
    */
   applyStashFile(
     path: string,
     untracked: boolean,
-    stashed: string | null,
+    stashed: string | null | undefined,
     conflict: boolean,
   ): Result<'applied' | 'conflict'> {
     const current = this.worktree.get(path);
@@ -595,6 +596,11 @@ export class MockWip {
     if (conflict) {
       this.markConflicted([path]);
       return { ok: 'conflict' };
+    }
+    if (stashed === null && indexed) {
+      // Deleted in the stash: deleted here too, the deletion left unstaged.
+      this.worktree.delete(path);
+      return { ok: 'applied' };
     }
     this.worktree.set(path, { text, mode: current?.mode ?? 'regular' });
     return { ok: 'applied' };
@@ -683,9 +689,26 @@ export class MockWip {
     return out;
   }
 
-  /** Takes HEAD back from a snapshot, and the index and working tree too with `files`. */
-  restoreFrom(snapshot: MockWip, files: boolean): void {
+  /**
+   * Takes HEAD back from a snapshot, and the index and working tree too with `files`. With
+   * `paths`, only those files come back, and HEAD stays (`Mode::Files` of the backend).
+   */
+  restoreFrom(snapshot: MockWip, files: boolean, paths: string[] | null = null): void {
     const copy = snapshot.copy();
+    if (paths) {
+      for (const [mine, theirs] of [
+        [this.index, copy.index],
+        [this.worktree, copy.worktree],
+      ] as const) {
+        for (const path of paths) {
+          const side = theirs.get(path);
+          if (side) mine.set(path, side);
+          else mine.delete(path);
+        }
+      }
+      this.ignored = copy.ignored;
+      return;
+    }
     this.head = copy.head;
     if (files) {
       this.index = copy.index;
@@ -694,14 +717,14 @@ export class MockWip {
     }
   }
 
-  /** Paths whose index or working tree entry differs from `snapshot`, sorted. */
-  changedSince(snapshot: MockWip): string[] {
+  /** Paths (among `only` when given) whose index or working tree entry differs from `snapshot`. */
+  changedSince(snapshot: MockWip, only: string[] | null = null): string[] {
     const changed = new Set<string>();
     for (const [mine, theirs] of [
       [this.index, snapshot.index],
       [this.worktree, snapshot.worktree],
     ] as const) {
-      for (const path of new Set([...mine.keys(), ...theirs.keys()])) {
+      for (const path of only ?? new Set([...mine.keys(), ...theirs.keys()])) {
         if (JSON.stringify(mine.get(path)) !== JSON.stringify(theirs.get(path))) changed.add(path);
       }
     }

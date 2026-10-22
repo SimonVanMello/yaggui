@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { RebaseAction } from '../bindings';
 import { mockBackend, mockClient } from '../mockClient';
 import { unwrap } from '../result';
+import { MockWip } from './wip';
 
 const { commands: mock } = mockClient;
 
@@ -211,5 +212,227 @@ describe('mock / backend parity (M4)', () => {
       expect(await mock.runMergeTool(id, 'src/app/App.tsx')).toMatchObject(expected);
       expect((await unwrap(mock.listConflicts(id))).unresolved).toBe(4);
     }
+  });
+});
+
+/**
+ * Where the M7-10 audit found the mock and the real backend apart (reference: the Rust code
+ * and tests named in each case).
+ */
+describe('mock / backend parity (M7)', () => {
+  it('forgetting a repository drops its graph filter (`store/tests.rs`, cascade)', async () => {
+    const path = '/Users/alex/dev/blog';
+    const { id } = await unwrap(mock.openRepo(path));
+    const filter = await unwrap(mock.graphFilter(id));
+    await unwrap(mock.setGraphFilter(id, { ...filter, firstParent: true }));
+    await unwrap(mock.closeRepo(id));
+    await unwrap(mock.forgetRepo(id));
+    const again = await unwrap(mock.openRepo(path));
+    expect((await unwrap(mock.graphFilter(again.id))).firstParent ?? false).toBe(false);
+  });
+
+  it('an imported `diffOptions` is read like the Rust struct (`prefs_sync.rs`)', async () => {
+    const file = (diffOptions: unknown) =>
+      JSON.stringify({ format: 'yaggui-preferences', version: 1, preferences: { diffOptions } });
+    // Same options without `markdownPreview`, keys in another order, an unknown field: no change.
+    const { diffOptions } = await unwrap(mock.getPreferences());
+    const rest: Partial<typeof diffOptions> = { ...diffOptions };
+    delete rest.markdownPreview;
+    mockBackend.setPickedPreferencesFile(
+      file({ extra: 1, ...Object.fromEntries(Object.entries(rest).reverse()) }),
+    );
+    expect((await unwrap(mock.previewPreferencesImport('')))?.changes).toEqual([]);
+
+    mockBackend.setPickedPreferencesFile(file({ ...diffOptions, contextLines: -1 }));
+    expect(await mock.previewPreferencesImport('')).toMatchObject({
+      error: { code: 'preferencesFileInvalid' },
+    });
+  });
+
+  it('imported shortcuts: a missing `shortcut` removes it, at most 1000 entries', async () => {
+    const file = (keybindings: unknown) =>
+      JSON.stringify({ format: 'yaggui-preferences', version: 1, keybindings });
+    mockBackend.setPickedPreferencesFile(file([{ action: 'tab.new' }]));
+    const preview = await unwrap(mock.previewPreferencesImport(''));
+    expect(preview?.keybindingChanges).toEqual([
+      expect.objectContaining({ action: 'tab.new', after: { custom: true, shortcut: null } }),
+    ]);
+
+    const many = Array.from({ length: 1001 }, (_, i) => ({
+      action: `a${String(i)}`,
+      shortcut: null,
+    }));
+    mockBackend.setPickedPreferencesFile(file(many));
+    expect(await mock.previewPreferencesImport('')).toMatchObject({
+      error: { code: 'preferencesFileInvalid' },
+    });
+  });
+
+  it('cancelling the export dialog writes nothing (`commands/settings.rs`)', async () => {
+    mockBackend.setPickedExportPath(null);
+    expect(await unwrap(mock.exportPreferences(''))).toBeNull();
+    expect(mockBackend.exportedPreferences()).toBeNull();
+    mockBackend.setPickedExportPath('/tmp/prefs.json');
+    expect(await unwrap(mock.exportPreferences(''))).toBe('/tmp/prefs.json');
+    expect(mockBackend.exportedPreferences('/tmp/prefs.json')).toContain('yaggui-preferences');
+  });
+
+  it('a tree lists names in code point order and decodes a non-UTF-8 file (`tree.rs`)', async () => {
+    const { id } = await unwrap(mock.openRepo('/Users/alex/dev/yaggui'));
+    const page = await unwrap(mock.treeList(id, 'HEAD', 'docs', 0, 500));
+    const names = page.entries.map((e) => e.name);
+    expect(names).toEqual([...names].sort((a, b) => (a.toLowerCase() < b.toLowerCase() ? -1 : 1)));
+    const legacy = await unwrap(mock.treeFile(id, 'HEAD', 'docs/legacy-notes.txt', false));
+    expect(legacy.content).toMatchObject({ kind: 'text', encoding: 'windows1252' });
+  });
+
+  /** The yaggui showcase stashed with its untracked file, which is then applied alone. */
+  async function applyUntrackedFromStash() {
+    const { id } = await unwrap(mock.openRepo('/Users/alex/dev/yaggui'));
+    const untracked = async () =>
+      (await unwrap(mock.changedFiles(id, { kind: 'unstaged' }))).files
+        .filter((f) => f.status === 'untracked')
+        .map((f) => f.path);
+    const [path = ''] = await untracked();
+    const pushed = await unwrap(
+      mock.stashPush(id, { message: 'wip', includeUntracked: true, keepIndex: false }),
+    );
+    const stash = { index: 0, sha: pushed.sha };
+    await unwrap(mock.stashApplyFile(id, { stash, path, untracked: true }));
+    return { id, path, stash, untracked };
+  }
+
+  it('a file undo only checks its own files and runs during an operation (`journal.rs`)', async () => {
+    const { id, untracked } = await applyUntrackedFromStash();
+    // An unrelated edit, then a merge stopped on conflicts: `Mode::Files` ignores both.
+    mockBackend.simulateEdit(id, 'README.md', 'edited elsewhere\n');
+    mockBackend.simulateOperation(id, 'merge');
+    await unwrap(mock.undo(id));
+    expect(await untracked()).toEqual([]);
+    expect((await unwrap(mock.repoState(id))).operation?.kind).toBe('merge');
+  });
+
+  it('an untracked file must come from the stash third parent (`not_in_stash`)', async () => {
+    const { id, stash } = await applyUntrackedFromStash();
+    const missing = await mock.stashApplyFile(id, { stash, path: 'nope.txt', untracked: true });
+    expect(missing).toMatchObject({
+      error: {
+        code: 'invalidArgument',
+        message: { en: '"nope.txt" is not a file of this stash.' },
+      },
+    });
+  });
+
+  it('a file the stash deletes is deleted, unstaged (`stash_file.rs`)', () => {
+    const wip = MockWip.fromChanges(
+      [],
+      [
+        {
+          path: 'f.txt',
+          status: 'deleted',
+          oldMode: 'regular',
+          newMode: null,
+          old: 'x\n',
+          new: null,
+        },
+      ],
+    );
+    const saved = wip.stash(false, false);
+    expect(wip.worktreeText('f.txt')).toBe('x\n');
+    expect(
+      wip.applyStashFile('f.txt', false, saved?.worktree.get('f.txt')?.text ?? null, false),
+    ).toEqual({
+      ok: 'applied',
+    });
+    expect(wip.worktreeText('f.txt')).toBeNull();
+    expect(wip.changes('unstaged')).toContainEqual(
+      expect.objectContaining({ path: 'f.txt', status: 'deleted' }),
+    );
+  });
+
+  it('a refused fixup reports `op-finished` failed (`fixup.rs`, checks in the queue)', async () => {
+    const { id } = await unwrap(mock.openRepo('/Users/alex/dev/blog'));
+    const outcomes: string[] = [];
+    const off = mockClient.events.subscribe('opFinished', (e) => outcomes.push(e.outcome.kind));
+    expect(await mock.commitFixup(id, 'no-such-rev')).toMatchObject({
+      error: { code: 'revisionNotFound' },
+    });
+    off();
+    expect(outcomes).toEqual(['failed']);
+  });
+
+  it('a bisect mark in the wrong order is not recorded (`bisect.rs`)', async () => {
+    const { id } = await unwrap(mock.openRepo('/Users/alex/dev/blog'));
+    await unwrap(mock.bisectMark(id, 'HEAD~3', 'bad'));
+    // HEAD descends from the bad commit: good after bad.
+    expect(await mock.bisectMark(id, 'HEAD', 'good')).toMatchObject({
+      error: { code: 'bisectWrongOrder' },
+    });
+    expect((await unwrap(mock.bisectState(id)))?.good).toEqual([]);
+    expect((await unwrap(mock.operationDetail(id)))?.canSkip).toBe(true);
+  });
+
+  it('a bisect checkout in the way keeps the mark, `bisectNext` recovers', async () => {
+    const { id } = await unwrap(mock.openRepo('/Users/alex/dev/blog'));
+    const page = await unwrap(mock.graphPage(id, 0, 40));
+    await unwrap(mock.bisectMark(id, null, 'bad'));
+    mockBackend.simulateBisectCheckoutFailure(id);
+    const failed = await mock.bisectMark(id, page.shas[page.shas.length - 1] ?? '', 'good');
+    expect(failed).toMatchObject({
+      error: { code: 'bisectCheckoutFailed', payload: { kind: 'dirtyWorktree' } },
+    });
+    const waiting = await unwrap(mock.bisectState(id));
+    expect(waiting).toMatchObject({
+      awaitingCheckout: true,
+      good: [page.shas[page.shas.length - 1]],
+    });
+    const next = await unwrap(mock.bisectNext(id));
+    expect(next.awaitingCheckout).toBe(false);
+    expect(next.current?.sha).not.toBe(page.shas[0]);
+  });
+
+  it('a bisect started before a restart is found again with its marks (`bisect.rs`)', async () => {
+    const path = '/Users/alex/dev/blog';
+    const { id } = await unwrap(mock.openRepo(path));
+    const page = await unwrap(mock.graphPage(id, 0, 40));
+    const [bad = '', good = ''] = [page.shas[0], page.shas[page.shas.length - 1]];
+    mockBackend.simulateOperation(id, 'bisect', { marks: { bad, good: [good] } });
+    await unwrap(mock.closeRepo(id));
+    const again = await unwrap(mock.openRepo(path));
+    const reopened = await unwrap(mock.repoState(again.id));
+    expect(reopened.operation).toEqual({ kind: 'bisect' });
+    expect(reopened.head.kind).toBe('detached');
+    const state = await unwrap(mock.bisectState(again.id));
+    expect(state).toMatchObject({ bad, good: [good], original: 'main', awaitingCheckout: false });
+    expect(state?.remaining).toBeGreaterThan(0);
+    expect(state?.current?.sha).not.toBe(bad);
+  });
+
+  it('a line history read can be cancelled, even before it starts (`line_history.rs`)', async () => {
+    const { id } = await unwrap(mock.openRepo('/Users/alex/dev/blog'));
+    const request = { path: 'README.md', rev: 'HEAD', start: 1, end: 3 };
+    mockBackend.simulateSlowReads(10_000);
+    const running = mock.lineHistory(id, request, null, 100, 7);
+    await unwrap(mock.cancelRead(7));
+    expect(await running).toMatchObject({ error: { code: 'cancelled' } });
+    mockBackend.simulateSlowReads(0);
+    await unwrap(mock.cancelRead(8));
+    expect(await mock.lineHistory(id, request, null, 100, 8)).toMatchObject({
+      error: { code: 'cancelled' },
+    });
+    await unwrap(mock.lineHistory(id, request, null, 100, 9));
+  });
+
+  it('the lines of a file not committed yet have no history (`line_history.rs`)', async () => {
+    const { id } = await unwrap(mock.openRepo('/Users/alex/dev/yaggui'));
+    const files = (await unwrap(mock.changedFiles(id, { kind: 'unstaged' }))).files;
+    const path = files.find((f) => f.status === 'untracked')?.path ?? '';
+    const result = await mock.lineHistory(id, { path, rev: null, start: 1, end: 1 }, null, 100, 1);
+    expect(result).toMatchObject({
+      error: {
+        code: 'invalidArgument',
+        message: { en: `"${path}" is not committed yet: its lines have no history.` },
+      },
+    });
   });
 });

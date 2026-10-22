@@ -97,6 +97,11 @@ for (const { name: theme, colorScheme } of THEMES) {
     test('export writes the file and says what was left out', async ({ page }) => {
       await start(page);
       const prefs = await openPrefs(page);
+      // Cancelling the save dialog writes nothing and says nothing (M7-10).
+      await page.evaluate(() => window.__yagguiMock?.setPickedExportPath(null));
+      await prefs.getByRole('button', { name: 'Export…' }).click();
+      await expect(page.getByText('Preferences and shortcuts exported')).toHaveCount(0);
+      expect(await page.evaluate(() => window.__yagguiMock?.exportedPreferences())).toBeNull();
       await prefs.getByRole('button', { name: 'Export…' }).click();
       await expect(page.getByText('Preferences and shortcuts exported').first()).toBeVisible();
       const exported = await page.evaluate(() => window.__yagguiMock?.exportedPreferences());
