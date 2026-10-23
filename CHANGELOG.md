@@ -9,39 +9,45 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-10-23
+
 ### Added
 
+- Undo history kept across restarts: `Mod+Z` still undoes the last operations after you quit and
+  reopen yaggui (the last 100 of each repository, up to 30 days), listed under "Earlier sessions"
+  in the history; an operation that can no longer be restored, because a branch moved or Git
+  pruned what it needs, says why and is never partly applied (#50, #52).
 - Files at a commit: browse the folders and files of any commit (commit details, graph menu or
   palette), read a file read-only with syntax highlighting, and jump to its history or blame at
   that commit. "Save as…" writes that version of the file to disk without ever replacing a file
   silently. Binary files, large texts, LFS pointers, symbolic links and submodules each get their
-  own view.
+  own view (#59).
 - Fixup commits: "Create a fixup for this commit" in the commit menu and the palette commits the
   staged changes as `fixup! <summary>`, undoable like a commit; "Autosquash" opens the interactive
-  rebase with the fixups already under their targets, to review before running it.
+  rebase with the fixups already under their targets, to review before running it (#53).
 - Export your preferences and custom shortcuts to one JSON file, and import it on another machine
   (Preferences dialog or command palette). The import lists what changes before applying anything;
-  the Git path, editor, terminal and diff/merge tools stay specific to each machine.
+  the Git path, editor, terminal and diff/merge tools stay specific to each machine (#51).
 - Apply a single file of a stash from the stash details (hover button or right-click), tracked or
   untracked: the stash is kept, a conflict is explained like for a whole stash, and the operation
-  can be undone.
+  can be undone (#54).
 - First-parent history in the graph: each branch's main line only, merges without the commits
   they brought in. Toggle it from the toolbar, the palette or `Mod+Alt+R`; it is kept per
-  repository, and search and jumps follow it.
+  repository, and search and jumps follow it (#55).
 - Assisted bisect: mark a commit good or bad from its menu in the graph to start, then mark each
   commit yaggui checks out from the banner (good, bad or skip) while it shows the steps left;
   markers in the graph, the first bad commit at the end, and a bisect started in a terminal or
-  left open is picked up again.
+  left open is picked up again (#61).
 - History of a range of lines (`git log -L`): select lines in the blame (Shift-click) or in a
   commit diff (gutter), then "History of lines": every commit that changed them, with its change to
-  those lines, followed across renames; the search can be stopped on long histories.
+  those lines, followed across renames; the search can be stopped on long histories (#62).
 
 ### Fixed
 
 - Git hooks that call `npx`, `node` or other tools installed with Homebrew, nvm or Volta failed
   with "command not found" when yaggui was started from the Dock or Finder: Git, its hooks and the
   editor and terminal yaggui opens now get the `PATH` of the login shell, read in the background at
-  startup.
+  startup (#58).
 
 ## [0.6.0] - 2026-10-20
 
