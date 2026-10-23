@@ -215,7 +215,7 @@ function rangeDiff(old: string[] | null, now: string[], start: number): TextDiff
     newLineEnding: 'lf',
     oldMissingNewline: false,
     newMissingNewline: false,
-    oldLineCount: oldStart + oldLines - 1,
+    oldLineCount: Math.max(0, oldStart + oldLines - 1),
     newLineCount: start + now.length - 1,
   };
 }
@@ -255,6 +255,21 @@ export function mockLineHistory(
       ),
     };
   }
+  if (request.rev === null && !range) {
+    // Like `in_head` in `repo/inspect.rs`: a file HEAD does not have has no line history.
+    const added = wip?.changes('staged').some((c) => c.path === path && c.status === 'added');
+    const untracked = wip
+      ?.changes('unstaged')
+      .some((c) => c.path === path && c.status === 'untracked');
+    if (added || untracked || graph.headCommit() === null) {
+      return {
+        error: invalid(
+          `"${path}" is not committed yet: its lines have no history.`,
+          `« ${path} » n'est pas encore commité : ses lignes n'ont pas d'historique.`,
+        ),
+      };
+    }
+  }
   const head = startCommit(graph, range?.rev ?? request.rev);
   if ('error' in head) return head;
   if (head.ok === null) return { error: notFound('HEAD') };
@@ -269,8 +284,9 @@ export function mockLineHistory(
   const sha = graph.history.commits[head.ok]?.sha ?? '';
   const local = request.rev === null && !range ? (wip?.worktreeText(path) ?? null) : null;
   const count = lineCount(local ?? mockFileText(path, hash(sha)));
-  if (end > count) {
-    const where = local === null ? sha.slice(0, 7) : 'the working tree';
+  // A next page follows the range already checked (`check_lines` only runs on the request).
+  if (!range && end > count) {
+    const where = local === null ? (request.rev ?? 'HEAD') : 'the working tree';
     return {
       error: invalid(
         `"${path}" has only ${String(count)} lines in ${where}.`,

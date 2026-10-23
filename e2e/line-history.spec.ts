@@ -102,5 +102,32 @@ for (const { name: theme, colorScheme } of THEMES) {
         view.getByRole('listbox', { name: 'Commits that changed the lines' }).getByRole('option'),
       ).not.toHaveCount(0);
     });
+
+    test('a long search can be stopped, then started again (M7-10)', async ({ page }) => {
+      await openYaggui(page);
+      await graphRow(page, 2).click();
+      await details(page)
+        .getByRole('option', { name: / layout\.ts / })
+        .click();
+      const diff = page.getByRole('region', { name: /^Diff of / });
+      await page.getByRole('radio', { name: 'Unified' }).click();
+      const gutter = diff.locator('.yaggui-signs .yaggui-selectable');
+      await gutter.nth(1).click();
+      // `git log -L` on a long history: the read takes a while, and `cancelRead` ends it.
+      await page.evaluate(() => window.__yagguiMock?.simulateSlowReads(60_000));
+      await diff.getByRole('button', { name: 'Line history' }).click();
+      const view = page.getByRole('region', { name: /^Line history of / });
+      await expect(view.getByRole('status')).toHaveText(/^Following the lines/);
+      await capture(page, theme, 'searching');
+      await view.getByRole('button', { name: /^Stop/ }).click();
+      await expect(view.getByText('Search stopped.')).toBeVisible();
+      await capture(page, theme, 'stopped');
+
+      await page.evaluate(() => window.__yagguiMock?.simulateSlowReads(0));
+      await view.getByRole('button', { name: 'Search again' }).click();
+      await expect(
+        view.getByRole('listbox', { name: 'Commits that changed the lines' }).getByRole('option'),
+      ).not.toHaveCount(0);
+    });
   });
 }

@@ -1,6 +1,6 @@
 # V1 requirements audit (M4-8)
 
-State at the M4-8 PR commit, after M4-1 to M4-10. One row per requirement marked **V1** in the [spec](../SPEC.md) §5, plus the performance targets of §3.
+State at the M4-8 PR commit, after M4-1 to M4-10. One row per requirement marked **V1** in the [spec](../SPEC.md) §5, plus the performance targets of §3. The **V2** requirements (milestone M7) were added by M7-10: §6 to §8, manual validation in [M7.md](M7.md).
 
 Statuses: **delivered** (the spec's behavior is in place and tested) · **partial** (the essentials are there, one point is missing, detailed in the column) · **missing**.
 
@@ -193,3 +193,65 @@ Reference: the real backend and its tests. Parity checked by `src/ipc/mock/parit
 | External merge tool | always succeeded | `mergetool-fails` in the repo path: `mergeToolFailed`; `mergetool-unsaved`: closed without saving, file still in conflict |
 | Bisect and `git am` | `op-finished` under `maintenance` / `commit`: generic toast on top of the typed toast | `OpKind` `bisect` and `applyMailbox` (backend and mock), handled like the other history operations |
 | "Paused" / "aborted" | set by the front after the IPC response | `OpOutcome::Success { note }` sent by the backend (`paused`, `aborted`) and by the mock |
+
+## 6. V2 requirements (M7-10)
+
+State at the M7-10 PR commit, after M7-1 to M7-9. One row per requirement marked **V2** in the spec §5 and planned in §12; the ones §12 drops (F-010 multiple windows, F-071 co-authors, F-264 patches, F-265 Git Flow, F-303 notifications) are not audited. Same statuses and evidence conventions as §1.
+
+| ID | Status | Evidence | Note |
+|---|---|---|---|
+| F-244 persistent undo journal | delivered | `store/undo_journal.rs` (migration, 100 entries / 30 days per repo), `repo/journal.rs` (`missing_objects`, `UndoBlock::ObjectsMissing` / `Unreadable`), `tests/undo_persistent.rs` (12 tests: restart for a commit, a branch deletion, a discard, **a fixup and a single stash file** (M7-10), redo after a restart, refs moved while closed, objects pruned by `gc`, age bound, unreadable rows, journal dropped with the repo); front: `undoHistory.test.ts`, `e2e/undo.spec.ts` ("earlier sessions…", "…objects were pruned is refused"); PR #50 (M7-1), #52 (M7-2) | Nothing is written into the repo to keep the backup blobs alive: `git gc` can make an entry unrestorable, which then says so and is never partly applied. Files under `<config>/backups/` are never cleaned. |
+| F-147 fixup / autosquash | delivered | `repo/fixup.rs`, `rebase_todo::autosquash` (unit tests), `tests/fixup.rs` (7 tests), `e2e/fixup-autosquash.spec.ts`; PR #53 (M7-3) | Only `fixup!` is arranged; `squash!` / `amend!` stay picks. The automatic base follows first parents and stops at the first merge (200 commits at most). |
+| F-185 one file from a stash | delivered | `repo/stash_file.rs`, `tests/stash_file.rs` (11 tests), `e2e/stash-file.spec.ts`; PR #54 (M7-4) | A conflict is journaled and undoable, but the queue reports the operation as a success (see §8, follow-up). A file renamed in the stash: only the new path is applied. |
+| F-032 first-parent history | delivered | `GraphFilter.first_parent` (`graph_filters`), `graph/mod.rs`, `tests/graph.rs` (`first_parent_order_matches_git_with_and_without_commit_graph`, `first_parent_layout_snapshot_and_pages`, `first_parent_search_and_jumps_stay_in_the_mode`), `mockGraph.test.ts`, `e2e/first-parent.spec.ts`; PR #55 (M7-5) | Saved with the graph filter (backend) rather than `repo_ui_state`, so the first page is served in the right mode. Bisect, comparisons and merge-base use the full history. P-02 / P-04 below. |
+| F-326 preferences import / export | delivered | `store/prefs_sync.rs` and its tests (`store/prefs_sync/tests.rs`), `e2e/m7-6-preferences-sync.spec.ts`, `src/ipc/mock/prefsSync.test.ts`; PR #51 (M7-6) | Machine-specific values (Git path, editor, terminal, diff / merge tools, update answer) are never exported and are listed as left out on import. Identity profiles and templates are not included. A well-formed but unknown action id is accepted. |
+| F-223 history of a line range | delivered | `git/read/line_history.rs` (unit tests), `repo/inspect.rs`, `tests/line_history.rs` (9 tests, cancellation included), `e2e/line-history.spec.ts` (stop and search again: M7-10); PR #62 (M7-7) | No per-commit progress (Stop only); moved or copied lines are not followed, like `git log -L`. Started from the blame or a commit diff; no palette entry. |
+| F-224 files at a commit | delivered | `git/read/tree.rs`, `repo/tree.rs`, `tests/tree.rs` (8 tests, `tree_bench`), `e2e/commit-tree.spec.ts`; PR #59 (M7-8) | Folders read lazily by pages of 500; text over 1 MB on demand; LFS pointers not downloaded. Flat 100k-entry folder: first page 28 ms (release). |
+| F-263 assisted bisect | delivered | `repo/bisect.rs`, `git/read/bisect.rs`, `tests/bisect.rs` (8 tests, interrupted CLI bisect read by a fresh backend included), `bisectModel.test.ts`, `src/ipc/mock/bisect.test.ts`, `e2e/bisect.spec.ts` (reopened bisect and failed checkout: M7-10); PR #61 (M7-9) | Steps are not journaled; ref undos wait for the end of the bisect. No palette entry for good / bad, no `git bisect run`. |
+
+**Summary**: 8 requirements planned for V2, 8 delivered. Bug fix shipped with M7 and validated in [M7.md](M7.md): Git hooks get the `PATH` of the login shell when the app is started from the macOS Dock or Finder (`system/shell_env.rs`, `tests/shell_env.rs`, PR #58).
+
+### Performance in the M7 features
+
+Measured by the M7 PRs, Linux container without GPU.
+
+| ID | Mode | Full graph | First-parent |
+|---|---|---|---|
+| P-02 `git/git` first screen | without commit-graph | 56.8 ms | 31.9 ms |
+| P-02 `git/git` first screen | with commit-graph | 16.9 ms | 18.2 ms |
+| P-04 linux mock 100k, CPU ×1 | — | 60 fps, p95 16.7 ms | 60 fps, p95 16.7 ms |
+| P-04 linux mock 100k, CPU ×4 | — | median 50.1 ms, p95 116.6 ms | median 50.0 ms, p95 100.0 ms |
+
+`git/git` in first-parent mode has 35,629 rows out of 85,677 commits; the whole first-parent walk takes 332 ms without commit-graph, 21 ms with. Bisect markers are one map lookup per row (P-04 unchanged); tree pages: 19 to 28 ms for a 100k-entry folder.
+
+## 7. Undo of the writes added by M7
+
+| Task | Write | Journal entry | Evidence |
+|---|---|---|---|
+| M7-3 | Fixup commit | `commit` (`fixup! <summary>`), undoable, kept across restarts | `tests/fixup.rs`, `tests/undo_persistent.rs` `fixup_commit_is_undone_after_a_restart` (M7-10) |
+| M7-3 | Autosquash | the interactive rebase (M3-4): not journaled, like any rebase | — |
+| M7-4 | One file from a stash, clean or conflicted | `stashApplyFile` (files mode: only the file is checked and restored, undoable during an operation), kept across restarts | `tests/stash_file.rs`, `tests/undo_persistent.rs` `stash_file_apply_is_undone_after_a_restart` (M7-10) |
+| M7-5 | First-parent toggle | **Not journaled** (display filter, like hide / solo) | — |
+| M7-6 | Preferences import | **Not journaled** (settings, not the repo state); the export file is the backup | — |
+| M7-8 | "Save as…" of a version | **Not journaled** (writes outside the repository, after the dialog's overwrite confirmation) | — |
+| M7-9 | Bisect marks and steps | **Not journaled**; undo of ref entries refused during a bisect (`operationInProgress`), the way back is "End bisect" | `tests/bisect.rs` |
+
+## 8. Mock / real gaps fixed in M7-10
+
+Reference: the real backend and its tests. Parity checked by `src/ipc/mock/parity.test.ts` ("M7" block) and the Playwright tests named.
+
+| Case | Before | After |
+|---|---|---|
+| Undo of a files entry (discard, one stash file, `.gitignore`, LFS track) | refused during any operation; compared and restored the whole index and working tree (an unrelated edit refused it), and HEAD | like `Mode::Files`: allowed during an operation, only its files checked and restored, HEAD untouched; diverged refs checked before a dirty worktree; "Nothing to undo." text of the backend |
+| One file from a stash | an untracked file "applied" from a stash without untracked files; a file deleted in the stash got made-up content; `refs-changed` emitted; no `status-changed` after a conflict | `invalidArgument` "… is not a file of this stash." (the mock's preview also lists fixture files it holds no content for, so a path missing from a stash made in the session is not refused); deletion applied, unstaged; only `status-changed`, also after a conflict |
+| Fixup refused (unknown target, commit off the branch) | before the queue: no `op-finished`, so no toast in the app | in the queue: `op-finished` failed, like `commit_fixup` |
+| Bisect | a refused wrong-order mark stayed recorded; checks before the queue; `canSkip` false; `bisectCheckoutFailed` / `awaitingCheckout` unreachable; an interrupted bisect had no marks; marks survived `reset()` | mark checked on a copy; checks in the queue; `canSkip` true; `simulateBisectCheckoutFailure(id)`; `simulateOperation(id, 'bisect', { marks })` (found again on reopen, `e2e/bisect.spec.ts`) |
+| Line history, file history, blame | `cancelRead` a no-op, reads instant | `simulateSlowReads(ms)`: reads wait, `cancelRead(token)` ends them `cancelled`, also before they start (`e2e/line-history.spec.ts`); a file not in HEAD refused ("not committed yet"); next pages not re-checked against the line count; version named as requested; `oldLineCount` ≥ 0 |
+| Preferences file | `diffOptions` stored as written (extra keys kept, `markdownPreview` missing → a spurious change, negative `contextLines` accepted); a shortcut entry without `shortcut` refused; no 1,000-entry bound; export could not be cancelled | read like the Rust struct; missing shortcut = removed; bound; `setPickedExportPath(null)` (`e2e/m7-6-preferences-sync.spec.ts`) |
+| Files at a commit | locale collation; no non-UTF-8 file | code point order of the lowercased names, then the names; `docs/legacy-notes.txt` decoded as Windows-1252 (`e2e/commit-tree.spec.ts`) |
+| Forgetting a repository | its graph filter (first-parent included) kept | dropped, like `ON DELETE CASCADE` |
+
+### Left as follow-ups
+
+- **Backend**: a conflicted single stash file ends with `op-finished` *success* (`journal_op` cannot journal an entry and report a failure); the full `stash apply` reports *failed*. Needs a `journal_op` variant that records the plan and returns the error as the outcome.
+- **Mock**: working tree lines are not mapped to HEAD in the line history (the mock's HEAD text does not match its working tree fixtures), and the range keeps the same numbers in every commit; "file gone on our side" (`stashFileMissing`) needs the stash base in `MockStashState`; bisect marks are not persisted across a page reload; `skipOperation` during a bisect does not mirror the backend's non-zero exit when only skipped commits are left; the mock journal has no age bound and cannot produce an `unreadable` entry.

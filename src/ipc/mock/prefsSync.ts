@@ -13,6 +13,8 @@ import { isValidShortcut } from './settings';
 /** `store/prefs_sync.rs` in Rust: the same file format, keys and checks. */
 export const PREFERENCES_FORMAT = 'yaggui-preferences';
 export const PREFERENCES_FORMAT_VERSION = 1;
+/** Like `MAX_KEYBINDINGS` in `store/prefs_sync.rs`. */
+const MAX_KEYBINDINGS = 1000;
 
 const PORTABLE = [
   'theme',
@@ -72,6 +74,8 @@ const SHAPES: Record<(typeof PORTABLE)[number], (v: unknown) => boolean> = {
       isBool(o.wrap) &&
       isBool(o.ignoreWhitespace) &&
       isInt(o.contextLines) &&
+      o.contextLines >= 0 &&
+      o.contextLines <= 0xffffffff &&
       isBool(o.fullFile) &&
       (o.markdownPreview === undefined || isBool(o.markdownPreview))
     );
@@ -146,22 +150,42 @@ function parseKeybindings(value: unknown): KeybindingOverride[] | YagguiError {
   if (!Array.isArray(value)) {
     return invalidFile('"keybindings" must be a list of { "action", "shortcut" }');
   }
+  if (value.length > MAX_KEYBINDINGS) {
+    return invalidFile(
+      `"keybindings" holds ${String(value.length)} entries, at most ${String(MAX_KEYBINDINGS)} are supported`,
+    );
+  }
   const byAction = new Map<string, KeybindingOverride>();
   for (const entry of value as unknown[]) {
     if (
       !isObject(entry) ||
       !isString(entry.action) ||
-      !(entry.shortcut === null || isString(entry.shortcut))
+      // A missing shortcut is `None` for serde: the shortcut is removed.
+      !(entry.shortcut === undefined || entry.shortcut === null || isString(entry.shortcut))
     ) {
       return invalidFile('"keybindings" must be a list of { "action", "shortcut" }');
     }
-    const shortcutOk = entry.shortcut === null || isValidShortcut(entry.shortcut);
+    const shortcut = entry.shortcut ?? null;
+    const shortcutOk = shortcut === null || isValidShortcut(shortcut);
     if (!/^[A-Za-z0-9._-]{1,100}$/.test(entry.action) || !shortcutOk) {
       return invalidFile(`"keybindings": "${entry.action}" cannot be bound like this`);
     }
-    byAction.set(entry.action, { action: entry.action, shortcut: entry.shortcut });
+    byAction.set(entry.action, { action: entry.action, shortcut });
   }
   return [...byAction.values()].sort((a, b) => (a.action < b.action ? -1 : 1));
+}
+
+/** The value as serde reads it into its Rust type: struct fields only, defaults filled in. */
+function typed(key: string, value: unknown): unknown {
+  if (key !== 'diffOptions') return value;
+  const o = value as Json;
+  return {
+    wrap: o.wrap,
+    ignoreWhitespace: o.ignoreWhitespace,
+    contextLines: o.contextLines,
+    fullFile: o.fullFile,
+    markdownPreview: o.markdownPreview ?? false,
+  };
 }
 
 /** Parses and validates `text` against the current preferences; `normalize` is the mock's. */
@@ -202,7 +226,7 @@ export function parsePreferencesFile(
     } else if (!SHAPES[key as (typeof PORTABLE)[number]](value)) {
       problems.push(`${key}: invalid value`);
     } else {
-      const checked = normalize({ ...working, [key]: value });
+      const checked = normalize({ ...working, [key]: typed(key, value) });
       if ('error' in checked) problems.push(`${key}: ${checked.error.message.en}`);
       else working = checked.ok;
     }

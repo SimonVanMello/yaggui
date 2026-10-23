@@ -84,5 +84,46 @@ for (const { name: theme, colorScheme } of THEMES) {
       await expect(marks(page)).toHaveCount(0);
       await expect(page.locator('[data-row="0"]')).toHaveAttribute('data-sha', tip ?? '');
     });
+
+    test('a bisect started before a restart is found again on reopening (M7-10)', async ({
+      page,
+    }) => {
+      await openRepo(page);
+      // Marks given in a terminal, or before quitting: read back from `refs/bisect/*`.
+      await page.evaluate(() =>
+        window.__yagguiMock?.simulateOperation(3, 'bisect', {
+          marks: { bad: 'HEAD', good: ['HEAD~12'] },
+        }),
+      );
+      await page.getByRole('button', { name: 'Close blog' }).click();
+      await page.getByRole('option', { name: /^blog\b/ }).click();
+      await expect(banner(page)).toContainText('Testing');
+      await expect(banner(page).getByTestId('bisect-steps')).toContainText(/steps? left/);
+      await expect(marks(page).filter({ hasText: 'bad' })).toHaveCount(1);
+      // The commit under test is further down: the banner jumps to it.
+      await banner(page).locator('code').first().click();
+      await expect(marks(page).filter({ hasText: 'testing' })).toHaveCount(1);
+      await capture(page, theme, 'reopened');
+    });
+
+    test('a checkout in the way keeps the mark, then checks out the next commit', async ({
+      page,
+    }) => {
+      await openRepo(page);
+      // HEAD (`main`, row 4 of the mock) is bad: the failed checkout leaves it there, marked.
+      await markFromMenu(page, 4, 'Start bisect', 'Mark as bad');
+      // The banner shifts the graph down: wait for it before opening the next menu.
+      await expect(banner(page)).toContainText('Mark a good commit');
+      await expect(page.locator('[data-row="4"]').getByTestId('bisect-mark')).toHaveText('bad');
+      await page.evaluate(() => window.__yagguiMock?.simulateBisectCheckoutFailure(3));
+      await markFromMenu(page, 12, 'Bisect', 'Mark as good');
+      await expect(page.getByText(/^The mark is saved, but the next commit/)).toBeVisible();
+      await expect(banner(page)).toContainText('could not be checked out');
+      await expect(marks(page).filter({ hasText: 'good' })).toHaveCount(1);
+      await capture(page, theme, 'checkout-failed');
+      await banner(page).getByRole('button', { name: 'Check out next commit' }).click();
+      await expect(banner(page)).toContainText('Testing');
+      await expect(marks(page).filter({ hasText: 'testing' })).toHaveCount(1);
+    });
   });
 }

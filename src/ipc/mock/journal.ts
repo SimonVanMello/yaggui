@@ -9,11 +9,7 @@ function mockError(code: YagguiError['code'], en: string, fr: string): YagguiErr
 }
 
 export function nothingToUndo(): YagguiError {
-  return mockError(
-    'nothingToUndo',
-    'Nothing to undo in this session.',
-    'Rien à annuler dans cette session.',
-  );
+  return mockError('nothingToUndo', 'Nothing to undo.', 'Rien à annuler.');
 }
 
 export function nothingToRedo(): YagguiError {
@@ -146,6 +142,11 @@ export interface MockJournalRecord {
   after: MockSnapshot;
   /** The undo restores the index and working tree too (discard, reset). */
   files: boolean;
+  /**
+   * Only these files are checked and restored, and HEAD is left alone (`Mode::Files`: discard,
+   * one file from a stash, `.gitignore`, LFS track); `null` = the whole index and working tree.
+   */
+  paths: string[] | null;
   /** What the step needs was pruned (`mockPruneJournal`): refused with `undoObjectsMissing`. */
   missing: boolean;
 }
@@ -155,6 +156,8 @@ export interface MockJournalSpec {
   op: JournalOp;
   blocked?: UndoBlock;
   files?: boolean;
+  /** See `MockJournalRecord.paths`; implies `files`. */
+  paths?: string[];
 }
 
 /**
@@ -179,7 +182,8 @@ export class MockJournal {
       },
       before,
       after,
-      files: spec.files ?? false,
+      files: (spec.files ?? false) || spec.paths !== undefined,
+      paths: spec.paths ?? null,
       missing: false,
     });
     if (this.records.length > MOCK_JOURNAL_MAX) this.records.shift();

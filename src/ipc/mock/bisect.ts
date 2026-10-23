@@ -26,6 +26,17 @@ export function bisectWrongOrder(): YagguiError {
   );
 }
 
+export function bisectCheckoutFailed(paths: string[]): YagguiError {
+  return {
+    ...mockError(
+      'bisectCheckoutFailed',
+      'The mark is saved, but the next commit to test could not be checked out: files are in the way. Move or remove them, then check out the next commit.',
+      "Le marquage est enregistré, mais le prochain commit à tester n'a pas pu être extrait : des fichiers gênent. Déplace-les ou supprime-les, puis extrais le commit suivant.",
+    ),
+    payload: { kind: 'dirtyWorktree', paths, canCarry: false },
+  };
+}
+
 export function bisectNotStarted(): YagguiError {
   return mockError(
     'invalidArgument',
@@ -41,6 +52,13 @@ export interface MockBisect {
   skipped: number[];
   /** HEAD when the bisect started, put back by the reset. */
   original: MockHead;
+}
+
+/** Marks of a bisect started outside the mock's commands, as revisions. */
+export interface MockBisectMarks {
+  bad?: string;
+  good?: string[];
+  skipped?: string[];
 }
 
 /** Git's `estimate_bisect_steps`. */

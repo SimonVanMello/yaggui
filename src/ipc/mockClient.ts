@@ -24,6 +24,7 @@ import type {
   KeybindingOverride,
   HunkChange,
   JournalEntry,
+  JournalOp,
   LegacyPreferences,
   LostFile,
   MergeRequest,
@@ -110,6 +111,7 @@ import {
 } from './mock/interactive';
 import {
   applyMark,
+  bisectCheckoutFailed,
   bisectDirty,
   bisectNotStarted,
   bisectOutcome,
@@ -117,6 +119,7 @@ import {
   mockBisectState,
   wrongOrder,
   type MockBisect,
+  type MockBisectMarks,
 } from './mock/bisect';
 import {
   conflictSide,
@@ -151,6 +154,7 @@ import {
   staleRefs,
   stashConflict,
   stashFileConflict,
+  notInStash,
 } from './mock/refs';
 import {
   authFailed,
@@ -408,6 +412,7 @@ export class MockBackend {
   private savedTreeFiles: { rev: string; path: string; dest: string }[] = [];
   /** Texts the next preferences-file pickers open (`null` = the user cancelled). */
   private pickedPreferencesFiles: (string | null)[] = [];
+  private pickedExportPaths: (string | null)[] = [];
   /** Files "on disk" by path: what was exported, and what a preview read. */
   private preferencesFiles = new Map<string, string>();
   /** `false` simulates a system where no terminal can be found. */
@@ -466,6 +471,12 @@ export class MockBackend {
   private operations = new Map<number, MockOperation>();
   /** Bisect marks per repository while `operation` is a bisect (`refs/bisect/*`). */
   private bisects = new Map<number, MockBisect>();
+  /** Delay of the cancellable reads (`simulateSlowReads`), 0 = they answer at once. */
+  private readDelayMs = 0;
+  private pendingReads = new Map<number, () => void>();
+  private cancelledReads = new Set<number>();
+  /** Repositories whose next bisect checkout fails on an untracked file in the way. */
+  private bisectCheckoutFailures = new Set<number>();
   /** Undo journal of each repository, kept when it closes (like `OpJournal` in `yaggui.db`). */
   private journals = new Map<number, MockJournal>();
   /** Repositories whose next interactive rebase stops on conflicts (`simulateRebaseConflict`). */
@@ -537,6 +548,7 @@ export class MockBackend {
     this.pickedSaves = [];
     this.savedTreeFiles = [];
     this.pickedPreferencesFiles = [];
+    this.pickedExportPaths = [];
     this.preferencesFiles.clear();
     this.creator.reset();
     this.settings.reset();
@@ -566,6 +578,14 @@ export class MockBackend {
     this.globalIdentity = null;
     this.commitStore.reset(this.repos.find((r) => r.known.name === 'yaggui')?.known.id ?? null);
     this.operations.clear();
+    this.bisects.clear();
+    this.readDelayMs = 0;
+    this.pendingReads.forEach((cancel) => {
+      cancel();
+    });
+    this.pendingReads.clear();
+    this.cancelledReads.clear();
+    this.bisectCheckoutFailures.clear();
     this.journals.clear();
     this.rebaseConflicts.clear();
     this.pullConflictRepos.clear();
@@ -596,9 +616,14 @@ export class MockBackend {
     this.pickedPreferencesFiles.push(text);
   }
 
-  /** The last file `exportPreferences` wrote, for tests. */
-  exportedPreferences(): string | null {
-    return this.preferencesFiles.get(MOCK_EXPORT_PATH) ?? null;
+  /** Queues the path the next export saves to (`null` = the user cancelled the dialog). */
+  setPickedExportPath(path: string | null): void {
+    this.pickedExportPaths.push(path);
+  }
+
+  /** The file `exportPreferences` wrote at `path`, for tests. */
+  exportedPreferences(path: string = MOCK_EXPORT_PATH): string | null {
+    return this.preferencesFiles.get(path) ?? null;
   }
 
   /** Queues the answer of the next "Save as…" of a tree file (`null` = the user cancelled). */
@@ -797,7 +822,12 @@ export class MockBackend {
   simulateOperation(
     repoId: number,
     kind: 'merge' | 'rebase' | 'cherryPick' | 'revert' | 'bisect',
-    { step = 3, total = 7, stopsAgain = 0 } = {},
+    {
+      step = 3,
+      total = 7,
+      stopsAgain = 0,
+      marks,
+    }: { step?: number; total?: number; stopsAgain?: number; marks?: MockBisectMarks } = {},
   ): boolean {
     const graph = this.graph(repoId);
     if (!graph || !this.wip(repoId)) return false;
@@ -848,12 +878,63 @@ export class MockBackend {
         for (const c of op.conflicts) wip.resolveConflict(c.path, c.ours);
         op.conflicts = [];
       }
+      // Marks given before (in a terminal, or before a restart): read back like `refs/bisect/*`,
+      // HEAD on the next commit to test, as `git bisect start <bad> <good>…` leaves it.
+      this.editHistory(repoId, (current) => {
+        const at = (rev: string) => current.resolve(rev);
+        const bisect: MockBisect = {
+          bad: marks?.bad === undefined ? null : at(marks.bad),
+          good: (marks?.good ?? []).map(at).filter((c) => c !== null),
+          skipped: (marks?.skipped ?? []).map(at).filter((c) => c !== null),
+          original: structuredClone(current.history.head),
+        };
+        this.bisects.set(repoId, bisect);
+        const next = bisectOutcome(current.history.commits, bisect);
+        if (next.result === null && next.next !== null) {
+          current.history.head = { kind: 'detached', commit: next.next };
+        }
+        return { ok: null };
+      });
     }
     const repo = this.find(repoId);
     const wip = this.wips.get(repoId);
     if (repo && wip) repo.state = { ...repo.state, dirty: wip.dirty() };
-    this.watcherSaw(repoId, kind === 'rebase');
+    this.watcherSaw(repoId, kind === 'rebase' || kind === 'bisect');
     return true;
+  }
+
+  /**
+   * Makes the file history, line history and blame reads take `ms`, so they can be stopped
+   * with `cancelRead` like the backend's (`git log -L` on a long history); 0 restores them.
+   */
+  simulateSlowReads(ms: number): void {
+    this.readDelayMs = ms;
+  }
+
+  /** Runs a cancellable read, after `readDelayMs`; `cancelRead(token)` ends it `cancelled`. */
+  private slowRead<T>(token: number, read: () => Promise<IpcResult<T>>): Promise<IpcResult<T>> {
+    const cancelled = (): IpcResult<T> => ({
+      status: 'error',
+      error: mockError('cancelled', 'Operation cancelled.', 'Opération annulée.'),
+    });
+    if (this.cancelledReads.delete(token)) return Promise.resolve(cancelled());
+    if (this.readDelayMs <= 0) return read();
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => {
+        this.pendingReads.delete(token);
+        void read().then(resolve);
+      }, this.readDelayMs);
+      this.pendingReads.set(token, () => {
+        clearTimeout(timer);
+        this.pendingReads.delete(token);
+        resolve(cancelled());
+      });
+    });
+  }
+
+  /** Makes the next bisect checkout of a repository fail on an untracked file in the way. */
+  simulateBisectCheckoutFailure(repoId: number): void {
+    this.bisectCheckoutFailures.add(repoId);
   }
 
   /**
@@ -1071,7 +1152,14 @@ export class MockBackend {
         });
         if (journaled) this.emit('journalChanged', { repoId });
         // An operation stopped on conflicts changed the working tree (and HEAD, in a rebase).
-        if (!failed || failed.code === 'conflicts' || failed.code === 'emptyCommit') {
+        if (
+          !failed ||
+          failed.code === 'conflicts' ||
+          failed.code === 'emptyCommit' ||
+          failed.code === 'stashConflict' ||
+          // The mark is saved in `refs/bisect/`.
+          failed.code === 'bisectCheckoutFailed'
+        ) {
           this.watcherSaw(repoId, refs);
         }
         resolve(
@@ -1180,8 +1268,11 @@ export class MockBackend {
     }
     const block = MockJournal.block(record);
     if (block) return { error: undoBlocked(block) };
-    const guard = this.historyGuard(repoId);
-    if (guard) return { error: guard };
+    // Like `step` in `journal.rs`: only the entries that move refs wait for an operation to end.
+    if (!JOURNAL_IDLE_FREE.has(record.entry.op.kind)) {
+      const guard = this.historyGuard(repoId);
+      if (guard) return { error: guard };
+    }
     const [from, to] =
       direction === 'undo' ? [record.after, record.before] : [record.before, record.after];
     return this.editHistory<JournalEntry>(repoId, (graph) => {
@@ -1194,14 +1285,14 @@ export class MockBackend {
         op.kind === 'createWorktree' || op.kind === 'removeWorktree'
           ? history.worktrees.filter((w) => !to.refs.worktrees.some((t) => t.path === w.path))
           : [];
-      const lost = leaving.filter((w) => this.modules.isWorktreeDirty(w.path));
-      if (lost.length > 0) return { error: undoWouldOverwrite(lost.map((w) => w.path)) };
       // Like the backend: only the files changed since are listed.
       const changedFiles =
         record.files && wip && from.wip && wip.fingerprint() !== from.wip.fingerprint()
-          ? wip.changedSince(from.wip)
+          ? wip.changedSince(from.wip, record.paths)
           : null;
       if (moved.length > 0) return { error: undoDiverged(moved, []) };
+      const lost = leaving.filter((w) => this.modules.isWorktreeDirty(w.path));
+      if (lost.length > 0) return { error: undoWouldOverwrite(lost.map((w) => w.path)) };
       // Like the backend: files changed since would be overwritten.
       if (changedFiles && changedFiles.length > 0) {
         return { error: undoWouldOverwrite(changedFiles) };
@@ -1243,7 +1334,7 @@ export class MockBackend {
         history.worktrees = structuredClone(to.refs.worktrees);
       }
       if (op.kind === 'lfsTrack') this.modules.setLfsPatterns(repoId, to.lfsPatterns);
-      if (wip && to.wip) wip.restoreFrom(to.wip, record.files);
+      if (wip && to.wip) wip.restoreFrom(to.wip, record.files, record.paths);
       if (direction === 'undo') log.markUndone(record);
       else log.markRedone(record);
       return { ok: { ...record.entry } };
@@ -2728,17 +2819,24 @@ export class MockBackend {
         repo.state = { ...repo.state, operation };
       }
       const { commits } = graph.history;
-      if (mark) applyMark(bisect, commit, mark);
-      if (wrongOrder(commits, bisect)) return { error: bisectWrongOrder() };
+      // Checked on a copy, like the backend: no mark is recorded for a refused order.
+      const trial = structuredClone(bisect);
+      if (mark) applyMark(trial, commit, mark);
+      if (wrongOrder(commits, trial)) return { error: bisectWrongOrder() };
+      Object.assign(bisect, trial);
       const outcome = bisectOutcome(commits, bisect);
       if (outcome.result === null && outcome.next !== null) {
+        if (this.bisectCheckoutFailures.delete(repoId)) {
+          // The mark is saved and HEAD stays: `awaitingCheckout` until `bisectNext`.
+          return { error: bisectCheckoutFailed(['old.txt']) };
+        }
         graph.history.head = { kind: 'detached', commit: outcome.next };
       }
       return { ok: mockBisectState(graph.history, bisect, graph.headCommit()) };
     });
   }
 
-  /** Validation of `bisectMark` / `bisectNext` before the queue, like the backend. */
+  /** Validation of `bisectMark` / `bisectNext` (`ensure_clean` of `repo/bisect.rs`). */
   private bisectCheck(repoId: number): YagguiError | null {
     const wip = this.wip(repoId);
     if (!wip) return this.notOpen(repoId);
@@ -3091,6 +3189,8 @@ export class MockBackend {
       this.open.delete(repoId);
       this.repoUiStates.delete(repoId);
       this.journals.delete(repoId);
+      this.graphFilters.delete(repoId);
+      this.graphs.delete(repoId);
       // `ON DELETE SET NULL`: saved tabs of the repo become "new tab" tabs.
       this.tabs = {
         ...this.tabs,
@@ -3149,11 +3249,15 @@ export class MockBackend {
       return ok({ ...this.preferences });
     },
     exportPreferences: () => {
+      const path = this.pickedExportPaths.length
+        ? (this.pickedExportPaths.shift() ?? null)
+        : MOCK_EXPORT_PATH;
+      if (path === null) return ok(null);
       this.preferencesFiles.set(
-        MOCK_EXPORT_PATH,
+        path,
         exportPreferencesText(this.preferences, this.settings.overridesSnapshot()),
       );
-      return ok(MOCK_EXPORT_PATH);
+      return ok(path);
     },
     previewPreferencesImport: () => {
       const text = this.pickedPreferencesFiles.length
@@ -3349,32 +3453,40 @@ export class MockBackend {
         },
         { logged: false },
       ),
-    fileHistory: (repoId, path, rev, cursor, limit) => {
-      const graph = this.graph(repoId);
-      if (!graph) return fail(this.notOpen(repoId));
-      const result = mockFileHistory(graph, path, rev, cursor, limit);
-      return 'error' in result ? fail(result.error) : ok(result.ok);
-    },
-    lineHistory: (repoId, request, cursor, limit) => {
-      const graph = this.graph(repoId);
-      if (!graph) return fail(this.notOpen(repoId));
-      const result = mockLineHistory(graph, request, cursor, limit, this.wip(repoId));
-      return 'error' in result ? fail(result.error) : ok(result.ok);
-    },
-    blame: (repoId, request) => {
-      const graph = this.graph(repoId);
-      if (!graph) return fail(this.notOpen(repoId));
-      const result = mockBlame(graph, request.path, request.rev, this.wip(repoId));
-      return 'error' in result ? fail(result.error) : ok(result.ok);
-    },
+    fileHistory: (repoId, path, rev, cursor, limit, token) =>
+      this.slowRead(token, () => {
+        const graph = this.graph(repoId);
+        if (!graph) return fail(this.notOpen(repoId));
+        const result = mockFileHistory(graph, path, rev, cursor, limit);
+        return 'error' in result ? fail(result.error) : ok(result.ok);
+      }),
+    lineHistory: (repoId, request, cursor, limit, token) =>
+      this.slowRead(token, () => {
+        const graph = this.graph(repoId);
+        if (!graph) return fail(this.notOpen(repoId));
+        const result = mockLineHistory(graph, request, cursor, limit, this.wip(repoId));
+        return 'error' in result ? fail(result.error) : ok(result.ok);
+      }),
+    blame: (repoId, request, token) =>
+      this.slowRead(token, () => {
+        const graph = this.graph(repoId);
+        if (!graph) return fail(this.notOpen(repoId));
+        const result = mockBlame(graph, request.path, request.rev, this.wip(repoId));
+        return 'error' in result ? fail(result.error) : ok(result.ok);
+      }),
     reflog: (repoId, reference, start, limit) => {
       const graph = this.graph(repoId);
       if (!graph) return fail(this.notOpen(repoId));
       const result = mockReflog(graph, reference, start, limit);
       return 'error' in result ? fail(result.error) : ok(result.ok);
     },
-    // Mock reads answer at once: nothing to cancel.
-    cancelRead: () => ok(null),
+    cancelRead: (token) => {
+      const cancel = this.pendingReads.get(token);
+      if (cancel) cancel();
+      // Like `ReadTokens::cancel`: kept for the read that will start with this token.
+      else this.cancelledReads.add(token);
+      return ok(null);
+    },
     treeList: (repoId, rev, path, start, limit) => {
       const graph = this.graph(repoId);
       if (!graph) return fail(this.notOpen(repoId));
@@ -3719,7 +3831,7 @@ export class MockBackend {
       let message = '';
       const spec = (): MockJournalSpec => ({
         op: { kind: 'stashApplyFile', message, path },
-        files: true,
+        paths: [path],
       });
       return this.runWrite(
         repoId,
@@ -3735,10 +3847,20 @@ export class MockBackend {
             const entry = graph.history.stashes[stash.index];
             if (!wip || !entry) return { error: this.notOpen(repoId) };
             message = entry.message;
+            // Like the backend: an untracked file must come from the stash's third parent.
+            if (untracked && !entry.untrackedSha) return { error: notInStash(path) };
+            // The preview also lists fixture files the saved state does not hold: unknown
+            // content. A file in the saved index but not in its working tree was deleted.
+            const saved = this.stashStates.get(entry.sha);
+            const stashed = saved?.worktree.has(path)
+              ? (saved.worktree.get(path)?.text ?? null)
+              : saved?.index.has(path)
+                ? null
+                : undefined;
             const result = wip.applyStashFile(
               path,
               untracked,
-              this.stashStates.get(entry.sha)?.worktree.get(path)?.text ?? null,
+              stashed,
               /conflict/.test(entry.message),
             );
             if ('error' in result) return result;
@@ -3747,7 +3869,8 @@ export class MockBackend {
               : { ok: null };
           }),
         {
-          refs: true,
+          // Only the index and the working tree change: `status-changed`, no `refs-changed`.
+          refs: false,
           delayMs: 120,
           journal: spec,
           journalError: (error) => (error.code === 'stashConflict' ? spec() : null),
@@ -4057,24 +4180,36 @@ export class MockBackend {
     commitFixup: (repoId, target) => {
       const graph = this.graph(repoId);
       if (!graph || !this.wip(repoId)) return fail(this.notOpen(repoId));
-      const commit = graph.resolve(target);
-      if (commit === null) return fail(this.revisionNotFound(target));
-      const head = graph.headCommit();
-      if (head === null || !ancestors(graph.history.commits, head).has(commit)) {
-        return fail(
-          invalidHistoryArgument(
-            'This commit is not on the current branch: check out its branch to create a fixup for it.',
-            "Ce commit n'est pas sur la branche courante : bascule sur sa branche pour lui créer un fixup.",
-          ),
-        );
-      }
-      const summary = `fixup! ${graph.history.commits[commit]?.summary ?? ''}`;
-      const request = { summary, description: '', amend: false, skipHooks: false };
+      const resolved = graph.resolve(target);
+      let summary = '';
+      // The checks run in the queue, like `commit_fixup`: a refusal is an `op-finished` failure.
       return this.runWrite<{ sha: string }>(
         repoId,
         'commit',
-        ['commit', `--fixup=${this.commitSha(graph, commit)}`],
-        () => this.commitWork(repoId, request),
+        ['commit', `--fixup=${resolved === null ? target : this.commitSha(graph, resolved)}`],
+        () => {
+          // Read again: writes queued before this one may have rebuilt the graph.
+          const graph = this.graph(repoId);
+          if (!graph) return { error: this.notOpen(repoId) };
+          const commit = graph.resolve(target);
+          if (commit === null) return { error: this.revisionNotFound(target) };
+          const head = graph.headCommit();
+          if (head === null || !ancestors(graph.history.commits, head).has(commit)) {
+            return {
+              error: invalidHistoryArgument(
+                'This commit is not on the current branch: check out its branch to create a fixup for it.',
+                "Ce commit n'est pas sur la branche courante : bascule sur sa branche pour lui créer un fixup.",
+              ),
+            };
+          }
+          summary = `fixup! ${graph.history.commits[commit]?.summary ?? ''}`;
+          return this.commitWork(repoId, {
+            summary,
+            description: '',
+            amend: false,
+            skipHooks: false,
+          });
+        },
         {
           cancellable: true,
           delayMs: 600,
@@ -4110,34 +4245,40 @@ export class MockBackend {
     bisectMark: (repoId, rev, mark) => {
       const graph = this.graph(repoId);
       if (!graph || !this.wip(repoId)) return fail(this.notOpen(repoId));
-      const op = this.operation(repoId);
-      if (op && op.operation.kind !== 'bisect') return fail(operationInProgress());
-      if (!op && mark === 'skip') return fail(bisectNotStarted());
-      const commit = graph.resolve(rev ?? 'HEAD');
-      if (commit === null) return fail(this.revisionNotFound(rev ?? 'HEAD'));
-      const refused = this.bisectCheck(repoId);
-      if (refused) return fail(refused);
+      const resolved = graph.resolve(rev ?? 'HEAD');
       const term = mark === 'skip' ? 'skip' : mark;
+      // The checks run in the queue, like `bisect_mark`: a refusal is an `op-finished` failure.
       return this.runWrite(
         repoId,
         'bisect',
-        ['bisect', term, this.commitSha(graph, commit)],
-        () => this.bisectWork(repoId, commit, mark),
+        ['bisect', term, resolved === null ? (rev ?? 'HEAD') : this.commitSha(graph, resolved)],
+        () => {
+          const op = this.operation(repoId);
+          if (op && op.operation.kind !== 'bisect') return { error: operationInProgress() };
+          if (!op && mark === 'skip') return { error: bisectNotStarted() };
+          const commit = this.graph(repoId)?.resolve(rev ?? 'HEAD') ?? null;
+          if (commit === null) return { error: this.revisionNotFound(rev ?? 'HEAD') };
+          const refused = this.bisectCheck(repoId);
+          if (refused) return { error: refused };
+          return this.bisectWork(repoId, commit, mark);
+        },
         { delayMs: 200, refs: true, note: (state) => (state.result ? null : 'step') },
       );
     },
     bisectNext: (repoId) => {
       const graph = this.graph(repoId);
       if (!graph || !this.wip(repoId)) return fail(this.notOpen(repoId));
-      if (!this.bisectOf(repoId, graph)) return fail(noOperation());
-      const refused = this.bisectCheck(repoId);
-      if (refused) return fail(refused);
-      const head = graph.headCommit() ?? 0;
       return this.runWrite(
         repoId,
         'bisect',
         ['bisect', 'next'],
-        () => this.bisectWork(repoId, head, null),
+        () => {
+          const current = this.graph(repoId);
+          if (!current || !this.bisectOf(repoId, current)) return { error: noOperation() };
+          const refused = this.bisectCheck(repoId);
+          if (refused) return { error: refused };
+          return this.bisectWork(repoId, current.headCommit() ?? 0, null);
+        },
         { delayMs: 200, refs: true, note: (state) => (state.result ? null : 'step') },
       );
     },
@@ -4153,7 +4294,8 @@ export class MockBackend {
         message: op.message,
         unresolved,
         canContinue: unresolved === 0 && !bisect,
-        canSkip: op.skip !== null,
+        // `can_skip` of `read/operation.rs`: anything but a merge, a bisect included.
+        canSkip: op.skip !== null || bisect,
       });
     },
     continueOperation: (repoId, message) => {
@@ -4948,7 +5090,7 @@ export class MockBackend {
         'lfs',
         ['lfs', 'track', '--', pattern],
         () => this.modules.lfsTrack(repoId, pattern),
-        { journal: () => ({ op: { kind: 'lfsTrack', pattern: pattern.trim() } }) },
+        { journal: () => ({ op: { kind: 'lfsTrack', pattern: pattern.trim() }, paths: [] }) },
       ),
     relocateRepo: (repoId, path) => {
       const repo = this.find(repoId);
@@ -5061,7 +5203,8 @@ export class MockBackend {
           return { ok: rule.ok.line };
         },
         {
-          journal: (rule) => (added ? { op: { kind: 'gitignore', rule }, files: true } : null),
+          journal: (rule) =>
+            added ? { op: { kind: 'gitignore', rule }, paths: ['.gitignore'] } : null,
         },
       );
     },
@@ -5357,9 +5500,23 @@ function replaceRef<R extends { name: string }>(list: R[], target: R[], name: st
 function discardSpec(paths: string[]): MockJournalSpec {
   return {
     op: { kind: 'discard', paths: paths.slice(0, JOURNAL_PATHS_MAX), count: paths.length },
-    files: true,
+    paths,
   };
 }
+
+/** Journal ops that `step` in `journal.rs` runs during an operation (no `ensure_idle`). */
+const JOURNAL_IDLE_FREE = new Set<JournalOp['kind']>([
+  'discard',
+  'stashApplyFile',
+  'gitignore',
+  'lfsTrack',
+  'stashPush',
+  'stashDrop',
+  'addRemote',
+  'renameRemote',
+  'setRemoteUrls',
+  'removeRemote',
+]);
 
 function pullFlags(strategy: PullStrategy): string[] {
   if (strategy === 'rebase') return ['--rebase'];

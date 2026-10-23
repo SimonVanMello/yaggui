@@ -169,9 +169,11 @@ Exit: every tagged version is installable from GitHub Releases and from the main
 
 Order: M6-1; then M6-2a ∥ M6-2b ∥ M6-3 ∥ M6-4 ∥ M6-6; M6-5 when the signing accounts exist.
 
-## M7 — V2
+## M7 — V2 · awaiting PO validation
 
 Exit: an undo survives a restart; fixups, a single file from a stash, first-parent history and preferences sync between machines are one gesture each; the history of a line range, the tree at any commit and an assisted bisect are available. Scope and order from the spec (§12); dropped there: F-010, F-071, F-264, F-265, F-303.
+
+**Milestone status**: every task is delivered; the milestone awaits the PO's manual validation on macOS and Windows ([`docs/validation/M7.md`](validation/M7.md), which also covers the hook `PATH` fix of PR #58). V2 requirements: 8 delivered, see [`docs/validation/V1-audit.md`](validation/V1-audit.md) §6 to §8.
 
 | ID | Task | Depends on | Requirements |
 |---|---|---|---|
@@ -184,7 +186,7 @@ Exit: an undo survives a restart; fixups, a single file from a stash, first-pare
 | M7-7 ✅ | History of a line range: `git log -L` started from a selection in the blame or the file view, parsed into commits with the diff restricted to the range, shown in the file history view (M4-4), with cancellation on large histories | M4-4 | F-223 |
 | M7-8 ✅ | Tree at a commit: virtualized file explorer of a commit's tree read through `gix` (from the commit detail, the graph menu, the palette), file opened read-only with highlighting, "Save as…" of a version, jump to its history or blame | M4-4 | F-224 |
 | M7-9 ✅ | Assisted bisect: start from the graph (mark good / bad from the commit menu), banner with the current commit and the estimated number of steps left, good / bad / skip from the banner or the graph, first bad commit shown at the end, reset; bisect markers in the graph; an interrupted bisect found again on reopening (detection from M3-1) | M3-1 | F-263 |
-| M7-10 | Integration and validation: mock / real gaps, `docs/validation/M7.md`, V2 rows added to `docs/validation/V1-audit.md` or a V2 audit | all of M7 | — |
+| M7-10 ✅ | Integration and validation: mock / real gaps, `docs/validation/M7.md`, V2 rows added to `docs/validation/V1-audit.md` or a V2 audit | all of M7 | — |
 
 Order: M7-1 first, M7-2 as soon as its contract is pushed; M7-3 ∥ M7-4 ∥ M7-5 ∥ M7-6 alongside; then M7-7 ∥ M7-8 ∥ M7-9; then M7-10.
 

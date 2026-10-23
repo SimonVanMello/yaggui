@@ -94,6 +94,11 @@ for (const { name: theme, colorScheme } of THEMES) {
       await expect(treeView(page).getByRole('button', { name: 'Save as…' })).toBeDisabled();
 
       await item(page, 'docs').click();
+      // Not UTF-8: decoded as Windows-1252, like the backend (M7-10).
+      await item(page, 'legacy-notes.txt').click();
+      await expect(treeView(page).getByText(/^Not UTF-8: shown as Windows-1252/)).toBeVisible();
+      await expect(treeView(page).locator('.cm-editor')).toContainText('Café crème');
+      await capture(page, theme, 'windows1252');
       await item(page, 'readme-link').click();
       await expect(treeView(page).getByText('Symbolic link to ../README.md')).toBeVisible();
       await treeView(page).getByRole('button', { name: 'Go to the target' }).click();

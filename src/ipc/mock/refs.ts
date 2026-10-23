@@ -91,6 +91,15 @@ export function stashFileConflict(path: string, stashSha: string): YagguiError {
   };
 }
 
+/** `not_in_stash` of `git/errors.rs`. */
+export function notInStash(path: string): YagguiError {
+  return mockError(
+    'invalidArgument',
+    `"${path}" is not a file of this stash.`,
+    `« ${path} » n'est pas un fichier de ce stash.`,
+  );
+}
+
 /** `exists`: a file is already at the path; otherwise local changes to the tracked file. */
 export function stashFileInTheWay(path: string, exists: boolean): YagguiError {
   const error = exists
