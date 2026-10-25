@@ -6,6 +6,7 @@ mod common;
 use std::sync::Arc;
 
 use common::{Fixture, RecordingSink};
+use yaggui_lib::events::{BackendEvent, OpKind, OpOutcome};
 use yaggui_lib::git::cli::GitCli;
 use yaggui_lib::git::errors::{ErrorCode, ErrorPayload, YagguiError};
 use yaggui_lib::git::log::CommandLog;
@@ -17,6 +18,7 @@ struct Env {
     fx: Fixture,
     repos: Arc<RepoManager>,
     id: u32,
+    sink: Arc<RecordingSink>,
 }
 
 /// A `clean` fixture (`README.md`, `src.txt` committed) opened by an isolated backend.
@@ -33,12 +35,17 @@ fn env() -> Env {
         );
     let store = Arc::new(Store::open_in_memory().unwrap());
     let repos = Arc::new(
-        RepoManager::new(Arc::new(git), store, sink)
+        RepoManager::new(Arc::new(git), store, sink.clone())
             .without_watcher()
             .with_backup_dir(fx.root.join("backups")),
     );
     let id = repos.open(&fx.repo_str()).unwrap().id;
-    Env { fx, repos, id }
+    Env {
+        fx,
+        repos,
+        id,
+        sink,
+    }
 }
 
 const LINES: &str = "1\n2\n3\n4\n5\n";
@@ -374,5 +381,46 @@ fn paths_outside_the_stash_and_stale_entries_are_refused() {
         )
         .unwrap_err();
     assert_eq!(err.code, ErrorCode::StaleRefs);
+    assert_eq!(e.status(), "");
+}
+
+#[test]
+fn a_conflict_ends_the_operation_failed_with_its_undo_journaled() {
+    let e = env();
+    e.stash_line_two();
+    e.commit("src.txt", "1\nmine\n3\n4\n5\n", "change line 2");
+    e.sink.clear();
+
+    let err = error(e.apply("src.txt", false));
+    assert_eq!(err.code, ErrorCode::StashConflict);
+    let events = e.sink.events();
+    let outcomes: Vec<_> = events
+        .iter()
+        .filter_map(|event| match event {
+            BackendEvent::OpFinished(f) if f.kind == OpKind::Stash => Some(&f.outcome),
+            _ => None,
+        })
+        .collect();
+    assert!(
+        matches!(
+            outcomes[..],
+            [OpOutcome::Failed { error }] if error.code == ErrorCode::StashConflict
+        ),
+        "{outcomes:?}"
+    );
+    // The journal is reported changed after the operation, and the undo is there.
+    let finished = events
+        .iter()
+        .position(|event| matches!(event, BackendEvent::OpFinished(_)));
+    let journal = events
+        .iter()
+        .position(|event| matches!(event, BackendEvent::JournalChanged(_)));
+    assert!(finished.is_some() && journal > finished, "{events:?}");
+    let entries = e.repos.op_history(e.id).unwrap();
+    assert!(matches!(
+        entries.first().map(|entry| &entry.op),
+        Some(JournalOp::StashApplyFile { path, .. }) if path == "src.txt"
+    ));
+    e.repos.undo(e.id).unwrap();
     assert_eq!(e.status(), "");
 }
