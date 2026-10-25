@@ -1,0 +1,119 @@
+---
+// Starlight's search, plus the pages of the current version while the query is empty: Pagefind
+// shows nothing until the visitor types, which reads as a broken or empty index.
+import type { StarlightRouteData } from '@astrojs/starlight/route-data';
+import Default from '@astrojs/starlight/components/Search.astro';
+
+import { parseId } from '../../lib/docs-versions';
+import { t } from '../../i18n/ui';
+
+type Entry = StarlightRouteData['sidebar'][number];
+type Link = Extract<Entry, { type: 'link' }>;
+
+function links(entries: Entry[]): Link[] {
+  return entries.flatMap((e) => (e.type === 'link' ? [e] : links(e.entries)));
+}
+
+const route = Astro.locals.starlightRoute;
+const parsed = parseId(route.id);
+const label = t(parsed?.locale ?? 'en', 'search.browse');
+// The route middleware has already narrowed the sidebar to the page's version.
+const sections = parsed
+  ? route.sidebar.map((e) =>
+      e.type === 'link' ? { label: '', links: [e] } : { label: e.label, links: links(e.entries) },
+    )
+  : [];
+---
+
+<Default {...Astro.props} />
+
+{sections.length > 0 && (
+  <nav class="search-browse" aria-label={label} hidden>
+    <p class="title">{label}</p>
+    <div class="sections">
+      {sections.map((s) => (
+        <section>
+          {s.label && <p class="label">{s.label}</p>}
+          <ul>
+            {s.links.map((l) => (
+              <li>
+                <a href={l.href} aria-current={l.isCurrent ? 'page' : undefined}>
+                  {l.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
+    </div>
+  </nav>
+)}
+
+<script>
+  // The dialog markup belongs to Starlight's component: move the list under the search field.
+  const browse = document.querySelector<HTMLElement>('.search-browse');
+  const frame = document.querySelector('site-search .dialog-frame');
+  if (browse && frame) {
+    (frame.querySelector('.search-container') ?? frame).append(browse);
+    browse.hidden = false;
+  }
+</script>
+
+<style>
+  /* Shown until the query has text; `:placeholder-shown` also catches Pagefind's clear button. */
+  :global(.dialog-frame:has(.pagefind-ui__search-input:not(:placeholder-shown))) .search-browse {
+    display: none;
+  }
+  .search-browse {
+    margin-top: 1.25rem;
+    font-size: var(--sl-text-sm);
+  }
+  .title,
+  .label {
+    margin: 0 0 0.5rem;
+    color: var(--sl-color-gray-3);
+    font-size: var(--sl-text-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .title {
+    margin-bottom: 1rem;
+  }
+  .sections {
+    display: grid;
+    gap: 1.25rem 1.5rem;
+  }
+  @media (min-width: 50rem) {
+    .sections {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  .label {
+    color: var(--sl-color-white);
+    text-transform: none;
+    letter-spacing: normal;
+    font-size: var(--sl-text-sm);
+  }
+  ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  a {
+    display: block;
+    padding: 0.25rem 0.5rem;
+    margin-inline: -0.5rem;
+    border-radius: 0.25rem;
+    color: var(--sl-color-gray-2);
+    text-decoration: none;
+  }
+  a:hover,
+  a:focus-visible {
+    background-color: var(--sl-color-gray-5);
+    color: var(--sl-color-white);
+  }
+  a[aria-current='page'] {
+    color: var(--sl-color-text-accent);
+  }
+</style>

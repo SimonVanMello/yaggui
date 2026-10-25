@@ -72,6 +72,7 @@ export default defineConfig({
       social: [{ icon: 'github', label: 'GitHub', href: github }],
       customCss: ['./src/styles/theme.css', './src/styles/docs.css'],
       components: {
+        Search: './src/components/starlight/Search.astro',
         SiteTitle: './src/components/starlight/SiteTitle.astro',
       },
       routeMiddleware: './src/route-middleware.ts',
