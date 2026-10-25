@@ -25,6 +25,7 @@ const en = {
   'versions.label': 'Docs version',
   'versions.latest': '{version} (latest)',
   'versions.next': 'Next (unreleased)',
+  'search.browse': 'Browse the docs',
 };
 
 type Strings = typeof en;
@@ -52,6 +53,7 @@ const fr: Strings = {
   'versions.label': 'Version de la documentation',
   'versions.latest': '{version} (dernière)',
   'versions.next': 'Prochaine (non publiée)',
+  'search.browse': 'Parcourir la documentation',
 };
 
 const strings: Record<Locale, Strings> = { en, fr };
