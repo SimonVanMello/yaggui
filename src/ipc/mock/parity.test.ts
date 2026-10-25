@@ -412,6 +412,53 @@ describe('mock / backend parity (M7)', () => {
     expect(await unwrap(again.commands.bisectState(last.id))).toBeNull();
   });
 
+  describe('undo journal (`store/undo_journal.rs`, `journal.rs`)', () => {
+    async function journaled() {
+      const { id } = await unwrap(mock.openRepo('/Users/alex/dev/blog'));
+      await unwrap(mock.createBranch(id, 'topic', { kind: 'head' }, false));
+      return id;
+    }
+
+    it('forgets the entries past 30 days when the journal is read back', async () => {
+      const id = await journaled();
+      mockBackend.simulateRestoredJournal(id, { ageDays: 29 });
+      expect(await unwrap(mock.opHistory(id))).toHaveLength(1);
+      // 29 + 2 days: older than the bound.
+      mockBackend.simulateRestoredJournal(id, { ageDays: 2 });
+      expect(await unwrap(mock.opHistory(id))).toEqual([]);
+      expect(await mock.undo(id)).toMatchObject({ error: { code: 'nothingToUndo' } });
+    });
+
+    it('prunes by age when an operation is appended, then keeps the last 100', async () => {
+      const id = await journaled();
+      mockBackend.simulateRestoredJournal(id, { ageDays: 31 });
+      // Expired at the next append, which is the only entry left.
+      await unwrap(mock.createBranch(id, 'topic-2', { kind: 'head' }, false));
+      const entries = await unwrap(mock.opHistory(id));
+      expect(entries).toHaveLength(1);
+      expect(entries[0]?.restored).toBe(false);
+      for (let i = 0; i < 105; i++) {
+        await unwrap(mock.createBranch(id, `bulk-${String(i)}`, { kind: 'head' }, false));
+      }
+      const all = await unwrap(mock.opHistory(id));
+      expect(all).toHaveLength(100);
+      expect(all[0]?.op).toMatchObject({ kind: 'createBranch' });
+    });
+
+    it('lists an entry another version saved as `unreadable` and refuses its undo', async () => {
+      const id = await journaled();
+      mockBackend.simulateRestoredJournal(id, { unreadable: true });
+      expect((await unwrap(mock.opHistory(id)))[0]?.blocked).toEqual({ kind: 'unreadable' });
+      expect((await unwrap(mock.undoState(id))).undo?.blocked).toEqual({ kind: 'unreadable' });
+      expect(await mock.undo(id)).toMatchObject({
+        error: { code: 'undoBlocked', payload: { reason: { kind: 'unreadable' } } },
+      });
+      // A new operation is journaled normally behind it.
+      await unwrap(mock.createBranch(id, 'after', { kind: 'head' }, false));
+      expect((await unwrap(mock.undoState(id))).undo?.blocked).toBeNull();
+    });
+  });
+
   it('a refused fixup reports `op-finished` failed (`fixup.rs`, checks in the queue)', async () => {
     const { id } = await unwrap(mock.openRepo('/Users/alex/dev/blog'));
     const outcomes: string[] = [];

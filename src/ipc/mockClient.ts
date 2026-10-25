@@ -982,12 +982,19 @@ export class MockBackend {
   /**
    * Simulates a restart: the journal entries of a repository become entries of a previous
    * session (`restored`). With `pruned`, a `git gc` ran meanwhile: they lose what they need
-   * and are refused with `undoObjectsMissing`.
+   * and are refused with `undoObjectsMissing`. With `unreadable`, another version of yaggui
+   * saved them: they are refused with `unreadable`. With `ageDays`, they were recorded that
+   * many days earlier, and the ones past 30 days are forgotten.
    */
-  simulateRestoredJournal(repoId: number, { pruned = false } = {}): void {
+  simulateRestoredJournal(
+    repoId: number,
+    { pruned = false, unreadable = false, ageDays = 0 } = {},
+  ): void {
     const journal = this.journals.get(repoId);
     if (!journal) return;
+    journal.age(ageDays);
     journal.restore();
+    if (unreadable) journal.markUnreadable();
     if (pruned) journal.prune();
     this.emit('journalChanged', { repoId });
   }
