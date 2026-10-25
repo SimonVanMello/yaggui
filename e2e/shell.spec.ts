@@ -197,6 +197,15 @@ for (const { name: theme, colorScheme } of THEMES) {
       await expect(dialog.getByRole('alert')).toContainText('is not a Git repository');
       await capture(page, theme, 'open-dialog-error');
     });
+
+    test('a folder of another user is refused in the open dialog (M8-3)', async ({ page }) => {
+      await page.getByRole('button', { name: 'Enter a path…' }).click();
+      const dialog = page.getByRole('dialog', { name: 'Open a repository' });
+      await dialog.getByRole('textbox').fill('/Users/alex/unsafe-owner');
+      await dialog.getByRole('button', { name: 'Open', exact: true }).click();
+      await expect(dialog.getByRole('alert')).toContainText('belongs to another user');
+      await capture(page, theme, 'unsafe-repository');
+    });
   });
 }
 

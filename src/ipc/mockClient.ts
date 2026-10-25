@@ -390,6 +390,27 @@ function invalidPtySize(cols: number, rows: number): YagguiError {
   );
 }
 
+/** `stale_lease` of `git/errors.rs`. */
+function staleLease(): YagguiError {
+  return mockError(
+    'staleLease',
+    'Force push refused: the remote branch moved since your last fetch. Fetch and check what would be overwritten.',
+    'Force push refusé : la branche distante a bougé depuis ton dernier fetch. Fais un fetch et vérifie ce qui serait écrasé.',
+  );
+}
+
+/** `unsafe_repository` of `git/errors.rs`. */
+function unsafeRepository(path: string): YagguiError {
+  return {
+    ...mockError(
+      'unsafeRepository',
+      `Git refuses to use ${path} because it belongs to another user. Add it to safe.directory only if you trust it.`,
+      `Git refuse d'utiliser ${path} car il appartient à un autre utilisateur. Ajoute-le à safe.directory seulement si tu lui fais confiance.`,
+    ),
+    action: { kind: 'addSafeDirectory', path },
+  };
+}
+
 function loadMockStore(): PersistedMockStore | null {
   try {
     const raw = localStorage.getItem(MOCK_STORE_KEY);
@@ -485,6 +506,10 @@ export class MockBackend {
   private operations = new Map<number, MockOperation>();
   /** Bisect marks per repository while `operation` is a bisect (`refs/bisect/*`). */
   private bisects = new Map<number, MockBisect>();
+  /** The global `safe.directory` list, as far as `addSafeDirectory` grew it. */
+  private safeDirectories = new Set<string>();
+  /** Repositories whose next force push finds the remote branch moved (`staleLease`). */
+  private staleLeases = new Set<number>();
   /** Bisects read from the persisted store, taken up when their repository is first read. */
   private restoredBisects = new Map<number, PersistedBisect>();
   /** Delay of the cancellable reads (`simulateSlowReads`), 0 = they answer at once. */
@@ -596,6 +621,8 @@ export class MockBackend {
     this.commitStore.reset(this.repos.find((r) => r.known.name === 'yaggui')?.known.id ?? null);
     this.operations.clear();
     this.bisects.clear();
+    this.safeDirectories.clear();
+    this.staleLeases.clear();
     this.restoredBisects.clear();
     this.readDelayMs = 0;
     this.pendingReads.forEach((cancel) => {
@@ -977,6 +1004,12 @@ export class MockBackend {
   simulateRebaseConflict(repoId: number, on = true): void {
     if (on) this.rebaseConflicts.add(repoId);
     else this.rebaseConflicts.delete(repoId);
+  }
+
+  /** The next force push of a repository is refused: the remote branch moved since the fetch. */
+  simulateStaleLease(repoId: number, on = true): void {
+    if (on) this.staleLeases.add(repoId);
+    else this.staleLeases.delete(repoId);
   }
 
   /**
@@ -3066,6 +3099,10 @@ export class MockBackend {
           ),
         );
       }
+      // A folder of another user (`check_safe_directory`) opens once it is in `safe.directory`.
+      if (/unsafe-owner/.test(normalized) && !this.safeDirectories.has(normalized)) {
+        return fail(unsafeRepository(normalized));
+      }
       // Like `gix::discover`, a folder inside a known worktree opens that repository, unless
       // it is one of its initialized submodules (a repository of its own).
       const isSubmodule = (r: MockRepo) =>
@@ -3204,6 +3241,7 @@ export class MockBackend {
     },
     addSafeDirectory: (path) => {
       if (!isAbsolute(path.trim())) return fail(invalidPath(path));
+      this.safeDirectories.add(path);
       this.logCommand({
         repoId: null,
         args: ['config', '--global', '--add', 'safe.directory', path],
@@ -4627,6 +4665,8 @@ export class MockBackend {
             if (request.forceWithLease) {
               if (isProtectedBranch(remoteBranch, this.preferences.protectedBranches))
                 return { error: protectedBranch(remoteBranch) };
+              // `--force-with-lease` refuses (stale info) when the branch moved since the fetch.
+              if (this.staleLeases.delete(repoId)) return { error: staleLease() };
             } else if (behind > 0) {
               return { error: pushRejected() };
             }

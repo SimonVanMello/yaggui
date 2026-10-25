@@ -251,7 +251,24 @@ Reference: the real backend and its tests. Parity checked by `src/ipc/mock/parit
 | Files at a commit | locale collation; no non-UTF-8 file | code point order of the lowercased names, then the names; `docs/legacy-notes.txt` decoded as Windows-1252 (`e2e/commit-tree.spec.ts`) |
 | Forgetting a repository | its graph filter (first-parent included) kept | dropped, like `ON DELETE CASCADE` |
 
+### Closed in M8-3
+
+Parity checked by the "M8-3" block of `src/ipc/mock/parity.test.ts` and the Playwright tests named.
+
+| Case | Before | After |
+|---|---|---|
+| Line history of working tree lines | the range was taken as HEAD lines | `mapToHead` is a port of `map_to_head` (HEAD → working tree diff without context): changed lines stand for the HEAD lines they replace, added lines are dropped, "These lines are not committed yet" when nothing is left; the cursor keeps the mapped range |
+| Line history across commits | the same line numbers in every commit | the range follows lines added or removed above it (`git log -L`): each entry's range after is the range before of the newer one (`e2e/line-history.spec.ts` unchanged) |
+| `stashFileMissing` | unreachable | `MockStashState.base` holds HEAD's version of the stashed files; a file of the base that is no longer in the index is refused like `apply_tracked` |
+| Bisect marks across a page reload | lost | saved in the mock store (`bisects`, commits by index: the history is regenerated from the repository seed), read back lazily where the bisect is read; ending the bisect forgets them |
+| Journal age | no bound | entries older than 30 days are dropped when an entry is appended and when the journal is read back (`simulateRestoredJournal(id, { ageDays })`); the last 100 per repository were already kept |
+| `unreadable` journal entries | unreachable | `simulateRestoredJournal(id, { unreadable: true })`: listed, refused with `undoBlocked` `unreadable` (`e2e/undo.spec.ts`) |
+| `staleLease` | unreachable | `simulateStaleLease(id)`: the next force push is refused (`e2e/network.spec.ts`) |
+| `unsafeRepository` | unreachable | opening a path containing `unsafe-owner` is refused with the `addSafeDirectory` action until `addSafeDirectory` was called (`e2e/shell.spec.ts`) |
+
+Sweep of `src/ipc/bindings.ts` against the mock: the 13 events exist in the mock and are emitted at the same points as in the backend (`journal-changed` after a journaled write and after an undo or redo, `op-finished` for every queued write); every command is implemented (the type checker enforces it). Error codes the mock never produced: `notImplemented`, `gitNotFound`, `pathTooLong`, `storage`, `internal`, `fileManagerFailed`, `avatarUnavailable`. They are environment failures (no `git`, Windows path limit, disk, OS file manager, network) with no screen state of their own beyond the generic error toast; left out on purpose. `updateCheckFailed` is produced through the update failure hook of the mock. This is a sweep of events and error codes, not a line by line review of every command.
+
 ### Left as follow-ups
 
 - **Backend**: a conflicted single stash file ends with `op-finished` *success* (`journal_op` cannot journal an entry and report a failure); the full `stash apply` reports *failed*. Needs a `journal_op` variant that records the plan and returns the error as the outcome.
-- **Mock**: working tree lines are not mapped to HEAD in the line history (the mock's HEAD text does not match its working tree fixtures), and the range keeps the same numbers in every commit; "file gone on our side" (`stashFileMissing`) needs the stash base in `MockStashState`; bisect marks are not persisted across a page reload; `skipOperation` during a bisect does not mirror the backend's non-zero exit when only skipped commits are left; the mock journal has no age bound and cannot produce an `unreadable` entry.
+- **Mock**: the stash apply of one file cannot reach "same content on both sides" (`not_in_stash` for a tracked file whose stashed and base versions are equal) because the mock's preview lists fixture files with no content; the line history picks which commits touch a range by hash, not by diffing real file versions; bisect marks of commits made during a session (not in the regenerated history) are dropped on reload.

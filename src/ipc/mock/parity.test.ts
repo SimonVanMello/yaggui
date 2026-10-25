@@ -459,6 +459,32 @@ describe('mock / backend parity (M7)', () => {
     });
   });
 
+  it('a folder of another user opens once it is in `safe.directory` (`check_safe_directory`)', async () => {
+    const path = '/Users/alex/unsafe-owner';
+    const refused = await mock.openRepo(path);
+    expect(refused).toMatchObject({
+      status: 'error',
+      error: { code: 'unsafeRepository', action: { kind: 'addSafeDirectory', path } },
+    });
+    await unwrap(mock.addSafeDirectory(path));
+    expect(await unwrap(mock.openRepo(path))).toMatchObject({ path });
+  });
+
+  it('a force push refuses a remote branch that moved since the fetch (`stale_lease`)', async () => {
+    const { id } = await unwrap(mock.openRepo('/Users/alex/dev/yaggui'));
+    const push = {
+      remote: null,
+      branch: null,
+      setUpstream: false,
+      forceWithLease: true,
+      expectedSha: null,
+    };
+    mockBackend.simulateStaleLease(id);
+    expect(await mock.push(id, push)).toMatchObject({ error: { code: 'staleLease' } });
+    // One refusal per simulated move: the next force push goes through.
+    await unwrap(mock.push(id, push));
+  });
+
   it('a refused fixup reports `op-finished` failed (`fixup.rs`, checks in the queue)', async () => {
     const { id } = await unwrap(mock.openRepo('/Users/alex/dev/blog'));
     const outcomes: string[] = [];
