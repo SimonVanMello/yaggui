@@ -48,6 +48,10 @@ jobs:
     needs: changes
     if: needs.changes.outputs.site == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # The preview URLs comment on the pull request.
+      pull-requests: write
     env:
       PRODUCTION: ${{ github.event_name != 'pull_request' }}
       # Absent on pull requests from forks: the site is built but not deployed.
@@ -129,5 +133,30 @@ jobs:
             echo "- Deployment: $URL"
             if [ -n "$ALIAS" ]; then echo "- Branch preview: $ALIAS"; fi
           } >> "$GITHUB_STEP_SUMMARY"
+      # One comment per pull request, edited on each push so the thread does not fill up.
+      - if: env.CAN_DEPLOY == 'true' && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+          URL: ${{ steps.deploy.outputs.deployment-url }}
+          ALIAS: ${{ steps.deploy.outputs.pages-deployment-alias-url }}
+        run: |
+          marker='<!-- website-preview -->'
+          body=$(
+            echo "$marker"
+            echo '### Website preview'
+            if [ -n "$ALIAS" ]; then echo "- Branch preview: $ALIAS"; fi
+            echo "- Commit ${SHA:0:7}: $URL"
+          )
+          id=$(gh api --paginate "repos/$REPO/issues/$PR/comments" \
+            --jq ".[] | select(.user.login == \"github-actions[bot]\" and (.body | startswith(\"$marker\"))) | .id" |
+            head -n 1)
+          if [ -n "$id" ]; then
+            gh api --method PATCH "repos/$REPO/issues/comments/$id" -f body="$body" > /dev/null
+          else
+            gh api "repos/$REPO/issues/$PR/comments" -f body="$body" > /dev/null
+          fi
       - if: env.CAN_DEPLOY != 'true'
         run: echo '::notice::No Cloudflare secrets (pull request from a fork?), built but not deployed.'
