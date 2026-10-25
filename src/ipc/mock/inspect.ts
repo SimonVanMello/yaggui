@@ -18,6 +18,7 @@ import type {
 import type { MockCommit, MockGraph } from '../mockGraph';
 import { mockSha } from '../mockGraph';
 import type { MockFileChange } from './diffData';
+import { textDiff } from './lineDiff';
 import { ancestors } from './refs';
 import type { MockWip } from './wip';
 
@@ -168,8 +169,63 @@ function lineCount(text: string): number {
     : (text.endsWith('\n') ? text.slice(0, -1) : text).split('\n').length;
 }
 
+/** A hunk of the HEAD → working tree diff without context, as 0-based line indexes. */
+interface Span {
+  oldFirst: number;
+  oldLines: number;
+  newFirst: number;
+  newLines: number;
+}
+
+/**
+ * Port of `map_to_head` (`git/read/line_history.rs`): the working tree lines `start ..= end`
+ * (1-based) as HEAD lines. Changed lines stand for the HEAD lines they replace, lines only
+ * added are dropped; `null` when no line of the range is in HEAD.
+ */
+export function mapToHead(
+  headText: string,
+  worktreeText: string,
+  start: number,
+  end: number,
+): [number, number] | null {
+  const diff = textDiff(headText, worktreeText, {
+    ignoreWhitespace: false,
+    contextLines: 0,
+    fullFile: false,
+    force: false,
+  });
+  const spans: Span[] = diff.hunks.map((h) => ({
+    // An empty side is numbered by the line before it: its index is the line it sits before.
+    oldFirst: h.oldLines === 0 ? h.oldStart : h.oldStart - 1,
+    oldLines: h.oldLines,
+    newFirst: h.newLines === 0 ? h.newStart : h.newStart - 1,
+    newLines: h.newLines,
+  }));
+  const baseOf = (line: number) => {
+    let delta = 0;
+    for (const span of spans) {
+      if (line < span.newFirst) break;
+      if (line < span.newFirst + span.newLines) {
+        return { line: span.oldFirst, replaces: span.oldLines as number | null };
+      }
+      delta += span.oldLines - span.newLines;
+    }
+    return { line: Math.max(0, line + delta), replaces: null };
+  };
+  const from = baseOf(Math.max(0, start - 1));
+  const to = baseOf(Math.max(0, end - 1));
+  const first = from.line + 1;
+  const last = to.replaces === null ? to.line + 1 : to.line + to.replaces;
+  return first <= last ? [first, last] : null;
+}
+
 /** The range `start ..= end` (1-based) as one hunk: old and new lines paired, Git style. */
-function rangeDiff(old: string[] | null, now: string[], start: number): TextDiff {
+function rangeDiff(
+  old: string[] | null,
+  now: string[],
+  start: number,
+  oldFirst: number = start,
+): TextDiff {
   const kinds: string[] = [];
   const lines: string[] = [];
   if (old === null) {
@@ -193,7 +249,7 @@ function rangeDiff(old: string[] | null, now: string[], start: number): TextDiff
   const additions = kinds.filter((k) => k === '+').length;
   const deletions = kinds.filter((k) => k === '-').length;
   const oldLines = old === null ? 0 : now.length;
-  const oldStart = old === null ? 0 : start;
+  const oldStart = old === null ? 0 : oldFirst;
   return {
     hunks: [
       {
@@ -236,8 +292,8 @@ export function mockLineHistory(
   const path = range?.path ?? request.path;
   const bad = invalidPath(path);
   if (bad) return { error: bad };
-  const start = range?.start ?? request.start;
-  const end = range?.end ?? request.end;
+  let start = range?.start ?? request.start;
+  let end = range?.end ?? request.end;
   if (start < 1 || end < start) {
     return {
       error: invalid(
@@ -294,22 +350,46 @@ export function mockLineHistory(
       ),
     };
   }
+  if (local !== null && !range) {
+    // Like `committed_range`: the working tree lines are followed as the HEAD lines they stand for.
+    const base = wip?.headText(path) ?? mockFileText(path, hash(sha));
+    const mapped = mapToHead(base, local, start, end);
+    if (mapped === null) {
+      return {
+        error: invalid(
+          'These lines are not committed yet: they have no history.',
+          "Ces lignes ne sont pas encore commitées : elles n'ont pas d'historique.",
+        ),
+      };
+    }
+    [start, end] = mapped;
+  }
   const items = historyOf(graph, path, head.ok);
   const salt = hash(`${path}:${String(start)}:${String(end)}`);
   const picked = items.filter(
     (item, index) => index === items.length - 1 || (hash(item.entry.sha) ^ salt) % 2 === 0,
   );
+  // `git log -L` follows the range: a commit that added or removed lines above it moves it.
+  let first = start;
+  let last = end;
   const all: LineHistoryEntry[] = picked.map((item, index) => {
     const { entry } = item;
     const origin = index === picked.length - 1;
     const seed = hash(entry.sha);
-    const slice = (text: string) =>
-      (text.endsWith('\n') ? text.slice(0, -1) : text).split('\n').slice(start - 1, end);
-    const now = slice(mockFileText(entry.path, seed));
-    const old = origin ? null : slice(mockFileText(entry.path, seed + 1));
+    const merge = entry.parents.length > 1;
+    const slice = (text: string, from: number, to: number) =>
+      (text.endsWith('\n') ? text.slice(0, -1) : text).split('\n').slice(from - 1, to);
+    const now = slice(mockFileText(entry.path, seed), first, last);
+    // Lines added (+1) or removed (-1) above the range by this commit, or none.
+    const shift = merge || origin ? 0 : (seed % 3) - 1;
+    const oldFirst = Math.max(1, first - shift);
+    const oldLast = oldFirst + (last - first);
+    const old = origin ? null : slice(mockFileText(entry.path, seed + 1), oldFirst, oldLast);
     // Every commit listed changed the range: at least its first line.
     if (old && old.every((line, i) => line === now[i])) old[0] = `${old[0] ?? ''} // before`;
-    const merge = entry.parents.length > 1;
+    const diff = merge && !origin ? null : rangeDiff(old, now, first, oldFirst);
+    first = oldFirst;
+    last = oldLast;
     return {
       sha: entry.sha,
       parents: entry.parents,
@@ -325,7 +405,7 @@ export function mockLineHistory(
           : entry.status === 'renamed'
             ? 'renamed'
             : 'modified',
-      diff: merge && !origin ? null : rangeDiff(old, now, start),
+      diff,
       origin,
     };
   });

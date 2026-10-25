@@ -202,6 +202,7 @@ import {
   createMockHistory,
   mockSha,
   MockGraph,
+  type MockHead,
   type MockHistory,
 } from './mockGraph';
 import { mockChangelog } from './mock/changelog';
@@ -293,6 +294,19 @@ interface PersistedMockStore {
   graphFilters?: [number, GraphFilter][];
   /** Layout of each repository's view, like the `repo_ui_state` table. */
   repoUiStates?: [number, string][];
+  /** Marks of the bisects in progress, like `refs/bisect/*` and `BISECT_START` on disk. */
+  bisects?: [number, PersistedBisect][];
+}
+
+/**
+ * A `MockBisect` as it survives a reload. The history is generated again from the repository's
+ * seed, so commits are kept by index: a SHA does not hold, the fixture gives its own to HEAD.
+ */
+interface PersistedBisect {
+  bad: number | null;
+  good: number[];
+  skipped: number[];
+  original: MockHead;
 }
 
 /** Same bound as `MAX_REPO_UI_STATE` (bytes of UTF-8). */
@@ -471,6 +485,8 @@ export class MockBackend {
   private operations = new Map<number, MockOperation>();
   /** Bisect marks per repository while `operation` is a bisect (`refs/bisect/*`). */
   private bisects = new Map<number, MockBisect>();
+  /** Bisects read from the persisted store, taken up when their repository is first read. */
+  private restoredBisects = new Map<number, PersistedBisect>();
   /** Delay of the cancellable reads (`simulateSlowReads`), 0 = they answer at once. */
   private readDelayMs = 0;
   private pendingReads = new Map<number, () => void>();
@@ -515,6 +531,7 @@ export class MockBackend {
       if (persisted.workspaces) this.workspaces = persisted.workspaces;
       this.graphFilters = new Map(persisted.graphFilters ?? []);
       this.repoUiStates = new Map(persisted.repoUiStates ?? []);
+      this.restoredBisects = new Map(persisted.bisects ?? []);
       this.legacyMigrated = persisted.legacyMigrated;
       this.settings.restore(persisted.keybindings ?? []);
       this.persist();
@@ -579,6 +596,7 @@ export class MockBackend {
     this.commitStore.reset(this.repos.find((r) => r.known.name === 'yaggui')?.known.id ?? null);
     this.operations.clear();
     this.bisects.clear();
+    this.restoredBisects.clear();
     this.readDelayMs = 0;
     this.pendingReads.forEach((cancel) => {
       cancel();
@@ -593,6 +611,18 @@ export class MockBackend {
     this.remoteTags.clear();
   }
 
+  /** The bisects to keep: those in progress, and those not read back since the reload. */
+  private bisectsSnapshot(): [number, PersistedBisect][] {
+    const live: [number, PersistedBisect][] = [];
+    for (const [repoId, { bad, good, skipped, original }] of this.bisects) {
+      if (this.operations.get(repoId)?.operation.kind !== 'bisect') continue;
+      live.push([repoId, { bad, good, skipped, original }]);
+    }
+    const liveIds = new Set(live.map(([repoId]) => repoId));
+    const waiting = [...this.restoredBisects].filter(([repoId]) => !liveIds.has(repoId));
+    return [...live, ...waiting];
+  }
+
   private persist(): void {
     const store: PersistedMockStore = {
       preferences: this.preferences,
@@ -603,6 +633,7 @@ export class MockBackend {
       workspaces: this.workspaces,
       graphFilters: [...this.graphFilters],
       repoUiStates: [...this.repoUiStates],
+      bisects: this.bisectsSnapshot(),
     };
     try {
       localStorage.setItem(MOCK_STORE_KEY, JSON.stringify(store));
@@ -899,6 +930,7 @@ export class MockBackend {
     const repo = this.find(repoId);
     const wip = this.wips.get(repoId);
     if (repo && wip) repo.state = { ...repo.state, dirty: wip.dirty() };
+    this.persist();
     this.watcherSaw(repoId, kind === 'rebase' || kind === 'bisect');
     return true;
   }
@@ -1096,6 +1128,7 @@ export class MockBackend {
     const run = (): { ok: T } | { error: YagguiError } => {
       const before = journal || journalError ? this.snapshot(repoId) : null;
       const result = work();
+      this.persist();
       const spec =
         'ok' in result ? (journal?.(result.ok) ?? null) : (journalError?.(result.error) ?? null);
       const after = spec ? this.snapshot(repoId) : null;
@@ -2780,11 +2813,31 @@ export class MockBackend {
   /** The marks of the bisect in progress; one simulated or in the fixture starts empty. */
   private bisectOf(repoId: number, graph: MockGraph): MockBisect | null {
     if (this.operation(repoId)?.operation.kind !== 'bisect') return null;
-    let bisect = this.bisects.get(repoId);
+    let bisect = this.restoredBisect(repoId, graph) ?? this.bisects.get(repoId);
     if (!bisect) {
       bisect = { bad: null, good: [], skipped: [], original: structuredClone(graph.history.head) };
       this.bisects.set(repoId, bisect);
     }
+    return bisect;
+  }
+
+  /**
+   * The marks a bisect had before the page was reloaded, read back like `refs/bisect/*`:
+   * commits the fresh history does not have (made during the session) are dropped.
+   */
+  private restoredBisect(repoId: number, graph: MockGraph): MockBisect | null {
+    const saved = this.restoredBisects.get(repoId);
+    if (!saved) return null;
+    this.restoredBisects.delete(repoId);
+    const count = graph.history.commits.length;
+    const known = (commit: number) => commit < count;
+    const bisect: MockBisect = {
+      bad: saved.bad !== null && known(saved.bad) ? saved.bad : null,
+      good: saved.good.filter(known),
+      skipped: saved.skipped.filter(known),
+      original: saved.original,
+    };
+    this.bisects.set(repoId, bisect);
     return bisect;
   }
 
@@ -2858,7 +2911,7 @@ export class MockBackend {
       // HEAD goes back to where it was: the rebased branch, checked out again; the HEAD a
       // bisect started from.
       const { operation } = op;
-      const bisect = this.bisects.get(repoId);
+      const bisect = this.restoredBisect(repoId, graph) ?? this.bisects.get(repoId);
       if (operation.kind === 'bisect' && bisect) {
         const { original } = bisect;
         const exists =
@@ -3862,6 +3915,7 @@ export class MockBackend {
               untracked,
               stashed,
               /conflict/.test(entry.message),
+              saved?.base.has(path) ?? false,
             );
             if ('error' in result) return result;
             return result.ok === 'conflict'

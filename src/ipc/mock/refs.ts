@@ -116,6 +116,15 @@ export function stashFileInTheWay(path: string, exists: boolean): YagguiError {
   return { ...error, payload: { kind: 'dirtyWorktree', paths: [path], canCarry: false } };
 }
 
+/** `stash_file_missing` of `git/errors.rs`. */
+export function stashFileMissing(path: string): YagguiError {
+  return mockError(
+    'invalidArgument',
+    `"${path}" no longer exists on your side: the change the stash holds for it cannot be merged. Open the file in the stash to see its stashed version.`,
+    `« ${path} » n'existe plus de ton côté : la modification que le stash garde pour lui ne peut pas y être fusionnée. Ouvre le fichier dans le stash pour voir sa version mise de côté.`,
+  );
+}
+
 export function nothingToStash(): YagguiError {
   return mockError(
     'nothingToStash',
