@@ -1,6 +1,7 @@
 //! Assisted bisect (M7-9, F-263) on temporary repositories: start from a mark, good / bad /
 //! skip steps up to the result, reset to the original HEAD, a bisect started outside yaggui
-//! read back, a dirty tree, a step whose checkout fails, marks in the wrong order.
+//! read back, a dirty tree, a step whose checkout fails, marks in the wrong order, a bisect
+//! along first parents when the graph is in first-parent mode.
 
 mod common;
 
@@ -12,6 +13,7 @@ use yaggui_lib::git::errors::ErrorCode;
 use yaggui_lib::git::log::CommandLog;
 use yaggui_lib::git::ops::types::{BisectMark, BisectResult, BisectState, BranchStart};
 use yaggui_lib::git::read::state::{HeadState, RepoOperation};
+use yaggui_lib::graph::types::GraphFilter;
 use yaggui_lib::repo::RepoManager;
 use yaggui_lib::store::Store;
 
@@ -320,4 +322,146 @@ fn skip_needs_a_bisect_and_undo_waits_for_its_end() {
     env.repos.abort_operation(env.id).unwrap();
     env.repos.undo(env.id).unwrap();
     assert_eq!(rev(&env.fx, "refs/heads/topic"), "");
+}
+
+/// `main`: m1 – m2 – merge(side) – m3 – m4, `side` (from m1): s1 – s2 – s3, the bug in s2.
+/// Returns (repos, id, main first parents oldest first, side commits).
+fn merged_env() -> (Fixture, Arc<RepoManager>, u32, Vec<String>, Vec<String>) {
+    let fx = Fixture::new("clean");
+    fx.git(&["config", "user.name", "yaggui Tests"]);
+    fx.git(&["config", "user.email", "tests@yaggui.dev"]);
+    let commit = |file: &str, content: &str, message: &str| {
+        std::fs::write(fx.repo().join(file), content).unwrap();
+        fx.git(&["add", "-A"]);
+        fx.git(&["commit", "-q", "-m", message]);
+        rev(&fx, "HEAD")
+    };
+    std::fs::write(fx.repo().join("bug.txt"), "fine\n").unwrap();
+    let mut main = vec![commit("m.txt", "1\n", "m1")];
+    fx.git(&["switch", "-q", "-c", "side"]);
+    let mut side = vec![commit("s.txt", "1\n", "s1")];
+    std::fs::write(fx.repo().join("bug.txt"), "broken\n").unwrap();
+    side.push(commit("s.txt", "2\n", "s2"));
+    side.push(commit("s.txt", "3\n", "s3"));
+    fx.git(&["switch", "-q", "main"]);
+    main.push(commit("m.txt", "2\n", "m2"));
+    fx.git(&["merge", "-q", "--no-ff", "-m", "merge side", "side"]);
+    main.push(rev(&fx, "HEAD"));
+    main.push(commit("m.txt", "3\n", "m3"));
+    main.push(commit("m.txt", "4\n", "m4"));
+    let (repos, id) = manager(&fx);
+    (fx, repos, id, main, side)
+}
+
+#[test]
+fn first_parent_mode_bisects_along_first_parents() {
+    let (fx, repos, id, main, side) = merged_env();
+    repos
+        .set_graph_filter(
+            id,
+            GraphFilter {
+                first_parent: true,
+                ..GraphFilter::default()
+            },
+        )
+        .unwrap();
+    let mark =
+        |rev: Option<&str>, mark| repos.bisect_mark(id, rev.map(str::to_owned), mark).unwrap();
+    let broken = || std::fs::read_to_string(fx.repo().join("bug.txt")).unwrap() == "broken\n";
+
+    mark(None, BisectMark::Bad);
+    assert!(fx.repo().join(".git/BISECT_FIRST_PARENT").exists());
+    let mut state = mark(Some(&main[0]), BisectMark::Good);
+    assert!(state.first_parent);
+    // m2, merge and m3 are left (side's commits are not), m4 the bad one: "roughly 1 step".
+    assert_eq!(state.remaining, Some(3));
+    let out = std::process::Command::new("git")
+        .args([
+            "rev-list",
+            "--count",
+            "--first-parent",
+            &main[4],
+            "--not",
+            &main[0],
+        ])
+        .current_dir(fx.repo())
+        .output()
+        .unwrap();
+    assert_eq!(
+        String::from_utf8_lossy(&out.stdout).trim(),
+        "4",
+        "what Git counts"
+    );
+    assert_eq!(state.steps, Some(1));
+    let mut tested = Vec::new();
+    while state.result.is_none() {
+        let head = rev(&fx, "HEAD");
+        assert!(main.contains(&head), "only first parents are tested");
+        assert_eq!(
+            state.current.as_ref().map(|c| c.sha.as_str()),
+            Some(head.as_str())
+        );
+        tested.push(head);
+        let next = if broken() {
+            BisectMark::Bad
+        } else {
+            BisectMark::Good
+        };
+        state = mark(None, next);
+    }
+    assert!(tested.iter().all(|sha| !side.contains(sha)));
+    // The merge brought the bug in, as far as first parents tell.
+    match state.result {
+        Some(BisectResult::Found { commit }) => assert_eq!(commit.sha, main[2]),
+        other => panic!("{other:?}"),
+    }
+    assert_eq!(state.remaining, Some(0));
+}
+
+#[test]
+fn without_first_parent_mode_the_side_branch_is_bisected() {
+    let (fx, repos, id, main, side) = merged_env();
+    let mark =
+        |rev: Option<&str>, mark| repos.bisect_mark(id, rev.map(str::to_owned), mark).unwrap();
+    let broken = || std::fs::read_to_string(fx.repo().join("bug.txt")).unwrap() == "broken\n";
+    mark(None, BisectMark::Bad);
+    assert!(!fx.repo().join(".git/BISECT_FIRST_PARENT").exists());
+    let mut state = mark(Some(&main[0]), BisectMark::Good);
+    assert!(!state.first_parent);
+    // m2, merge, m3 and s1..s3.
+    assert_eq!(state.remaining, Some(6));
+    while state.result.is_none() {
+        let next = if broken() {
+            BisectMark::Bad
+        } else {
+            BisectMark::Good
+        };
+        state = mark(None, next);
+    }
+    match state.result {
+        Some(BisectResult::Found { commit }) => assert_eq!(commit.sha, side[1]),
+        other => panic!("{other:?}"),
+    }
+}
+
+#[test]
+fn first_parent_mode_turned_on_during_a_bisect_changes_nothing() {
+    let (fx, repos, id, main, _) = merged_env();
+    repos.bisect_mark(id, None, BisectMark::Bad).unwrap();
+    repos
+        .set_graph_filter(
+            id,
+            GraphFilter {
+                first_parent: true,
+                ..GraphFilter::default()
+            },
+        )
+        .unwrap();
+    let state = repos
+        .bisect_mark(id, Some(main[0].clone()), BisectMark::Good)
+        .unwrap();
+    // The mode is the one the bisect started with.
+    assert!(!state.first_parent);
+    assert_eq!(state.remaining, Some(6));
+    assert!(!fx.repo().join(".git/BISECT_FIRST_PARENT").exists());
 }

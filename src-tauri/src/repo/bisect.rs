@@ -7,6 +7,10 @@
 //! leaves the mark saved and the next commit to check out (`bisect_next`). Bisect steps are
 //! not journaled: undo and redo refuse to run while a bisect is in progress, and the way
 //! back is the bisect's own reset, to the HEAD it started from.
+//!
+//! A bisect started while the graph is in first-parent mode (F-032) is
+//! `git bisect start --first-parent` (Git ≥ 2.29): it only tests the commits the graph shows.
+//! Older Git refuses the option; the bisect then starts without it, and its state says so.
 
 use gix::ObjectId;
 
@@ -39,8 +43,11 @@ impl RepoManager {
         rev: Option<String>,
         mark: BisectMark,
     ) -> Result<BisectState, YagguiError> {
+        // Read when the job is queued: the mode the user sees when they start the bisect.
+        let first_parent = self.session(repo_id)?.graph.filter().first_parent;
         self.write_op(repo_id, OpKind::Bisect, false, move |ctx| {
-            bisect_mark(ctx, rev.as_deref(), mark).inspect(|state| step_note(ctx, state))
+            bisect_mark(ctx, rev.as_deref(), mark, first_parent)
+                .inspect(|state| step_note(ctx, state))
         })
     }
 
@@ -61,6 +68,7 @@ fn bisect_mark(
     ctx: &WriteContext<'_>,
     rev: Option<&str>,
     mark: BisectMark,
+    first_parent: bool,
 ) -> Result<BisectState, YagguiError> {
     let started = match read_operation(ctx.repo) {
         None => false,
@@ -92,7 +100,7 @@ fn bisect_mark(
     let terms = if started {
         terms(ctx.repo.path())
     } else {
-        ctx.run(&ctx.command(["bisect", "start"]))?;
+        start(ctx, first_parent)?;
         Terms::default()
     };
     let word = match mark {
@@ -109,6 +117,26 @@ fn bisect_mark(
         }
     }
     state
+}
+
+/// `git bisect start`, along first parents when asked and the Git version has the option.
+fn start(ctx: &WriteContext<'_>, first_parent: bool) -> Result<(), YagguiError> {
+    if first_parent {
+        let run = raw(ctx, &ctx.command(["bisect", "start", "--first-parent"]))?;
+        if run.success {
+            return Ok(());
+        }
+        // Git < 2.29: "unrecognized option: '--first-parent'" (or taken as a revision).
+        if !run.stderr.contains("first-parent") {
+            return Err(classify(ctx, &run));
+        }
+        tracing::info!(
+            repo_id = ctx.repo_id,
+            "git bisect has no --first-parent: started without"
+        );
+    }
+    ctx.run(&ctx.command(["bisect", "start"]))?;
+    Ok(())
 }
 
 /// A step that leaves commits to test says so in `op-finished`, rather than "completed".

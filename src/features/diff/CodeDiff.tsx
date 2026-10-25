@@ -74,6 +74,8 @@ interface CodeDiffProps {
    * their history (`start ..= end`, 1-based).
    */
   onLineHistory?: (span: { start: number; end: number }) => void;
+  /** Commit diffs: the lines of the new version the gutter selection covers (`null`: none). */
+  onSelectedLines?: (span: { start: number; end: number } | null) => void;
   /** The line selection is dropped when this changes (e.g. the diff options). */
   resetKey?: string;
   ref?: Ref<CodeDiffHandle>;
@@ -96,6 +98,7 @@ export function CodeDiff({
   worktree,
   onHunks,
   onLineHistory,
+  onSelectedLines,
   actionsDisabled = null,
   wrap = false,
   resetKey = '',
@@ -155,6 +158,20 @@ export function CodeDiff({
   useEffect(() => {
     rowsRef.current = rows;
   });
+  const selectedSpan = history && rows.size > 0 ? newLineSpan(rows, sides) : null;
+  const selectedStart = selectedSpan?.start;
+  const selectedEnd = selectedSpan?.end;
+  useEffect(() => {
+    if (!onSelectedLines) return;
+    onSelectedLines(
+      selectedStart === undefined || selectedEnd === undefined
+        ? null
+        : { start: selectedStart, end: selectedEnd },
+    );
+    return () => {
+      onSelectedLines(null);
+    };
+  }, [onSelectedLines, selectedStart, selectedEnd]);
   const selectRows = useCallback(
     (next: ReadonlySet<number>) => {
       setPicked({ model, resetKey, rows: next });

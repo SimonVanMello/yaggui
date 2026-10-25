@@ -27,6 +27,7 @@ function rows(count: number): RebaseRow[] {
     },
     action: 'pick',
     message: null,
+    amend: null,
   }));
 }
 

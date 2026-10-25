@@ -152,6 +152,16 @@ export function BisectBanner({ repoId }: { repoId: number }) {
       />
       <span className={bannerStyles.text}>
         <b>{title}</b>
+        {state?.firstParent && (
+          <span
+            className={styles.mode}
+            title={t('bisect.firstParent.hint')}
+            data-testid="bisect-first-parent"
+          >
+            <Icon name="firstParent" />
+            {t('bisect.firstParent')}
+          </span>
+        )}
         {body}
       </span>
       <span className={bannerStyles.actions}>

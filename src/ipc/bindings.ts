@@ -438,13 +438,18 @@ export const commands = {
 	autosquashPlan: (repoId: number, base: string | null) => typedError<{
 	plan: InteractiveRebasePlan,
 	/**
-	 *  Every commit of `plan` once, oldest first: each matched `fixup!` commit as a `fixup`
-	 *  right after its target, the others as `pick`. No messages.
+	 *  Every commit of `plan` once, oldest first, in the order `git rebase --autosquash`
+	 *  gives: each matched `fixup!` commit as a `fixup`, `squash!` as a `squash` (no message:
+	 *  the combination is the default) and `amend!` as a `fixup` whose `message` is the one
+	 *  the `amend!` commit carries (`fixup -C`), under their target; the others as `pick`.
 	 */
 	todo: RebaseTodoEntry[],
-	/**  SHAs of the `fixup!` commits whose target is not in the plan: left in place, picked. */
+	/**
+	 *  SHAs of the `fixup!` / `squash!` / `amend!` commits whose target is not in the plan:
+	 *  left in place, picked.
+	 */
 	unmatched: string[],
-	/**  Number of `fixup` entries of `todo`. */
+	/**  Number of entries of `todo` moved under a target (`fixup` and `squash`). */
 	fixups: number,
 } | null, YagguiError>(__TAURI_INVOKE("autosquash_plan", { repoId, base })),
 	/**
@@ -480,6 +485,11 @@ export const commands = {
 	 *  or a commit SHA when HEAD was detached.
 	 */
 	original: string | null,
+	/**
+	 *  Started with `--first-parent` (first-parent mode on, F-032): only the first parents of
+	 *  the bad commit are tested, and `remaining` / `steps` count them alone.
+	 */
+	firstParent: boolean,
 } | null, YagguiError>(__TAURI_INVOKE("bisect_state", { repoId })),
 	/**
 	 *  Marks a commit (HEAD when `rev` is `None`) good, bad or skipped; a good or bad mark with
@@ -854,13 +864,18 @@ export type AppliedImport = {
 export type AutosquashPlan = {
 	plan: InteractiveRebasePlan,
 	/**
-	 *  Every commit of `plan` once, oldest first: each matched `fixup!` commit as a `fixup`
-	 *  right after its target, the others as `pick`. No messages.
+	 *  Every commit of `plan` once, oldest first, in the order `git rebase --autosquash`
+	 *  gives: each matched `fixup!` commit as a `fixup`, `squash!` as a `squash` (no message:
+	 *  the combination is the default) and `amend!` as a `fixup` whose `message` is the one
+	 *  the `amend!` commit carries (`fixup -C`), under their target; the others as `pick`.
 	 */
 	todo: RebaseTodoEntry[],
-	/**  SHAs of the `fixup!` commits whose target is not in the plan: left in place, picked. */
+	/**
+	 *  SHAs of the `fixup!` / `squash!` / `amend!` commits whose target is not in the plan:
+	 *  left in place, picked.
+	 */
 	unmatched: string[],
-	/**  Number of `fixup` entries of `todo`. */
+	/**  Number of entries of `todo` moved under a target (`fixup` and `squash`). */
 	fixups: number,
 };
 
@@ -926,6 +941,11 @@ export type BisectState = {
 	 *  or a commit SHA when HEAD was detached.
 	 */
 	original: string | null,
+	/**
+	 *  Started with `--first-parent` (first-parent mode on, F-032): only the first parents of
+	 *  the bad commit are tested, and `remaining` / `steps` count them alone.
+	 */
+	firstParent: boolean,
 };
 
 export type Blame = {
@@ -2844,7 +2864,10 @@ export type RebaseAction =
  *  the `message` of its last `squash` entry (required there).
  */
 "squash" | 
-/**  Meld into the previous kept commit, keeping that commit's message. */
+/**
+ *  Meld into the previous kept commit, keeping that commit's message; with a `message`,
+ *  Git's `fixup -C`: the group's message becomes that one (an `amend!` commit).
+ */
 "fixup" | 
 /**  Remove the commit. */
 "drop" | 
@@ -2895,9 +2918,9 @@ export type RebaseTodoEntry = {
 	sha: string,
 	action: RebaseAction,
 	/**
-	 *  New message (summary, blank line, body) for `reword`, and for the last `squash` of a
-	 *  group: the message of the combined commit. Ignored for other actions. Kept verbatim,
-	 *  lines starting with `#` included; no editor is ever opened.
+	 *  New message (summary, blank line, body) for `reword`, and for the last `squash` or
+	 *  `fixup -C` of a group: the message of the combined commit. Ignored for `pick`, `edit`
+	 *  and `drop`. Kept verbatim, lines starting with `#` included; no editor is ever opened.
 	 */
 	message: string | null,
 };

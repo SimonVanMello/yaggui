@@ -18,7 +18,7 @@ import { markBisect } from '../bisect/bisectOps';
 import { cherryPickCommits, revertCommit } from '../history/historyOps';
 import { openCreateBranch, openCreateTag } from '../refs/refCommands';
 import { createFixup, fixupBlock, startAutosquash } from '../rebase/fixupOps';
-import { isFixupSummary } from '../rebase/rebaseModel';
+import { isAutosquashSummary } from '../rebase/rebaseModel';
 import { openInteractiveRebase } from '../rebase/rebaseStore';
 import { checkout } from '../refs/refOps';
 import { shortOid } from '../repo/repoStatus';
@@ -260,7 +260,7 @@ export function CommitContextMenu({
         >
           {t('graph.menu.fixup')}
         </ContextMenuItem>
-        {isFixupSummary(target.summary) && (
+        {isAutosquashSummary(target.summary) && (
           <ContextMenuItem
             icon="merge"
             disabled={busy}

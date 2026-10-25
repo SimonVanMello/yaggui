@@ -4,6 +4,7 @@ import { translate, useI18nStore, type MessageKey, type MessageParams } from '..
 import { ipc, unwrap, type BisectMark, type BisectState, type YagguiError } from '../../ipc';
 import { toast } from '../../ui/toastStore';
 import { asYagguiError } from '../graph/graphSource';
+import { currentFilter, isFirstParent } from '../graph/graphFilter';
 import { abortOperation, operationOf, refreshHistory } from '../history/historyOps';
 import { stashPush } from '../refs/refOps';
 import { revealCommit } from '../repo/graphNavigation';
@@ -66,7 +67,24 @@ async function run(
  */
 export function markBisect(repoId: number, rev: string | null, mark: BisectMark): Promise<boolean> {
   const retry = () => markBisect(repoId, rev, mark);
-  return run(repoId, () => unwrap(ipc.commands.bisectMark(repoId, rev, mark)), retry);
+  // The backend starts along first parents when the graph is in first-parent mode (F-032).
+  const starting = !isBisecting(repoId) && isFirstParent(currentFilter(repoId));
+  return run(
+    repoId,
+    async () => {
+      const state = await unwrap(ipc.commands.bisectMark(repoId, rev, mark));
+      if (starting && !state.firstParent) {
+        // Git older than 2.29 has no `bisect start --first-parent`.
+        toast({
+          variant: 'warning',
+          title: t('bisect.firstParent.unsupported'),
+          description: t('bisect.firstParent.unsupportedHint'),
+        });
+      }
+      return state;
+    },
+    retry,
+  );
 }
 
 /** Checks out the next commit to test after a step that could not. */

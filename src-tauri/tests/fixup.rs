@@ -1,5 +1,6 @@
 //! Fixup commits and autosquash (M7-3, F-147) on temporary repositories: the fixup commit
-//! (message, journal entry, undo) and the todo the autosquash plan arranges.
+//! (message, journal entry, undo) and the todo the autosquash plan arranges, `squash!` and
+//! `amend!` commits included, checked against what `git rebase -i --autosquash` makes.
 
 mod common;
 
@@ -9,11 +10,11 @@ use common::{Fixture, RecordingSink};
 use yaggui_lib::git::cli::GitCli;
 use yaggui_lib::git::errors::ErrorCode;
 use yaggui_lib::git::log::CommandLog;
-use yaggui_lib::git::ops::types::{AutosquashPlan, JournalOp, RebaseAction};
+use yaggui_lib::git::ops::types::{AutosquashPlan, JournalOp, RebaseAction, RebaseTodoEntry};
 use yaggui_lib::repo::RepoManager;
 use yaggui_lib::store::Store;
 
-use RebaseAction::{Fixup, Pick};
+use RebaseAction::{Fixup, Pick, Squash};
 
 struct Env {
     fx: Fixture,
@@ -281,4 +282,170 @@ fn plan_without_fixups_is_none_and_stops_at_merges() {
     env.fixup("a.txt", "2\n", "HEAD~1~2");
     assert_eq!(env.out(&["log", "-1", "--format=%s"]), "fixup! c1: add a");
     assert!(env.plan(None).is_none());
+}
+
+/// `(message, tree)` of each commit from the base to `rev`, oldest first.
+fn history(env: &Env, dir: &std::path::Path, rev: &str) -> Vec<(String, String)> {
+    let out = std::process::Command::new("git")
+        .args([
+            "log",
+            "--reverse",
+            "--format=%B%x00%T%x01",
+            &format!("{}..{rev}", env.base),
+        ])
+        .current_dir(dir)
+        .env("GIT_CONFIG_NOSYSTEM", "1")
+        .env("GIT_CONFIG_GLOBAL", "/dev/null")
+        .output()
+        .unwrap();
+    String::from_utf8(out.stdout)
+        .unwrap()
+        .split('\x01')
+        .filter_map(|commit| {
+            let (message, tree) = commit.split_once('\0')?;
+            Some((message.trim().to_owned(), tree.trim().to_owned()))
+        })
+        .collect()
+}
+
+#[test]
+fn plan_arranges_squash_and_amend_commits_like_git() {
+    let env = env();
+    // c1 ← squash!, c2 ← amend! then a squash! of the amend!, c3 ← a fixup! of a squash!.
+    env.commit("a.txt", "2\n", "squash! c1: add a\n\nsquash body");
+    env.commit(
+        "b.txt",
+        "2\n",
+        "amend! c2: add b\n\nc2: add b, reworded\n\nnew body",
+    );
+    env.commit("c.txt", "2\n", "fixup! squash! c3: add c");
+    env.commit("b.txt", "3\n", "squash! amend! c2: add b\n\nmore on b");
+
+    let plan = env.plan(None).unwrap();
+    assert_eq!(plan.plan.base.sha, env.base);
+    assert_eq!(
+        arrangement(&plan),
+        [
+            pair("c1: add a", Pick),
+            pair("squash! c1: add a", Squash),
+            pair("c2: add b", Pick),
+            pair("amend! c2: add b", Fixup),
+            pair("squash! amend! c2: add b", Squash),
+            pair("c3: add c", Pick),
+            pair("fixup! squash! c3: add c", Fixup),
+        ]
+    );
+    assert_eq!(plan.fixups, 4);
+    assert!(plan.unmatched.is_empty());
+    // The `amend!` entry is a `fixup -C`: it carries its message, below its subject.
+    let messages: Vec<_> = plan.todo.iter().map(|e| e.message.as_deref()).collect();
+    assert_eq!(
+        messages,
+        [
+            None,
+            None,
+            None,
+            Some("c2: add b, reworded\n\nnew body"),
+            None,
+            None,
+            None
+        ]
+    );
+
+    // What Git makes of the same commits, with the editor accepting each squash message.
+    let wt = env.fx.root.join("git-autosquash");
+    env.fx.git(&[
+        "worktree",
+        "add",
+        "-q",
+        "-b",
+        "by-git",
+        wt.to_str().unwrap(),
+        "HEAD",
+    ]);
+    let rebased = std::process::Command::new("git")
+        .args(["rebase", "-q", "-i", "--autosquash", &env.base])
+        .current_dir(&wt)
+        .env("GIT_CONFIG_NOSYSTEM", "1")
+        .env("GIT_CONFIG_GLOBAL", "/dev/null")
+        .env("GIT_SEQUENCE_EDITOR", "true")
+        .env("GIT_EDITOR", "true")
+        .output()
+        .unwrap();
+    assert!(
+        rebased.status.success(),
+        "{}",
+        String::from_utf8_lossy(&rebased.stderr)
+    );
+
+    // The view's default messages for the groups (rebaseModel.ts `preview`): the squash
+    // subjects left out, the `amend!` message in place of c2's before the squash adds to it.
+    let todo: Vec<RebaseTodoEntry> = plan
+        .todo
+        .iter()
+        .enumerate()
+        .map(|(i, entry)| RebaseTodoEntry {
+            message: match i {
+                1 => Some("c1: add a\n\nsquash body".to_owned()),
+                4 => Some("c2: add b, reworded\n\nnew body\n\nmore on b".to_owned()),
+                _ => None,
+            },
+            ..entry.clone()
+        })
+        .collect();
+    env.repos
+        .interactive_rebase(env.id, plan.plan.base.sha.clone(), todo)
+        .unwrap();
+    let ours = history(&env, &env.fx.repo(), "HEAD");
+    assert_eq!(ours, history(&env, &env.fx.repo(), "by-git"));
+    assert_eq!(
+        ours.iter().map(|(m, _)| m.as_str()).collect::<Vec<_>>(),
+        [
+            "c1: add a\n\nsquash body",
+            "c2: add b, reworded\n\nnew body\n\nmore on b",
+            "c3: add c"
+        ]
+    );
+    assert!(env.plan(None).is_none(), "nothing left to squash");
+}
+
+#[test]
+fn amend_alone_replaces_the_message_like_git_fixup_c() {
+    let env = env();
+    env.commit("b.txt", "2\n", "amend! c2: add b\n\nc2: reworded");
+    let plan = env.plan(None).unwrap();
+    assert_eq!(
+        arrangement(&plan),
+        [
+            pair("c2: add b", Pick),
+            pair("amend! c2: add b", Fixup),
+            pair("c3: add c", Pick),
+        ]
+    );
+    // The view sends the `fixup -C` message on the entry that holds it.
+    env.repos
+        .interactive_rebase(env.id, plan.plan.base.sha.clone(), plan.todo.clone())
+        .unwrap();
+    assert_eq!(env.subjects(), ["c1: add a", "c2: reworded", "c3: add c"]);
+    assert_eq!(env.out(&["show", "HEAD~1:b.txt"]), "2");
+}
+
+#[test]
+fn plan_matches_a_fixup_by_sha_or_branch_name() {
+    let env = env();
+    let c1 = env.rev("HEAD~2");
+    env.fx.git(&["branch", "topic", "HEAD~1"]);
+    env.commit("a.txt", "2\n", &format!("fixup! {}", &c1[..10]));
+    env.commit("b.txt", "2\n", "fixup! topic");
+    let plan = env.plan(None).unwrap();
+    assert_eq!(
+        arrangement(&plan),
+        [
+            pair("c1: add a", Pick),
+            pair(&format!("fixup! {}", &c1[..10]), Fixup),
+            pair("c2: add b", Pick),
+            pair("fixup! topic", Fixup),
+            pair("c3: add c", Pick),
+        ]
+    );
 }

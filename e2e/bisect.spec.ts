@@ -3,7 +3,8 @@ import { expect, test, type Page } from '@playwright/test';
 /**
  * M7-9: assisted bisect (F-263) on the mock backend, repository `blog` (clean): started from
  * the commit menu, stepped from the banner, markers in the graph, the first bad commit at the
- * end, then the reset back to the branch.
+ * end, then the reset back to the branch. M8-2: the palette entries, and a bisect started in
+ * first-parent mode.
  */
 
 const MOCK_NOW_MS = 1_791_795_600_000;
@@ -104,6 +105,58 @@ for (const { name: theme, colorScheme } of THEMES) {
       await banner(page).locator('code').first().click();
       await expect(marks(page).filter({ hasText: 'testing' })).toHaveCount(1);
       await capture(page, theme, 'reopened');
+    });
+
+    test('bisect from the palette, along first parents in first-parent mode (M8-2)', async ({
+      page,
+    }) => {
+      await openRepo(page);
+      const firstParent = page.getByRole('toolbar').getByRole('button', { name: 'First parent' });
+      await firstParent.click();
+      await expect(firstParent).toHaveAttribute('aria-pressed', 'true');
+      const palette = page.getByRole('listbox', { name: 'Command palette' });
+      const runFromPalette = async (query: string, entry: string) => {
+        await page.keyboard.press('ControlOrMeta+K');
+        await page.keyboard.type(query);
+        await expect(palette.getByRole('option', { name: new RegExp(`^${entry}`) })).toBeVisible();
+        await page.keyboard.press('Enter');
+      };
+
+      // No commit selected: the bisect entries say why they cannot run.
+      await page.keyboard.press('ControlOrMeta+K');
+      await page.keyboard.type('bisect');
+      await expect(palette.getByRole('option', { name: /^Bisect: mark as bad/ })).toContainText(
+        'Select a commit first',
+      );
+      await expect(palette.getByRole('option', { name: /^Bisect: skip/ })).toContainText(
+        'No bisect in progress',
+      );
+      await page.keyboard.press('Escape');
+
+      // The selected commit starts the bisect, in first-parent mode.
+      await page.locator('[data-row="0"]').click();
+      await runFromPalette('bisect bad', 'Bisect: mark as bad');
+      await expect(banner(page)).toContainText('Mark a good commit');
+      await expect(banner(page).getByTestId('bisect-first-parent')).toHaveText('First parent');
+      await markFromMenu(page, 12, 'Bisect', 'Mark as good');
+      await expect(banner(page)).toContainText('Testing');
+      await expect(marks(page).filter({ hasText: 'testing' })).toHaveCount(1);
+      await capture(page, theme, 'first-parent');
+
+      // During the bisect, the palette marks the commit under test, like the banner.
+      await page.keyboard.press('ControlOrMeta+K');
+      await page.keyboard.type('bisect');
+      await expect(palette.getByRole('option', { name: /^Bisect: / })).toHaveCount(4);
+      await capture(page, theme, 'palette');
+      await page.keyboard.press('Escape');
+      const steps = await banner(page).getByTestId('bisect-steps').textContent();
+      await runFromPalette('bisect good', 'Bisect: mark as good');
+      await expect(marks(page).filter({ hasText: 'good' })).toHaveCount(2);
+      await expect(banner(page).getByTestId('bisect-steps')).not.toHaveText(steps ?? '');
+
+      await runFromPalette('bisect end', 'Bisect: end and go back');
+      await page.getByRole('dialog').getByRole('button', { name: 'Stop bisect' }).click();
+      await expect(banner(page)).toHaveCount(0);
     });
 
     test('a checkout in the way keeps the mark, then checks out the next commit', async ({

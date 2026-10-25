@@ -162,3 +162,32 @@ fn fatal_store(err: &YagguiError) -> ! {
     tracing::error!(error = %err, "cannot create an in-memory database");
     std::process::exit(1)
 }
+
+impl AppState {
+    /// Cleans `<config>/backups/` up in the background (`repo::backups`): never on the UI
+    /// thread, and a failure only logs.
+    pub fn clean_backups_in_background(&self) {
+        let store = Arc::clone(&self.store);
+        let dir = self.config_dir.join(BACKUP_DIR);
+        let spawned = std::thread::Builder::new()
+            .name("backup-cleanup".into())
+            .spawn(move || {
+                let now = std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .map_or(0, |d| u64::try_from(d.as_millis()).unwrap_or(u64::MAX));
+                match crate::repo::backups::clean_backups(&store, &dir, now) {
+                    Ok(done) => {
+                        tracing::info!(
+                            kept = done.kept,
+                            removed = done.removed,
+                            "backups cleaned up"
+                        );
+                    }
+                    Err(err) => tracing::warn!(error = %err, "backups not cleaned up"),
+                }
+            });
+        if let Err(err) = spawned {
+            tracing::warn!(error = %err, "backup cleanup not started");
+        }
+    }
+}

@@ -52,6 +52,8 @@ export interface MockBisect {
   skipped: number[];
   /** HEAD when the bisect started, put back by the reset. */
   original: MockHead;
+  /** Started with `--first-parent` (`BISECT_FIRST_PARENT`): first-parent mode was on. */
+  firstParent?: boolean;
 }
 
 /** Marks of a bisect started outside the mock's commands, as revisions. */
@@ -69,22 +71,39 @@ export function estimateSteps(all: number): number {
   return e < 3 * (all - e) ? n : n - 1;
 }
 
-/** Commits reachable from `bad` and from none of `good`. */
+/**
+ * Commits reachable from `bad` and from none of `good`; with `firstParent`, only the
+ * first-parent chain of `bad` (the good side still hides every ancestor), like `range` of
+ * `read/bisect.rs`.
+ */
 export function bisectRange(
   commits: readonly MockCommit[],
   bad: number,
   good: readonly number[],
+  firstParent = false,
 ): number[] {
   const hidden = new Set<number>();
   for (const g of good) for (const c of ancestors(commits, g)) hidden.add(c);
-  return [...ancestors(commits, bad)].filter((c) => !hidden.has(c));
+  if (!firstParent) return [...ancestors(commits, bad)].filter((c) => !hidden.has(c));
+  const chain: number[] = [];
+  let current: number | undefined = bad;
+  while (current !== undefined && !hidden.has(current)) {
+    chain.push(current);
+    current = commits[current]?.parents[0];
+  }
+  return chain;
 }
 
 /** Larger ranges take the middle by index instead of the best split (mock only). */
 const SPLIT_LIMIT = 400;
 
 /** The candidate that splits the range best, like Git's bisection point. */
-function middle(commits: readonly MockCommit[], range: number[], candidates: number[]): number {
+function middle(
+  commits: readonly MockCommit[],
+  range: number[],
+  candidates: number[],
+  firstParent: boolean,
+): number {
   const sorted = [...candidates].sort((a, b) => a - b);
   if (candidates.length > SPLIT_LIMIT) return sorted[Math.floor(sorted.length / 2)] ?? -1;
   const inRange = new Set(range);
@@ -92,7 +111,12 @@ function middle(commits: readonly MockCommit[], range: number[], candidates: num
   let bestScore = -1;
   for (const c of sorted) {
     let reach = 0;
-    for (const a of ancestors(commits, c)) if (inRange.has(a)) reach++;
+    if (firstParent) {
+      // The range is a chain from the bad commit: what is left after `c` is its ancestry.
+      reach = range.length - range.indexOf(c);
+    } else {
+      for (const a of ancestors(commits, c)) if (inRange.has(a)) reach++;
+    }
     const score = Math.min(reach, range.length - reach);
     if (score > bestScore) {
       best = c;
@@ -115,7 +139,8 @@ export function bisectOutcome(commits: readonly MockCommit[], b: MockBisect): Bi
     return { remaining: null, steps: null, result: null, next: null };
   }
   const bad = b.bad;
-  const range = bisectRange(commits, bad, b.good);
+  const firstParent = b.firstParent === true;
+  const range = bisectRange(commits, bad, b.good, firstParent);
   const skipped = new Set(b.skipped);
   const untested = range.filter((c) => c !== bad && !skipped.has(c));
   let result: BisectOutcome['result'] = null;
@@ -134,7 +159,7 @@ export function bisectOutcome(commits: readonly MockCommit[], b: MockBisect): Bi
     remaining: untested.length,
     steps: estimateSteps(untested.length + 1),
     result,
-    next: untested.length > 0 ? middle(commits, range, untested) : null,
+    next: untested.length > 0 ? middle(commits, range, untested, firstParent) : null,
   };
 }
 
@@ -194,5 +219,6 @@ export function mockBisectState(
     steps: outcome.steps,
     result,
     original,
+    firstParent: b.firstParent === true,
   };
 }
