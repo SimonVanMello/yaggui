@@ -74,9 +74,7 @@ for (const { name: theme, colorScheme } of THEMES) {
 
       // From the parent of the target: target, fixup and the two commits after it.
       await expect(rows(page)).toHaveCount(4);
-      await expect(
-        page.getByText('1 commit moved under its target (fixup!, squash!, amend!)'),
-      ).toBeVisible();
+      await expect(page.getByText('1 commit moved under its target')).toBeVisible();
       // Newest first: the fixup sits right above its target, melded into it.
       await expect(rows(page).nth(2)).toHaveAttribute('data-action', 'fixup');
       await expect(rows(page).nth(2)).toContainText(`Melded into “${target.summary}”`);
@@ -115,9 +113,7 @@ for (const { name: theme, colorScheme } of THEMES) {
 
       // Target, then (newest first above it) squash!, amend!, fixup!, and the 2 commits after.
       await expect(rows(page)).toHaveCount(6);
-      await expect(
-        page.getByText('3 commits moved under their targets (fixup!, squash!, amend!)'),
-      ).toBeVisible();
+      await expect(page.getByText('3 commits moved under their targets')).toBeVisible();
       await expect(rows(page).nth(5)).toContainText(target.summary);
       await expect(rows(page).nth(4)).toHaveAttribute('data-action', 'squash');
       await expect(rows(page).nth(3)).toHaveAttribute('data-action', 'fixup');

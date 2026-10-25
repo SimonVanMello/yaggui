@@ -158,7 +158,7 @@ The entry is disabled, with the reason, when nothing is staged (**Stage the chan
 - as the **Autosquash** button of the toast after creating a fixup;
 - as the **Autosquash** button of the editor header, when the list contains such commits. It arranges the list again from the same base; your edits are replaced.
 
-From the palette, the menu and the toast, the base is the parent of the oldest commit one of them targets, looked for among the latest commits of the branch: first parents from the tip, up to the first merge commit, 200 commits at most. When none has a target there, a toast says **No fixup!, squash! or amend! commit to squash on this branch**. The header shows **\{count\} commits moved under their targets (fixup!, squash!, amend!)**.
+From the palette, the menu and the toast, the base is the parent of the oldest commit one of them targets, looked for among the latest commits of the branch: first parents from the tip, up to the first merge commit, 200 commits at most. When none has a target there, a toast says **No fixup!, squash! or amend! commit to squash on this branch**. The header shows **\{count\} commits moved under their targets**.
 
 Each commit gets the action `git rebase --autosquash` would give it, from its first prefix:
 

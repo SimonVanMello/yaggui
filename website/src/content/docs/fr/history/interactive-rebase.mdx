@@ -158,7 +158,7 @@ L’entrée est désactivée, avec la raison, quand rien n’est stagé (**Stage
 - par le bouton **Autosquash** du toast après la création d’un fixup ;
 - par le bouton **Autosquash** de l’en-tête de l’éditeur, quand la liste contient de tels commits. Il arrange à nouveau la liste depuis la même base ; vos modifications sont remplacées.
 
-Depuis la palette, le menu et le toast, la base est le parent du plus ancien commit visé par l’un d’eux, cherché parmi les derniers commits de la branche : premiers parents depuis la pointe, jusqu’au premier commit de merge, 200 commits au plus. Quand aucun n’y a de cible, un toast indique **Aucun commit fixup!, squash! ou amend! à fusionner sur cette branche**. L’en-tête affiche **\{count\} commits placés sous leurs cibles (fixup!, squash!, amend!)**.
+Depuis la palette, le menu et le toast, la base est le parent du plus ancien commit visé par l’un d’eux, cherché parmi les derniers commits de la branche : premiers parents depuis la pointe, jusqu’au premier commit de merge, 200 commits au plus. Quand aucun n’y a de cible, un toast indique **Aucun commit fixup!, squash! ou amend! à fusionner sur cette branche**. L’en-tête affiche **\{count\} commits placés sous leurs cibles**.
 
 Chaque commit reçoit l’action que lui donnerait `git rebase --autosquash`, d’après son premier préfixe :
 
