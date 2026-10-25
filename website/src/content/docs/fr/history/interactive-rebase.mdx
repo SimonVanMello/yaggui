@@ -80,9 +80,9 @@ Autres touches dans la liste : <kbd>↑</kbd>/<kbd>↓</kbd> déplacent le focu
 
 ### Modifier un message
 
-Un commit reformulé (Reword), ou le dernier commit squashé d’un groupe, porte le nouveau message. Cliquez sur **Modifier le message** sur cette ligne, ou donnez-lui le focus et appuyez sur <kbd>Enter</kbd>. Un éditeur en ligne s’ouvre avec un champ de résumé (doté d’un compteur `n/72`) et un champ de description.
+Un commit reformulé (Reword), ou le dernier commit squashé (ou `fixup -C`) d’un groupe, porte le nouveau message. Cliquez sur **Modifier le message** sur cette ligne, ou donnez-lui le focus et appuyez sur <kbd>Enter</kbd>. Un éditeur en ligne s’ouvre avec un champ de résumé (doté d’un compteur `n/72`) et un champ de description.
 
-- Le message par défaut est le message d’origine pour un Reword, et le message du commit de tête suivi de chaque message squashé pour un groupe de squash. Un Fixup garde le message du commit dans lequel il est fusionné.
+- Le message par défaut est le message d’origine pour un Reword, et pour un groupe de squash le message que Git proposerait : le message du commit de tête suivi de chaque message squashé, sans la ligne de résumé `squash!` / `fixup!` / `amend!` que Git met en commentaire. Un Fixup garde le message du commit dans lequel il est fusionné ; un Fixup qui porte le message d’un commit `amend!` (`fixup -C`, voir [Autosquash](#autosquash)) le remplace, ou s’y ajoute après un squash.
 - **Les lignes commençant par # sont conservées.**
 - **Revenir au message par défaut** rétablit le message par défaut ; **Terminé**, <kbd>Esc</kbd> ou <kbd>⌘Enter</kbd> (<kbd>Ctrl+Enter</kbd> sous Windows et Linux) ferme l’éditeur.
 
@@ -151,22 +151,30 @@ L’entrée est désactivée, avec la raison, quand rien n’est stagé (**Stage
 
 ### Autosquash
 
-**Autosquash** ouvre l’éditeur de rebase interactif avec chaque fixup déjà placé juste au-dessus du commit qu’il corrige et réglé sur **Fixup**, pour que vous relisiez la liste avant de la lancer. Rien n’est réécrit avant que vous cliquiez sur **Lancer le rebase**. Il est proposé :
+**Autosquash** ouvre l’éditeur de rebase interactif avec chaque commit `fixup!`, `squash!` et `amend!` déjà placé juste au-dessus du commit qu’il vise, pour que vous relisiez la liste avant de la lancer. Rien n’est réécrit avant que vous cliquiez sur **Lancer le rebase**. Il est proposé :
 
-- dans la palette : **Autosquash des fixups…** ;
-- dans le menu d’un commit `fixup!` du graphe : **Autosquash des fixups…** ;
-- par le bouton **Autosquash** du toast après la création d’un fixup ;
-- par le bouton **Autosquash** de l’en-tête de l’éditeur, quand la liste contient des commits `fixup!`. Il arrange à nouveau la liste depuis la même base ; vos modifications sont remplacées.
+- dans la palette : **Autosquash des fixups…** ;
+- dans le menu d’un commit `fixup!`, `squash!` ou `amend!` du graphe : **Autosquash des fixups…** ;
+- par le bouton **Autosquash** du toast après la création d’un fixup ;
+- par le bouton **Autosquash** de l’en-tête de l’éditeur, quand la liste contient de tels commits. Il arrange à nouveau la liste depuis la même base ; vos modifications sont remplacées.
 
-Depuis la palette, le menu et le toast, la base est le parent du plus ancien commit visé par un fixup, cherché parmi les derniers commits de la branche : premiers parents depuis la pointe, jusqu’au premier commit de merge, 200 commits au plus. Quand aucun fixup n’y a de cible, un toast indique **Aucun commit fixup à fusionner sur cette branche**. L’en-tête affiche **\{count\} fixups placés sous leurs cibles**.
+Depuis la palette, le menu et le toast, la base est le parent du plus ancien commit visé par l’un d’eux, cherché parmi les derniers commits de la branche : premiers parents depuis la pointe, jusqu’au premier commit de merge, 200 commits au plus. Quand aucun n’y a de cible, un toast indique **Aucun commit fixup!, squash! ou amend! à fusionner sur cette branche**. L’en-tête affiche **\{count\} commits placés sous leurs cibles (fixup!, squash!, amend!)**.
 
-Les fixups sont associés comme avec `git rebase --autosquash` :
+Chaque commit reçoit l’action que lui donnerait `git rebase --autosquash`, d’après son premier préfixe :
 
-- tous les préfixes `fixup! ` sont retirés du résumé, si bien qu’un fixup d’un fixup va sous le commit d’origine ;
-- la cible est le plus ancien commit en dessous du fixup ayant exactement ce résumé ; sinon le commit en dessous dont le SHA commence par lui (4 caractères ou plus) ; sinon le plus ancien commit en dessous dont le résumé commence par lui ;
-- plusieurs fixups d’un même commit gardent leur ordre sous lui.
+| Le résumé commence par | Action                                                                                                                                                                                                                  |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `fixup! `              | **Fixup** : fusionné, la cible garde son message.                                                                                                                                                                       |
+| `squash! `             | **Squash** : fusionné, les messages sont combinés (sans sa ligne `squash!`).                                                                                                                                            |
+| `amend! `              | **Fixup** avec le message de ce commit (le `fixup -C` de Git) : la ligne indique « Fusionné dans « \{summary\} », avec le message de ce commit (fixup -C) », et la cible prend le message situé sous la ligne `amend!`. |
 
-Un fixup dont la cible n’est pas dans la liste (la cible est la base ou plus ancienne, ou rien ne correspond) reste à sa place, en **Pick**, avec **Aucun commit de la liste ne correspond à ce fixup : il reste à sa place**. Seuls les commits `fixup!` sont déplacés : les commits `squash!` et `amend!` restent en **Pick**.
+Ils sont associés comme avec `git rebase --autosquash` :
+
+- tous les préfixes `fixup! `, `squash! ` et `amend! ` sont retirés du résumé, mélangés ou répétés (`fixup! squash! Add x` vise `Add x`) ; un préfixe doit être suivi de son espace ;
+- la cible est le plus ancien commit en dessous ayant exactement ce résumé, parmi ceux qui restent en place ; sinon, pour un résumé sans espace, le commit en dessous qu’il désigne (un SHA de 4 caractères ou plus, une branche, un tag) ; sinon le plus ancien commit en dessous dont le résumé commence par lui ;
+- les commits d’une même cible gardent leur ordre sous elle, et un commit qui vise un commit déjà déplacé (`fixup! <sha d’un fixup>`) se place juste après lui.
+
+Un commit dont la cible n’est pas dans la liste (la cible est la base ou plus ancienne, ou rien ne correspond) reste à sa place, en **Pick**, avec **Aucun commit de la liste ne correspond à ce fixup : il reste à sa place**. Un commit `amend!` sans rien sous sa ligne `amend!` laisserait un message vide : la ligne est signalée et le rebase ne peut pas démarrer avant que vous en écriviez un.
 
 Le reste est l’éditeur habituel : modifiez ce que vous voulez, puis [confirmez et lancez](#confirmer-et-lancer). Un rebase qui réécrit des commits poussés demande un force push, et le rebase lui-même ne s’annule pas.
 

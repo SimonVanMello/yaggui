@@ -8,6 +8,7 @@ sources:
   - src-tauri/src/lib.rs
   - src-tauri/src/main.rs
   - src-tauri/src/store/**
+  - src-tauri/src/repo/backups.rs
   - src-tauri/src/system/avatars.rs
   - src-tauri/src/system/updates.rs
   - src-tauri/src/repo/journal.rs
@@ -57,7 +58,7 @@ yaggui uses two folders: a config folder for what must be kept, and a cache fold
 | `backups/`         | One sub-folder per backup: copies of the files that a discard, a hard reset, a stash of selected files, a `.gitignore` change or an LFS track was about to overwrite. They let you [undo](../../history/undo-and-redo/) these operations and recover the files by hand. |
 
 :::note
-yaggui never cleans `backups/` on its own. It grows with each discard or hard reset. Delete old sub-folders when you no longer need them, preferably while yaggui is closed.
+yaggui cleans `backups/` up when it starts: it keeps the backups the undo history still refers to, and deletes the others once they are more than 30 days old or are not among the 100 newest of their repository. See [Backups of discarded files](../../history/undo-and-redo/#backups-of-discarded-files). You can also delete sub-folders yourself, preferably while yaggui is closed.
 :::
 
 ### What is in yaggui.db

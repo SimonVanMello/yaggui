@@ -10,6 +10,7 @@ sources:
   - src-tauri/src/repo/stash_file.rs
   - src-tauri/src/commands/undo.rs
   - src-tauri/src/store/undo_journal.rs
+  - src-tauri/src/repo/backups.rs
 requirements: [F-240, F-241, F-242, F-243, F-244]
 ---
 
@@ -131,6 +132,6 @@ Une opération enregistrée par une autre version de yaggui que celle-ci ne sait
 
 ## Sauvegardes avant abandon de modifications
 
-Avant d’abandonner des modifications, avant un reset hard, avant de mettre de côté des fichiers sélectionnés ou d’appliquer un seul fichier d’un stash, d’ajouter à `.gitignore` ou de suivre un motif avec LFS, yaggui copie les fichiers concernés dans un dossier de sauvegarde (`backups/` dans le dossier de configuration de yaggui). L’annulation utilise ces copies pour réécrire les fichiers.
+Avant d’abandonner des modifications, avant un reset hard, avant de mettre de côté des fichiers sélectionnés ou d’appliquer un seul fichier d’un stash, d’ajouter à `.gitignore` ou de suivre un motif avec LFS, yaggui copie les fichiers concernés dans un dossier de sauvegarde (`backups/` dans le dossier de configuration de yaggui). L’historique d’annulation garde les mêmes contenus sous forme d’objets Git ; les copies servent quand le nettoyage de Git les a supprimés, pour que vous puissiez encore récupérer un fichier à la main.
 
-Les sauvegardes restent sur le disque, même une fois l’opération sortie de l’historique d’annulation ; yaggui ne les supprime pas. Vous pouvez récupérer un fichier à la main depuis ce dossier, ou le supprimer pour libérer de l’espace. Son emplacement est indiqué dans [Données et confidentialité](../../reference/data-and-privacy/).
+yaggui nettoie ce dossier au démarrage, avec les mêmes limites que l’historique d’annulation : une sauvegarde reste tant qu’une entrée de l’historique d’annulation (annulée ou non) s’y rapporte ; les autres sont supprimées dès qu’elles ont plus de 30 jours ou ne font plus partie des 100 plus récentes de leur dépôt. Les dossiers qui ne sont pas des sauvegardes de yaggui ne sont pas touchés. Vous pouvez aussi récupérer un fichier à la main depuis une sauvegarde, ou supprimer vous-même les anciennes. L’emplacement du dossier est indiqué dans [Données et confidentialité](../../reference/data-and-privacy/).

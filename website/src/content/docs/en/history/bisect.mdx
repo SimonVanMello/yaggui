@@ -10,7 +10,7 @@ sources:
   - src/features/repo/RepoBanners.tsx
   - src-tauri/src/repo/bisect.rs
   - src-tauri/src/git/read/bisect.rs
-requirements: [F-263]
+requirements: [F-263, F-032]
 ---
 
 import Screenshot from '~/components/Screenshot.astro';
@@ -55,6 +55,10 @@ Test the commit (build it, run it, run the failing test), then click the button 
 
 You can also mark any commit from the graph: right-click it, open **Bisect** and choose **Mark as good**, **Mark as bad** or **Skip this commit**. This helps when you already know the answer for a commit other than HEAD.
 
+### From the palette
+
+The palette (<kbd>⌘K</kbd>, <kbd>Ctrl+K</kbd> on Windows and Linux) has **Bisect: mark as good**, **Bisect: mark as bad**, **Bisect: skip the commit under test** and **Bisect: end and go back to the start**. During a bisect, the marks apply to the commit under test, like the banner buttons, whatever commit is selected in the graph. Without a bisect, **Bisect: mark as good** and **Bisect: mark as bad** mark the commit selected in the graph and start one, like its menu. An entry that cannot run is listed grayed out with the reason: **Select a commit first**, **No bisect in progress**, **No commit to mark right now** (the result is known, or the next commit could not be checked out) or **Finish the operation in progress**.
+
 ### Markers in the graph
 
 During a bisect, the graph shows a pill before the ref labels of the commits the bisect knows: **good**, **bad**, **skipped**, **testing** for the commit checked out, and **first bad** at the end.
@@ -66,6 +70,12 @@ If an untracked file is in the way of the next commit, the mark is saved but the
 ### Marks in the wrong order
 
 If a good commit comes after the bad one in the history, Git cannot bisect between them: "A good commit is not an ancestor of the bad one: Git cannot bisect between them. Check the marks, or end the bisect and start again." Marks cannot be removed one by one: stop the bisect and start again.
+
+## Bisect in first-parent mode
+
+If the graph is in [first-parent mode](../commit-graph/#first-parent-history) when you give the first mark, yaggui starts the bisect with `git bisect start --first-parent`: only the commits of the first-parent history, the ones the graph shows, are checked out and tested. A merge is tested as a whole: if the bug came with a merged branch, the first bad commit is the merge. The banner shows a **First parent** tag ("Started in first-parent mode: only the commits of the first-parent history are tested"), and its steps left and commits to test count these commits only. The mode is the one of the start: turning first-parent mode on or off during a bisect changes neither the commits tested nor the counts.
+
+`--first-parent` needs Git 2.29 or later. With an older Git, the bisect starts on every ancestor and a toast says **Bisect started on every ancestor**: "This Git version cannot bisect along first parents (Git 2.29 or later): the commits of merged branches are tested too."
 
 ## The result
 
