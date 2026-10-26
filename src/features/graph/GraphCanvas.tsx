@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, type RefObject } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
 
 import { GRAPH_COLORS } from '../../ipc';
 import { useThemeStore } from '../../theme/themeStore';
@@ -156,9 +156,23 @@ export function GraphCanvas({
     palette.current = null;
   }, [theme]);
 
+  // The bitmaps are sized for the pixel ratio at draw time: a window moved to another monitor
+  // redraws them, else the visible tiles stay blurry until the data or the theme changes.
+  const [pixelRatio, setPixelRatio] = useState(() => window.devicePixelRatio || 1);
+  useEffect(() => {
+    const query = window.matchMedia(`(resolution: ${String(pixelRatio)}dppx)`);
+    const onChange = () => {
+      setPixelRatio(window.devicePixelRatio || 1);
+    };
+    query.addEventListener('change', onChange);
+    return () => {
+      query.removeEventListener('change', onChange);
+    };
+  }, [pixelRatio]);
+
   useLayoutEffect(() => {
     draw(true);
-  }, [draw, dataVersion, theme]);
+  }, [draw, dataVersion, theme, pixelRatio]);
 
   useEffect(() => {
     const scroller = scrollRef.current;

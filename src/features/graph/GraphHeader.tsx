@@ -44,6 +44,10 @@ function ResizeHandle({
     const origin = start.current;
     if (origin) onResize(clampColumn(column, origin.width + grows * (event.clientX - origin.x)));
   };
+  // Also after a cancelled drag (touch gesture, lost capture): hovering must not keep resizing.
+  const endDrag = () => {
+    start.current = null;
+  };
   const onKeyDown = (event: React.KeyboardEvent) => {
     if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
     event.preventDefault();
@@ -59,9 +63,9 @@ function ResizeHandle({
       tabIndex={0}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
-      onPointerUp={() => {
-        start.current = null;
-      }}
+      onPointerUp={endDrag}
+      onPointerCancel={endDrag}
+      onLostPointerCapture={endDrag}
       onDoubleClick={onReset}
       onKeyDown={onKeyDown}
     />
