@@ -20,6 +20,7 @@ import { TextInput } from '../../ui/TextInput';
 import { activeRepoId } from '../repo/repoSessions';
 import { Row } from './Row';
 import { savePreferenceOrToast } from './savePreference';
+import { useDraft } from './useDraft';
 import styles from './ToolsTab.module.css';
 
 /** Tools `git difftool` / `git mergetool` know; any other name is a custom tool. */
@@ -131,7 +132,7 @@ interface ToolRowProps {
 function ToolRow({ kind, label, hint, placeholder, value, field, suggestions }: ToolRowProps) {
   const id = useId();
   const listId = useId();
-  const [draft, setDraft] = useState(value ?? '');
+  const [draft, setDraft] = useDraft(value ?? '');
   const commit = () => {
     const next = draft.trim() || null;
     if (next !== value) savePreferenceOrToast({ [field]: next });

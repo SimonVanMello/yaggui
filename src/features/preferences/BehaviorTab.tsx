@@ -1,4 +1,4 @@
-import { useId, useState } from 'react';
+import { useId } from 'react';
 
 import { useShellStore } from '../../app/shellStore';
 import { useAppInfo } from '../../app/useAppInfo';
@@ -20,6 +20,7 @@ import { clampInt, setConfirmation } from './prefsLogic';
 import { ProtectedBranchesField } from './ProtectedBranchesField';
 import { Row } from './Row';
 import { savePreferenceOrToast } from './savePreference';
+import { useDraft } from './useDraft';
 import styles from './BehaviorTab.module.css';
 
 /** "No choice": a pull follows `pull.rebase` / `pull.ff` of the Git configuration. */
@@ -37,7 +38,7 @@ export function BehaviorTab() {
   const prefs = usePreferences();
   const appVersion = useAppInfo().data?.appVersion;
   const minutesId = useId();
-  const [minutes, setMinutes] = useState(String(prefs.autoFetchMinutes));
+  const [minutes, setMinutes] = useDraft(String(prefs.autoFetchMinutes));
 
   const commitMinutes = () => {
     const value = clampInt(

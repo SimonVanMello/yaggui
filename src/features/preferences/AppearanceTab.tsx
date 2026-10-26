@@ -1,4 +1,4 @@
-import { useId, useState } from 'react';
+import { useEffect, useId, useRef } from 'react';
 
 import { usePreferences } from '../../app/usePreferences';
 import { useI18nStore, type Locale } from '../../i18n/i18n';
@@ -19,9 +19,12 @@ import { toast } from '../../ui/toastStore';
 import { clearGravatarCache } from '../graph/gravatar';
 import { savePreferenceOrToast } from './savePreference';
 import { Row } from './Row';
+import { useDraft } from './useDraft';
 import styles from './AppearanceTab.module.css';
 
 const SYSTEM = 'system';
+/** A drag of the text size slider fires a change per step: one save once it settles. */
+const FONT_SIZE_SAVE_DELAY_MS = 150;
 
 export function AppearanceTab() {
   const t = useT();
@@ -50,6 +53,30 @@ export function AppearanceTab() {
     );
   };
   const ids = { ui: useId(), code: useId(), size: useId() };
+  const [fontSize, setFontSize] = useDraft(String(prefs.fontSize));
+  const pendingFontSize = useRef<{ size: number; timer: ReturnType<typeof setTimeout> } | null>(
+    null,
+  );
+  const changeFontSize = (size: number) => {
+    setFontSize(String(size));
+    if (pendingFontSize.current) clearTimeout(pendingFontSize.current.timer);
+    const timer = setTimeout(() => {
+      pendingFontSize.current = null;
+      savePreferenceOrToast({ fontSize: size });
+    }, FONT_SIZE_SAVE_DELAY_MS);
+    pendingFontSize.current = { size, timer };
+  };
+  // A size still pending when the dialog closes is saved rather than lost.
+  useEffect(
+    () => () => {
+      const pending = pendingFontSize.current;
+      if (!pending) return;
+      clearTimeout(pending.timer);
+      pendingFontSize.current = null;
+      savePreferenceOrToast({ fontSize: pending.size });
+    },
+    [],
+  );
 
   return (
     <>
@@ -152,13 +179,13 @@ export function AppearanceTab() {
           min={FONT_SIZE_MIN}
           max={FONT_SIZE_MAX}
           step={1}
-          value={prefs.fontSize}
+          value={fontSize}
           onChange={(event) => {
-            savePreferenceOrToast({ fontSize: Number(event.target.value) });
+            changeFontSize(Number(event.target.value));
           }}
         />
         <output htmlFor={ids.size} className={styles.value}>
-          {t('prefs.fontSize.value', { size: prefs.fontSize })}
+          {t('prefs.fontSize.value', { size: Number(fontSize) })}
         </output>
       </Row>
     </>
@@ -175,7 +202,7 @@ interface FontInputProps {
 /** Saved on Enter or when leaving the field, not on every keystroke. */
 function FontInput({ id, value, mono, onCommit }: FontInputProps) {
   const t = useT();
-  const [draft, setDraft] = useState(value ?? '');
+  const [draft, setDraft] = useDraft(value ?? '');
   const commit = () => {
     const next = draft.trim() || null;
     if (next !== value) onCommit(next);

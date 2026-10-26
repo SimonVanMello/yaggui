@@ -184,6 +184,7 @@ import {
   setRemoteUrls,
   type MockRemoteTags,
 } from './mock/remotes';
+import type { MockFileChange } from './mock/diffData';
 import {
   blobId,
   fileChanged,
@@ -865,6 +866,48 @@ export class MockBackend {
     repo.state = { ...repo.state, dirty: wip.dirty() };
     this.watcherSaw(repoId, false);
     return true;
+  }
+
+  /**
+   * Changes, as an editor would, a tracked file that the commits waiting on the upstream
+   * touch: the next pull is refused with `dirtyWorktree` (in a repository whose path contains
+   * `overwrite`, as a merge is). Returns the path, or `null` without upstream or commits.
+   */
+  simulatePullOverwrite(repoId: number): string | null {
+    const repo = this.find(repoId);
+    const graph = this.graph(repoId);
+    const wip = this.wip(repoId);
+    if (!repo || !graph || !wip) return null;
+    const { history } = graph;
+    const head = history.head;
+    if (head.kind !== 'branch') return null;
+    const branch = history.local.find((b) => b.name === head.name);
+    const remote = history.remote.find((r) => r.name === branch?.upstream);
+    if (!branch || !remote) return null;
+    const own = ancestors(history.commits, branch.commit);
+    const path = [...ancestors(history.commits, remote.commit)]
+      .filter((c) => !own.has(c))
+      .flatMap((c) => history.commits[c]?.files ?? [])[0];
+    if (path === undefined) return null;
+    // The file is not in the generated working tree: tracked and modified from now on.
+    const modified: MockFileChange = {
+      path,
+      status: 'modified',
+      oldMode: 'regular',
+      newMode: 'regular',
+      old: 'value = 1\n',
+      new: 'value = 2\n',
+    };
+    this.wips.set(
+      repoId,
+      MockWip.fromChanges(wip.changes('staged'), [
+        ...wip.changes('unstaged').filter((c) => c.path !== path),
+        modified,
+      ]),
+    );
+    repo.state = { ...repo.state, dirty: this.wip(repoId)?.dirty() ?? repo.state.dirty };
+    this.watcherSaw(repoId, false);
+    return path;
   }
 
   /**
@@ -4683,6 +4726,26 @@ export class MockBackend {
             const ahead = countExclusive(history, branch.commit, remote.commit);
             if (behind === 0) return { ok: { strategy: used, upToDate: true } };
             if (ahead > 0 && used === 'ffOnly') return { error: notFastForward() };
+            // Like the backend ("would be overwritten by merge" → `dirtyWorktree`): local
+            // changes to files the incoming commits touch stop the pull before anything.
+            const own = ancestors(history.commits, branch.commit);
+            const incoming = [...ancestors(history.commits, remote.commit)].filter(
+              (c) => !own.has(c),
+            );
+            const blocked = this.overwrittenBy(repoId, graph, incoming);
+            if (blocked.length > 0) {
+              return {
+                error: {
+                  ...dirtyWorktree(blocked, false),
+                  detail: [
+                    'error: Your local changes to the following files would be overwritten by merge:',
+                    ...blocked.map((path) => `\t${path}`),
+                    'Please commit your changes or stash them before you merge.',
+                    'Aborting',
+                  ].join('\n'),
+                },
+              };
+            }
             const conflict =
               this.pullConflictRepos.has(repoId) || this.conflictTriggered(repoId, remote.name);
             if (ahead > 0 && used !== 'ffOnly' && conflict) {

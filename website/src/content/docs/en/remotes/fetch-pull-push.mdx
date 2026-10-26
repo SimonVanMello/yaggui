@@ -50,7 +50,7 @@ git fetch --progress --prune --all      # all remotes
 git fetch --progress --prune origin     # one remote
 ```
 
-When it finishes, a **Fetch complete** toast appears and the status bar shows **Fetch completed** with the time. Remote branches in the sidebar and the graph update on their own.
+When it finishes, a **Fetch complete** toast appears, with the repository's name below the title, and the status bar shows **Fetch completed** with the time. Remote branches in the sidebar and the graph update on their own.
 
 ### Prune on fetch
 
@@ -220,7 +220,7 @@ Operations in the same repository run one at a time. A fetch, pull or push you s
 
 ## Errors
 
-A failed fetch, pull or push shows an error toast titled **Fetch failed**, **Pull failed** or **Push failed**. It stays until you close it, and holds:
+A failed fetch, pull or push shows an error toast titled **Fetch failed**, **Pull failed** or **Push failed**, followed by the repository's name in parentheses so that it can be told apart with several tabs open. It stays until you close it, and holds:
 
 - a message that says what went wrong and what to do,
 - **Details**, collapsed, with Git's own output,

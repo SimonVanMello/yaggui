@@ -14,6 +14,7 @@ import {
 import { toast } from '../../ui/toastStore';
 import { refreshHistory, reportConflicts } from '../history/historyOps';
 import { refreshRefs } from '../refs/refOps';
+import { repoDisplayName, useRepoSessions } from '../repo/repoSessions';
 import { shortOid } from '../repo/repoStatus';
 
 function t(key: MessageKey, params?: MessageParams): string {
@@ -22,6 +23,14 @@ function t(key: MessageKey, params?: MessageParams): string {
 
 function asYagguiError(error: unknown): YagguiError | null {
   return error instanceof YagguiIpcError ? error.error : null;
+}
+
+/**
+ * Name of the repository, for the toasts: with several tabs (auto-fetch, "Fetch all") a
+ * result could not be attributed otherwise. `undefined` when the session is gone.
+ */
+function repoLabel(repoId: number): string | undefined {
+  return repoDisplayName(useRepoSessions.getState().sessions[repoId], undefined) ?? undefined;
 }
 
 /**
@@ -35,8 +44,12 @@ function report(repoId: number, kind: OpKind, error: unknown, retry?: () => void
     return;
   }
   if (yaggui.code === 'cancelled') return;
+  const repo = repoLabel(repoId);
   showYagguiError(yaggui, {
-    title: t('op.toast.failed', { op: t(`op.${kind}`) }),
+    title:
+      repo === undefined
+        ? t('op.toast.failed', { op: t(`op.${kind}`) })
+        : t('op.toast.failedIn', { op: t(`op.${kind}`), repo }),
     retry,
     pullThenPush: () => {
       void (async () => {
@@ -70,7 +83,14 @@ export async function fetchRepo(
         prune,
       ),
     );
-    if (!silent) toast({ variant: 'success', title: t('network.fetch.done'), duration: 3000 });
+    if (!silent) {
+      toast({
+        variant: 'success',
+        title: t('network.fetch.done'),
+        description: repoLabel(repoId),
+        duration: 3000,
+      });
+    }
     return true;
   } catch (error) {
     if (!silent) {
@@ -93,6 +113,7 @@ export async function pullRepo(repoId: number, strategy: PullStrategy | null): P
       title: t(result.upToDate ? 'network.pull.upToDate' : 'network.pull.done', {
         strategy: t(`network.strategy.${result.strategy}`),
       }),
+      description: repoLabel(repoId),
       duration: 3000,
     });
     return true;
@@ -147,6 +168,7 @@ export async function pushRepo(
       title: t(result.upToDate ? 'network.push.upToDate' : 'network.push.done', {
         target: `${result.remote}/${result.remoteBranch}`,
       }),
+      description: repoLabel(repoId),
       duration: 3000,
     });
     return true;
@@ -227,7 +249,12 @@ export async function forcePushRepo(repoId: number, branch: string | null = null
         expectedSha: preview.remoteSha,
       }),
     );
-    toast({ variant: 'success', title: t('network.force.done', { target }), duration: 3000 });
+    toast({
+      variant: 'success',
+      title: t('network.force.done', { target }),
+      description: repoLabel(repoId),
+      duration: 3000,
+    });
   } catch (error) {
     report(repoId, 'push', error);
   } finally {
@@ -299,7 +326,12 @@ export async function fetchTags(repoId: number, remote: string | null = null): P
         remote === null ? { kind: 'all' } : { kind: 'remote', name: remote },
       ),
     );
-    toast({ variant: 'success', title: t('tags.fetch.done'), duration: 3000 });
+    toast({
+      variant: 'success',
+      title: t('tags.fetch.done'),
+      description: repoLabel(repoId),
+      duration: 3000,
+    });
     return true;
   } catch (error) {
     report(repoId, 'fetch', error, () => {

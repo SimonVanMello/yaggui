@@ -1,8 +1,9 @@
 import { create } from 'zustand';
 
 import { loadPreferences } from '../../app/preferences';
-import { translate, useI18nStore, type MessageKey } from '../../i18n/i18n';
+import { initI18n, translate, useI18nStore, type MessageKey } from '../../i18n/i18n';
 import { ipc, unwrap, YagguiIpcError, type PreferencesImportPreview } from '../../ipc';
+import { initTheme } from '../../theme/themeStore';
 import { toast } from '../../ui/toastStore';
 import { useKeybindings } from '../keybindings/keybindingsStore';
 
@@ -69,7 +70,11 @@ export async function applyPreferencesImport(): Promise<void> {
   usePrefsSync.setState({ applying: true });
   try {
     await unwrap(ipc.commands.applyPreferencesImport(preview.path));
-    await Promise.all([loadPreferences(), useKeybindings.getState().load()]);
+    const [prefs] = await Promise.all([loadPreferences(), useKeybindings.getState().load()]);
+    // The theme and language stores read the preferences only at startup (`main.tsx`): an
+    // imported theme, style or language must reach them, and the theme cache, now.
+    initTheme(prefs.theme, prefs.style);
+    initI18n(prefs.locale);
     usePrefsSync.setState({ preview: null, applying: false });
     toast({ variant: 'success', title: t('prefs.sync.applied') });
   } catch (failure) {

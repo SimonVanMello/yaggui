@@ -147,10 +147,26 @@ export function currentPreferences(): Preferences {
   return current;
 }
 
+/**
+ * Saves run one after the other: every save sends the whole object, so two in flight at once
+ * could commit in either order and leave the store (or the screen) with the older value.
+ */
+let pendingSave: Promise<unknown> = Promise.resolve();
+
+/**
+ * Sends the preferences as they are when the turn of this save comes (later edits included:
+ * the last write wins), and resolves to what the backend stored.
+ */
+function enqueueSave(client: YagguiClient): Promise<Preferences> {
+  const save = pendingSave.then(() => unwrap(client.commands.setPreferences(current)));
+  pendingSave = save.catch(() => undefined);
+  return save;
+}
+
 /** Persists a change; the UI has already applied it, so failures are only logged. */
 export function savePreferences(patch: Partial<Preferences>, client: YagguiClient = ipc): void {
   setCurrent({ ...current, ...patch });
-  void unwrap(client.commands.setPreferences(current)).catch((error: unknown) => {
+  void enqueueSave(client).catch((error: unknown) => {
     console.warn('Could not save preferences', error);
   });
 }
@@ -166,15 +182,15 @@ export async function updatePreferences(
   client: YagguiClient = ipc,
 ): Promise<Preferences> {
   const previous = current;
-  const next = { ...current, ...patch };
-  setCurrent(next);
+  const keys = Object.keys(patch) as (keyof Preferences)[];
+  setCurrent({ ...current, ...patch });
   try {
-    const stored = await unwrap(client.commands.setPreferences(next));
+    const stored = await enqueueSave(client);
     // Keep what was typed meanwhile; the backend only normalizes the fields of this call.
-    setCurrent({ ...current, ...pick(stored, Object.keys(patch) as (keyof Preferences)[]) });
+    setCurrent({ ...current, ...pick(stored, keys) });
     return current;
   } catch (error) {
-    setCurrent({ ...current, ...pick(previous, Object.keys(patch) as (keyof Preferences)[]) });
+    setCurrent({ ...current, ...pick(previous, keys) });
     throw error;
   }
 }
