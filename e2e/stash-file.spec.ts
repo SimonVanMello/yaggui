@@ -99,6 +99,18 @@ for (const { name: theme, colorScheme } of THEMES) {
       await capture(page, theme, 'conflict');
       await dialog.getByRole('button', { name: 'Understood' }).click();
       await expect(tree(page).getByRole('treeitem', { name: /conflict demo/ })).toBeVisible();
+
+      // The operation failed on the conflict, and its undo is still offered.
+      const undo = page.getByRole('toolbar', { name: 'Repository actions' }).getByRole('button', {
+        name: `Undo: applying ${path} from stash "On feat/graph-lanes: conflict demo"`,
+      });
+      await expect(undo).not.toHaveAttribute('aria-disabled', 'true');
+      await undo.click();
+      await expect(
+        page.getByText(`Undone: applying ${path} from stash "On feat/graph-lanes: conflict demo"`, {
+          exact: true,
+        }),
+      ).toBeVisible();
     });
   });
 }

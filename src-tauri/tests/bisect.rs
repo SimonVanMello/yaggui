@@ -7,6 +7,7 @@ mod common;
 use std::sync::Arc;
 
 use common::{Fixture, RecordingSink};
+use yaggui_lib::events::{BackendEvent, OpNote, OpOutcome};
 use yaggui_lib::git::cli::GitCli;
 use yaggui_lib::git::errors::ErrorCode;
 use yaggui_lib::git::log::CommandLog;
@@ -23,11 +24,12 @@ struct Env {
     fx: Fixture,
     repos: Arc<RepoManager>,
     id: u32,
+    sink: Arc<RecordingSink>,
     /// `shas[i]` is `c<i + 1>`.
     shas: Vec<String>,
 }
 
-fn manager(fx: &Fixture) -> (Arc<RepoManager>, u32) {
+fn manager(fx: &Fixture) -> (Arc<RepoManager>, u32, Arc<RecordingSink>) {
     let sink = Arc::new(RecordingSink::default());
     let git = GitCli::new(Arc::new(CommandLog::new()), sink.clone())
         .with_env("GIT_CONFIG_NOSYSTEM", "1")
@@ -37,12 +39,12 @@ fn manager(fx: &Fixture) -> (Arc<RepoManager>, u32) {
         );
     let store = Arc::new(Store::open_in_memory().unwrap());
     let repos = Arc::new(
-        RepoManager::new(Arc::new(git), store, sink)
+        RepoManager::new(Arc::new(git), store, sink.clone())
             .without_watcher()
             .with_backup_dir(fx.root.join("backups")),
     );
     let id = repos.open(&fx.repo_str()).unwrap().id;
-    (repos, id)
+    (repos, id, sink)
 }
 
 /// A `clean` fixture with `COMMITS` linear commits. `c3` adds `old.txt`, `c8` deletes it.
@@ -65,11 +67,12 @@ fn env() -> Env {
         fx.git(&["commit", "-q", "-m", &format!("c{i}")]);
         shas.push(rev(&fx, "HEAD"));
     }
-    let (repos, id) = manager(&fx);
+    let (repos, id, sink) = manager(&fx);
     Env {
         fx,
         repos,
         id,
+        sink,
         shas,
     }
 }
@@ -215,7 +218,7 @@ fn reads_back_an_interrupted_bisect() {
     let tested = env.head();
     drop(env.repos);
 
-    let (repos, id) = manager(&env.fx);
+    let (repos, id, _) = manager(&env.fx);
     assert_eq!(
         repos.state(id).unwrap().operation,
         Some(RepoOperation::Bisect)
@@ -320,4 +323,43 @@ fn skip_needs_a_bisect_and_undo_waits_for_its_end() {
     env.repos.abort_operation(env.id).unwrap();
     env.repos.undo(env.id).unwrap();
     assert_eq!(rev(&env.fx, "refs/heads/topic"), "");
+}
+
+#[test]
+fn skip_operation_ends_inconclusive_like_a_skip_mark() {
+    let env = env();
+    env.mark(Some(&env.shas[COMMITS - 1]), BisectMark::Bad);
+    let mut state = env.mark(Some(&env.shas[COMMITS - 4]), BisectMark::Good);
+    assert_eq!(state.remaining, Some(2));
+    let mut skips = 0;
+    while state.result.is_none() {
+        env.sink.clear();
+        let result = env.repos.skip_operation(env.id).unwrap();
+        assert_eq!(result.head, env.head());
+        state = env.state().unwrap();
+        // Like a mark: "step" while commits are left, a plain success once there is a result.
+        let notes: Vec<_> = env
+            .sink
+            .events()
+            .into_iter()
+            .filter_map(|event| match event {
+                BackendEvent::OpFinished(f) => Some(f.outcome),
+                _ => None,
+            })
+            .collect();
+        let note = state.result.is_none().then_some(OpNote::Step);
+        assert!(
+            matches!(notes[..], [OpOutcome::Success { note: n }] if n == note),
+            "{notes:?}"
+        );
+        skips += 1;
+        assert!(skips <= 2, "skipped more than the candidates");
+    }
+    assert_eq!(state.skipped.len(), 2);
+    assert!(matches!(
+        state.result,
+        Some(BisectResult::Inconclusive { ref candidates }) if candidates.len() == 3
+    ));
+    // The bisect stays in progress until reset, like after the last skip mark.
+    assert!(env.bisecting());
 }

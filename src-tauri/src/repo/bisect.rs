@@ -57,6 +57,11 @@ impl RepoManager {
     }
 }
 
+/// `skip_operation` during a bisect: the same step as a skip mark on HEAD.
+pub(super) fn bisect_skip(ctx: &WriteContext<'_>) -> Result<BisectState, YagguiError> {
+    bisect_mark(ctx, None, BisectMark::Skip).inspect(|state| step_note(ctx, state))
+}
+
 fn bisect_mark(
     ctx: &WriteContext<'_>,
     rev: Option<&str>,

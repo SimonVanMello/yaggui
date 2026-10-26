@@ -20,6 +20,7 @@ use crate::git::read::state::{RepoOperation, count_exclusive, gix as gix_err, re
 use crate::graph::resolve_commit;
 
 use super::RepoManager;
+use super::bisect::bisect_skip;
 use super::journal::{Mode, Plan};
 use super::ref_ops::{
     classify, existing_branch, overwritten_paths, raw, unmerged_paths, worktree_status,
@@ -868,13 +869,16 @@ fn skip_operation(ctx: &WriteContext<'_>) -> Result<HistoryResult, YagguiError> 
         ));
     }
     let previous = operation_start(ctx)?;
-    let command = ctx.command([sequencer(&operation), "--skip"]);
-    let command = if operation == RepoOperation::Bisect {
-        ctx.command(["bisect", "skip"])
+    if operation == RepoOperation::Bisect {
+        // A skip mark on HEAD: only skipped commits left is a result, not a failure.
+        bisect_skip(ctx)?;
     } else {
-        command
-    };
-    run_op(ctx, history_op(&operation), &command)?;
+        run_op(
+            ctx,
+            history_op(&operation),
+            &ctx.command([sequencer(&operation), "--skip"]),
+        )?;
+    }
     result(ctx, previous, None)
 }
 

@@ -28,7 +28,8 @@ use super::journal::{Mode, Plan};
 use super::ref_ops::{classify, raw, stash_entry, unmerged_paths};
 use super::write::{Backup, SavedPath, WriteContext, checked_paths};
 
-/// What the apply did (a conflict is still journaled) and the file saved before it.
+/// What the apply did (a conflict is still journaled, and is the operation's outcome) and the
+/// file saved before it.
 type Applied = (Result<(), YagguiError>, Vec<SavedPath>);
 
 impl RepoManager {
@@ -38,7 +39,7 @@ impl RepoManager {
         request: StashFileRequest,
     ) -> Result<(), YagguiError> {
         let backups = self.backup_dir();
-        self.journal_op(repo_id, OpKind::Stash, false, false, move |ctx| {
+        self.journal_outcome(repo_id, OpKind::Stash, false, false, move |ctx| {
             let backups = backups?;
             let entry = stash_entry(ctx, &request.stash)?;
             let mut paths = checked_paths(ctx.workdir, vec![request.path])?;
@@ -53,7 +54,7 @@ impl RepoManager {
                 path,
             };
             Ok((outcome, Some(Plan::new(op, Mode::Files).with_files(saved))))
-        })?
+        })
     }
 }
 

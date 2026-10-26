@@ -4424,15 +4424,19 @@ export class MockBackend {
         const head = graph.headCommit() ?? 0;
         const refused = this.bisectCheck(repoId);
         if (refused) return fail(refused);
+        let state: BisectState | null = null;
         return this.runWrite(
           repoId,
           'bisect',
           ['bisect', 'skip'],
           () => {
             const done = this.bisectWork(repoId, head, 'skip');
-            return 'ok' in done ? { ok: this.historyResult(graph, 'commits', head) } : done;
+            if (!('ok' in done)) return done;
+            state = done.ok;
+            return { ok: this.historyResult(graph, 'commits', head) };
           },
-          { delayMs: 200, refs: true },
+          // Like `bisectMark`: only skipped commits left is a result, not a step.
+          { delayMs: 200, refs: true, note: () => (state?.result ? null : 'step') },
         );
       }
       const kind = this.operationKind(op.operation);
