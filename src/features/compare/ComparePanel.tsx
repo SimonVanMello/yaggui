@@ -24,12 +24,11 @@ import { ChangedFileList } from '../diff/ChangedFileList';
 import { useChangedFiles } from '../diff/diffQueries';
 import { closeDiff, openDiff, useDiffSelection } from '../diff/diffStore';
 import { Avatar } from '../graph/Avatar';
+import { useRowHeight } from '../graph/useRowHeight';
 import { revealCommit } from '../repo/graphNavigation';
 import { shortOid } from '../repo/repoStatus';
 import { closeCompare, swapCompare, type CompareRequest } from './compareStore';
 import styles from './ComparePanel.module.css';
-
-const ROW_HEIGHT = 28;
 
 const compareKey = (repoId: number, request: CompareRequest) =>
   ['compare', repoId, request.a.rev, request.b.rev] as const;
@@ -78,10 +77,12 @@ function CommitLists({
   const t = useT();
   const scrollRef = useRef<HTMLDivElement>(null);
   const rows = rowsOf(cmp, labels);
+  // The rows are `--row-height` tall (22 px in compact density): the estimate must follow.
+  const rowHeight = useRowHeight();
   const virtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => scrollRef.current,
-    estimateSize: () => ROW_HEIGHT,
+    estimateSize: () => rowHeight,
     overscan: 10,
   });
   return (

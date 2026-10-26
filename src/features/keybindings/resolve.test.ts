@@ -79,6 +79,24 @@ describe('captureShortcut', () => {
   });
 });
 
+describe('shortcutKey across platforms', () => {
+  it('Ctrl is Mod outside macOS, as the key handler treats it', () => {
+    expect(shortcutKey('Ctrl+K', 'linux')).toBe(shortcutKey('Mod+K', 'linux'));
+    expect(shortcutKey('Ctrl+K', 'windows')).toBe('mod+k');
+    expect(shortcutKey('Mod+Ctrl+Shift+K', 'linux')).toBe('mod+shift+k');
+    expect(shortcutKey('Ctrl+K', 'mac')).not.toBe(shortcutKey('Mod+K', 'mac'));
+  });
+
+  it('reports Ctrl+K against Mod+K as a conflict outside macOS (hand-edited keybindings)', () => {
+    const effective = new Map<string, string | null>([
+      ['a', 'Ctrl+K'],
+      ['b', 'Mod+K'],
+    ]);
+    expect(findConflicts(effective, 'linux').get('mod+k')).toEqual(['a', 'b']);
+    expect(findConflicts(effective, 'mac').size).toBe(0);
+  });
+});
+
 describe('findConflicts', () => {
   it('groups commands that share a shortcut, whatever its spelling', () => {
     const conflicts = findConflicts(

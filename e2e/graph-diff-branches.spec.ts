@@ -242,3 +242,63 @@ test.describe('terminal style, high contrast', () => {
     await capture(page, 'terminal-contrast', 'image-side');
   });
 });
+
+test.describe('virtualized lists in compact density', () => {
+  test.use({ locale: 'en-US' });
+
+  /** Offsets of the first virtual rows of `list` from its content box, with their heights. */
+  const layout = (list: ReturnType<Page['locator']>, count: number) =>
+    list.evaluate((el, n) => {
+      const inner = el.querySelector('[style*="height"]');
+      const top = inner?.getBoundingClientRect().top ?? 0;
+      return [...(inner?.children ?? [])].slice(0, n).map((child) => {
+        const rect = child.getBoundingClientRect();
+        return { top: rect.top - top, height: rect.height };
+      });
+    }, count);
+
+  test('comparison and cleanup rows are laid out at the height their tokens give', async ({
+    page,
+  }) => {
+    await openRepo(page);
+    await page.keyboard.press('Control+,');
+    const prefs = page.getByRole('dialog', { name: 'Preferences' });
+    await prefs.getByRole('tab', { name: 'Appearance', exact: true }).click();
+    await prefs.getByRole('radio', { name: 'Compact' }).click();
+    await expect(page.locator('html')).toHaveAttribute('data-density', 'compact');
+    await page.keyboard.press('Escape');
+
+    await graphRow(page, 1).click();
+    await graphRow(page, 4).click({ modifiers: ['ControlOrMeta'] });
+    await page
+      .getByRole('region', { name: 'Selection' })
+      .getByRole('button', { name: 'Compare' })
+      .click();
+    const list = comparePanel(page).locator('[class*="list"]').first();
+    await expect(
+      comparePanel(page)
+        .getByRole('heading', { name: /^Only in / })
+        .first(),
+    ).toBeVisible();
+    // 22 px rows in compact density: each virtual row starts where the previous one ends.
+    await expect
+      .poll(() => layout(list, 3))
+      .toEqual([
+        { top: 0, height: 22 },
+        { top: 22, height: 22 },
+        { top: 44, height: 22 },
+      ]);
+
+    await page.keyboard.press('ControlOrMeta+K');
+    await page.keyboard.type('Clean up merged');
+    await page.keyboard.press('Enter');
+    const dialog = page.getByRole('dialog', { name: 'Clean up branches' });
+    await expect(dialog.getByRole('checkbox').first()).toBeVisible();
+    await expect
+      .poll(() => layout(dialog.getByRole('group'), 2))
+      .toEqual([
+        { top: 0, height: 30 },
+        { top: 30, height: 30 },
+      ]);
+  });
+});

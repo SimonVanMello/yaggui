@@ -9,13 +9,12 @@ import { Button } from '../../ui/Button';
 import { Dialog } from '../../ui/Dialog';
 import { Spinner } from '../../ui/Spinner';
 import { toast } from '../../ui/toastStore';
+import { useControlHeight } from '../graph/useRowHeight';
 import { refreshRefs } from '../refs/refOps';
 import { shortOid } from '../repo/repoStatus';
 import { closeBranchTools } from './branchToolsStore';
 import { cleanupCommand, cleanupEffect, defaultSelection } from './cleanupModel';
 import styles from './BranchTools.module.css';
-
-const ROW_HEIGHT = 32;
 
 function BranchList({
   cleanup,
@@ -28,10 +27,12 @@ function BranchList({
 }) {
   const t = useT();
   const scrollRef = useRef<HTMLDivElement>(null);
+  // `.row` is `--control-height-md` tall: the same token sizes the virtual rows.
+  const rowHeight = useControlHeight();
   const virtualizer = useVirtualizer({
     count: cleanup.branches.length,
     getScrollElement: () => scrollRef.current,
-    estimateSize: () => ROW_HEIGHT,
+    estimateSize: () => rowHeight,
     overscan: 8,
   });
   return (
