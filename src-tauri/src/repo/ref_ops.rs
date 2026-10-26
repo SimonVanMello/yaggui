@@ -12,7 +12,7 @@ use crate::git::errors::{BackendError, YagguiError, classify_git_failure};
 use crate::git::ops::types::{
     BranchStart, CheckoutMode, CheckoutResult, CheckoutTarget, CreateTagRequest,
     DeleteBranchRequest, DeleteBranchResult, DeletedRef, JournalOp, RefNameKind, StashEntryInfo,
-    StashId, StashPushRequest, UndoBlock,
+    StashId, StashPushRequest, UndoBlock, is_protected_branch,
 };
 use crate::git::read::refs::{StashEntry, read_stashes};
 use crate::graph::resolve_commit;
@@ -122,8 +122,9 @@ impl RepoManager {
         request: DeleteBranchRequest,
     ) -> Result<DeleteBranchResult, YagguiError> {
         let cancellable = request.delete_remote;
+        let protected = self.store.preferences()?.protected_branches;
         self.journal_op(repo_id, OpKind::Branch, cancellable, false, move |ctx| {
-            let result = delete_branch(ctx, &request)?;
+            let result = delete_branch(ctx, &request, &protected)?;
             let remote = result.remote.is_some();
             let op = JournalOp::DeleteBranch {
                 name: request.name.clone(),
@@ -687,6 +688,22 @@ fn checkout(
         .head()
         .map_err(|e| BackendError::gix("read HEAD", e))?
         .is_unborn();
+    // A local branch behind its remote one is brought up to it after the switch
+    // (`merge --ff-only`): local changes in its way are refused now, before HEAD moves,
+    // unless they are stashed out of the way.
+    if resolved.fast_forward.is_some() && mode != CheckoutMode::StashAndPop && !unborn {
+        let changed = changed_between_head_and(ctx, &resolved.commit)?;
+        let blocking: Vec<String> = status
+            .tracked
+            .iter()
+            .chain(status.untracked.iter())
+            .filter(|p| changed.contains(*p))
+            .cloned()
+            .collect();
+        if !blocking.is_empty() {
+            return Err(YagguiError::dirty_worktree(blocking, false));
+        }
+    }
     if status.tracked.is_empty() || unborn {
         // Untracked files only: a plain switch refuses by itself to overwrite one, unless
         // they are stashed out of the way first.
@@ -796,6 +813,7 @@ fn create_branch(
 fn delete_branch(
     ctx: &WriteContext<'_>,
     request: &DeleteBranchRequest,
+    protected: &[String],
 ) -> Result<DeleteBranchResult, YagguiError> {
     let name = request.name.as_str();
     let sha = existing_branch(ctx, name)?;
@@ -808,6 +826,16 @@ fn delete_branch(
     } else {
         None
     };
+    // The remote branch of a protected name is never deleted (like a force push to it is
+    // refused); the local branch alone can be, on its own.
+    if let Some((remote, merge)) = &upstream
+        && remote != "."
+    {
+        let short = merge.strip_prefix("refs/heads/").unwrap_or(merge);
+        if is_protected_branch(short, protected) {
+            return Err(YagguiError::protected_branch_remote_delete(short));
+        }
+    }
     let run = raw(
         ctx,
         &ctx.command([

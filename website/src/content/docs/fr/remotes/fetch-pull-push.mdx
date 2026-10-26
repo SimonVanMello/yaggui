@@ -192,6 +192,8 @@ Si quelqu’un a poussé entre-temps, Git refuse : « Force push refusé : la
 
 Le force push vers une branche protégée est toujours refusé, sans possibilité de contournement : « main » est une branche protégée : le force push est refusé. Aucune commande n’est exécutée. La vérification porte sur le nom de la branche distante.
 
+La suppression d’une branche protégée sur le remote est refusée de la même façon, depuis le menu d’une branche distante (**Supprimer sur la remote…**) ou avec **Supprimer aussi la branche distante** dans la boîte de dialogue de suppression d’une branche locale : « main » est une branche protégée : elle n'est jamais supprimée sur le remote. Retire-la d'abord des branches protégées si c'est vraiment voulu. La branche locale seule peut toujours être supprimée. Voir [Branches](../../history/branches/#supprimer-une-branche).
+
 La liste se trouve dans **Préférences → Comportement → Branches protégées**. Valeurs par défaut : `main`, `master`, `develop`, `release/*`.
 
 - Une entrée est un nom exact, ou un motif `préfixe/*` qui correspond à toute branche située sous `préfixe/` (à n’importe quelle profondeur), mais pas à `préfixe` lui-même.

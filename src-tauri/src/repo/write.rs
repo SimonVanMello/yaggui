@@ -889,29 +889,32 @@ impl Backup {
         let mut saved_index = IndexSide::Unmanaged;
         let index = if with_index {
             let index = ctx.index()?;
-            match index.entry_by_path(BStr::new(path.as_bytes())) {
-                Some(entry) if entry.mode.is_submodule() => None,
-                Some(entry) => {
-                    saved_index = IndexSide::Blob {
-                        id: entry.id,
-                        mode: entry.mode.bits(),
-                    };
+            // Every stage of a conflicted file, so that the undo puts the conflict back as
+            // it was; the backup folder keeps "ours" (stage 2), or the stage there is.
+            saved_index = super::journal::index_side(&index, path);
+            let stored = match saved_index {
+                IndexSide::Blob { id, mode } => Some((id, mode)),
+                IndexSide::Unmerged { stages } => stages[1]
+                    .or(stages[2])
+                    .or(stages[0])
+                    .map(|stage| (stage.id, stage.mode)),
+                IndexSide::Unmanaged | IndexSide::Absent => None,
+            };
+            match stored {
+                Some((id, mode)) => {
                     let object = ctx
                         .repo
-                        .find_object(entry.id)
+                        .find_object(id)
                         .map_err(|e| BackendError::gix("read a staged file", e))?;
                     let file = self.next_file("index");
                     write_file(&self.dir.join(&file), &object.data)?;
                     Some(StoredBlob {
                         file,
-                        id: entry.id.to_string(),
-                        mode: format!("{:o}", entry.mode.bits()),
+                        id: id.to_string(),
+                        mode: format!("{mode:o}"),
                     })
                 }
-                None => {
-                    saved_index = IndexSide::Absent;
-                    None
-                }
+                None => None,
             }
         } else {
             None

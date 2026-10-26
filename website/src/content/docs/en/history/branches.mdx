@@ -233,6 +233,8 @@ If the branch has commits that are not merged, Git refuses and the dialog shows 
 
 The toast reads "Branch _name_ deleted. It pointed at _abc1234_; the commit stays in the reflog for now." If the remote deletion fails, the local branch is still deleted and a warning shows the reason. A branch checked out in a worktree cannot be deleted.
 
+With **Also delete the remote branch** checked, a branch whose remote branch has a [protected name](../../remotes/fetch-pull-push/#protected-branches) (`main`, `release/*`…) is refused before anything runs: "\"release/1\" is a protected branch: it is never deleted on the remote. Remove it from the protected branches first if you really mean to." Uncheck the box to delete the local branch alone.
+
 :::caution
 Undo restores a branch deleted locally only, including its upstream setting. If you also deleted the remote branch, the operation cannot be undone in yaggui. A force-deleted branch's commits can still be found in the [reflog](../../inspect/reflog/) for a while.
 :::
@@ -245,7 +247,7 @@ Right-click a remote branch in the sidebar, then **Delete on the remote…**. Th
 git push origin --delete refs/heads/<name>
 ```
 
-Click **Delete on the remote**. The toast reads "_origin/name_ deleted". If the branch was already gone on the remote, yaggui just removes the remote-tracking branch. You can cancel it from the status bar while it runs. This cannot be undone. Authentication problems are covered in [Authentication](../../remotes/authentication/).
+Click **Delete on the remote**. The toast reads "_origin/name_ deleted". If the branch was already gone on the remote, yaggui just removes the remote-tracking branch. You can cancel it from the status bar while it runs. This cannot be undone. A [protected name](../../remotes/fetch-pull-push/#protected-branches) is never deleted on the remote: "\"main\" is a protected branch: it is never deleted on the remote. Remove it from the protected branches first if you really mean to." Authentication problems are covered in [Authentication](../../remotes/authentication/).
 
 ## Set, change or remove the upstream
 
@@ -289,7 +291,7 @@ yaggui checks every branch first and deletes nothing if one is refused, then run
 git branch -D -- <branch> <branch> …
 ```
 
-The toast reads "N branches deleted. Undo restores them all." One **Undo** restores every deleted branch. If nothing qualifies, the dialog says "Nothing to clean up: no merged branch, no branch whose remote is gone."
+The toast reads "N branches deleted. Undo restores them all." One **Undo** restores every deleted branch. The branches are deleted one by one; if Git refuses one of them midway (for example a branch a worktree started using in the meantime), the error names it, the branches deleted before it stay deleted and **Undo** restores them. If nothing qualifies, the dialog says "Nothing to clean up: no merged branch, no branch whose remote is gone."
 
 ## Undo
 

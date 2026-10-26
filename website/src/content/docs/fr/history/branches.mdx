@@ -233,6 +233,8 @@ Si la branche a des commits non mergés, Git refuse et la boîte de dialogue aff
 
 La notification indique « Branche _nom_ supprimée. Elle pointait sur _abc1234_ ; le commit reste dans le reflog pour l'instant. » Si la suppression sur le remote échoue, la branche locale est tout de même supprimée et un avertissement en donne la raison. Une branche extraite dans un worktree ne peut pas être supprimée.
 
+Avec **Supprimer aussi la branche distante** cochée, une branche dont la branche distante porte un [nom protégé](../../remotes/fetch-pull-push/#branches-protégées) (`main`, `release/*`…) est refusée avant toute commande : « release/1 » est une branche protégée : elle n'est jamais supprimée sur le remote. Retire-la d'abord des branches protégées si c'est vraiment voulu. Décochez la case pour supprimer seulement la branche locale.
+
 :::caution
 Annuler ne restaure qu’une branche supprimée localement, avec son réglage d’upstream. Si vous avez aussi supprimé la branche distante, l’opération ne peut pas être annulée dans yaggui. Les commits d’une branche supprimée de force restent un certain temps accessibles dans le [reflog](../../inspect/reflog/).
 :::
@@ -245,7 +247,7 @@ Faites un clic droit sur une branche distante dans la barre latérale, puis **Su
 git push origin --delete refs/heads/<name>
 ```
 
-Cliquez sur **Supprimer sur le remote**. La notification indique « _origin/nom_ supprimée ». Si la branche avait déjà disparu du remote, yaggui retire simplement la branche de suivi. Vous pouvez l’annuler depuis la barre d’état pendant qu’elle s’exécute. Cette opération ne peut pas être annulée. Les problèmes d’authentification sont traités dans [Authentification](../../remotes/authentication/).
+Cliquez sur **Supprimer sur le remote**. La notification indique « _origin/nom_ supprimée ». Si la branche avait déjà disparu du remote, yaggui retire simplement la branche de suivi. Vous pouvez l’annuler depuis la barre d’état pendant qu’elle s’exécute. Cette opération ne peut pas être annulée. Un [nom protégé](../../remotes/fetch-pull-push/#branches-protégées) n’est jamais supprimé sur le remote : « main » est une branche protégée : elle n'est jamais supprimée sur le remote. Retire-la d'abord des branches protégées si c'est vraiment voulu. Les problèmes d’authentification sont traités dans [Authentification](../../remotes/authentication/).
 
 ## Définir, changer ou retirer l’upstream
 
@@ -289,7 +291,7 @@ yaggui vérifie d’abord chaque branche et ne supprime rien si l’une est refu
 git branch -D -- <branch> <branch> …
 ```
 
-La notification indique « N branches supprimées. Annuler les restaure toutes. » Un seul **Annuler** restaure toutes les branches supprimées. Si rien ne convient, la boîte de dialogue affiche « Rien à nettoyer : aucune branche mergée, aucune branche dont la distante a disparu. »
+La notification indique « N branches supprimées. Annuler les restaure toutes. » Un seul **Annuler** restaure toutes les branches supprimées. Les branches sont supprimées une par une ; si Git refuse l’une d’elles en cours de route (par exemple une branche qu’un worktree a commencé à utiliser entre-temps), l’erreur la nomme, les branches supprimées avant elle le restent et **Annuler** les restaure. Si rien ne convient, la boîte de dialogue affiche « Rien à nettoyer : aucune branche mergée, aucune branche dont la distante a disparu. »
 
 ## Annulation
 

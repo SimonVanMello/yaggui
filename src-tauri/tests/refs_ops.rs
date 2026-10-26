@@ -989,3 +989,41 @@ fn stale_stash_ids_are_refused() {
     );
     assert_eq!(env.stash_count(), 1);
 }
+
+/// The protected-branch rule covers the remote deletion: a protected branch can still be
+/// deleted locally on its own, never on the remote with it.
+#[test]
+fn a_protected_branch_is_never_deleted_on_the_remote() {
+    let env = env();
+    env.fx.git(&["switch", "-q", "-c", "release/1"]);
+    env.fx.git(&["push", "-q", "-u", "origin", "release/1"]);
+    env.fx.git(&["switch", "-q", "main"]);
+    let sha = env.rev("release/1");
+    let (c, err) = code(env.repos.delete_branch(
+        env.id,
+        DeleteBranchRequest {
+            name: "release/1".into(),
+            force: false,
+            delete_remote: true,
+        },
+    ));
+    assert_eq!(c, ErrorCode::ProtectedBranchDelete, "{err:?}");
+    assert_eq!(env.rev("refs/heads/release/1"), sha, "nothing deleted");
+    assert_eq!(env.rev("refs/remotes/origin/release/1"), sha);
+    assert!(env.repos.op_history(env.id).unwrap().is_empty());
+
+    let deleted = env
+        .repos
+        .delete_branch(
+            env.id,
+            DeleteBranchRequest {
+                name: "release/1".into(),
+                force: false,
+                delete_remote: false,
+            },
+        )
+        .unwrap();
+    assert!(deleted.remote.is_none());
+    assert_eq!(env.rev("refs/heads/release/1"), "");
+    assert_eq!(env.rev("refs/remotes/origin/release/1"), sha);
+}

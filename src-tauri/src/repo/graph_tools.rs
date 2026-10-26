@@ -26,7 +26,7 @@ use crate::graph::types::{
 use crate::graph::{Snapshot, decode_row, resolve_commit};
 
 use super::journal::{Mode, Plan};
-use super::ref_ops::{current_branch, find_ref};
+use super::ref_ops::{classify, current_branch, find_ref, raw};
 use super::write::{WriteContext, checked_paths};
 use super::{RepoManager, lock};
 
@@ -166,22 +166,29 @@ impl RepoManager {
     ) -> Result<DeleteBranchesResult, YagguiError> {
         let protected = self.store.preferences()?.protected_branches;
         let session = self.session(repo_id)?;
-        self.journal_op(repo_id, OpKind::Branch, false, false, move |ctx| {
+        self.journal_outcome(repo_id, OpKind::Branch, false, false, move |ctx| {
             let checked_out = {
                 let refs = refs::read_refs(ctx.repo, &mut lock(&session.refs_cache))?;
                 checked_out_branches(&refs)
             };
-            let result = delete_branches(ctx, &names, &protected, &checked_out)?;
+            let (result, refused) = delete_branches(ctx, &names, &protected, &checked_out)?;
+            // Journaled as what actually disappeared: a branch Git refuses in the middle of
+            // the batch leaves the ones before it deleted, and they must stay undoable.
             let count = u32::try_from(result.deleted.len()).unwrap_or(u32::MAX);
-            let op = JournalOp::DeleteBranches {
-                names: names
+            let plan = (count > 0).then(|| {
+                let names = result
+                    .deleted
                     .iter()
                     .take(JOURNAL_PATHS_MAX as usize)
-                    .cloned()
-                    .collect(),
-                count,
+                    .map(|branch| short_name(&branch.full_name).to_owned())
+                    .collect();
+                Plan::new(JournalOp::DeleteBranches { names, count }, Mode::Refs)
+            });
+            let outcome = match refused {
+                Some(err) => Err(err),
+                None => Ok(result),
             };
-            Ok((result, Some(Plan::new(op, Mode::Refs))))
+            Ok((outcome, plan))
         })
     }
 }
@@ -418,12 +425,19 @@ fn count_exclusive_all(repo: &gix::Repository, tip: ObjectId) -> Result<u32, Yag
     Ok(count)
 }
 
+fn short_name(full_name: &str) -> &str {
+    full_name.strip_prefix("refs/heads/").unwrap_or(full_name)
+}
+
+/// Deletes the branches in order, stopping at the first one Git refuses: the result lists
+/// what was deleted, with that refusal. `Err` when the checks refuse the batch up front
+/// (nothing deleted).
 fn delete_branches(
     ctx: &WriteContext<'_>,
     names: &[String],
     protected: &[String],
     checked_out: &BTreeSet<String>,
-) -> Result<DeleteBranchesResult, YagguiError> {
+) -> Result<(DeleteBranchesResult, Option<YagguiError>), YagguiError> {
     if names.is_empty() {
         return Err(YagguiError::invalid_argument(
             "No branch to delete.",
@@ -458,10 +472,26 @@ fn delete_branches(
             sha: sha.to_string(),
         });
     }
-    let mut command = ctx.command(["branch", "-D", "--"]);
-    for name in &seen {
-        command = command.arg(name);
+    // One command per branch: `git branch -D a b` goes on after a branch it refuses (gone
+    // meanwhile, or used by a worktree the listing could not see), exits 1 and would hide
+    // what it did delete.
+    let mut done = Vec::with_capacity(deleted.len());
+    for branch in deleted {
+        let name = short_name(&branch.full_name);
+        let run = raw(ctx, &ctx.command(["branch", "-D", "--", name]))?;
+        if !run.success {
+            let lower = run.stderr.to_ascii_lowercase();
+            let refused = if lower.contains("used by worktree") || lower.contains("checked out at")
+            {
+                YagguiError::branch_checked_out(name).with_detail(&run.stderr)
+            } else if lower.contains("not found") {
+                YagguiError::revision_not_found(name).with_detail(&run.stderr)
+            } else {
+                classify(ctx, &run)
+            };
+            return Ok((DeleteBranchesResult { deleted: done }, Some(refused)));
+        }
+        done.push(branch);
     }
-    ctx.run(&command)?;
-    Ok(DeleteBranchesResult { deleted })
+    Ok((DeleteBranchesResult { deleted: done }, None))
 }

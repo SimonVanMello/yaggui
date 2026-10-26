@@ -1097,6 +1097,20 @@ impl YagguiError {
         )
     }
 
+    /// The remote branch of a protected name is never deleted, like it is never force
+    /// pushed; the local branch alone can be deleted on its own.
+    pub fn protected_branch_remote_delete(name: &str) -> Self {
+        Self::new(
+            ErrorCode::ProtectedBranchDelete,
+            format!(
+                "\"{name}\" is a protected branch: it is never deleted on the remote. Remove it from the protected branches first if you really mean to."
+            ),
+            format!(
+                "« {name} » est une branche protégée : elle n'est jamais supprimée sur le remote. Retire-la d'abord des branches protégées si c'est vraiment voulu."
+            ),
+        )
+    }
+
     pub fn branch_checked_out(name: &str) -> Self {
         Self::new(
             ErrorCode::BranchCheckedOut,
