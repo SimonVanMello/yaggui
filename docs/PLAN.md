@@ -203,7 +203,7 @@ Exit: the defects and gaps found during the M7 integration (PR #65) are fixed, a
 
 Order: M8-1 to M8-3 run in parallel; M8-4 comes from the PO's feedback.
 
-**Milestone status**: every task is delivered (M8-1 #70, M8-2 #72, M8-3 #71, M8-4 #PR). Feedback from the M4 and M7 manual validations joins this milestone as new tasks.
+**Milestone status**: every task is delivered (M8-1 #70, M8-2 #72, M8-3 #71, M8-4 #74). Feedback from the M4 and M7 manual validations joins this milestone as new tasks.
 
 ## W — Website and documentation
 
