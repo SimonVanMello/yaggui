@@ -234,33 +234,3 @@
 .code :global(.yaggui-merge-unresolved[data-current='true']) {
   border-style: solid;
 }
-
-/* Token classes from the diff's highlighter, with the theme's syntax tokens. */
-.code :global(.tok-keyword) {
-  color: var(--syn-keyword);
-}
-
-.code :global(.tok-string) {
-  color: var(--syn-string);
-}
-
-.code :global(.tok-type) {
-  color: var(--syn-tag);
-}
-
-.code :global(.tok-function) {
-  color: var(--syn-function);
-}
-
-.code :global(.tok-comment) {
-  color: var(--fg-muted);
-  font-style: italic;
-}
-
-.code :global(.tok-strong) {
-  font-weight: var(--weight-semibold);
-}
-
-.code :global(.tok-invalid) {
-  color: var(--danger);
-}

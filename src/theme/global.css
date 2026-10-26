@@ -79,3 +79,34 @@ body[data-dragging] {
   outline-offset: -1px;
   background: var(--accent-soft);
 }
+
+/* Syntax token classes of the shared highlighter (features/diff/editor.ts): diff, merge editor,
+   file editor and file viewer. */
+.tok-keyword {
+  color: var(--syn-keyword);
+}
+
+.tok-string {
+  color: var(--syn-string);
+}
+
+.tok-type {
+  color: var(--syn-tag);
+}
+
+.tok-function {
+  color: var(--syn-function);
+}
+
+.tok-comment {
+  color: var(--fg-muted);
+  font-style: italic;
+}
+
+.tok-strong {
+  font-weight: var(--weight-semibold);
+}
+
+.tok-invalid {
+  color: var(--danger);
+}

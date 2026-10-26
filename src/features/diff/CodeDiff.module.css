@@ -324,33 +324,3 @@
   min-width: 0;
   min-height: 0;
 }
-
-/* Syntax: token classes of the highlighter in editor.ts. */
-.pane :global(.tok-keyword) {
-  color: var(--syn-keyword);
-}
-
-.pane :global(.tok-string) {
-  color: var(--syn-string);
-}
-
-.pane :global(.tok-type) {
-  color: var(--syn-tag);
-}
-
-.pane :global(.tok-function) {
-  color: var(--syn-function);
-}
-
-.pane :global(.tok-comment) {
-  color: var(--fg-muted);
-  font-style: italic;
-}
-
-.pane :global(.tok-strong) {
-  font-weight: var(--weight-semibold);
-}
-
-.pane :global(.tok-invalid) {
-  color: var(--danger);
-}
