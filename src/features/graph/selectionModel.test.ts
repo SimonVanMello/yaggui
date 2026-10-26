@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   EMPTY_SELECTION,
+  MAX_RANGE_ROWS,
   applyOrder,
   clickSelection,
   graphOrder,
@@ -70,6 +71,24 @@ describe('graph multi-selection', () => {
     ({ state } = clickSelection(state, hit(20), TOGGLE, lookup));
     ({ state } = clickSelection(state, hit(22), { toggle: true, range: true }, lookup));
     expect(graphOrder(state).map((c) => c.row)).toEqual([1, 20, 21, 22]);
+  });
+
+  it('a range beyond the bound keeps the clicked commit and cuts at the anchor end', () => {
+    const wide = (row: number) => (row >= 0 && row < 3000 ? sha(row) : undefined);
+    let { state } = clickSelection(EMPTY_SELECTION, hit(0), PLAIN, wide);
+    ({ state } = clickSelection(state, hit(1200), RANGE, wide));
+    expect(state.picked.size).toBe(MAX_RANGE_ROWS);
+    expect(state.picked.has(sha(1200))).toBe(true);
+    expect(graphOrder(state).at(0)?.row).toBe(1200 - MAX_RANGE_ROWS + 1);
+    expect(state.primary).toEqual(hit(1200));
+    expect(state.anchor).toBe(0);
+    // Upwards: cut below the anchor, the clicked (top) commit stays.
+    ({ state } = clickSelection(EMPTY_SELECTION, hit(1200), PLAIN, wide));
+    ({ state } = clickSelection(state, hit(0), RANGE, wide));
+    expect(state.picked.size).toBe(MAX_RANGE_ROWS);
+    expect(state.picked.has(sha(0))).toBe(true);
+    expect(graphOrder(state).at(-1)?.row).toBe(MAX_RANGE_ROWS - 1);
+    expect(state.primary).toEqual(hit(0));
   });
 
   it('reports rows of a range that are not loaded yet', () => {

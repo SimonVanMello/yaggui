@@ -76,8 +76,9 @@ export function selectRange(
   lookup: (row: number) => string | undefined,
   base: ReadonlyMap<string, number> | null,
 ): ClickResult {
-  const low = Math.min(anchor, hit.row);
-  const high = Math.min(Math.max(anchor, hit.row), low + MAX_RANGE_ROWS - 1);
+  // Cut from the anchor's end: the clicked commit is always part of what it selected.
+  const low = hit.row >= anchor ? Math.max(anchor, hit.row - MAX_RANGE_ROWS + 1) : hit.row;
+  const high = hit.row >= anchor ? hit.row : Math.min(anchor, hit.row + MAX_RANGE_ROWS - 1);
   const picked = new Map(base ?? []);
   let missingFrom = -1;
   let missingTo = -1;
