@@ -4,7 +4,7 @@ import type { InteractiveRebasePlan, RebasePlanCommit } from '../../ipc';
 import {
   combinedMessage,
   initialRows,
-  isFixupSummary,
+  isAutosquashSummary,
   isUnchanged,
   moveRow,
   preview,
@@ -159,8 +159,76 @@ describe('rebase model', () => {
   });
 
   it('recognizes fixup summaries', () => {
-    expect(isFixupSummary('fixup! c1')).toBe(true);
-    expect(isFixupSummary('fixup!c1')).toBe(false);
-    expect(isFixupSummary('squash! c1')).toBe(false);
+    expect(isAutosquashSummary('fixup! c1')).toBe(true);
+    expect(isAutosquashSummary('fixup!c1')).toBe(false);
+    expect(isAutosquashSummary('squash! c1')).toBe(true);
+    expect(isAutosquashSummary('amend! c1')).toBe(true);
+    expect(isAutosquashSummary('Squash! c1')).toBe(false);
+  });
+
+  it('combines squash! and amend! messages like Git', () => {
+    const c = (n: number, message: string): RebasePlanCommit => ({
+      ...commit(n),
+      summary: message.split('\n')[0] ?? '',
+      message,
+    });
+    const p: InteractiveRebasePlan = {
+      ...plan(),
+      commits: [
+        c(1, 'A\n\nA body'),
+        c(2, 'squash! A\n\nsquash body'),
+        c(3, 'fixup! A'),
+        c(4, 'amend! A\n\nA replaced'),
+        c(5, 'B'),
+        c(6, 'amend! B\n\nB new\n\nB body'),
+        c(7, 'squash! B\n\nmore'),
+      ],
+    };
+    const todo = (sha: number, action: RebaseRow['action'], message: string | null = null) => ({
+      sha: p.commits[sha - 1]?.sha ?? '',
+      action,
+      message,
+    });
+    const rows = rowsFromTodo(p, [
+      todo(1, 'pick'),
+      todo(2, 'squash'),
+      todo(3, 'fixup'),
+      todo(4, 'fixup', 'A replaced'),
+      todo(5, 'pick'),
+      todo(6, 'fixup', 'B new\n\nB body'),
+      todo(7, 'squash'),
+    ]);
+    expect(rows[3]?.amend).toBe('A replaced');
+    expect(rows[3]?.message).toBeNull();
+    const [a, b] = preview(rows).commits;
+    // After a squash, the amend! message is added; the squash! subject is left out.
+    expect(a?.message).toBe('A\n\nA body\n\nsquash body\n\nA replaced');
+    expect(a?.messageRow).toBe(3);
+    // Before one, it replaces the message, which the squash then adds to.
+    expect(b?.message).toBe('B new\n\nB body\n\nmore');
+    expect(b?.messageRow).toBe(6);
+    // Only the row that holds the final message sends one; an amend! alone sends its own.
+    expect(toTodo(rows).map((e) => e.message)).toEqual([
+      null,
+      null,
+      null,
+      'A\n\nA body\n\nsquash body\n\nA replaced',
+      null,
+      null,
+      'B new\n\nB body\n\nmore',
+    ]);
+    const alone = rowsFromTodo(p, [
+      todo(1, 'pick'),
+      todo(2, 'pick'),
+      todo(3, 'pick'),
+      todo(4, 'pick'),
+      todo(5, 'pick'),
+      todo(6, 'fixup', 'B new\n\nB body'),
+      todo(7, 'pick'),
+    ]);
+    expect(toTodo(alone)[5]).toEqual(todo(6, 'fixup', 'B new\n\nB body'));
+    // Turned into a squash, it is an ordinary squash again.
+    const squashed = setAction(alone, 5, 'squash');
+    expect(preview(squashed).commits[4]?.message).toBe('B\n\nB new\n\nB body');
   });
 });

@@ -80,9 +80,9 @@ Other keys in the list: <kbd>↑</kbd>/<kbd>↓</kbd> move the focus, <kbd>Home<
 
 ### Edit a message
 
-A reworded commit, or the last squashed commit of a group, carries the new message. Click **Edit message** on that row, or focus it and press <kbd>Enter</kbd>. An inline editor opens with a summary field (with a `n/72` counter) and a description field.
+A reworded commit, or the last squashed commit (or `fixup -C`) of a group, carries the new message. Click **Edit message** on that row, or focus it and press <kbd>Enter</kbd>. An inline editor opens with a summary field (with a `n/72` counter) and a description field.
 
-- The default message is the original message for a reword, and the head message followed by each squashed message for a squash group. A fixup keeps the message of the commit it melds into.
+- The default message is the original message for a reword, and for a squash group the message Git would propose: the head message followed by each squashed message, without the `squash!` / `fixup!` / `amend!` summary line Git comments out. A fixup keeps the message of the commit it melds into; a fixup with the message of an `amend!` commit (`fixup -C`, see [Autosquash](#autosquash)) replaces it, or adds to it after a squash.
 - **Lines starting with # are kept.**
 - **Use the default message** restores the default; **Done**, <kbd>Esc</kbd> or <kbd>⌘Enter</kbd> (<kbd>Ctrl+Enter</kbd> on Windows and Linux) closes the editor.
 
@@ -151,22 +151,30 @@ The entry is disabled, with the reason, when nothing is staged (**Stage the chan
 
 ### Autosquash
 
-**Autosquash** opens the interactive rebase editor with each fixup already moved right above the commit it fixes and set to **Fixup**, so you review the list before running it. Nothing is rewritten until you click **Start rebase**. It is offered:
+**Autosquash** opens the interactive rebase editor with each `fixup!`, `squash!` and `amend!` commit already moved right above the commit it targets, so you review the list before running it. Nothing is rewritten until you click **Start rebase**. It is offered:
 
 - in the palette: **Autosquash the fixups…**;
-- in the menu of a `fixup!` commit in the graph: **Autosquash the fixups…**;
+- in the menu of a `fixup!`, `squash!` or `amend!` commit in the graph: **Autosquash the fixups…**;
 - as the **Autosquash** button of the toast after creating a fixup;
-- as the **Autosquash** button of the editor header, when the list contains `fixup!` commits. It arranges the list again from the same base; your edits are replaced.
+- as the **Autosquash** button of the editor header, when the list contains such commits. It arranges the list again from the same base; your edits are replaced.
 
-From the palette, the menu and the toast, the base is the parent of the oldest commit a fixup targets, looked for among the latest commits of the branch: first parents from the tip, up to the first merge commit, 200 commits at most. When no fixup has a target there, a toast says **No fixup commit to squash on this branch**. The header shows **\{count\} fixups moved under their targets**.
+From the palette, the menu and the toast, the base is the parent of the oldest commit one of them targets, looked for among the latest commits of the branch: first parents from the tip, up to the first merge commit, 200 commits at most. When none has a target there, a toast says **No fixup!, squash! or amend! commit to squash on this branch**. The header shows **\{count\} commits moved under their targets**.
 
-Fixups are matched like `git rebase --autosquash`:
+Each commit gets the action `git rebase --autosquash` would give it, from its first prefix:
 
-- every `fixup! ` prefix is removed from the summary, so a fixup of a fixup goes under the original commit;
-- the target is the oldest commit below the fixup with exactly that summary; otherwise the commit below whose SHA starts with it (4 characters or more); otherwise the oldest commit below whose summary starts with it;
-- several fixups of the same commit keep their order under it.
+| Summary starts with | Action                                                                                                                                                                                               |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `fixup! `           | **Fixup**: melded in, the target keeps its message.                                                                                                                                                  |
+| `squash! `          | **Squash**: melded in, the messages are combined (its `squash!` line left out).                                                                                                                      |
+| `amend! `           | **Fixup** with this commit's message (Git's `fixup -C`): the row reads "Melded into “\{summary\}”, with this commit’s message (fixup -C)", and the target takes the message below the `amend!` line. |
 
-A fixup whose target is not in the list (the target is the base or older, or nothing matches) stays where it is, as **Pick**, with **No commit of the list matches this fixup: left in place**. Only `fixup!` commits are moved: `squash!` and `amend!` commits stay as **Pick**.
+They are matched like `git rebase --autosquash`:
+
+- every `fixup! `, `squash! ` and `amend! ` prefix is removed from the summary, mixed or repeated (`fixup! squash! Add x` targets `Add x`); a prefix needs its space;
+- the target is the oldest commit below with exactly that summary, among those left in place; otherwise, for a summary without spaces, the commit below it names (a SHA of 4 characters or more, a branch, a tag); otherwise the oldest commit below whose summary starts with it;
+- the commits of the same target keep their order under it, and one that targets a commit already moved (`fixup! <sha of a fixup>`) goes right after that commit.
+
+A commit whose target is not in the list (the target is the base or older, or nothing matches) stays where it is, as **Pick**, with **No commit of the list matches this fixup: left in place**. An `amend!` commit with nothing below its `amend!` line would leave an empty message: the row is flagged and the rebase cannot start until you write one.
 
 The rest is the usual editor: change what you want, then [confirm and run](#confirm-and-run). A rebase that rewrites pushed commits needs a force push, and the rebase itself is not undoable.
 

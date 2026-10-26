@@ -19,7 +19,7 @@ import { rowsMatchPlan } from './rebaseLayout';
 import { useAutosquashPlan } from './fixupOps';
 import {
   initialRows,
-  isFixupSummary,
+  isAutosquashSummary,
   isUnchanged,
   preview,
   rowsFromTodo,
@@ -90,7 +90,7 @@ export function InteractiveRebaseView({
   const plan = autosquash ? arranged?.plan : planQuery.data;
   const refetching = source.isFetching;
   const unmatched = useMemo(() => new Set(arranged?.unmatched ?? []), [arranged]);
-  const hasFixups = plan?.commits.some((commit) => isFixupSummary(commit.summary)) ?? false;
+  const hasFixups = plan?.commits.some((commit) => isAutosquashSummary(commit.summary)) ?? false;
 
   // The todo starts as the plan (or its arrangement); a reloaded plan that no longer fits
   // replaces it.

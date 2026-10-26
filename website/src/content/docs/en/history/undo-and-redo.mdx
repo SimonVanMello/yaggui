@@ -10,6 +10,7 @@ sources:
   - src-tauri/src/repo/stash_file.rs
   - src-tauri/src/commands/undo.rs
   - src-tauri/src/store/undo_journal.rs
+  - src-tauri/src/repo/backups.rs
 requirements: [F-240, F-241, F-242, F-243, F-244]
 ---
 
@@ -131,6 +132,6 @@ An operation recorded by a different version of yaggui that this one cannot read
 
 ## Backups of discarded files
 
-Before discarding changes, before a hard reset, before stashing selected files or applying a single file from a stash, adding to `.gitignore` or tracking an LFS pattern, yaggui copies the affected files to a backup folder (`backups/` in the yaggui configuration folder). Undo uses these copies to write the files back.
+Before discarding changes, before a hard reset, before stashing selected files or applying a single file from a stash, adding to `.gitignore` or tracking an LFS pattern, yaggui copies the affected files to a backup folder (`backups/` in the yaggui configuration folder). The undo history keeps the same contents as Git objects; the copies are there for when Git's garbage collection has deleted those, so you can still recover a file by hand.
 
-The backups stay on disk, even after the operation has left the undo history; yaggui does not delete them. You can recover a file from them by hand, or delete the folder to free space. Its location is given in [Data and privacy](../../reference/data-and-privacy/).
+yaggui cleans the folder up when it starts, with the same bounds as the undo history: a backup stays as long as an entry of the undo history (undone or not) refers to it; the others are deleted once they are more than 30 days old or are no longer among the 100 newest of their repository. Folders that are not yaggui backups are left alone. You can also recover a file from a backup by hand, or delete old ones yourself. The folder's location is given in [Data and privacy](../../reference/data-and-privacy/).

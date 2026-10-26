@@ -98,6 +98,28 @@ impl Store {
         Ok(())
     }
 
+    /// The saved `state` of every entry of every repository, after dropping what is out of
+    /// bounds at `now_ms` (as loading each journal would): what the backup cleanup keeps.
+    pub fn journal_states(&self, now_ms: i64) -> Result<Vec<String>, YagguiError> {
+        let mut conn = self.conn();
+        let tx = conn.transaction()?;
+        let repos = {
+            let mut stmt = tx.prepare("SELECT DISTINCT repo_id FROM undo_journal")?;
+            stmt.query_map([], |row| row.get::<_, u32>(0))?
+                .collect::<Result<Vec<_>, _>>()?
+        };
+        for repo_id in repos {
+            prune(&tx, repo_id, now_ms)?;
+        }
+        let states = {
+            let mut stmt = tx.prepare("SELECT state FROM undo_journal")?;
+            stmt.query_map([], |row| row.get::<_, String>(0))?
+                .collect::<Result<Vec<_>, _>>()?
+        };
+        tx.commit()?;
+        Ok(states)
+    }
+
     /// After an undo or redo: the entry's `undone` flag and the redo stack (`redo`: entry ids,
     /// first undone first).
     pub fn mark_journal(

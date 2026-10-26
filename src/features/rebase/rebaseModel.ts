@@ -14,11 +14,17 @@ export interface RebaseRow {
   commit: RebasePlanCommit;
   action: RebaseAction;
   /**
-   * Message typed by the user: the new message of a `reword`; on a `squash`, the message of
-   * the combined commit (the last squash of a group that has one wins). `null`: not edited,
-   * the default applies (the original message, or the combination of the group's messages).
+   * Message typed by the user: the new message of a `reword`; on a `squash` or a `fixup -C`,
+   * the message of the combined commit. `null`: not edited, the default applies (the
+   * original message, or the combination of the group's messages).
    */
   message: string | null;
+  /**
+   * An `amend!` commit arranged by the autosquash (F-147): Git's `fixup -C`, whose message
+   * (the commit's, below its `amend!` subject) replaces the group's while it is a `fixup`.
+   * `null` for any other commit.
+   */
+  amend: string | null;
 }
 
 export const ACTION_KEYS: Readonly<Record<string, RebaseAction>> = {
@@ -31,7 +37,7 @@ export const ACTION_KEYS: Readonly<Record<string, RebaseAction>> = {
 };
 
 export function initialRows(plan: InteractiveRebasePlan): RebaseRow[] {
-  return plan.commits.map((commit) => ({ commit, action: 'pick', message: null }));
+  return plan.commits.map((commit) => ({ commit, action: 'pick', message: null, amend: null }));
 }
 
 /**
@@ -48,17 +54,46 @@ export function rowsFromTodo(
     const commit = bySha.get(entry.sha);
     if (!commit) return initialRows(plan);
     bySha.delete(entry.sha);
-    rows.push({ commit, action: entry.action, message: entry.message });
+    // A `fixup` that carries a message is a `fixup -C`: the message is the commit's own.
+    const amend = entry.action === 'fixup' ? entry.message : null;
+    rows.push({
+      commit,
+      action: entry.action,
+      message: amend === null ? entry.message : null,
+      amend,
+    });
   }
   return bySha.size === 0 ? rows : initialRows(plan);
 }
 
-/** Prefix of the message of a fixup commit (`git commit --fixup`). */
-export const FIXUP_PREFIX = 'fixup! ';
+/** Prefixes `git commit --fixup` / `--squash` write, as Git's autosquash reads them. */
+const AUTOSQUASH_PREFIXES = ['fixup! ', 'amend! ', 'squash! '] as const;
 
-/** Whether a commit summary is the one of a fixup commit. */
-export function isFixupSummary(summary: string): boolean {
-  return summary.startsWith(FIXUP_PREFIX);
+/** Whether a commit summary is the one of a `fixup!`, `amend!` or `squash!` commit. */
+export function isAutosquashSummary(summary: string): boolean {
+  return AUTOSQUASH_PREFIXES.some((prefix) => summary.startsWith(prefix));
+}
+
+/** Whether a row is a `fixup -C`: an `amend!` commit still melded as a fixup. */
+export function isAmend(row: RebaseRow): boolean {
+  return row.action === 'fixup' && row.amend !== null;
+}
+
+/**
+ * What a squashed commit adds to the combined message: its message, without its subject
+ * paragraph when that is a `squash!` / `fixup!` / `amend!` line (Git comments it out).
+ */
+export function squashedPart(message: string): string {
+  if (!/^(squash|fixup|amend)!/.test(message)) return message.trim();
+  const blank = /\n[ \t]*(\r?\n|$)/.exec(message);
+  return blank ? message.slice(blank.index).trim() : '';
+}
+
+function joinMessages(a: string, b: string): string {
+  return [a, b]
+    .map((part) => part.trim())
+    .filter((part) => part !== '')
+    .join('\n\n');
 }
 
 /** Melds into the previous kept commit. */
@@ -94,7 +129,8 @@ export interface ResultCommit {
   /** Message the commit will have. */
   message: string;
   /** Index of the row whose message is edited for this commit: the reword row, or the last
-   * squash of the group; `null` when the message is not editable (pick, edit, fixups only). */
+   * squash or `fixup -C` of the group; `null` when the message is not editable (pick, edit,
+   * plain fixups only). */
   messageRow: number | null;
   /** Stops after it (`edit`). */
   stops: boolean;
@@ -114,12 +150,24 @@ export function summaryOf(message: string): string {
   return message.split('\n')[0]?.trim() ?? '';
 }
 
-/** Message of the commit of a group by default: the messages of its head and squashes. */
+/**
+ * Message of the commit of a group, as Git builds it: the head's (or its reword), each squash
+ * adding its own (`squashedPart`) unless edited, a `fixup -C` replacing it with its message
+ * (adding it after a squash), a plain fixup leaving it.
+ */
 export function combinedMessage(head: RebaseRow, melded: readonly RebaseRow[]): string {
-  const headMessage = head.action === 'reword' && head.message !== null ? head.message : null;
-  const parts = [headMessage ?? head.commit.message];
-  for (const row of melded) if (row.action === 'squash') parts.push(row.commit.message);
-  return parts.map((part) => part.trim()).join('\n\n');
+  let message =
+    head.action === 'reword' && head.message !== null ? head.message : head.commit.message;
+  let squashed = false;
+  for (const row of melded) {
+    if (row.action === 'squash') {
+      message = row.message ?? joinMessages(message, squashedPart(row.commit.message));
+      squashed = true;
+    } else if (isAmend(row) && row.amend !== null) {
+      message = row.message ?? (squashed ? joinMessages(message, row.amend) : row.amend);
+    }
+  }
+  return message;
 }
 
 export function preview(rows: readonly RebaseRow[]): RebasePreview {
@@ -147,17 +195,14 @@ export function preview(rows: readonly RebaseRow[]): RebasePreview {
     });
   });
   for (const commit of commits) {
-    const squashes = commit.melded.filter(({ row }) => row.action === 'squash');
-    const edited = squashes.findLast(({ row }) => row.message !== null);
-    const lastSquash = squashes.at(-1);
-    if (lastSquash) {
-      commit.messageRow = lastSquash.index;
-      commit.message =
-        edited?.row.message ??
-        combinedMessage(
-          commit.head,
-          commit.melded.map(({ row }) => row),
-        );
+    const melded = commit.melded.filter(({ row }) => row.action === 'squash' || isAmend(row));
+    const last = melded.at(-1);
+    if (last) {
+      commit.messageRow = last.index;
+      commit.message = combinedMessage(
+        commit.head,
+        commit.melded.map(({ row }) => row),
+      );
     } else if (commit.head.action === 'reword') {
       commit.message = commit.head.message ?? commit.head.commit.message;
     } else {

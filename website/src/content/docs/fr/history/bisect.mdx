@@ -10,7 +10,7 @@ sources:
   - src/features/repo/RepoBanners.tsx
   - src-tauri/src/repo/bisect.rs
   - src-tauri/src/git/read/bisect.rs
-requirements: [F-263]
+requirements: [F-263, F-032]
 ---
 
 import Screenshot from '~/components/Screenshot.astro';
@@ -55,6 +55,10 @@ Testez le commit (compilez-le, lancez-le, lancez le test qui échoue), puis cliq
 
 Vous pouvez aussi marquer n’importe quel commit depuis le graphe : clic droit, **Bisect**, puis **Marquer comme bon**, **Marquer comme mauvais** ou **Passer ce commit**. C’est utile quand vous connaissez déjà la réponse pour un commit autre que HEAD.
 
+### Depuis la palette
+
+La palette (<kbd>⌘K</kbd>, <kbd>Ctrl+K</kbd> sous Windows et Linux) propose **Bisect : marquer comme bon**, **Bisect : marquer comme mauvais**, **Bisect : passer le commit testé** et **Bisect : terminer et revenir au départ**. Pendant un bisect, les marquages s’appliquent au commit testé, comme les boutons du bandeau, quel que soit le commit sélectionné dans le graphe. Sans bisect, **Bisect : marquer comme bon** et **Bisect : marquer comme mauvais** marquent le commit sélectionné dans le graphe et en démarrent un, comme son menu. Une entrée qui ne peut pas s’exécuter est listée en grisé avec la raison : **Sélectionne d'abord un commit**, **Aucun bisect en cours**, **Aucun commit à marquer pour l'instant** (le résultat est connu, ou le commit suivant n’a pas pu être extrait) ou **Termine l'opération en cours**.
+
 ### Marqueurs dans le graphe
 
 Pendant un bisect, le graphe affiche une pastille avant les étiquettes de refs des commits que le bisect connaît : **bon**, **mauvais**, **passé**, **en test** pour le commit extrait, et **premier mauvais** à la fin.
@@ -66,6 +70,12 @@ Si un fichier non suivi gêne le commit suivant, le marquage est enregistré mai
 ### Marquages dans le mauvais ordre
 
 Si un commit bon vient après le mauvais dans l’historique, Git ne peut pas faire de bisect entre eux : « Un commit bon n'est pas un ancêtre du mauvais : Git ne peut pas faire de bisect entre eux. Vérifie les marquages, ou termine le bisect et recommence. » Les marquages ne peuvent pas être retirés un par un : arrêtez le bisect et recommencez.
+
+## Bisect en mode premier parent
+
+Si le graphe est en [mode premier parent](../commit-graph/#historique-premier-parent) quand vous donnez le premier marquage, yaggui démarre le bisect avec `git bisect start --first-parent` : seuls les commits de l’historique premier parent, ceux que le graphe affiche, sont extraits et testés. Un merge est testé en bloc : si le bug est venu avec une branche mergée, le premier commit mauvais est le merge. Le bandeau affiche une étiquette **Premier parent** (« Démarré en mode premier parent : seuls les commits de l'historique premier parent sont testés »), et ses étapes restantes et commits à tester ne comptent que ces commits. Le mode est celui du démarrage : activer ou désactiver le mode premier parent pendant un bisect ne change ni les commits testés ni les comptes.
+
+`--first-parent` demande Git 2.29 ou plus récent. Avec un Git plus ancien, le bisect démarre sur tous les ancêtres et une notification indique **Bisect démarré sur tous les ancêtres** : « Cette version de Git ne sait pas faire de bisect le long des premiers parents (Git 2.29 ou plus récent) : les commits des branches mergées sont testés aussi. »
 
 ## Le résultat
 

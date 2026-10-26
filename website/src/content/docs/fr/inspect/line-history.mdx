@@ -8,6 +8,8 @@ sources:
   - src/features/inspect/LineHistory.module.css
   - src/features/inspect/lineRange.ts
   - src/features/inspect/BlameView.tsx
+  - src/features/inspect/lineSelection.ts
+  - src/features/inspect/inspectActions.ts
   - src/features/diff/CodeDiff.tsx
   - src/features/diff/lineSelection.ts
   - src-tauri/src/git/read/line_history.rs
@@ -40,6 +42,10 @@ Dans le diff d’un commit (depuis le panneau de détail du commit ou un histori
 L’historique porte sur une seule plage continue : de la première à la dernière ligne sélectionnée.
 
 La même sélection fonctionne dans le diff de l’historique de lignes lui-même, pour se restreindre à moins de lignes à un commit plus ancien.
+
+### Depuis la palette
+
+Avec des lignes sélectionnées dans un blame ou le diff d’un commit du dépôt actif, la palette (<kbd>⌘K</kbd>, <kbd>Ctrl+K</kbd> sous Windows et Linux) lance **Historique des lignes sélectionnées** sur elles, comme la barre ou le menu. Sans sélection, l’entrée est listée en grisé avec **Sélectionne d'abord des lignes dans un blame ou le diff d'un commit**. Si plusieurs vues ont des lignes sélectionnées, la dernière sélection faite l’emporte.
 
 ## Lire l’historique de lignes
 

@@ -779,8 +779,12 @@ export class MockBackend {
    * Simulates a commit on HEAD made outside yaggui: the graph gets a new version and
    * `refs-changed` is emitted after the watcher debounce. Returns the new SHA.
    */
-  simulateCommit(repoId: number, summary = 'feat: commit made from a terminal'): string | null {
-    const sha = this.addCommit(repoId, summary, '', false);
+  simulateCommit(
+    repoId: number,
+    summary = 'feat: commit made from a terminal',
+    body = '',
+  ): string | null {
+    const sha = this.addCommit(repoId, summary, body, false);
     if (sha !== null) this.watcherSaw(repoId, true);
     return sha;
   }
@@ -2804,6 +2808,8 @@ export class MockBackend {
           good: [],
           skipped: [],
           original: structuredClone(graph.history.head),
+          // `git bisect start --first-parent` when the graph is in first-parent mode.
+          firstParent: this.graphFilters.get(repoId)?.firstParent === true,
         };
         this.bisects.set(repoId, bisect);
         const operation: RepoOperation = { kind: 'bisect' };
@@ -4234,7 +4240,7 @@ export class MockBackend {
         if (commit === null) return fail(this.revisionNotFound(base));
       }
       const plan = mockPlan(graph, head.name, tip, commit);
-      return 'code' in plan ? fail(plan) : ok(mockAutosquashPlan(plan));
+      return 'code' in plan ? fail(plan) : ok(mockAutosquashPlan(plan, graph));
     },
     bisectState: (repoId) => {
       const graph = this.graph(repoId);

@@ -8,6 +8,7 @@ sources:
   - src-tauri/src/lib.rs
   - src-tauri/src/main.rs
   - src-tauri/src/store/**
+  - src-tauri/src/repo/backups.rs
   - src-tauri/src/system/avatars.rs
   - src-tauri/src/system/updates.rs
   - src-tauri/src/repo/journal.rs
@@ -57,7 +58,7 @@ yaggui utilise deux dossiers : un dossier de configuration pour ce qui doit êt
 | `backups/`         | Un sous-dossier par sauvegarde : des copies des fichiers qu’un abandon de modifications, un reset hard, un stash de fichiers sélectionnés, une modification de `.gitignore` ou un suivi LFS allait écraser. Elles permettent d’[annuler](../../history/undo-and-redo/) ces opérations et de récupérer les fichiers à la main. |
 
 :::note
-yaggui ne nettoie jamais `backups/` de lui-même. Le dossier grossit à chaque abandon de modifications ou reset hard. Supprimez les anciens sous-dossiers quand vous n’en avez plus besoin, de préférence pendant que yaggui est fermé.
+yaggui nettoie `backups/` au démarrage : il garde les sauvegardes auxquelles l’historique d’annulation se rapporte encore, et supprime les autres dès qu’elles ont plus de 30 jours ou ne font pas partie des 100 plus récentes de leur dépôt. Voir [Sauvegardes avant abandon de modifications](../../history/undo-and-redo/#sauvegardes-avant-abandon-de-modifications). Vous pouvez aussi supprimer des sous-dossiers vous-même, de préférence pendant que yaggui est fermé.
 :::
 
 ### Contenu de yaggui.db

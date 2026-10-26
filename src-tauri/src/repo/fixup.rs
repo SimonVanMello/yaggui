@@ -3,13 +3,14 @@
 //! A fixup is `git commit --fixup=<sha>`: Git writes the `fixup! <subject>` message itself,
 //! the hooks run as for any commit, and the journal records it as a commit. Autosquash does
 //! not run `git rebase --autosquash`: it gives the interactive rebase view (M3-4) a todo with
-//! the fixups already under their targets, so the arrangement is reviewed before it runs.
+//! the `fixup!`, `squash!` and `amend!` commits already under their targets, arranged as Git
+//! would, so the arrangement is reviewed before it runs.
 
 use gix::ObjectId;
 
 use crate::events::OpKind;
 use crate::git::errors::{BackendError, YagguiError};
-use crate::git::ops::rebase_todo::{self, Autosquash};
+use crate::git::ops::rebase_todo::{self, Autosquash, Meld, Step};
 use crate::git::ops::types::{
     AutosquashPlan, CommitResult, JournalOp, REBASE_PLAN_MAX, RebaseAction, RebaseTodoEntry,
 };
@@ -35,9 +36,9 @@ impl RepoManager {
         })
     }
 
-    /// The interactive rebase plan of `base..HEAD` with its fixups under their targets.
-    /// Without `base`, the plan starts at the parent of the oldest commit a fixup of the
-    /// current branch targets; `None` when there is none.
+    /// The interactive rebase plan of `base..HEAD` with its fixup, squash and amend commits
+    /// under their targets. Without `base`, the plan starts at the parent of the oldest
+    /// commit one of them targets on the current branch; `None` when there is none.
     pub fn autosquash_plan(
         &self,
         repo_id: u32,
@@ -102,18 +103,32 @@ fn read_autosquash(
         .zip(&plan.commits)
         .map(|(id, commit)| (*id, commit.summary.as_str()))
         .collect();
-    let Autosquash { order, unmatched } = rebase_todo::autosquash(&commits);
+    let Autosquash { order, unmatched } =
+        rebase_todo::autosquash(&commits, |name| rebase_todo::resolve_name(repo, name));
     let todo: Vec<_> = order
         .iter()
-        .map(|&(i, action)| RebaseTodoEntry {
-            sha: plan.commits[i].sha.clone(),
-            action,
-            message: None,
+        .map(|&(i, step)| {
+            let commit = &plan.commits[i];
+            let (action, message) = match step {
+                Step::Pick => (RebaseAction::Pick, None),
+                Step::Meld(Meld::Fixup) => (RebaseAction::Fixup, None),
+                Step::Meld(Meld::Squash) => (RebaseAction::Squash, None),
+                // `fixup -C`: the message the `amend!` commit carries below its subject.
+                Step::Meld(Meld::Amend) => (
+                    RebaseAction::Fixup,
+                    Some(rebase_todo::without_subject(&commit.message).to_owned()),
+                ),
+            };
+            RebaseTodoEntry {
+                sha: commit.sha.clone(),
+                action,
+                message,
+            }
         })
         .collect();
-    let fixups = todo
+    let fixups = order
         .iter()
-        .filter(|entry| entry.action == RebaseAction::Fixup)
+        .filter(|(_, step)| matches!(step, Step::Meld(_)))
         .count();
     let unmatched = unmatched
         .into_iter()
@@ -127,7 +142,7 @@ fn read_autosquash(
     }))
 }
 
-/// Parent of the oldest commit a `fixup!` commit targets, among the last commits of the
+/// Parent of the oldest commit a `fixup!`, `squash!` or `amend!` commit targets, among the last commits of the
 /// branch that an interactive rebase can rewrite: first parents from HEAD, up to the first
 /// merge or root commit (both excluded), at most `REBASE_PLAN_MAX`.
 fn automatic_base(repo: &gix::Repository) -> Result<Option<ObjectId>, YagguiError> {
@@ -148,7 +163,9 @@ fn automatic_base(repo: &gix::Repository) -> Result<Option<ObjectId>, YagguiErro
     }
     chain.reverse();
     let commits: Vec<_> = chain.iter().map(|(id, s, _)| (*id, s.as_str())).collect();
-    Ok(rebase_todo::autosquash(&commits)
-        .oldest_target()
-        .map(|i| chain[i].2))
+    Ok(
+        rebase_todo::autosquash(&commits, |name| rebase_todo::resolve_name(repo, name))
+            .oldest_target()
+            .map(|i| chain[i].2),
+    )
 }
