@@ -14,7 +14,10 @@ export function useEscapeToClose(onClose: () => void, enabled = true): void {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented || !matchShortcut(event, 'Escape')) return;
       const target = event.target;
-      if (target instanceof HTMLElement && target.closest('input, textarea, [contenteditable]')) {
+      if (
+        target instanceof HTMLElement &&
+        target.closest('input, textarea, [contenteditable="true"]')
+      ) {
         return;
       }
       if (modalOpen() || document.querySelector('[role="menu"][data-state="open"]')) return;

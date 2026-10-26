@@ -38,9 +38,9 @@ export function WorktreeChanges({ repoId, tabId }: { repoId: number; tabId: stri
   const unstagedFiles = unstaged?.files ?? [];
   const unstagedActions: FileListStaging = {
     list: 'unstaged',
-    onToggle: (files) => void stageFiles(repoId, paths(files)),
+    onToggle: (files) => stageFiles(repoId, paths(files)),
     onToggleAll: () => void stageFiles(repoId, 'all'),
-    onDiscard: (files) => void discardFiles(repoId, files, false),
+    onDiscard: (files) => discardFiles(repoId, files, false),
     onDiscardAll: () => void discardFiles(repoId, unstagedFiles, true),
     onDrop: (dropped) => void unstageFiles(repoId, dropped),
     menu: (targets) => (
@@ -55,7 +55,7 @@ export function WorktreeChanges({ repoId, tabId }: { repoId: number; tabId: stri
   };
   const stagedActions: FileListStaging = {
     list: 'staged',
-    onToggle: (files) => void unstageFiles(repoId, paths(files)),
+    onToggle: (files) => unstageFiles(repoId, paths(files)),
     onToggleAll: () => void unstageFiles(repoId, 'all'),
     onDrop: (dropped) => void stageFiles(repoId, dropped),
     menu: (targets) => (

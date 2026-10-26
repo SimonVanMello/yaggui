@@ -44,6 +44,21 @@ export function useChangedFiles(repoId: number, target: DiffTarget | null) {
   });
 }
 
+/** Position of `targetKey(target)` in a `diffKeys.file` key. */
+const FILE_KEY_TARGET = 4;
+
+/**
+ * Whether the diff of `previousKey` (a `diffKeys.file` key) may stand in for the one of
+ * `target` while it loads: only from the same list, so a file in both lists never shows its
+ * unstaged hunks under the "staged" title.
+ */
+export function placeholderFor(
+  previousKey: readonly unknown[] | undefined,
+  target: DiffTarget,
+): boolean {
+  return previousKey?.[FILE_KEY_TARGET] === targetKey(target);
+}
+
 export function useFileDiff(
   repoId: number,
   target: DiffTarget,
@@ -58,7 +73,8 @@ export function useFileDiff(
     enabled,
     staleTime: Infinity,
     // Keeps the previous file on screen while the next one loads: no flash between files.
-    placeholderData: (previous) => previous,
+    placeholderData: (previous, previousQuery) =>
+      placeholderFor(previousQuery?.queryKey, target) ? previous : undefined,
   });
 }
 

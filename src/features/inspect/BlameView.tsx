@@ -151,6 +151,8 @@ function BlameLines({
   const { lines, commits, chunks } = content;
   const rows = useMemo(() => blameRows(lines.length, commits, chunks), [lines, commits, chunks]);
   const [selected, setSelected] = useState<number | null>(null);
+  /** The line the selected commit was picked on: "Blame of the parent" starts from it. */
+  const [selectedLine, setSelectedLine] = useState<number | null>(null);
   const [menuLine, setMenuLine] = useState<number | null>(null);
   /** Lines selected for their history (0-based): a click sets both ends, `Shift` the focus. */
   const [range, setRange] = useState<{ anchor: number; focus: number } | null>(null);
@@ -185,6 +187,7 @@ function BlameLines({
   const select = (line: number) => {
     const index = rows.commitOf[line] ?? 0;
     setSelected(index);
+    setSelectedLine(line);
     const commit = commits[index];
     // The details panel follows the graph selection.
     if (commit && !commit.uncommitted) revealCommit(repoId, commit.sha, null);
@@ -241,7 +244,6 @@ function BlameLines({
 
   const menuCommit = menuLine === null ? undefined : commits[rows.commitOf[menuLine] ?? 0];
   const selectedCommit = selected === null ? undefined : commits[selected];
-  const selectedLine = selected === null ? -1 : rows.commitOf.indexOf(selected);
 
   return (
     <>
@@ -390,7 +392,7 @@ function BlameLines({
             disabled={!selectedCommit.previous}
             title={selectedCommit.previous ? undefined : t('inspect.blame.noParent')}
             onClick={() => {
-              blameParent(selectedCommit, selectedLine);
+              blameParent(selectedCommit, selectedLine ?? 0);
             }}
           >
             <Icon name="blame" />

@@ -1,12 +1,13 @@
 import { useState } from 'react';
 
+import { confirm } from '../../app/errors/confirmStore';
 import { useT } from '../../i18n/useT';
 import type { ConflictFile, ConflictKind, ConflictLabels } from '../../ipc';
 import { Button } from '../../ui/Button';
 import { Icon } from '../../ui/Icon';
 import { Tooltip } from '../../ui/Tooltip';
 import { resolveConflicts } from './conflictOps';
-import { openConflictView } from './conflictViewStore';
+import { hasUnsavedConflictEdits, openConflictView } from './conflictViewStore';
 import styles from './ConflictsPanel.module.css';
 import { useConflicts } from './useConflicts';
 
@@ -50,9 +51,25 @@ function ConflictRow({
   const run = (resolution: Parameters<typeof resolveConflicts>[2]) => {
     if (busy) return;
     setBusy(true);
-    void resolveConflicts(repoId, [file.path], resolution).finally(() => {
-      setBusy(false);
-    });
+    void (async () => {
+      try {
+        // The file is open in the editor with unsaved choices: this would throw them away.
+        if (
+          hasUnsavedConflictEdits(tabId, { repoId, path: file.path }) &&
+          !(await confirm({
+            title: t('conflicts.editor.leave.title'),
+            description: t('conflicts.quick.unsavedDescription'),
+            confirmLabel: t('conflicts.editor.leave.confirm'),
+            danger: true,
+          }))
+        ) {
+          return;
+        }
+        await resolveConflicts(repoId, [file.path], resolution);
+      } finally {
+        setBusy(false);
+      }
+    })();
   };
 
   return (

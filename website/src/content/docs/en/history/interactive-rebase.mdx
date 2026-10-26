@@ -44,7 +44,7 @@ The editor refuses to start, with a message, when:
 | **There is no commit after this base: nothing to rebase.**                                                                 | The base is the tip of the branch                                 |
 | **This range contains merge commits. yaggui does not rebuild merges in an interactive rebase: choose a more recent base.** | A merge commit is above the base; **Start rebase** stays disabled |
 
-Your edits live only in the open editor: leaving it (**Cancel**, <kbd>Esc</kbd>) discards them, and choosing another base starts over.
+Your edits live only in the open editor: leaving it (**Cancel**, <kbd>Esc</kbd>) discards them, after the confirmation **Discard the changes to the list?** once something changed, and choosing another base starts over.
 
 ## Edit the list
 
@@ -100,7 +100,7 @@ When nothing changed, the hint is **Change at least one commit to start**.
 
 The **Result** panel shows the commits as they will be after the rebase: **\{count\} commits**, **\{count\} commits dropped**, and for each commit chips such as **\{count\} melded**, **edited message** or **stops for editing**. Its footer recalls the base: **on top of \{sha\} \{summary\}**.
 
-To leave without doing anything, click **Cancel** or press <kbd>Esc</kbd>.
+To leave without doing anything, click **Cancel** or press <kbd>Esc</kbd>. Once the list differs from the plan (an action, the order or a message), yaggui asks **Discard the changes to the list?** first: **Discard** leaves the editor, the branch untouched; **Cancel** keeps the list as it is.
 
 ## Confirm and run
 

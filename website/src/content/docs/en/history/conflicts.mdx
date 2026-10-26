@@ -155,7 +155,7 @@ The toolbar shows the file position (**File \{index\} / \{total\}**), a counter 
 
 **Save and mark resolved** stays disabled until every block is resolved (**Resolve the \{count\} conflicts left first**). It writes the file, keeping its line endings, and stages it. yaggui then opens the next unresolved file. After the last one: **All conflicts are resolved**, "Continue the operation in progress to finish it.", and the graph comes back.
 
-Leaving the editor with unsaved choices (**Graph**, <kbd>Esc</kbd>, or **Resolve…** on another file) asks **Discard the resolution in progress?**; the file stays in conflict.
+Leaving the editor with unsaved choices (**Graph**, <kbd>Esc</kbd>, or **Resolve…** on another file) asks **Discard the resolution in progress?**; the file stays in conflict. **Take \{side\}** or **Mark resolved** on the row of that same file in the conflicts panel asks the same question: **Discard** drops the choices and edits and resolves the file that way instead.
 
 ## External merge tool
 

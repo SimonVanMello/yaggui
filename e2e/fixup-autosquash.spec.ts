@@ -84,9 +84,13 @@ for (const { name: theme, colorScheme } of THEMES) {
       await expect(result).toContainText('1 melded');
       await capture(page, theme, 'autosquash');
 
-      // Esc leaves the view without rebasing.
+      // Esc leaves the view without rebasing: the arranged list differs from the plan, so it
+      // asks first.
       await todo(page).focus();
       await page.keyboard.press('Escape');
+      const leave = page.getByRole('dialog');
+      await expect(leave).toContainText('Discard the changes to the list?');
+      await leave.getByRole('button', { name: 'Discard' }).click();
       await expect(todo(page)).toBeHidden();
 
       // Everything staged went into the fixup: the entry now says why it is unavailable.

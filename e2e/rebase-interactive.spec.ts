@@ -121,9 +121,39 @@ for (const { name: theme, colorScheme } of THEMES) {
       await rows(page).first().hover();
       await capture(page, theme, 'todo');
 
-      // Esc leaves the view: the graph is back.
+      // Esc leaves the view, once the edited list is given up: the graph is back.
       await todo(page).focus();
       await page.keyboard.press('Escape');
+      const leave = page.getByRole('dialog');
+      await expect(leave).toContainText('Discard the changes to the list?');
+      await leave.getByRole('button', { name: 'Discard' }).click();
+      await expect(todo(page)).toBeHidden();
+      await expect(page.getByRole('listbox', { name: 'Commit graph' })).toBeVisible();
+    });
+
+    test('leaving an edited list asks first; an untouched one leaves at once', async ({ page }) => {
+      await openBlog(page);
+      await openTodo(page, 4);
+      // Nothing changed: Esc leaves without a question.
+      await page.keyboard.press('Escape');
+      await expect(todo(page)).toBeHidden();
+
+      await openTodo(page, 4);
+      await page.keyboard.press('d');
+      await expect(rows(page).first()).toHaveAttribute('data-action', 'drop');
+      await page.keyboard.press('Escape');
+      const dialog = page.getByRole('dialog');
+      await expect(dialog).toContainText('Discard the changes to the list?');
+      await capture(page, theme, 'leave');
+      await dialog.getByRole('button', { name: 'Cancel' }).click();
+      // Still there, with the edit.
+      await expect(todo(page)).toBeVisible();
+      await expect(rows(page).first()).toHaveAttribute('data-action', 'drop');
+
+      // The Cancel button asks the same question.
+      await page.getByRole('button', { name: /^Cancel/ }).click();
+      await expect(dialog).toContainText('Discard the changes to the list?');
+      await dialog.getByRole('button', { name: 'Discard' }).click();
       await expect(todo(page)).toBeHidden();
       await expect(page.getByRole('listbox', { name: 'Commit graph' })).toBeVisible();
     });

@@ -1,12 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 
+import { ErrorPanel } from '../../app/errors/ErrorPanel';
 import { localize } from '../../app/errors/presentError';
 import { useT } from '../../i18n/useT';
 import { ipc, unwrap, type YagguiError } from '../../ipc';
 import { Button } from '../../ui/Button';
 import { Dialog } from '../../ui/Dialog';
 import { Spinner } from '../../ui/Spinner';
+import { errorOf } from '../inspect/ipcError';
 import refStyles from '../refs/RefDialogs.module.css';
 import { removeWorktree } from './worktreeOps';
 import { useWorktreeDialogs } from './worktreeStore';
@@ -80,9 +82,12 @@ export function RemoveWorktreeDialog({ repoId, path }: { repoId: number; path: s
             <Spinner /> {t('worktree.remove.loading')}
           </p>
         ) : preview.error ? (
-          <p className={refStyles.status} data-state="invalid" role="alert">
-            {preview.error.message}
-          </p>
+          <ErrorPanel
+            compact
+            title={t('worktree.remove.previewFailed')}
+            error={errorOf(preview.error)}
+            context={{ retry: () => void preview.refetch() }}
+          />
         ) : (
           <p className={styles.effect}>{effect}</p>
         )}
