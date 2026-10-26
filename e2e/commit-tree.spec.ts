@@ -70,6 +70,25 @@ for (const { name: theme, colorScheme } of THEMES) {
       await expect(graphRow(page, 0)).toBeVisible();
     });
 
+    test('highlights code by the language of the file', async ({ page }) => {
+      await openTree(page);
+      await item(page, 'src').click();
+      await item(page, 'main.tsx').click();
+      const file = treeView(page).getByRole('region', { name: 'Contents of src/main.tsx' });
+      const keyword = file.locator('.tok-keyword').first();
+      await expect(keyword).toBeVisible();
+      // Colored by the theme's syntax token, not left in the text color.
+      const colors = await keyword.evaluate((element) => {
+        const content = element.closest('.cm-content');
+        return {
+          token: getComputedStyle(element).color,
+          text: content ? getComputedStyle(content).color : '',
+        };
+      });
+      expect(colors.token).not.toBe(colors.text);
+      await capture(page, theme, 'highlighted');
+    });
+
     test('shows each kind of file', async ({ page }) => {
       await openTree(page);
       await item(page, 'assets').click();

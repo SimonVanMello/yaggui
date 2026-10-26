@@ -34,6 +34,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ### Fixed
 
+- Files opened from "Browse files at this commit", and the file editor of the diff, now show their
+  syntax colors: the highlighting was computed but its colors were only defined for the diff and
+  the merge editor (#75).
 - Applying a single file from a stash that ends in a conflict is now reported as failed in the
   status bar; the undo stays available (#70).
 - Skipping during a bisect when only skipped commits are left now ends the bisect with an
