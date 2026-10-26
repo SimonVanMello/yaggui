@@ -68,6 +68,20 @@ for (const { name: theme, colorScheme } of THEMES) {
       ).toBeVisible();
     });
 
+    test('a force push is refused when the remote branch moved since the fetch (M8-3)', async ({
+      page,
+    }) => {
+      await openRepo(page, 'yaggui');
+      await page.evaluate(() => window.__yagguiMock?.simulateStaleLease(1));
+      await toolbar(page).getByRole('button', { name: 'Push options' }).click();
+      await page.getByRole('menuitem', { name: /Force push/ }).click();
+      const dialog = page.getByRole('alertdialog').or(page.getByRole('dialog'));
+      await dialog.getByRole('button', { name: 'Force push' }).click();
+      const toast = page.getByRole('listitem').filter({ hasText: 'Force push refused' });
+      await expect(toast).toContainText('the remote branch moved since your last fetch');
+      await capture(page, theme, 'stale-lease');
+    });
+
     test('a rejected push offers pull then push', async ({ page }) => {
       // `blog` is 4 commits behind origin/main: a local commit makes the push non-fast-forward.
       await openRepo(page, 'blog');

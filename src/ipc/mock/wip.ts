@@ -10,7 +10,7 @@ import type {
 } from '../bindings';
 import { genericWip, yagguiWip, type MockFileChange } from './diffData';
 import { textDiff } from './lineDiff';
-import { stashFileInTheWay } from './refs';
+import { stashFileInTheWay, stashFileMissing } from './refs';
 
 /** One version of a path in HEAD, the index or the working tree. */
 interface MockSide {
@@ -221,6 +221,8 @@ export type WipList = 'staged' | 'unstaged';
 export interface MockStashState {
   index: Map<string, MockSide & { conflicted?: boolean }>;
   worktree: Map<string, MockSide>;
+  /** HEAD's version of the stashed files: the stash commit's first parent. */
+  base: Map<string, MockSide>;
 }
 
 /**
@@ -461,6 +463,7 @@ export class MockWip {
           .filter(([path]) => includeUntracked || !untracked.includes(path))
           .map(([path, side]) => [path, clone(side)]),
       ),
+      base: new Map([...this.head].map(([path, side]) => [path, clone(side)])),
     };
     const base = keepIndex ? this.index : this.head;
     const kept = new Map(
@@ -484,13 +487,14 @@ export class MockWip {
     ]);
     const picked = paths.filter((p) => changed.has(p) && (includeUntracked || known(p)));
     if (picked.length === 0) return null;
-    const saved: MockStashState = { index: new Map(), worktree: new Map() };
+    const saved: MockStashState = { index: new Map(), worktree: new Map(), base: new Map() };
     for (const path of picked) {
       const index = this.index.get(path);
       const worktree = this.worktree.get(path);
       if (index) saved.index.set(path, { ...index });
       if (worktree) saved.worktree.set(path, clone(worktree));
       const head = this.head.get(path);
+      if (head) saved.base.set(path, clone(head));
       if (head) {
         this.index.set(path, clone(head));
         this.worktree.set(path, clone(head));
@@ -577,6 +581,7 @@ export class MockWip {
     untracked: boolean,
     stashed: string | null | undefined,
     conflict: boolean,
+    inBase: boolean = false,
   ): Result<'applied' | 'conflict'> {
     const current = this.worktree.get(path);
     const text = stashed ?? `${current?.text ?? ''}stashed change of ${path}\n`;
@@ -587,6 +592,8 @@ export class MockWip {
     }
     const indexed = this.index.get(path);
     if (!indexed) {
+      // The file was in the stash's base but is gone from the index: nothing to merge into.
+      if (inBase) return { error: stashFileMissing(path) };
       if (current) return { error: stashFileInTheWay(path, true) };
       // A file the stash adds stays staged, as with `git stash apply`.
       this.index.set(path, { text, mode: 'regular' });
@@ -640,6 +647,11 @@ export class MockWip {
 
   worktreeText(path: string): string | null {
     return this.worktree.get(path)?.text ?? null;
+  }
+
+  /** The committed text of `path` when the fixture holds it (`null`: derive it from the history). */
+  headText(path: string): string | null {
+    return this.head.get(path)?.text ?? null;
   }
 
   /** Resolves a conflict with `text` (`null`: the file is deleted), staged like `git add`. */

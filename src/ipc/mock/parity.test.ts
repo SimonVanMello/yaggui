@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import type { RebaseAction } from '../bindings';
-import { mockBackend, mockClient } from '../mockClient';
+import { MockBackend, mockBackend, mockClient } from '../mockClient';
 import { unwrap } from '../result';
+import { mapToHead } from './inspect';
 import { MockWip } from './wip';
 
 const { commands: mock } = mockClient;
@@ -354,6 +355,137 @@ describe('mock / backend parity (M7)', () => {
     );
   });
 
+  it('a file gone on our side cannot take the stash change (`stash_file_missing`)', () => {
+    const change = {
+      path: 'f.txt',
+      status: 'modified' as const,
+      oldMode: 'regular' as const,
+      newMode: 'regular' as const,
+      old: 'x\n',
+      new: 'y\n',
+    };
+    const saved = MockWip.fromChanges([], [change]).stash(false, false);
+    expect(saved?.base.get('f.txt')?.text).toBe('x\n');
+    // The deletion was staged since: the index no longer has the file.
+    const gone = MockWip.fromChanges(
+      [{ ...change, status: 'deleted', newMode: null, new: null }],
+      [],
+    );
+    expect(
+      gone.applyStashFile('f.txt', false, 'y\n', false, saved?.base.has('f.txt')),
+    ).toMatchObject({
+      error: {
+        code: 'invalidArgument',
+        message: { en: expect.stringContaining('no longer exists on your side') as string },
+      },
+    });
+    // A file the stash adds is not in its base: it comes back staged.
+    expect(gone.applyStashFile('g.txt', false, 'y\n', false, false)).toEqual({ ok: 'applied' });
+  });
+
+  it('bisect marks survive a page reload (`refs/bisect/*`)', async () => {
+    const { id } = await unwrap(mock.openRepo('/Users/alex/dev/blog'));
+    mockBackend.simulateOperation(id, 'bisect', { marks: { bad: 'HEAD', good: ['HEAD~12'] } });
+    await unwrap(mock.bisectMark(id, 'HEAD~6', 'good'));
+    const before = await unwrap(mock.bisectState(id));
+
+    // A new page: a new backend reads the same store.
+    const reloaded = new MockBackend();
+    const reopened = await unwrap(reloaded.commands.openRepo('/Users/alex/dev/blog'));
+    expect((await unwrap(reloaded.commands.repoState(reopened.id))).operation).toEqual({
+      kind: 'bisect',
+    });
+    const after = await unwrap(reloaded.commands.bisectState(reopened.id));
+    expect(after).toMatchObject({
+      original: before?.original,
+      remaining: before?.remaining,
+      steps: before?.steps,
+    });
+    expect(after?.bad).not.toBeNull();
+    expect(after?.good).toHaveLength(2);
+    expect(after?.firstParent).toBe(before?.firstParent);
+
+    // Ending the bisect forgets the marks for good.
+    await unwrap(reloaded.commands.abortOperation(reopened.id));
+    const again = new MockBackend();
+    const last = await unwrap(again.commands.openRepo('/Users/alex/dev/blog'));
+    expect((await unwrap(again.commands.repoState(last.id))).operation).toBeNull();
+    expect(await unwrap(again.commands.bisectState(last.id))).toBeNull();
+  });
+
+  describe('undo journal (`store/undo_journal.rs`, `journal.rs`)', () => {
+    async function journaled() {
+      const { id } = await unwrap(mock.openRepo('/Users/alex/dev/blog'));
+      await unwrap(mock.createBranch(id, 'topic', { kind: 'head' }, false));
+      return id;
+    }
+
+    it('forgets the entries past 30 days when the journal is read back', async () => {
+      const id = await journaled();
+      mockBackend.simulateRestoredJournal(id, { ageDays: 29 });
+      expect(await unwrap(mock.opHistory(id))).toHaveLength(1);
+      // 29 + 2 days: older than the bound.
+      mockBackend.simulateRestoredJournal(id, { ageDays: 2 });
+      expect(await unwrap(mock.opHistory(id))).toEqual([]);
+      expect(await mock.undo(id)).toMatchObject({ error: { code: 'nothingToUndo' } });
+    });
+
+    it('prunes by age when an operation is appended, then keeps the last 100', async () => {
+      const id = await journaled();
+      mockBackend.simulateRestoredJournal(id, { ageDays: 31 });
+      // Expired at the next append, which is the only entry left.
+      await unwrap(mock.createBranch(id, 'topic-2', { kind: 'head' }, false));
+      const entries = await unwrap(mock.opHistory(id));
+      expect(entries).toHaveLength(1);
+      expect(entries[0]?.restored).toBe(false);
+      for (let i = 0; i < 105; i++) {
+        await unwrap(mock.createBranch(id, `bulk-${String(i)}`, { kind: 'head' }, false));
+      }
+      const all = await unwrap(mock.opHistory(id));
+      expect(all).toHaveLength(100);
+      expect(all[0]?.op).toMatchObject({ kind: 'createBranch' });
+    });
+
+    it('lists an entry another version saved as `unreadable` and refuses its undo', async () => {
+      const id = await journaled();
+      mockBackend.simulateRestoredJournal(id, { unreadable: true });
+      expect((await unwrap(mock.opHistory(id)))[0]?.blocked).toEqual({ kind: 'unreadable' });
+      expect((await unwrap(mock.undoState(id))).undo?.blocked).toEqual({ kind: 'unreadable' });
+      expect(await mock.undo(id)).toMatchObject({
+        error: { code: 'undoBlocked', payload: { reason: { kind: 'unreadable' } } },
+      });
+      // A new operation is journaled normally behind it.
+      await unwrap(mock.createBranch(id, 'after', { kind: 'head' }, false));
+      expect((await unwrap(mock.undoState(id))).undo?.blocked).toBeNull();
+    });
+  });
+
+  it('a folder of another user opens once it is in `safe.directory` (`check_safe_directory`)', async () => {
+    const path = '/Users/alex/unsafe-owner';
+    const refused = await mock.openRepo(path);
+    expect(refused).toMatchObject({
+      status: 'error',
+      error: { code: 'unsafeRepository', action: { kind: 'addSafeDirectory', path } },
+    });
+    await unwrap(mock.addSafeDirectory(path));
+    expect(await unwrap(mock.openRepo(path))).toMatchObject({ path });
+  });
+
+  it('a force push refuses a remote branch that moved since the fetch (`stale_lease`)', async () => {
+    const { id } = await unwrap(mock.openRepo('/Users/alex/dev/yaggui'));
+    const push = {
+      remote: null,
+      branch: null,
+      setUpstream: false,
+      forceWithLease: true,
+      expectedSha: null,
+    };
+    mockBackend.simulateStaleLease(id);
+    expect(await mock.push(id, push)).toMatchObject({ error: { code: 'staleLease' } });
+    // One refusal per simulated move: the next force push goes through.
+    await unwrap(mock.push(id, push));
+  });
+
   it('a refused fixup reports `op-finished` failed (`fixup.rs`, checks in the queue)', async () => {
     const { id } = await unwrap(mock.openRepo('/Users/alex/dev/blog'));
     const outcomes: string[] = [];
@@ -441,6 +573,67 @@ describe('mock / backend parity (M7)', () => {
   });
 });
 
+/**
+ * Where M8-3 found the mock and the backend apart. The reference is the backend
+ * (`src-tauri/src/git/read/line_history.rs`, `repo/inspect.rs`, `store`, `op_journal`).
+ */
+describe('mock / backend parity (M8-3)', () => {
+  it('line history maps working tree lines to HEAD (`committed_range`)', async () => {
+    const { id } = await unwrap(mock.openRepo('/Users/alex/dev/yaggui'));
+    // `README.md` is modified in the fixture: HEAD and the working tree differ.
+    const path = 'README.md';
+    const blame = await unwrap(mock.blame(id, { path, rev: null }, 1));
+    if (blame.content.kind !== 'text') throw new Error(blame.content.kind);
+    const lines = blame.content.lines;
+    const request = { path, rev: null, start: 2, end: 3 };
+    const before = (await unwrap(mock.lineHistory(id, request, null, 500, 1))).range;
+
+    // Three lines added above the range: the same HEAD lines, three further down.
+    mockBackend.simulateEdit(id, path, `${['a', 'b', 'c', ...lines].join('\n')}\n`);
+    const shifted = await unwrap(
+      mock.lineHistory(id, { ...request, start: 5, end: 6 }, null, 500, 1),
+    );
+    expect(shifted.range).toMatchObject({ start: before.start, end: before.end });
+    // Only added lines: no history.
+    expect(
+      await mock.lineHistory(id, { ...request, start: 1, end: 3 }, null, 500, 1),
+    ).toMatchObject({
+      error: {
+        code: 'invalidArgument',
+        message: { en: 'These lines are not committed yet: they have no history.' },
+      },
+    });
+    const first = await unwrap(mock.lineHistory(id, { ...request, start: 5, end: 6 }, null, 1, 1));
+    expect(first.next?.range).toMatchObject({ start: before.start, end: before.end });
+  });
+
+  it('mapToHead stands for the backend `map_to_head`', () => {
+    const head = 'a\nb\nc\nd\ne\n';
+    // Two lines inserted after `b`, `d` changed.
+    const work = 'a\nb\nx\ny\nc\nD\ne\n';
+    expect(mapToHead(head, work, 1, 2)).toEqual([1, 2]);
+    expect(mapToHead(head, work, 5, 5)).toEqual([3, 3]);
+    expect(mapToHead(head, work, 6, 7)).toEqual([4, 5]);
+    expect(mapToHead(head, work, 3, 4)).toBeNull();
+    // A range from added lines to unchanged ones starts at the first line after them.
+    expect(mapToHead(head, work, 3, 5)).toEqual([3, 3]);
+  });
+
+  it('line history follows the range between commits (`git log -L`)', async () => {
+    const { id } = await unwrap(mock.openRepo('/Users/alex/dev/yaggui'));
+    const request = { path: 'src/app/Thing.ts', rev: null, start: 20, end: 24 };
+    const { entries } = await unwrap(mock.lineHistory(id, request, null, 500, 1));
+    const diffs = entries.flatMap((e) => (e.diff && !e.origin ? [e.diff.hunks[0]] : []));
+    // Each commit's range after is the range before of the newer one.
+    for (let i = 1; i < diffs.length; i++) {
+      expect(diffs[i]?.newStart).toBe(diffs[i - 1]?.oldStart);
+    }
+    expect(new Set(diffs.map((h) => h?.newStart)).size).toBeGreaterThan(1);
+    const origin = entries.at(-1);
+    expect(origin?.diff?.hunks[0]?.newStart).toBe(diffs.at(-1)?.oldStart);
+  });
+});
+
 /** M8-2: the product gaps of M7-10 (autosquash of `squash!` / `amend!`, first-parent bisect). */
 describe('mock / backend parity (M8-2)', () => {
   it('arranges squash! and amend! commits like `fixup.rs` (`tests/fixup.rs`)', async () => {
@@ -470,6 +663,23 @@ describe('mock / backend parity (M8-2)', () => {
     await unwrap(mock.interactiveRebase(id, plan.plan.base.sha, todo));
     const after = await unwrap(mock.interactiveRebasePlan(id, 'HEAD~2'));
     expect(after.commits.map((c) => c.message)).toEqual([message, before.commits[1]?.message]);
+  });
+
+  it('a first-parent bisect stays first-parent after a page reload', async () => {
+    const { id } = await unwrap(mock.openRepo('/Users/alex/dev/yaggui'));
+    await unwrap(mock.stashPush(id, { message: null, includeUntracked: false, keepIndex: false }));
+    const filter = await unwrap(mock.graphFilter(id));
+    const all = await unwrap(mock.graphPage(id, 0, 60));
+    const good = all.shas[all.shas.length - 1] ?? '';
+    await unwrap(mock.setGraphFilter(id, { ...filter, firstParent: true }));
+    await unwrap(mock.bisectMark(id, null, 'bad'));
+    const before = await unwrap(mock.bisectMark(id, good, 'good'));
+    expect(before.firstParent).toBe(true);
+
+    const reloaded = new MockBackend();
+    const reopened = await unwrap(reloaded.commands.openRepo('/Users/alex/dev/yaggui'));
+    const after = await unwrap(reloaded.commands.bisectState(reopened.id));
+    expect(after).toMatchObject({ firstParent: true, remaining: before.remaining });
   });
 
   it('a bisect started in first-parent mode only tests first parents (`tests/bisect.rs`)', async () => {

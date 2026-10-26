@@ -243,6 +243,48 @@ for (const { name: theme, colorScheme } of THEMES) {
       await expect(page.getByText(/^Git deleted what this undo needs/)).toBeVisible();
     });
 
+    test('entries saved by another version are unreadable, and old ones are forgotten', async ({
+      page,
+    }) => {
+      await openYaggui(page);
+      await createBranch(page, 'qa-old', false);
+      // 31 days later (past the 30-day bound): gone when the journal is read back.
+      await page.evaluate(async () => {
+        const mock = window.__yagguiMock;
+        const opened = await mock?.commands.openRepo('/Users/alex/dev/yaggui');
+        if (!mock || opened?.status !== 'ok') return;
+        mock.simulateRestoredJournal(opened.data.id, { ageDays: 31 });
+        await mock.commands.closeRepo(opened.data.id);
+      });
+      await createBranch(page, 'qa-unreadable', false);
+      await page.evaluate(async () => {
+        const mock = window.__yagguiMock;
+        const opened = await mock?.commands.openRepo('/Users/alex/dev/yaggui');
+        if (!mock || opened?.status !== 'ok') return;
+        mock.simulateRestoredJournal(opened.data.id, { unreadable: true });
+        await mock.commands.closeRepo(opened.data.id);
+      });
+
+      await toolbar(page).getByRole('button', { name: 'Operation history' }).click();
+      const history = page.getByRole('region', { name: 'Operation history' });
+      const earlier = history.getByRole('list', { name: 'Earlier sessions' }).getByRole('listitem');
+      await expect(earlier).toHaveCount(1);
+      await expect(earlier.nth(0)).toContainText('creation of branch qa-unreadable');
+      await expect(earlier.nth(0)).toHaveAttribute('data-blocked', 'true');
+      await expect(earlier.nth(0)).toHaveAttribute(
+        'title',
+        /it was recorded by another version of yaggui$/,
+      );
+      await capture(page, theme, 'history-unreadable');
+      await page.keyboard.press('Escape');
+
+      await expect(
+        toolbar(page).getByRole('button', { name: /^Undo: creation of branch qa-unreadable/ }),
+      ).toHaveAttribute('aria-disabled', 'true');
+      await page.keyboard.press('Control+z');
+      await expect(page.getByText(/^This operation was recorded by another version/)).toBeVisible();
+    });
+
     test('local changes in the way are listed before anything is stashed', async ({ page }) => {
       await openYaggui(page);
       // A discard, then the same file edited again: the undo would overwrite it (M4-8: the

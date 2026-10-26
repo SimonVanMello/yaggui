@@ -93,6 +93,11 @@ export function undoBlocked(reason: UndoBlock): YagguiError {
 /** Operations kept per repository, like the backend journal (`JOURNAL_MAX_ENTRIES`). */
 export const MOCK_JOURNAL_MAX = 100;
 
+/** Age after which an entry is forgotten, like `JOURNAL_MAX_AGE_DAYS` of the store. */
+export const MOCK_JOURNAL_MAX_AGE_DAYS = 30;
+
+const DAY_MS = 86_400_000;
+
 /** The local refs of a mock history by full name (`HEAD`: its branch or commit), to compare. */
 export function mockRefs(history: MockHistory): Map<string, string> {
   const sha = (commit: number) => history.commits[commit]?.sha ?? '';
@@ -171,6 +176,8 @@ export class MockJournal {
   private nextId = 1;
 
   push(spec: MockJournalSpec, before: MockSnapshot, after: MockSnapshot, at: number): void {
+    // The store prunes by age when it appends, then keeps the newest by count.
+    this.expire(at);
     this.records.push({
       entry: {
         id: this.nextId++,
@@ -213,9 +220,37 @@ export class MockJournal {
     this.redoable.pop();
   }
 
-  /** The repository was closed: its entries come back as from a previous session. */
-  restore(): void {
+  /** Forgets the entries older than the age bound (`prune` of `store/undo_journal.rs`). */
+  expire(now: number): void {
+    const oldest = now - MOCK_JOURNAL_MAX_AGE_DAYS * DAY_MS;
+    this.records = this.records.filter((record) => (record.entry.at ?? oldest) >= oldest);
+    this.redoable = this.redoable.filter((record) => this.records.includes(record));
+  }
+
+  /**
+   * The repository was closed: its entries come back as from a previous session. Like
+   * `OpJournal::load`, the ones past the age bound at `now` are gone.
+   */
+  restore(now: number = Date.now()): void {
+    this.expire(now);
     for (const record of this.records) record.entry.restored = true;
+  }
+
+  /** Test hook: the entries were recorded `days` earlier. */
+  age(days: number): void {
+    for (const record of this.records) {
+      if (record.entry.at !== null) record.entry.at -= days * DAY_MS;
+    }
+  }
+
+  /**
+   * Simulates entries saved by another version of yaggui, whose state cannot be decoded
+   * (`STATE_FORMAT`): they stay listed, blocked as `unreadable`. The restored ones only.
+   */
+  markUnreadable(): void {
+    for (const record of this.records) {
+      if (record.entry.restored) record.entry.blocked ??= { kind: 'unreadable' };
+    }
   }
 
   /**

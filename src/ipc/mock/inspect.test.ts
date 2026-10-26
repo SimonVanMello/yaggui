@@ -76,10 +76,14 @@ describe('mock file history, blame and reflog', () => {
     const last = all.entries.at(-1);
     expect(last?.origin).toBe(true);
     expect(last?.diff?.hunks[0]?.kinds).toBe('+++++');
+    // The range moves with the lines added or removed above it: each commit starts where the
+    // newer one ended.
+    let expected = 10;
     for (const entry of all.entries.slice(0, -1)) {
       if (entry.diff === null) continue;
-      expect(entry.diff.hunks[0]?.newStart).toBe(10);
+      expect(entry.diff.hunks[0]?.newStart).toBe(expected);
       expect(entry.diff.additions).toBeGreaterThan(0);
+      expected = entry.diff.hunks[0]?.oldStart ?? expected;
     }
 
     const paged: LineHistoryEntry[] = [];

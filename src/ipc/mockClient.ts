@@ -53,6 +53,7 @@ import type {
   TabsState,
   UpdateInfo,
   Workspace,
+  HeadState,
 } from './bindings';
 import { GITIGNORE_PREVIEW_MAX, JOURNAL_PATHS_MAX } from './bindings';
 import type { YagguiClient, YagguiCommands, YagguiEventMap, YagguiEventName } from './client';
@@ -202,6 +203,7 @@ import {
   createMockHistory,
   mockSha,
   MockGraph,
+  type MockHead,
   type MockHistory,
 } from './mockGraph';
 import { mockChangelog } from './mock/changelog';
@@ -293,6 +295,20 @@ interface PersistedMockStore {
   graphFilters?: [number, GraphFilter][];
   /** Layout of each repository's view, like the `repo_ui_state` table. */
   repoUiStates?: [number, string][];
+  /** Marks of the bisects in progress, like `refs/bisect/*` and `BISECT_START` on disk. */
+  bisects?: [number, PersistedBisect][];
+}
+
+/**
+ * A `MockBisect` as it survives a reload. The history is generated again from the repository's
+ * seed, so commits are kept by index: a SHA does not hold, the fixture gives its own to HEAD.
+ */
+interface PersistedBisect {
+  bad: number | null;
+  good: number[];
+  skipped: number[];
+  original: MockHead;
+  firstParent?: boolean;
 }
 
 /** Same bound as `MAX_REPO_UI_STATE` (bytes of UTF-8). */
@@ -374,6 +390,27 @@ function invalidPtySize(cols: number, rows: number): YagguiError {
     `Invalid terminal size ${String(cols)}×${String(rows)}.`,
     `Taille de terminal invalide : ${String(cols)}×${String(rows)}.`,
   );
+}
+
+/** `stale_lease` of `git/errors.rs`. */
+function staleLease(): YagguiError {
+  return mockError(
+    'staleLease',
+    'Force push refused: the remote branch moved since your last fetch. Fetch and check what would be overwritten.',
+    'Force push refusé : la branche distante a bougé depuis ton dernier fetch. Fais un fetch et vérifie ce qui serait écrasé.',
+  );
+}
+
+/** `unsafe_repository` of `git/errors.rs`. */
+function unsafeRepository(path: string): YagguiError {
+  return {
+    ...mockError(
+      'unsafeRepository',
+      `Git refuses to use ${path} because it belongs to another user. Add it to safe.directory only if you trust it.`,
+      `Git refuse d'utiliser ${path} car il appartient à un autre utilisateur. Ajoute-le à safe.directory seulement si tu lui fais confiance.`,
+    ),
+    action: { kind: 'addSafeDirectory', path },
+  };
 }
 
 function loadMockStore(): PersistedMockStore | null {
@@ -471,6 +508,12 @@ export class MockBackend {
   private operations = new Map<number, MockOperation>();
   /** Bisect marks per repository while `operation` is a bisect (`refs/bisect/*`). */
   private bisects = new Map<number, MockBisect>();
+  /** The global `safe.directory` list, as far as `addSafeDirectory` grew it. */
+  private safeDirectories = new Set<string>();
+  /** Repositories whose next force push finds the remote branch moved (`staleLease`). */
+  private staleLeases = new Set<number>();
+  /** Bisects read from the persisted store, taken up when their repository is first read. */
+  private restoredBisects = new Map<number, PersistedBisect>();
   /** Delay of the cancellable reads (`simulateSlowReads`), 0 = they answer at once. */
   private readDelayMs = 0;
   private pendingReads = new Map<number, () => void>();
@@ -515,6 +558,7 @@ export class MockBackend {
       if (persisted.workspaces) this.workspaces = persisted.workspaces;
       this.graphFilters = new Map(persisted.graphFilters ?? []);
       this.repoUiStates = new Map(persisted.repoUiStates ?? []);
+      this.restoredBisects = new Map(persisted.bisects ?? []);
       this.legacyMigrated = persisted.legacyMigrated;
       this.settings.restore(persisted.keybindings ?? []);
       this.persist();
@@ -579,6 +623,9 @@ export class MockBackend {
     this.commitStore.reset(this.repos.find((r) => r.known.name === 'yaggui')?.known.id ?? null);
     this.operations.clear();
     this.bisects.clear();
+    this.safeDirectories.clear();
+    this.staleLeases.clear();
+    this.restoredBisects.clear();
     this.readDelayMs = 0;
     this.pendingReads.forEach((cancel) => {
       cancel();
@@ -593,6 +640,18 @@ export class MockBackend {
     this.remoteTags.clear();
   }
 
+  /** The bisects to keep: those in progress, and those not read back since the reload. */
+  private bisectsSnapshot(): [number, PersistedBisect][] {
+    const live: [number, PersistedBisect][] = [];
+    for (const [repoId, { bad, good, skipped, original, firstParent }] of this.bisects) {
+      if (this.operations.get(repoId)?.operation.kind !== 'bisect') continue;
+      live.push([repoId, { bad, good, skipped, original, firstParent }]);
+    }
+    const liveIds = new Set(live.map(([repoId]) => repoId));
+    const waiting = [...this.restoredBisects].filter(([repoId]) => !liveIds.has(repoId));
+    return [...live, ...waiting];
+  }
+
   private persist(): void {
     const store: PersistedMockStore = {
       preferences: this.preferences,
@@ -603,6 +662,7 @@ export class MockBackend {
       workspaces: this.workspaces,
       graphFilters: [...this.graphFilters],
       repoUiStates: [...this.repoUiStates],
+      bisects: this.bisectsSnapshot(),
     };
     try {
       localStorage.setItem(MOCK_STORE_KEY, JSON.stringify(store));
@@ -903,6 +963,7 @@ export class MockBackend {
     const repo = this.find(repoId);
     const wip = this.wips.get(repoId);
     if (repo && wip) repo.state = { ...repo.state, dirty: wip.dirty() };
+    this.persist();
     this.watcherSaw(repoId, kind === 'rebase' || kind === 'bisect');
     return true;
   }
@@ -951,15 +1012,28 @@ export class MockBackend {
     else this.rebaseConflicts.delete(repoId);
   }
 
+  /** The next force push of a repository is refused: the remote branch moved since the fetch. */
+  simulateStaleLease(repoId: number, on = true): void {
+    if (on) this.staleLeases.add(repoId);
+    else this.staleLeases.delete(repoId);
+  }
+
   /**
    * Simulates a restart: the journal entries of a repository become entries of a previous
    * session (`restored`). With `pruned`, a `git gc` ran meanwhile: they lose what they need
-   * and are refused with `undoObjectsMissing`.
+   * and are refused with `undoObjectsMissing`. With `unreadable`, another version of yaggui
+   * saved them: they are refused with `unreadable`. With `ageDays`, they were recorded that
+   * many days earlier, and the ones past 30 days are forgotten.
    */
-  simulateRestoredJournal(repoId: number, { pruned = false } = {}): void {
+  simulateRestoredJournal(
+    repoId: number,
+    { pruned = false, unreadable = false, ageDays = 0 } = {},
+  ): void {
     const journal = this.journals.get(repoId);
     if (!journal) return;
+    journal.age(ageDays);
     journal.restore();
+    if (unreadable) journal.markUnreadable();
     if (pruned) journal.prune();
     this.emit('journalChanged', { repoId });
   }
@@ -1100,6 +1174,7 @@ export class MockBackend {
     const run = (): { ok: T } | { error: YagguiError } => {
       const before = journal || journalError ? this.snapshot(repoId) : null;
       const result = work();
+      this.persist();
       const spec =
         'ok' in result ? (journal?.(result.ok) ?? null) : (journalError?.(result.error) ?? null);
       const after = spec ? this.snapshot(repoId) : null;
@@ -1739,10 +1814,17 @@ export class MockBackend {
     if (!repo || !this.open.has(repoId)) return null;
     let graph = this.graphs.get(repoId);
     if (!graph) {
+      // A bisect saved before a reload left HEAD detached on a commit under test: the history
+      // is generated from the branch it started on, so the commits marks refer to exist again.
+      const saved = this.restoredBisects.get(repoId);
+      const head: HeadState =
+        saved?.original.kind === 'branch' && repo.state.head.kind === 'detached'
+          ? { kind: 'branch', name: saved.original.name, oid: repo.state.head.oid }
+          : repo.state.head;
       const history = createMockHistory(
         repoId,
         repo.known.path,
-        repo.state.head,
+        head,
         repo.state.upstream,
         MOCK_NOW - 600,
       );
@@ -2784,10 +2866,36 @@ export class MockBackend {
   /** The marks of the bisect in progress; one simulated or in the fixture starts empty. */
   private bisectOf(repoId: number, graph: MockGraph): MockBisect | null {
     if (this.operation(repoId)?.operation.kind !== 'bisect') return null;
-    let bisect = this.bisects.get(repoId);
+    let bisect = this.restoredBisect(repoId, graph) ?? this.bisects.get(repoId);
     if (!bisect) {
       bisect = { bad: null, good: [], skipped: [], original: structuredClone(graph.history.head) };
       this.bisects.set(repoId, bisect);
+    }
+    return bisect;
+  }
+
+  /**
+   * The marks a bisect had before the page was reloaded, read back like `refs/bisect/*`:
+   * commits the fresh history does not have (made during the session) are dropped.
+   */
+  private restoredBisect(repoId: number, graph: MockGraph): MockBisect | null {
+    const saved = this.restoredBisects.get(repoId);
+    if (!saved) return null;
+    this.restoredBisects.delete(repoId);
+    const count = graph.history.commits.length;
+    const known = (commit: number) => commit < count;
+    const bisect: MockBisect = {
+      bad: saved.bad !== null && known(saved.bad) ? saved.bad : null,
+      good: saved.good.filter(known),
+      skipped: saved.skipped.filter(known),
+      original: saved.original,
+      firstParent: saved.firstParent,
+    };
+    this.bisects.set(repoId, bisect);
+    // HEAD on the next commit to test, as the bisect had left it.
+    const next = bisectOutcome(graph.history.commits, bisect);
+    if (next.result === null && next.next !== null) {
+      graph.history.head = { kind: 'detached', commit: next.next };
     }
     return bisect;
   }
@@ -2864,7 +2972,7 @@ export class MockBackend {
       // HEAD goes back to where it was: the rebased branch, checked out again; the HEAD a
       // bisect started from.
       const { operation } = op;
-      const bisect = this.bisects.get(repoId);
+      const bisect = this.restoredBisect(repoId, graph) ?? this.bisects.get(repoId);
       if (operation.kind === 'bisect' && bisect) {
         const { original } = bisect;
         const exists =
@@ -3012,6 +3120,10 @@ export class MockBackend {
           ),
         );
       }
+      // A folder of another user (`check_safe_directory`) opens once it is in `safe.directory`.
+      if (/unsafe-owner/.test(normalized) && !this.safeDirectories.has(normalized)) {
+        return fail(unsafeRepository(normalized));
+      }
       // Like `gix::discover`, a folder inside a known worktree opens that repository, unless
       // it is one of its initialized submodules (a repository of its own).
       const isSubmodule = (r: MockRepo) =>
@@ -3150,6 +3262,7 @@ export class MockBackend {
     },
     addSafeDirectory: (path) => {
       if (!isAbsolute(path.trim())) return fail(invalidPath(path));
+      this.safeDirectories.add(path);
       this.logCommand({
         repoId: null,
         args: ['config', '--global', '--add', 'safe.directory', path],
@@ -3868,6 +3981,7 @@ export class MockBackend {
               untracked,
               stashed,
               /conflict/.test(entry.message),
+              saved?.base.has(path) ?? false,
             );
             if ('error' in result) return result;
             return result.ok === 'conflict'
@@ -4576,6 +4690,8 @@ export class MockBackend {
             if (request.forceWithLease) {
               if (isProtectedBranch(remoteBranch, this.preferences.protectedBranches))
                 return { error: protectedBranch(remoteBranch) };
+              // `--force-with-lease` refuses (stale info) when the branch moved since the fetch.
+              if (this.staleLeases.delete(repoId)) return { error: staleLease() };
             } else if (behind > 0) {
               return { error: pushRejected() };
             }
