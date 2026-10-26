@@ -496,3 +496,54 @@ describe('mock / backend parity (M8-2)', () => {
     expect(rows.shas).toContain(chain.current?.sha);
   });
 });
+
+describe('mock / backend parity (M8)', () => {
+  it('a conflicting stash file ends `op-finished` failed, its undo journaled (`stash_file.rs`)', async () => {
+    const { id } = await unwrap(mock.openRepo('/Users/alex/dev/yaggui'));
+    const [path = ''] = (await unwrap(mock.changedFiles(id, { kind: 'unstaged' }))).files
+      .filter((f) => f.status !== 'untracked')
+      .map((f) => f.path);
+    const pushed = await unwrap(
+      mock.stashPush(id, { message: 'conflict demo', includeUntracked: false, keepIndex: false }),
+    );
+    const events: string[] = [];
+    const offFinished = mockClient.events.subscribe('opFinished', (e) =>
+      events.push(e.outcome.kind === 'failed' ? `failed:${e.outcome.error.code}` : e.outcome.kind),
+    );
+    const offJournal = mockClient.events.subscribe('journalChanged', () => events.push('journal'));
+    const stash = { index: 0, sha: pushed.sha };
+    expect(await mock.stashApplyFile(id, { stash, path, untracked: false })).toMatchObject({
+      error: { code: 'stashConflict' },
+    });
+    offFinished();
+    offJournal();
+    expect(events).toEqual(['failed:stashConflict', 'journal']);
+    expect((await unwrap(mock.undoState(id))).undo?.entry.op).toMatchObject({
+      kind: 'stashApplyFile',
+      path,
+    });
+  });
+
+  it('`skipOperation` in a bisect ends inconclusive like a skip mark (`bisect.rs`)', async () => {
+    const { id } = await unwrap(mock.openRepo('/Users/alex/dev/blog'));
+    await unwrap(mock.bisectMark(id, null, 'bad'));
+    let state = await unwrap(mock.bisectMark(id, 'HEAD~3', 'good'));
+    const notes: (string | null)[] = [];
+    const off = mockClient.events.subscribe('opFinished', (e) =>
+      notes.push(e.outcome.kind === 'success' ? e.outcome.note : e.outcome.kind),
+    );
+    let skips = 0;
+    while (!state.result && skips < 5) {
+      await unwrap(mock.skipOperation(id));
+      const read = await unwrap(mock.bisectState(id));
+      if (!read) break;
+      state = read;
+      skips += 1;
+    }
+    off();
+    expect(state.result?.kind).toBe('inconclusive');
+    expect(notes.at(-1)).toBeNull();
+    expect(notes.slice(0, -1).every((n) => n === 'step')).toBe(true);
+    expect((await unwrap(mock.repoState(id))).operation).toEqual({ kind: 'bisect' });
+  });
+});

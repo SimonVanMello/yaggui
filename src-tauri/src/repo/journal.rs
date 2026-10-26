@@ -20,6 +20,7 @@
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use gix::ObjectId;
 use gix::bstr::{BStr, ByteSlice};
@@ -501,26 +502,48 @@ impl RepoManager {
         capture_index: bool,
         job: impl FnOnce(&WriteContext<'_>) -> Result<(T, Option<Plan>), YagguiError> + Send + 'static,
     ) -> Result<T, YagguiError> {
+        self.journal_outcome(repo_id, kind, cancellable, capture_index, move |ctx| {
+            job(ctx).map(|(value, plan)| (Ok(value), plan))
+        })
+    }
+
+    /// Like [`journal_op`](Self::journal_op), for an operation that can fail after changing
+    /// what it journals (a conflict): the plan is journaled either way, and the inner error is
+    /// the operation's outcome (`op-finished` failed), the undo staying available.
+    pub(super) fn journal_outcome<T: Send + 'static>(
+        &self,
+        repo_id: u32,
+        kind: OpKind,
+        cancellable: bool,
+        capture_index: bool,
+        job: impl FnOnce(
+            &WriteContext<'_>,
+        ) -> Result<(Result<T, YagguiError>, Option<Plan>), YagguiError>
+        + Send
+        + 'static,
+    ) -> Result<T, YagguiError> {
         let session = self.session(repo_id)?;
         let store = Arc::clone(&self.store);
-        let (value, recorded) = self.write_op(repo_id, kind, cancellable, move |ctx| {
+        let recorded = Arc::new(AtomicBool::new(false));
+        let job_recorded = Arc::clone(&recorded);
+        let outcome = self.write_op(repo_id, kind, cancellable, move |ctx| {
             let before = take_before(ctx, capture_index);
-            let (value, plan) = job(ctx)?;
-            let Some(plan) = plan else {
-                return Ok((value, false));
-            };
-            let mut journal = lock(&session.journal);
-            let recorded = record(ctx, &mut journal, before, plan);
-            if recorded {
-                journal.save_last(&store, repo_id);
+            let (outcome, plan) = job(ctx)?;
+            if let Some(plan) = plan {
+                let mut journal = lock(&session.journal);
+                if record(ctx, &mut journal, before, plan) {
+                    journal.save_last(&store, repo_id);
+                    job_recorded.store(true, Ordering::Relaxed);
+                }
             }
-            Ok((value, recorded))
-        })?;
-        if recorded {
+            outcome
+        });
+        // After `op-finished`, success or not: the journal has the entry by then.
+        if recorded.load(Ordering::Relaxed) {
             self.sink
                 .emit(BackendEvent::JournalChanged(JournalChanged { repo_id }));
         }
-        Ok(value)
+        outcome
     }
 }
 
