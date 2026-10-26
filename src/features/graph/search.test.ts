@@ -95,23 +95,31 @@ describe('search on the mock backend', () => {
     mockBackend.reset();
   });
 
-  it('finds the commits of an author across the 100k rows of linux', async () => {
-    await unwrap(ipc.commands.openRepo('/Users/alex/dev/linux'));
-    const query = normalizeSearch({
-      text: null,
-      author: 'kenji',
-      path: null,
-      since: null,
-      until: null,
-    });
-    const result = await runSearch(
-      (from) => unwrap(ipc.commands.searchCommits(2, query, from)),
-      () => undefined,
-      { cancelled: false },
-    );
-    expect(result?.done).toBe(true);
-    expect(result?.matches.length).toBeGreaterThan(1000);
-    const page = await unwrap(ipc.commands.graphPage(2, result?.matches[0] ?? 0, 1));
-    expect(page.authorNames[0]).toBe('Kenji Watanabe');
-  });
+  // Scans 100k mock rows chunk by chunk: well under a second alone, but the default 5 s is
+  // too tight on a loaded CI machine. The work is the point of the test, not its speed.
+  const SCAN_TIMEOUT_MS = 30_000;
+
+  it(
+    'finds the commits of an author across the 100k rows of linux',
+    async () => {
+      await unwrap(ipc.commands.openRepo('/Users/alex/dev/linux'));
+      const query = normalizeSearch({
+        text: null,
+        author: 'kenji',
+        path: null,
+        since: null,
+        until: null,
+      });
+      const result = await runSearch(
+        (from) => unwrap(ipc.commands.searchCommits(2, query, from)),
+        () => undefined,
+        { cancelled: false },
+      );
+      expect(result?.done).toBe(true);
+      expect(result?.matches.length).toBeGreaterThan(1000);
+      const page = await unwrap(ipc.commands.graphPage(2, result?.matches[0] ?? 0, 1));
+      expect(page.authorNames[0]).toBe('Kenji Watanabe');
+    },
+    SCAN_TIMEOUT_MS,
+  );
 });
