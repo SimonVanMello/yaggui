@@ -3,7 +3,8 @@
 
 use std::borrow::Cow;
 
-const MASK: &str = "***";
+/// What replaces a secret in the log and in error details.
+pub const MASK: &str = "***";
 
 /// Replaces the secret of every `scheme://userinfo@host` in `text`: `user:secret` becomes
 /// `user:***`, a token-only `secret` becomes `***`. SSH URLs without a password

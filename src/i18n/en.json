@@ -1682,7 +1682,7 @@
   "prefs.style.terminal": "Terminal",
   "prefs.style.terminalHint": "Dense, monospace and dark: the light / dark choice does not apply.",
   "tools.editor": "Editor",
-  "tools.editor.hint": "Opens the repository or a file. Empty: the system default.",
+  "tools.editor.hint": "Opens the repository or a file. Empty: the system text editor, for files only.",
   "tools.editor.placeholder": "code, subl, Zed…",
   "tools.diff": "Diff tool",
   "tools.diff.hint": "A name Git knows (git difftool --tool-help). Empty: diff.tool.",

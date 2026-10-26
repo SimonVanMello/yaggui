@@ -317,6 +317,20 @@ fn perf_probe(app: tauri::AppHandle, started: std::time::Instant) {
     });
 }
 
+/// Moves the process out of the folder it was started from, to the home folder (or the
+/// temporary one). Everything yaggui starts inherits its current directory: a repository
+/// given on the command line (`yaggui .`) must not be where Windows looks for `cmd.exe`
+/// before `PATH`, nor where Git commands run without a repository (`git config --global`)
+/// are executed.
+fn leave_start_dir() {
+    let target = std::env::home_dir()
+        .filter(|home| home.is_dir())
+        .unwrap_or_else(std::env::temp_dir);
+    if let Err(err) = std::env::set_current_dir(&target) {
+        tracing::warn!(path = %target.display(), error = %err, "cannot leave the start folder");
+    }
+}
+
 pub fn run() {
     let started = std::time::Instant::now();
     tracing_subscriber::fmt()
@@ -325,6 +339,9 @@ pub fn run() {
         )
         .init();
 
+    // Read before leaving the start folder: `yaggui .` names a repository relative to it.
+    commands::app::capture_launch_path();
+    leave_start_dir();
     // Before the webview reads its text input settings.
     system::keyboard::enable_key_repeat();
     // In the background: the first Git command waits for it only if it is still running.

@@ -4,7 +4,14 @@ import '@xterm/xterm/css/xterm.css';
 
 import { currentPreferences, subscribePreferences } from '../../app/preferences';
 import { translate, useI18nStore } from '../../i18n/i18n';
-import { YagguiIpcError, ipc, unwrap, type PtyInfo, type YagguiError } from '../../ipc';
+import {
+  YagguiIpcError,
+  ipc,
+  unwrap,
+  type PtyInfo,
+  type PtyKind,
+  type YagguiError,
+} from '../../ipc';
 import { platform } from '../../ui/platform';
 import { matchBinding } from '../keybindings/registry';
 import { TERMINAL_ATTRIBUTE, TERMINAL_PASSTHROUGH, TERMINAL_REPO_ATTRIBUTE } from './terminalFocus';
@@ -194,6 +201,11 @@ function handleKey(session: Session, event: KeyboardEvent): boolean {
   return true;
 }
 
+/** What the backend checks on every write, resize and close: the update terminal is not a shell. */
+function kindOf(session: Session): PtyKind {
+  return session.repoId === null ? 'update' : 'shell';
+}
+
 function flushInput(session: Session): void {
   if (session.writing || session.ptyId === null || session.input === '') return;
   const ptyId = session.ptyId;
@@ -201,7 +213,7 @@ function flushInput(session: Session): void {
   session.input = '';
   session.writing = true;
   void ipc.commands
-    .ptyWrite(ptyId, data)
+    .ptyWrite(ptyId, kindOf(session), data)
     .then((result) => {
       if (result.status === 'error') console.warn('Terminal input lost', result.error);
     })
@@ -226,7 +238,7 @@ async function spawn(session: Session): Promise<void> {
   try {
     const info = await session.start(cols, rows);
     if (session.disposed) {
-      void ipc.commands.ptyClose(info.ptyId);
+      void ipc.commands.ptyClose(info.ptyId, kindOf(session));
       return;
     }
     session.ptyId = info.ptyId;
@@ -243,7 +255,12 @@ async function spawn(session: Session): Promise<void> {
         .updateTab(session.repoId, session.id, { status: 'running', title });
     // The panel may have been resized while the shell started.
     if (session.term.cols !== cols || session.term.rows !== rows) {
-      void ipc.commands.ptyResize(info.ptyId, session.term.cols, session.term.rows);
+      void ipc.commands.ptyResize(
+        info.ptyId,
+        kindOf(session),
+        session.term.cols,
+        session.term.rows,
+      );
     }
     flushInput(session);
   } catch (failure) {
@@ -314,7 +331,9 @@ function createSession(
     flushInput(session);
   });
   term.onResize(({ cols, rows }) => {
-    if (session.ptyId !== null) void ipc.commands.ptyResize(session.ptyId, cols, rows);
+    if (session.ptyId !== null) {
+      void ipc.commands.ptyResize(session.ptyId, kindOf(session), cols, rows);
+    }
   });
   sessions.set(id, session);
   return session;
@@ -385,7 +404,7 @@ function dispose(session: Session): void {
   sessions.delete(session.id);
   if (session.ptyId !== null) {
     byPty.delete(session.ptyId);
-    void ipc.commands.ptyClose(session.ptyId);
+    void ipc.commands.ptyClose(session.ptyId, kindOf(session));
   }
   session.term.dispose();
   session.host.remove();

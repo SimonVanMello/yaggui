@@ -3541,17 +3541,17 @@ export class MockBackend {
       const result = this.ptys.spawn(repoId, repo.known.path, cols, rows);
       return 'code' in result ? fail(result) : ok(result);
     },
-    ptyWrite: (ptyId, data) => {
-      const error = this.ptys.write(ptyId, data);
+    ptyWrite: (ptyId, kind, data) => {
+      const error = this.ptys.write(ptyId, data, kind);
       return error ? fail(error) : ok(null);
     },
-    ptyResize: (ptyId, cols, rows) => {
+    ptyResize: (ptyId, kind, cols, rows) => {
       if (!isPtySize(cols) || !isPtySize(rows)) return fail(invalidPtySize(cols, rows));
-      const error = this.ptys.resize(ptyId, cols, rows);
+      const error = this.ptys.resize(ptyId, cols, rows, kind);
       return error ? fail(error) : ok(null);
     },
-    ptyClose: (ptyId) => {
-      this.ptys.close(ptyId);
+    ptyClose: (ptyId, kind) => {
+      this.ptys.close(ptyId, kind);
       return ok(null);
     },
     openTerminal: (repoId) => {

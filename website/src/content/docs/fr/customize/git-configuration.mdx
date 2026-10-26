@@ -124,7 +124,7 @@ git config --global --replace-all -- user.email ada@example.com
 git config --local --unset-all -- core.autocrlf
 ```
 
-Les modifications du fichier global sont appliquées une par une, et celles d’un dépôt attendent la fin de toute opération en cours dans ce dépôt. Elles prennent effet immédiatement et ne peuvent pas être annulées depuis yaggui : pour revenir en arrière, redéfinissez l’ancienne valeur.
+La liste elle-même (`git config --list -z`) est journalisée sans sa sortie, et la valeur d’une clé qui contient un identifiant (`credential.*`, `http.<url>.extraHeader`, tout nom contenant `pass`, `token` ou `secret`) est journalisée comme `***` : une entrée copiée du journal n’emporte jamais de jeton. Les modifications du fichier global sont appliquées une par une, et celles d’un dépôt attendent la fin de toute opération en cours dans ce dépôt. Elles prennent effet immédiatement et ne peuvent pas être annulées depuis yaggui : pour revenir en arrière, redéfinissez l’ancienne valeur.
 
 ### Erreurs
 
