@@ -318,6 +318,43 @@ pub struct MergeRequest {
     pub message: Option<String>,
 }
 
+/// Moves a local branch forward to a revision that contains it, without creating a commit
+/// (F-026). The branch need not be checked out.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct FastForwardRequest {
+    /// Local branch short name to move.
+    pub branch: String,
+    /// Where it goes: a branch short name (`feat/x`, `origin/feat/x`), a full ref name or a
+    /// commit SHA.
+    pub to: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct FastForwardResult {
+    /// The branch already contained `to`: nothing moved.
+    pub up_to_date: bool,
+    /// SHA the branch pointed to before, and after.
+    pub previous: String,
+    pub sha: String,
+}
+
+/// How two revisions `a` and `b` relate in the history: what a fast-forward between them can
+/// do.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub enum RevisionRelation {
+    /// Same commit.
+    Same,
+    /// `a` is an ancestor of `b`: `a` can be fast-forwarded to `b`.
+    Behind,
+    /// `b` is an ancestor of `a`: `b` can be fast-forwarded to `a`.
+    Ahead,
+    /// Neither contains the other (or unrelated histories): no fast-forward either way.
+    Diverged,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct RebaseRequest {
@@ -940,6 +977,11 @@ pub enum JournalOp {
     Merge {
         source: String,
         mode: MergeMode,
+    },
+    /// `branch` moved forward to `to` (a branch name or SHA as asked), checked out or not.
+    FastForward {
+        branch: String,
+        to: String,
     },
     Reset {
         mode: ResetMode,

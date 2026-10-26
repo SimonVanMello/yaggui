@@ -107,6 +107,8 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             commands::refs::create_tag,
             commands::refs::delete_tag,
             commands::history::merge,
+            commands::history::fast_forward,
+            commands::history::revision_relation,
             commands::history::rebase,
             commands::history::cherry_pick,
             commands::history::revert,

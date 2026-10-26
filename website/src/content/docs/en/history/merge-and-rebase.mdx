@@ -36,16 +36,23 @@ Press <kbd>Esc</kbd> during the drag to cancel it.
 <Screenshot
   dark={historyDropMenuDark}
   light={historyDropMenuLight}
-  alt="Drop menu after dragging develop onto main, listing Merge, Rebase and Fast-forward"
+  alt="Drop menu after dragging feat/palette-31 onto main: Merge, Rebase, and Fast-forward feat/palette-31 to main, since it is the branch that is behind"
 />
 
 When you drag branch `X` onto branch `Y`:
 
-| Menu item               | What it does                                                              | Notes                                                                                                                               |
-| ----------------------- | ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| **Merge X into Y…**     | Opens the [merge dialog](#merge-a-branch)                                 | Hint **Checks out Y first** when `Y` is not the current branch                                                                      |
-| **Rebase X onto Y**     | Asks for confirmation, then [rebases](#rebase-onto-a-branch) `X` onto `Y` | Disabled for a remote branch: **A remote branch cannot be rebased**. Hint **Checks out X first** when `X` is not the current branch |
-| **Fast-forward Y to X** | [Fast-forwards](#fast-forward-a-branch) `Y` to `X`, without a dialog      | Hint **Checks out Y first** when `Y` is not the current branch                                                                      |
+| Menu item                             | What it does                                                                                  | Notes                                                                                                                               |
+| ------------------------------------- | --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| **Merge X into Y…**                   | Opens the [merge dialog](#merge-a-branch)                                                     | Hint **Checks out Y first** when `Y` is not the current branch                                                                      |
+| **Rebase X onto Y**                   | Asks for confirmation, then [rebases](#rebase-onto-a-branch) `X` onto `Y`                     | Disabled for a remote branch: **A remote branch cannot be rebased**. Hint **Checks out X first** when `X` is not the current branch |
+| **Fast-forward Y to X** or **X to Y** | [Fast-forwards](#fast-forward-a-branch) the branch that is behind the other, without a dialog | Never checks out. See below for which branch moves                                                                                  |
+
+A fast-forward can only go one way, so the menu offers the one that is possible, whichever branch you dragged onto the other:
+
+- `Y` is behind `X`: **Fast-forward Y to X**.
+- `X` is behind `Y`: **Fast-forward X to Y**. To bring `develop` up to a branch ahead of it, you can drag `develop` onto that branch, or that branch onto `develop`.
+- Both point to the same commit, or `X` is a remote branch behind `Y`: the item is disabled with the hint **\{target\} already contains \{source\}**.
+- The branches have diverged: the item is disabled with the hint **The branches have diverged: merge or rebase instead**.
 
 - Dropping a branch on itself shows a single disabled item, **Nothing to do: same branch**.
 - Dragging commits instead of a branch offers a cherry-pick: see [Cherry-pick, revert and reset](../../history/cherry-pick-revert-reset/#drag-commits-onto-a-branch).
@@ -127,11 +134,21 @@ See [git-merge](https://git-scm.com/docs/git-merge) for the merge strategies the
 
 ## Fast-forward a branch
 
-**Fast-forward \{target\} to \{source\}** (drop menu or sidebar) runs without a dialog: it checks out the target if needed, then runs
+**Fast-forward \{target\} to \{source\}** (drop menu or sidebar) runs without a dialog and never checks out a branch. yaggui resolves `<source>` to a commit, then:
 
-```bash
-git merge --ff-only --no-edit -- <source>
-```
+- if `{target}` is the current branch, it moves it along with the working tree:
+
+  ```bash
+  git merge --ff-only <source-sha>
+  ```
+
+- otherwise, it only moves the branch: your current branch, the working tree and your local changes stay as they are.
+
+  ```bash
+  git branch -f <target> <source-sha>
+  ```
+
+  yaggui checks first that `{target}` is behind `{source}`, so this never drops a commit. A branch checked out in another worktree is refused: "The branch "\{target\}" is checked out in the worktree \{path\}: open that worktree, or check out another branch here."
 
 If the branches have diverged, Git refuses and you see: "The branches have diverged: "\{source\}" cannot be fast-forwarded. Merge with a merge commit, or rebase." The toast has a **Merge instead…** button that opens the merge dialog for the same two branches.
 
@@ -156,7 +173,7 @@ Errors specific to rebase:
 ## Local changes and conflicts
 
 - **Rebase** refuses as soon as a tracked file has changes, staged or not: "Your local changes would be overwritten by the rebase. Commit or stash them first." Untracked files do not block it.
-- **Merge** and **fast-forward** run with local changes; Git refuses only if they would be overwritten: "Your local changes would be overwritten by the merge. Commit or stash them first."
+- **Merge** and **fast-forward** run with local changes; Git refuses only if they would be overwritten: "Your local changes would be overwritten by the merge. Commit or stash them first." A fast-forward of a branch that is not checked out never touches the working tree.
 - In both cases the error toast lists up to three paths and offers **Show changes**. Commit or [stash](../../everyday/stash/) the changes, then retry.
 - Another operation in progress blocks all three: "Another operation (merge, rebase, cherry-pick, revert or bisect) is in progress: continue or abort it first." So do files still in conflict: "Some files are still in conflict: resolve them (and stage them) first."
 
@@ -168,8 +185,9 @@ Every command appears in the [command log](../../reference/command-log/).
 
 | Operation                                                          | Undoable                                                                                                        |
 | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
-| Merge, fast-forward or squash that completed in one go             | Yes, with <kbd>⌘Z</kbd> (<kbd>Ctrl+Z</kbd> on Windows and Linux): **merge of \{source\}**                       |
+| Merge or squash that completed in one go                           | Yes, with <kbd>⌘Z</kbd> (<kbd>Ctrl+Z</kbd> on Windows and Linux): **merge of \{source\}**                       |
+| Fast-forward                                                       | Yes: **fast-forward of \{branch\} to \{to\}**                                                                   |
 | Merge that stopped on conflicts and was finished with **Continue** | No                                                                                                              |
 | Rebase                                                             | No. While it is in progress, **Abort** restores the branch; afterwards, use the [reflog](../../inspect/reflog/) |
 
-Undoing a merge runs `git reset --keep` to the previous commit. When yaggui checked out the target first, that checkout is a separate entry: undo it too to get back to the branch you were on. Details and limits: [Undo and redo](../../history/undo-and-redo/).
+Undoing a merge, or the fast-forward of the current branch, runs `git reset --keep` to the previous commit. Undoing the fast-forward of another branch only moves that branch back. When yaggui checked out the target first, that checkout is a separate entry: undo it too to get back to the branch you were on. Details and limits: [Undo and redo](../../history/undo-and-redo/).

@@ -36,16 +36,23 @@ Appuyez sur <kbd>Esc</kbd> pendant le glissement pour l’annuler.
 <Screenshot
   dark={historyDropMenuDark}
   light={historyDropMenuLight}
-  alt="Menu de dépôt après avoir glissé develop sur main, avec les entrées Merger, Rebaser et Avancer (fast-forward)"
+  alt="Menu de dépôt après avoir glissé feat/palette-31 sur main : Merger, Rebaser, et Avancer feat/palette-31 (fast-forward) jusqu’à main, puisque c’est la branche en retard"
 />
 
 Quand vous glissez la branche `X` sur la branche `Y` :
 
-| Élément du menu                        | Ce qu’elle fait                                                                                      | Remarques                                                                                                                                                              |
-| -------------------------------------- | ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Merger X dans Y…**                   | Ouvre la [boîte de dialogue de merge](#merger-une-branche)                                           | Indication **Bascule d’abord sur Y** quand `Y` n’est pas la branche courante                                                                                           |
-| **Rebaser X sur Y**                    | Demande confirmation, puis [rebase](#rebaser-sur-une-branche) `X` sur `Y`                            | Désactivée pour une branche distante : **Une branche distante ne peut pas être rebasée**. Indication **Bascule d’abord sur X** quand `X` n’est pas la branche courante |
-| **Avancer Y (fast-forward) jusqu’à X** | [Avance Y en fast-forward](#avancer-une-branche-en-fast-forward) jusqu’à `X`, sans boîte de dialogue | Indication **Bascule d’abord sur Y** quand `Y` n’est pas la branche courante                                                                                           |
+| Élément du menu                                           | Ce qu’elle fait                                                                                                                 | Remarques                                                                                                                                                              |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Merger X dans Y…**                                      | Ouvre la [boîte de dialogue de merge](#merger-une-branche)                                                                      | Indication **Bascule d’abord sur Y** quand `Y` n’est pas la branche courante                                                                                           |
+| **Rebaser X sur Y**                                       | Demande confirmation, puis [rebase](#rebaser-sur-une-branche) `X` sur `Y`                                                       | Désactivée pour une branche distante : **Une branche distante ne peut pas être rebasée**. Indication **Bascule d’abord sur X** quand `X` n’est pas la branche courante |
+| **Avancer Y (fast-forward) jusqu’à X** ou **X jusqu’à Y** | [Avance en fast-forward](#avancer-une-branche-en-fast-forward) la branche qui est en retard sur l’autre, sans boîte de dialogue | N’extrait jamais de branche. Voir ci-dessous quelle branche avance                                                                                                     |
+
+Un fast-forward ne va que dans un sens : le menu propose celui qui est possible, quelle que soit la branche glissée sur l’autre :
+
+- `Y` est en retard sur `X` : **Avancer Y (fast-forward) jusqu’à X**.
+- `X` est en retard sur `Y` : **Avancer X (fast-forward) jusqu’à Y**. Pour amener `develop` au niveau d’une branche plus avancée, vous pouvez glisser `develop` sur cette branche, ou cette branche sur `develop`.
+- Les deux pointent sur le même commit, ou `X` est une branche distante en retard sur `Y` : l’entrée est désactivée avec l’indication **\{target\} contient déjà \{source\}**.
+- Les branches ont divergé : l’entrée est désactivée avec l’indication **Les branches ont divergé : fais plutôt un merge ou un rebase**.
 
 - Déposer une branche sur elle-même affiche une seule entrée désactivée, **Rien à faire : même branche**.
 - Glisser des commits plutôt qu’une branche propose un cherry-pick : voir [Cherry-pick, revert et reset](../../history/cherry-pick-revert-reset/#glisser-des-commits-sur-une-branche).
@@ -127,11 +134,21 @@ Pour les stratégies de merge elles-mêmes, voir [git-merge](https://git-scm.com
 
 ## Avancer une branche en fast-forward
 
-**Avancer \{target\} (fast-forward) jusqu’à \{source\}** (menu de dépôt ou barre latérale) s’exécute sans boîte de dialogue : yaggui extrait la cible si nécessaire, puis exécute
+**Avancer \{target\} (fast-forward) jusqu’à \{source\}** (menu de dépôt ou barre latérale) s’exécute sans boîte de dialogue et n’extrait jamais de branche. yaggui résout `<source>` en commit, puis :
 
-```bash
-git merge --ff-only --no-edit -- <source>
-```
+- si `{target}` est la branche courante, il l’avance avec l’arbre de travail :
+
+  ```bash
+  git merge --ff-only <sha-source>
+  ```
+
+- sinon, il ne déplace que la branche : votre branche courante, l’arbre de travail et vos modifications locales restent tels quels.
+
+  ```bash
+  git branch -f <target> <sha-source>
+  ```
+
+  yaggui vérifie d’abord que `{target}` est en retard sur `{source}`, si bien qu’aucun commit n’est jamais perdu. Une branche extraite dans un autre worktree est refusée : « La branche « \{target\} » est extraite dans le worktree \{path\} : ouvre ce worktree, ou extrais une autre branche ici. »
 
 Si les branches ont divergé, Git refuse et vous voyez : « Les branches ont divergé : impossible d'avancer rapidement (fast-forward) vers « \{source\} ». Fais un merge avec commit de merge, ou un rebase. » La notification contient un bouton **Merger à la place…** qui ouvre la boîte de dialogue de merge pour les deux mêmes branches.
 
@@ -156,7 +173,7 @@ Erreurs propres au rebase :
 ## Modifications locales et conflits
 
 - Le **rebase** refuse dès qu’un fichier suivi comporte des modifications, indexées ou non : « Tes modifications locales seraient écrasées par le rebase. Commite-les ou mets-les de côté (stash) d'abord. » Les fichiers non suivis ne le bloquent pas.
-- Le **merge** et le **fast-forward** s’exécutent avec des modifications locales ; Git ne refuse que si elles seraient écrasées : « Tes modifications locales seraient écrasées par le merge. Commite-les ou mets-les de côté (stash) d'abord. »
+- Le **merge** et le **fast-forward** s’exécutent avec des modifications locales ; Git ne refuse que si elles seraient écrasées : « Tes modifications locales seraient écrasées par le merge. Commite-les ou mets-les de côté (stash) d'abord. » Le fast-forward d’une branche qui n’est pas extraite ne touche jamais l’arbre de travail.
 - Dans les deux cas, la notification d’erreur liste jusqu’à trois chemins et propose **Voir les changements**. Committez ou mettez de côté ([stash](../../everyday/stash/)) les modifications, puis recommencez.
 - Une autre opération en cours bloque les trois actions : « Une autre opération (merge, rebase, cherry-pick, revert ou bisect) est en cours : continue-la ou annule-la d'abord. » Il en va de même des fichiers encore en conflit : « Des fichiers sont encore en conflit : résous-les (et stage-les) d'abord. »
 
@@ -168,8 +185,9 @@ Chaque commande apparaît dans le [journal des commandes](../../reference/comman
 
 | Opération                                                     | Annulable                                                                                                                        |
 | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| Merge, fast-forward ou squash terminé d’un seul coup          | Oui, avec <kbd>⌘Z</kbd> (<kbd>Ctrl+Z</kbd> sous Windows et Linux) : **merge de \{source\}**                                      |
+| Merge ou squash terminé d’un seul coup                        | Oui, avec <kbd>⌘Z</kbd> (<kbd>Ctrl+Z</kbd> sous Windows et Linux) : **merge de \{source\}**                                      |
+| Fast-forward                                                  | Oui : **avance de \{branch\} jusqu’à \{to\}**                                                                                    |
 | Merge arrêté sur des conflits puis terminé avec **Continuer** | Non                                                                                                                              |
 | Rebase                                                        | Non. Tant qu’il est en cours, **Annuler le rebase** restaure la branche ; ensuite, passez par le [reflog](../../inspect/reflog/) |
 
-Annuler un merge exécute `git reset --keep` vers le commit précédent. Quand yaggui a d’abord extrait la cible, ce checkout est une entrée distincte : annulez-le aussi pour revenir à la branche sur laquelle vous étiez. Détails et limites : [Annuler et rétablir](../../history/undo-and-redo/).
+Annuler un merge, ou le fast-forward de la branche courante, exécute `git reset --keep` vers le commit précédent. Annuler le fast-forward d’une autre branche ne fait que ramener cette branche en arrière. Quand yaggui a d’abord extrait la cible, ce checkout est une entrée distincte : annulez-le aussi pour revenir à la branche sur laquelle vous étiez. Détails et limites : [Annuler et rétablir](../../history/undo-and-redo/).

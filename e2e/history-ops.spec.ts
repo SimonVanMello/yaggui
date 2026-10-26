@@ -183,6 +183,49 @@ for (const { name: theme, colorScheme } of THEMES) {
       await page.keyboard.press('Escape');
     });
 
+    test('drag a branch that is behind onto the branch ahead fast-forwards the dragged one', async ({
+      page,
+    }) => {
+      await openYaggui(page);
+      const source = page.locator('[data-drop-branch="feat/palette-31"]').first();
+      const target = page.locator('[data-drop-branch="main"]').first();
+      await source.scrollIntoViewIfNeeded();
+      await source.hover();
+      await page.mouse.down();
+      await target.scrollIntoViewIfNeeded();
+      const box = await target.boundingBox();
+      if (!box) throw new Error('no target');
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 8 });
+      await page.mouse.up();
+      const menu = page.getByRole('menu');
+      const item = menu.getByRole('menuitem', { name: /Fast-forward feat\/palette-31 to main/ });
+      await expect(item).toBeEnabled();
+      await capture(page, theme, 'drop-menu-fast-forward-dragged');
+      await item.click();
+      await expect(toastWith(page, 'feat/palette-31 fast-forwarded to main')).toBeVisible();
+      // No checkout: the current branch stays the same.
+      await expect(page.getByRole('menuitem', { name: /Checks out/ })).toHaveCount(0);
+      await expect(page.locator('[data-drop-branch="feat/palette-31"]').first()).toBeVisible();
+    });
+
+    test('the fast-forward of diverged branches is listed but disabled', async ({ page }) => {
+      await openYaggui(page);
+      const source = tree(page)
+        .getByRole('treeitem', { name: /^develop/ })
+        .first();
+      const target = tree(page).getByRole('treeitem', { name: /^main/ }).first();
+      await source.hover();
+      await page.mouse.down();
+      const box = await target.boundingBox();
+      if (!box) throw new Error('no target');
+      await page.mouse.move(box.x + 20, box.y + box.height / 2, { steps: 8 });
+      await page.mouse.up();
+      const item = page.getByRole('menuitem', { name: /Fast-forward main to develop/ });
+      await expect(item).toHaveAttribute('aria-disabled', 'true');
+      await expect(item).toContainText('The branches have diverged');
+      await page.keyboard.press('Escape');
+    });
+
     test('drag commits onto a branch pill cherry-picks them', async ({ page }) => {
       await openYaggui(page);
       await graphRow(page, 4).click();

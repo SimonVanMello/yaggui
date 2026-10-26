@@ -278,6 +278,35 @@ export async function mergeBranch(repoId: number, params: MergeParams): Promise<
   return true;
 }
 
+/**
+ * Moves the local branch `branch` forward to `to` (F-026: "Fast-forward Y to X"). A branch that
+ * is not checked out only has its ref moved: no checkout, the working tree stays.
+ */
+export async function fastForwardBranch(
+  repoId: number,
+  params: { branch: string; to: string },
+): Promise<boolean> {
+  const result = await attempt(repoId, () =>
+    unwrap(ipc.commands.fastForward(repoId, { branch: params.branch, to: params.to })),
+  );
+  if (!result.ok) {
+    reportHistoryError(repoId, result.error, {
+      op: 'merge',
+      onNotFastForward: () => {
+        openHistoryDialog({ kind: 'merge', repoId, source: params.to, target: params.branch });
+      },
+    });
+    return false;
+  }
+  const names = { source: params.to, target: params.branch };
+  toast(
+    result.data.upToDate
+      ? { variant: 'info', title: t('history.merge.upToDate', names) }
+      : { variant: 'success', title: t('history.merge.fastForwarded', names) },
+  );
+  return true;
+}
+
 // --- Rebase --------------------------------------------------------------------------------
 
 export interface RebaseParams {

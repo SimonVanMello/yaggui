@@ -11,9 +11,10 @@ use crate::git::cli::{GitCommand, GitRun};
 use crate::git::errors::{BackendError, HistoryOp, YagguiError};
 use crate::git::ops::types::{
     CherryPickRequest, CommitRequest, ConflictList, ConflictResolution, ConflictStage,
-    ConflictVersions, HistoryEffect, HistoryResult, JournalOp, LostChange, LostFile, MergeMode,
-    MergeRequest, MergeToolResult, OperationDetail, RebaseRequest, ResetMode, ResetPreview,
-    ResetRequest, ResetResult, RevertRequest,
+    ConflictVersions, FastForwardRequest, FastForwardResult, HistoryEffect, HistoryResult,
+    JournalOp, LostChange, LostFile, MergeMode, MergeRequest, MergeToolResult, OperationDetail,
+    RebaseRequest, ResetMode, ResetPreview, ResetRequest, ResetResult, RevertRequest,
+    RevisionRelation,
 };
 use crate::git::read::operation;
 use crate::git::read::state::{RepoOperation, count_exclusive, gix as gix_err, read_operation};
@@ -23,7 +24,8 @@ use super::RepoManager;
 use super::bisect::bisect_skip;
 use super::journal::{Mode, Plan};
 use super::ref_ops::{
-    classify, existing_branch, overwritten_paths, raw, unmerged_paths, worktree_status,
+    classify, current_branch, existing_branch, overwritten_paths, raw, unmerged_paths,
+    worktree_status,
 };
 use super::write::{Backup, WriteContext, checked_paths, commit, split_message};
 
@@ -37,6 +39,40 @@ impl RepoManager {
             };
             Ok((result, Some(Plan::new(op, Mode::Keep))))
         })
+    }
+
+    /// Moves `request.branch` forward to `request.to`. The checked-out branch moves with the
+    /// working tree (`merge --ff-only`); any other branch only has its ref moved, so it never
+    /// needs a checkout.
+    pub fn fast_forward(
+        &self,
+        repo_id: u32,
+        request: FastForwardRequest,
+    ) -> Result<FastForwardResult, YagguiError> {
+        self.journal_op(repo_id, OpKind::Merge, true, false, move |ctx| {
+            let (result, mode) = fast_forward(ctx, &request)?;
+            let op = JournalOp::FastForward {
+                branch: request.branch.trim().to_owned(),
+                to: request.to.trim().to_owned(),
+            };
+            let plan = (!result.up_to_date).then(|| Plan::new(op, mode));
+            Ok((result, plan))
+        })
+    }
+
+    /// How `a` and `b` relate: which one, if any, can be fast-forwarded to the other. Read-only.
+    pub fn revision_relation(
+        &self,
+        repo_id: u32,
+        a: &str,
+        b: &str,
+    ) -> Result<RevisionRelation, YagguiError> {
+        let repo = self.session(repo_id)?.repo()?.to_thread_local();
+        let (a, b) = (
+            resolve_commit(&repo, rev_arg(a)?)?,
+            resolve_commit(&repo, rev_arg(b)?)?,
+        );
+        relation(&repo, a, b)
     }
 
     pub fn rebase(
@@ -474,6 +510,72 @@ fn merge(ctx: &WriteContext<'_>, request: &MergeRequest) -> Result<HistoryResult
         }
     }
     result(ctx, Some(head), Some(source))
+}
+
+fn relation(
+    repo: &gix::Repository,
+    a: ObjectId,
+    b: ObjectId,
+) -> Result<RevisionRelation, YagguiError> {
+    if a == b {
+        return Ok(RevisionRelation::Same);
+    }
+    let base = repo
+        .merge_base(a, b)
+        .map_err(|e| BackendError::gix("find the merge-base", e))?
+        .map(gix::Id::detach);
+    Ok(match base {
+        Some(base) if base == a => RevisionRelation::Behind,
+        Some(base) if base == b => RevisionRelation::Ahead,
+        _ => RevisionRelation::Diverged,
+    })
+}
+
+fn fast_forward(
+    ctx: &WriteContext<'_>,
+    request: &FastForwardRequest,
+) -> Result<(FastForwardResult, Mode), YagguiError> {
+    let branch = request.branch.trim();
+    let previous = existing_branch(ctx, branch)?;
+    let to_rev = rev_arg(&request.to)?;
+    let to = resolve_commit(ctx.repo, to_rev)?;
+    let done = |sha: ObjectId| FastForwardResult {
+        up_to_date: sha == previous,
+        previous: previous.to_string(),
+        sha: sha.to_string(),
+    };
+    match relation(ctx.repo, previous, to)? {
+        RevisionRelation::Same | RevisionRelation::Ahead => {
+            return Ok((done(previous), Mode::Refs));
+        }
+        RevisionRelation::Diverged => return Err(YagguiError::merge_not_fast_forward(to_rev)),
+        RevisionRelation::Behind => {}
+    }
+    // Also for another branch: a rebase or bisect in progress may write it when it ends.
+    ensure_idle(ctx)?;
+    if current_branch(ctx.repo)?.as_deref() == Some(branch) {
+        let command = ctx.command(["merge".to_owned(), "--ff-only".to_owned(), to.to_string()]);
+        run_op(ctx, HistoryOp::Merge, &command)?;
+        return Ok((done(to), Mode::Keep));
+    }
+    // A SHA, not the name: a remote-tracking start point would set up tracking.
+    let run = raw(ctx, &ctx.command(["branch", "-f", branch, &to.to_string()]))?;
+    if !run.success {
+        // `cannot force update the branch 'x' used by worktree at '/path'`
+        let lower = run.stderr.to_ascii_lowercase();
+        if lower.contains("used by worktree") || lower.contains("cannot force update") {
+            let path = run
+                .stderr
+                .lines()
+                .find(|line| line.contains("used by worktree at"))
+                .and_then(|line| line.rsplit('\'').nth(1));
+            return Err(
+                YagguiError::branch_in_other_worktree(branch, path).with_detail(&run.stderr)
+            );
+        }
+        return Err(classify(ctx, &run));
+    }
+    Ok((done(to), Mode::Refs))
 }
 
 fn rebase(ctx: &WriteContext<'_>, request: &RebaseRequest) -> Result<HistoryResult, YagguiError> {
