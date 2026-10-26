@@ -9,6 +9,30 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Added
+
+- Bisect from the palette: "Bisect: mark as good", "mark as bad", "skip the commit under test" and
+  "end and go back to the start"; during a bisect they act on the commit under test (#72).
+- "History of the selected lines" in the palette, after a selection in the blame or a commit diff
+  (#72).
+- Autosquash also arranges `squash!` and `amend!` commits, the way `git rebase --autosquash` does:
+  a `squash!` adds its message, an `amend!` replaces it (#72).
+- Bisect along first parents: with first-parent mode on, a bisect started from the graph only
+  tests commits of the main line, shown by a "First parent" tag in the banner (#72).
+
+### Changed
+
+- Old undo backups are cleaned at startup, with the same bounds as the undo history (the last 100
+  of each repository, up to 30 days); a backup that an undoable operation still needs is always
+  kept (#72).
+
+### Fixed
+
+- Applying a single file from a stash that ends in a conflict is now reported as failed in the
+  status bar; the undo stays available (#70).
+- Skipping during a bisect when only skipped commits are left now ends the bisect with an
+  inconclusive result instead of an error (#70).
+
 ## [0.7.0] - 2026-10-23
 
 ### Added
