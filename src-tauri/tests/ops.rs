@@ -315,3 +315,138 @@ fn background_operations_yield_to_user_operations() {
         ["user", "background start", "background end", "user 2"]
     );
 }
+
+#[test]
+fn a_non_cancellable_operation_survives_cancel_and_shutdown() {
+    let fx = Fixture::new("clean");
+    let b = backend(false);
+    let id = b.repos.open(&fx.repo_str()).unwrap().id;
+    let session = b.repos.session(id).unwrap();
+    let queue = session.queue();
+
+    // Cancel is refused: the token is never raised and the job finishes normally.
+    let interrupted = Arc::new(Mutex::new(false));
+    let seen = interrupted.clone();
+    let handle = queue
+        .enqueue(OpKind::Commit, false, move |ctx| {
+            let started = Instant::now();
+            while started.elapsed() < Duration::from_millis(300) {
+                if ctx.cancel.is_cancelled() {
+                    *seen.lock().unwrap() = true;
+                    return Err(yaggui_lib::git::errors::YagguiError::cancelled());
+                }
+                std::thread::sleep(Duration::from_millis(5));
+            }
+            Ok(())
+        })
+        .unwrap();
+    let op_id = handle.op_id;
+    assert!(b.sink.wait_for(
+        Duration::from_secs(2),
+        |e| matches!(e, BackendEvent::OpStarted(s) if s.op_id == op_id && !s.cancellable)
+    ));
+    assert!(!queue.cancel(op_id));
+    assert_eq!(
+        b.repos.cancel_op(op_id).unwrap_err().code,
+        ErrorCode::OpNotFound
+    );
+    handle.wait().unwrap();
+    assert!(!*interrupted.lock().unwrap());
+
+    // Closing the repository (the queue is shut down) lets the running non-cancellable
+    // operation finish, while queued ones are dropped.
+    let interrupted = Arc::new(Mutex::new(false));
+    let seen = interrupted.clone();
+    let running = queue
+        .enqueue(OpKind::Push, false, move |ctx| {
+            let started = Instant::now();
+            while started.elapsed() < Duration::from_millis(300) {
+                if ctx.cancel.is_cancelled() {
+                    *seen.lock().unwrap() = true;
+                    return Err(yaggui_lib::git::errors::YagguiError::cancelled());
+                }
+                std::thread::sleep(Duration::from_millis(5));
+            }
+            Ok(())
+        })
+        .unwrap();
+    let running_id = running.op_id;
+    let queued = queue.enqueue(OpKind::Fetch, true, |_| Ok(())).unwrap();
+    assert!(b.sink.wait_for(
+        Duration::from_secs(2),
+        |e| matches!(e, BackendEvent::OpStarted(s) if s.op_id == running_id)
+    ));
+    queue.shutdown();
+    running.wait().unwrap();
+    assert!(!*interrupted.lock().unwrap());
+    assert!(queued.wait().is_err());
+    assert!(b.sink.events().iter().any(|e| matches!(
+        e,
+        BackendEvent::OpFinished(f) if f.op_id == running_id && matches!(f.outcome, OpOutcome::Success { .. })
+    )));
+}
+
+#[test]
+fn shutdown_interrupts_a_cancellable_operation() {
+    let fx = Fixture::new("clean");
+    let b = backend(false);
+    let id = b.repos.open(&fx.repo_str()).unwrap().id;
+    let session = b.repos.session(id).unwrap();
+    let queue = session.queue();
+    let handle = queue
+        .enqueue(OpKind::Fetch, true, move |ctx| {
+            let started = Instant::now();
+            while started.elapsed() < Duration::from_secs(5) {
+                if ctx.cancel.is_cancelled() {
+                    return Err(yaggui_lib::git::errors::YagguiError::cancelled());
+                }
+                std::thread::sleep(Duration::from_millis(5));
+            }
+            Ok(())
+        })
+        .unwrap();
+    let op_id = handle.op_id;
+    assert!(b.sink.wait_for(
+        Duration::from_secs(2),
+        |e| matches!(e, BackendEvent::OpStarted(s) if s.op_id == op_id)
+    ));
+    let start = Instant::now();
+    queue.shutdown();
+    assert_eq!(handle.wait().unwrap_err().code, ErrorCode::Cancelled);
+    assert!(start.elapsed() < Duration::from_secs(2));
+}
+
+#[test]
+fn finishing_an_operation_raises_the_refs_changed_flag_before_op_finished() {
+    use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+    use yaggui_lib::events::EventSink;
+    use yaggui_lib::repo::op_queue::OpQueue;
+
+    /// Records the flag the moment `op-finished` is emitted.
+    struct Probe {
+        flag: Arc<AtomicBool>,
+        seen: Mutex<Option<bool>>,
+    }
+    impl EventSink for Probe {
+        fn emit(&self, event: BackendEvent) {
+            if matches!(event, BackendEvent::OpFinished(_)) {
+                *self.seen.lock().unwrap() = Some(self.flag.load(Ordering::SeqCst));
+            }
+        }
+    }
+    let refs_changed = Arc::new(AtomicBool::new(false));
+    let probe = Arc::new(Probe {
+        flag: refs_changed.clone(),
+        seen: Mutex::new(None),
+    });
+    let queue = OpQueue::new(7, probe.clone(), Arc::new(AtomicU64::new(0)))
+        .unwrap()
+        .with_refs_changed(refs_changed.clone());
+    queue
+        .enqueue(OpKind::Fetch, true, |_| Ok(()))
+        .unwrap()
+        .wait()
+        .unwrap();
+    assert_eq!(*probe.seen.lock().unwrap(), Some(true));
+    assert!(refs_changed.load(Ordering::SeqCst));
+}

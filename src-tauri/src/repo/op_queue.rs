@@ -5,8 +5,8 @@
 //! as one is enqueued, so it never delays what the user asked for.
 
 use std::collections::{HashMap, VecDeque};
-use std::sync::atomic::{AtomicU32, AtomicU64, Ordering};
-use std::sync::{Arc, Condvar, Mutex, mpsc};
+use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
+use std::sync::{Arc, Condvar, Mutex, OnceLock, mpsc};
 use std::thread;
 
 use crate::events::{
@@ -83,12 +83,25 @@ struct Pending {
     stopped: bool,
 }
 
+/// A queued or running operation, as seen by `cancel` and `shutdown`.
+struct ActiveOp {
+    cancel: CancelToken,
+    /// What `op-started` promised the user: a non-cancellable operation (a commit with its
+    /// hooks, a push, a stash) runs to its end whatever happens to the queue.
+    cancellable: bool,
+}
+
 #[derive(Default)]
 struct Shared {
     pending: Mutex<Pending>,
     wake: Condvar,
-    /// Cancel tokens of queued and running operations.
-    active: Mutex<HashMap<u32, CancelToken>>,
+    /// Queued and running operations.
+    active: Mutex<HashMap<u32, ActiveOp>>,
+    /// Bumped after each operation, before `op-finished`.
+    status_generation: Arc<AtomicU64>,
+    /// Raised after each operation, before `op-finished`: the refs it moved are read again
+    /// without waiting for the watcher (see `RepoSession::fingerprint`).
+    refs_changed: OnceLock<Arc<AtomicBool>>,
 }
 
 /// Serialized write queue of one repository. Dropping it lets the worker finish the
@@ -105,24 +118,30 @@ impl OpQueue {
         sink: Arc<dyn EventSink>,
         status_generation: Arc<AtomicU64>,
     ) -> Result<Self, YagguiError> {
-        let shared: Arc<Shared> = Arc::default();
+        let shared = Arc::new(Shared {
+            status_generation,
+            ..Shared::default()
+        });
         let worker = Arc::clone(&shared);
         thread::Builder::new()
             .name(format!("yaggui-ops-{repo_id}"))
             .spawn(move || {
                 while let Some(op) = next_op(&worker) {
-                    run_op(
-                        repo_id,
-                        op,
-                        sink.as_ref(),
-                        &worker.active,
-                        &status_generation,
-                    );
+                    run_op(repo_id, op, sink.as_ref(), &worker);
                     lock(&worker.pending).running_background = None;
                 }
             })
             .map_err(|e| BackendError::io("cannot start the operation queue", e))?;
         Ok(Self { shared })
+    }
+
+    /// `refs_changed` is raised after each operation, before `op-finished`: a graph or commit
+    /// read made right after sees the refs the operation moved (a fetch, a branch or tag
+    /// created or deleted) instead of a cached fingerprint, without waiting for the watcher.
+    pub fn with_refs_changed(self, refs_changed: Arc<AtomicBool>) -> Self {
+        // Set once, right after `new`: a second call is a programming error and changes nothing.
+        let _ = self.shared.refs_changed.set(refs_changed);
+        self
     }
 
     /// Queues `job`; it runs after every user operation enqueued before it, and cancels a
@@ -189,7 +208,13 @@ impl OpQueue {
         if pending.stopped {
             return Err(queue_stopped());
         }
-        lock(&self.shared.active).insert(op_id, cancel);
+        lock(&self.shared.active).insert(
+            op_id,
+            ActiveOp {
+                cancel,
+                cancellable,
+            },
+        );
         if background {
             pending.background.push_back(op);
         } else {
@@ -206,21 +231,25 @@ impl OpQueue {
         })
     }
 
-    /// Requests cancellation; returns `false` if the operation is unknown to this queue.
+    /// Requests cancellation; returns `false` if the operation is unknown to this queue or
+    /// was enqueued as not cancellable (`op-started` offered no cancellation for it).
     pub fn cancel(&self, op_id: u32) -> bool {
         match lock(&self.shared.active).get(&op_id) {
-            Some(token) => {
-                token.cancel();
+            Some(op) if op.cancellable => {
+                op.cancel.cancel();
                 true
             }
-            None => false,
+            Some(_) | None => false,
         }
     }
 
-    /// Stops accepting operations; the worker exits after the current one.
+    /// Stops accepting operations and drops the queued ones; the worker exits after the
+    /// current one, which is only interrupted if it is cancellable.
     pub fn shutdown(&self) {
-        for token in lock(&self.shared.active).values() {
-            token.cancel();
+        for op in lock(&self.shared.active).values() {
+            if op.cancellable {
+                op.cancel.cancel();
+            }
         }
         let mut pending = lock(&self.shared.pending);
         pending.stopped = true;
@@ -263,13 +292,7 @@ impl Drop for OpQueue {
     }
 }
 
-fn run_op(
-    repo_id: u32,
-    op: QueuedOp,
-    sink: &dyn EventSink,
-    active: &Mutex<HashMap<u32, CancelToken>>,
-    status_generation: &AtomicU64,
-) {
+fn run_op(repo_id: u32, op: QueuedOp, sink: &dyn EventSink, shared: &Shared) {
     let QueuedOp {
         op_id,
         kind,
@@ -306,8 +329,11 @@ fn run_op(
         note = lock(&ctx.note).take();
         result
     };
-    lock(active).remove(&op_id);
-    status_generation.fetch_add(1, Ordering::SeqCst);
+    lock(&shared.active).remove(&op_id);
+    if let Some(refs_changed) = shared.refs_changed.get() {
+        refs_changed.store(true, Ordering::SeqCst);
+    }
+    shared.status_generation.fetch_add(1, Ordering::SeqCst);
     let outcome = match &result {
         Ok(()) => OpOutcome::Success { note },
         Err(err) if err.code == ErrorCode::Cancelled => OpOutcome::Cancelled,

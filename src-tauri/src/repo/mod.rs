@@ -145,7 +145,8 @@ pub struct RepoSession {
     /// Hash of the ref targets, reused while the watcher reports no refs change (`None`:
     /// to compute). Only used when the repository is watched.
     ref_targets: Mutex<Option<u64>>,
-    /// Raised by the watcher when refs changed on disk.
+    /// Raised by the watcher when refs changed on disk, and by the queue after each
+    /// operation (its refs are read again before `op-finished` reaches the front).
     refs_changed: Arc<AtomicBool>,
     /// Ahead/behind counts and peeled tags, kept across refs listings.
     refs_cache: Mutex<refs::RefsCache>,
@@ -423,7 +424,8 @@ impl RepoManager {
             index_stamp: Mutex::new(IndexStamp::read(&git_dir.join("index"))),
             status_cache: Mutex::default(),
             git_dir,
-            queue: OpQueue::new(id, Arc::clone(&self.sink), Arc::clone(&status_generation))?,
+            queue: OpQueue::new(id, Arc::clone(&self.sink), Arc::clone(&status_generation))?
+                .with_refs_changed(Arc::clone(&refs_changed)),
             status_generation,
             graph: {
                 let graph = GraphCache::default();

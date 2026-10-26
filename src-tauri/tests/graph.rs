@@ -917,3 +917,89 @@ fn first_parent_search_and_jumps_stay_in_the_mode() {
     let base = b.repos.merge_base(id, "feat/a", "feat/b").unwrap().unwrap();
     assert!(base.row.is_some());
 }
+
+#[test]
+fn path_search_crosses_commits_where_a_parent_folder_was_a_file() {
+    let fx = Fixture::new("clean");
+    let repo = fx.repo();
+    // `docs` is a file first, then a folder holding `guide.md`; `lib` is a submodule.
+    std::fs::write(repo.join("docs"), "notes\n").unwrap();
+    git(&repo, &["add", "docs"]);
+    git(&repo, &["commit", "-q", "-m", "docs as a file"]);
+    git(&repo, &["rm", "-q", "docs"]);
+    std::fs::create_dir(repo.join("docs")).unwrap();
+    std::fs::write(repo.join("docs/guide.md"), "# Guide\n").unwrap();
+    git(&repo, &["add", "docs"]);
+    git(&repo, &["commit", "-q", "-m", "docs as a folder"]);
+    let sub = fx.root.join("sub");
+    git(&fx.root, &["init", "-q", "-b", "main", "sub"]);
+    std::fs::write(sub.join("a.txt"), "a\n").unwrap();
+    git(&sub, &["add", "a.txt"]);
+    git(&sub, &["commit", "-q", "-m", "sub"]);
+    git(
+        &repo,
+        &[
+            "-c",
+            "protocol.file.allow=always",
+            "submodule",
+            "add",
+            "-q",
+            "../sub",
+            "lib",
+        ],
+    );
+    git(&repo, &["commit", "-q", "-m", "add submodule"]);
+
+    let b = backend(false);
+    let id = b.repos.open(&fx.repo_str()).unwrap().id;
+    let by_path = |p: &str| CommitSearch {
+        path: Some(p.into()),
+        ..CommitSearch::default()
+    };
+    // The commit where `docs` was a file has nothing under it: no match, no error.
+    assert_eq!(
+        search(&b, id, by_path("docs/guide.md")),
+        ["docs as a folder"]
+    );
+    assert_eq!(
+        search(&b, id, by_path("docs")),
+        ["docs as a folder", "docs as a file"]
+    );
+    // A path below a submodule is not in this repository.
+    assert!(search(&b, id, by_path("lib/a.txt")).is_empty());
+    assert_eq!(search(&b, id, by_path("lib")), ["add submodule"]);
+}
+
+#[test]
+fn refs_moved_by_an_operation_are_seen_before_the_watcher_reports_them() {
+    use yaggui_lib::events::OpKind;
+    use yaggui_lib::git::cli::GitCommand;
+
+    let fx = Fixture::new("clean");
+    let b = backend(true);
+    let id = b.repos.open(&fx.repo_str()).unwrap().id;
+    let session = b.repos.session(id).unwrap();
+    let repo = session.repo().unwrap().to_thread_local();
+    let before = session.fingerprint(&repo).unwrap();
+    assert_eq!(session.fingerprint(&repo).unwrap(), before);
+
+    // A ref created by an operation that moves neither HEAD nor the index (like a fetch).
+    let git = b.git.clone();
+    let cwd = fx.repo();
+    session
+        .queue()
+        .enqueue(OpKind::Fetch, true, move |ctx| {
+            git.run_with(
+                &GitCommand::new(["update-ref", "refs/remotes/origin/feature", "HEAD~1"]).cwd(&cwd),
+                Some(ctx.cancel),
+                None,
+            )
+            .map(|_| ())
+        })
+        .unwrap()
+        .wait()
+        .unwrap();
+    // Right after `op-finished`, before the watcher's debounced refs event.
+    let repo = session.repo().unwrap().to_thread_local();
+    assert_ne!(session.fingerprint(&repo).unwrap(), before);
+}
