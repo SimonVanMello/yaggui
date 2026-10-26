@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { planAgainstCurrent, planDrop } from './dropActions';
+import { planAgainstCurrent, planDrop, type BranchDrag } from './dropActions';
 
 const local = { kind: 'branch', name: 'feat/x', remote: false } as const;
 const remote = { kind: 'branch', name: 'origin/feat/x', remote: true } as const;
@@ -13,14 +13,18 @@ describe('planDrop', () => {
     expect(actions[0]).toMatchObject({ source: 'feat/x', target: 'main' });
   });
 
-  it('marks a target that is not checked out, so the front checks it out first', () => {
-    const actions = planDrop(local, 'develop', 'main');
-    expect(actions.filter((a) => a.id !== 'rebase').every((a) => a.needsCheckout)).toBe(true);
-    expect(
-      planDrop(local, 'develop', null)
-        .filter((a) => a.id !== 'rebase')
-        .every((a) => a.needsCheckout),
-    ).toBe(true);
+  it('marks a merge target that is not checked out, so the front checks it out first', () => {
+    expect(planDrop(local, 'develop', 'main').find((a) => a.id === 'merge')?.needsCheckout).toBe(
+      true,
+    );
+    expect(planDrop(local, 'develop', null).find((a) => a.id === 'merge')?.needsCheckout).toBe(
+      true,
+    );
+  });
+
+  it('never checks out for a fast-forward: the backend moves the branch without it', () => {
+    const ff = planDrop(local, 'develop', 'main').find((a) => a.id === 'fastForward');
+    expect(ff).toMatchObject({ source: 'feat/x', target: 'develop', needsCheckout: false });
   });
 
   it('does not check the target out for a rebase: the rebased branch is checked out instead', () => {
@@ -37,6 +41,23 @@ describe('planDrop', () => {
     expect(rebase?.disabled).toBe('remoteSource');
     const merge = planDrop(remote, 'main', 'main').find((a) => a.id === 'merge');
     expect(merge?.disabled).toBeNull();
+  });
+
+  it('fast-forwards whichever branch is behind, whatever was dragged onto what', () => {
+    const ff = (relation: Parameters<typeof planDrop>[3], payload: BranchDrag = local) =>
+      planDrop(payload, 'develop', 'main', relation).find((a) => a.id === 'fastForward');
+    // develop is behind feat/x: dropping feat/x on develop moves develop…
+    expect(ff('ahead')).toMatchObject({ source: 'feat/x', target: 'develop', disabled: null });
+    // …and so does dropping develop on feat/x (feat/x dragged here is behind develop: it moves).
+    expect(ff('behind')).toMatchObject({ source: 'develop', target: 'feat/x', disabled: null });
+    expect(ff('same')?.disabled).toBe('upToDate');
+    expect(ff('diverged')?.disabled).toBe('diverged');
+    // A remote branch behind the target cannot move: the target already contains it.
+    expect(ff('behind', remote)).toMatchObject({
+      source: 'origin/feat/x',
+      target: 'develop',
+      disabled: 'upToDate',
+    });
   });
 
   it('offers a cherry-pick for dragged commits, onto the target branch', () => {

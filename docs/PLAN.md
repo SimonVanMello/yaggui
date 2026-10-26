@@ -199,10 +199,11 @@ Exit: the defects and gaps found during the M7 integration (PR #65) are fixed, a
 | M8-1 ✅ | Backend fixes: a conflicted single stash file ends with `op-finished` failed (typed conflict error) while its undo entry stays available; skip during a bisect treats "only skipped commits left" as a result, like a good / bad mark | M7-4, M7-9 | F-185, F-263 |
 | M8-2 ✅ | Product gaps: palette entries for bisect good / bad and for the line history of a selection; autosquash also arranges `squash!` and `amend!` like `git rebase --autosquash`; `<config>/backups/` cleaned with the undo journal's bounds, never removing a backup a restorable entry needs; bisect started with `--first-parent` when first-parent mode is on | M7-3, M7-5, M7-7, M7-9 | F-147, F-032, F-223, F-244, F-263 |
 | M8-3 ✅ | Mock parity: line history maps working-tree lines to HEAD and follows the range between commits; `stashFileMissing` reachable (stash base in the mock state); bisect marks kept across a reload; mock journal bounded to 30 days and able to produce unreadable entries; fresh sweep of the commands and events against the backend | M7-10 | — |
+| M8-4 ✅ | PO feedback: the fast-forward of the drop menu moves whichever branch is behind, whatever was dragged onto what (dropping `develop` on a branch ahead of it fast-forwards `develop`); diverged branches or a target already up to date leave it disabled with the reason; a branch that is not checked out is fast-forwarded without a checkout (`git branch -f` after an ancestry check), undoable | M3-2 | F-026, F-143 |
 
-Order: the three tasks run in parallel.
+Order: M8-1 to M8-3 run in parallel; M8-4 comes from the PO's feedback.
 
-**Milestone status**: every task is delivered (M8-1 #70, M8-2 #72, M8-3 #71). Feedback from the M4 and M7 manual validations joins this milestone as new tasks.
+**Milestone status**: every task is delivered (M8-1 #70, M8-2 #72, M8-3 #71, M8-4 #PR). Feedback from the M4 and M7 manual validations joins this milestone as new tasks.
 
 ## W — Website and documentation
 

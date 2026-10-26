@@ -1,4 +1,4 @@
-import type { YagguiError, RefNameKind } from '../bindings';
+import type { YagguiError, RefNameKind, RevisionRelation } from '../bindings';
 
 import type { MockCommit, MockHistory } from '../mockGraph';
 
@@ -175,6 +175,18 @@ export function ancestors(commits: readonly MockCommit[], from: number): Set<num
     stack.push(...parents);
   }
   return seen;
+}
+
+/** How `a` relates to `b`: which one, if any, can be fast-forwarded to the other. */
+export function revisionRelation(
+  commits: readonly MockCommit[],
+  a: number,
+  b: number,
+): RevisionRelation {
+  if (a === b) return 'same';
+  if (ancestors(commits, b).has(a)) return 'behind';
+  if (ancestors(commits, a).has(b)) return 'ahead';
+  return 'diverged';
 }
 
 /** The remote of a remote branch short name (`origin/feat/x` → `origin`, `feat/x`). */

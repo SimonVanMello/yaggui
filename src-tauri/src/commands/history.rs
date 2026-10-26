@@ -11,9 +11,10 @@ use super::blocking;
 use crate::git::errors::YagguiError;
 use crate::git::ops::types::{
     AutosquashPlan, BisectMark, BisectState, CherryPickRequest, CommitResult, ConflictList,
-    ConflictResolution, ConflictStage, ConflictVersions, HistoryResult, InteractiveRebasePlan,
-    InteractiveRebaseResult, MergeRequest, MergeToolResult, OperationDetail, RebaseRequest,
-    RebaseTodoEntry, ResetPreview, ResetRequest, ResetResult, RevertRequest,
+    ConflictResolution, ConflictStage, ConflictVersions, FastForwardRequest, FastForwardResult,
+    HistoryResult, InteractiveRebasePlan, InteractiveRebaseResult, MergeRequest, MergeToolResult,
+    OperationDetail, RebaseRequest, RebaseTodoEntry, ResetPreview, ResetRequest, ResetResult,
+    RevertRequest, RevisionRelation,
 };
 use crate::state::AppState;
 
@@ -29,6 +30,34 @@ pub async fn merge(
 ) -> Result<HistoryResult, YagguiError> {
     let repos = Arc::clone(&state.repos);
     blocking(move || repos.merge(repo_id, request)).await
+}
+
+/// Moves a local branch forward to a revision that contains it, checked out or not: only the
+/// checked-out branch touches the working tree. Errors: `notFastForward` (diverged),
+/// `dirtyWorktree` (checked-out branch), `branchInOtherWorktree`.
+#[tauri::command]
+#[specta::specta]
+pub async fn fast_forward(
+    state: State<'_, AppState>,
+    repo_id: u32,
+    request: FastForwardRequest,
+) -> Result<FastForwardResult, YagguiError> {
+    let repos = Arc::clone(&state.repos);
+    blocking(move || repos.fast_forward(repo_id, request)).await
+}
+
+/// How two revisions relate: which one, if any, can be fast-forwarded to the other.
+/// Read-only.
+#[tauri::command]
+#[specta::specta]
+pub async fn revision_relation(
+    state: State<'_, AppState>,
+    repo_id: u32,
+    a: String,
+    b: String,
+) -> Result<RevisionRelation, YagguiError> {
+    let repos = Arc::clone(&state.repos);
+    blocking(move || repos.revision_relation(repo_id, &a, &b)).await
 }
 
 /// Rebases a branch onto another (non-interactive). Progress: `op-progress` with phase

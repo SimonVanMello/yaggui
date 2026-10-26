@@ -95,6 +95,32 @@ describe('mock history operations', () => {
     ).resolves.toMatchObject({ status: 'error', error: { code: 'notFastForward' } });
   });
 
+  it('fast-forwards a branch that is not checked out, without touching HEAD', async () => {
+    const { id, current } = await open('/Users/alex/dev/yaggui');
+    expect(await unwrap(mock.revisionRelation(id, 'feat/palette-31', 'main'))).toBe('behind');
+    expect(await unwrap(mock.revisionRelation(id, 'main', 'feat/palette-31'))).toBe('ahead');
+    expect(await unwrap(mock.revisionRelation(id, 'develop', 'main'))).toBe('diverged');
+    const main = (await unwrap(mock.listRefs(id))).local.find((b) => b.name === 'main')?.sha;
+
+    const result = await unwrap(mock.fastForward(id, { branch: 'feat/palette-31', to: 'main' }));
+    expect(result).toMatchObject({ upToDate: false, sha: main });
+    const refs = await unwrap(mock.listRefs(id));
+    expect(refs.local.find((b) => b.name === 'feat/palette-31')?.sha).toBe(main);
+    expect(refs.local.find((b) => b.isHead)?.name).toBe(current);
+    expect((await unwrap(mock.undoState(id))).undo?.entry.op).toMatchObject({
+      kind: 'fastForward',
+      branch: 'feat/palette-31',
+    });
+
+    expect(
+      await unwrap(mock.fastForward(id, { branch: 'main', to: 'feat/palette-31' })),
+    ).toMatchObject({ upToDate: true });
+    await expect(mock.fastForward(id, { branch: 'develop', to: 'main' })).resolves.toMatchObject({
+      status: 'error',
+      error: { code: 'notFastForward' },
+    });
+  });
+
   it('simulates a rebase stopped at 3/7 that skips and stops again', async () => {
     const { id } = await open('/Users/alex/dev/blog');
     expect(mockBackend.simulateOperation(id, 'rebase', { step: 3, total: 7, stopsAgain: 1 })).toBe(

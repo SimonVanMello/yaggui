@@ -28,6 +28,8 @@ import type {
   LegacyPreferences,
   LostFile,
   MergeRequest,
+  FastForwardRequest,
+  FastForwardResult,
   OpKind,
   OpNote,
   PathSelection,
@@ -144,6 +146,7 @@ import {
 } from './mock/history';
 import {
   ancestors,
+  revisionRelation,
   branchNotMerged,
   currentBranch,
   dirtyWorktree,
@@ -2309,6 +2312,47 @@ export class MockBackend {
     });
   }
 
+  /** Moves a local branch forward to `request.to`; only the checked-out one touches the WIP. */
+  private fastForwardWork(
+    repoId: number,
+    request: FastForwardRequest,
+  ): { ok: FastForwardResult } | { error: YagguiError } {
+    return this.editHistory<FastForwardResult>(repoId, (graph) => {
+      const { history } = graph;
+      const name = request.branch.trim();
+      const branch = history.local.find((b) => b.name === name);
+      if (!branch) return { error: this.revisionNotFound(name) };
+      const to = graph.resolve(request.to);
+      if (to === null) return { error: this.revisionNotFound(request.to) };
+      const previous = branch.commit;
+      const sha = (c: number) => history.commits[c]?.sha ?? '';
+      const relation = revisionRelation(history.commits, previous, to);
+      if (relation === 'same' || relation === 'ahead') {
+        return { ok: { upToDate: true, previous: sha(previous), sha: sha(previous) } };
+      }
+      if (relation === 'diverged') return { error: mergeNotFastForward(request.to) };
+      // Also for another branch: a rebase or bisect in progress may write it when it ends.
+      const guard = this.historyGuard(repoId);
+      if (guard) return { error: guard };
+      const isCurrent = history.head.kind === 'branch' && history.head.name === name;
+      if (isCurrent) {
+        if (this.wip(repoId)?.trackedChanges().length) {
+          const own = ancestors(history.commits, previous);
+          const incoming = [...ancestors(history.commits, to)].filter((c) => !own.has(c));
+          const blocked = this.overwrittenBy(repoId, graph, incoming);
+          if (blocked.length > 0) return { error: localChanges('merge', blocked) };
+        }
+      } else {
+        const other = history.worktrees.find(
+          (w) => !w.isCurrent && w.head?.kind === 'branch' && w.head.name === name,
+        );
+        if (other) return { error: branchInOtherWorktree(name, other.path) };
+      }
+      branch.commit = to;
+      return { ok: { upToDate: false, previous: sha(previous), sha: sha(to) } };
+    });
+  }
+
   /** Commits of `tip` missing from `onto`, oldest first (graph order), merges dropped. */
   private toReplay(graph: MockGraph, tip: number, onto: number): number[] {
     const { commits } = graph.history;
@@ -4129,6 +4173,34 @@ export class MockBackend {
               : { op: { kind: 'merge', source: request.source, mode: request.mode } },
         },
       ),
+    fastForward: (repoId, request) => {
+      const current = this.find(repoId) && this.graph(repoId)?.history.head;
+      const isCurrent = current?.kind === 'branch' && current.name === request.branch.trim();
+      return this.runWrite(
+        repoId,
+        'merge',
+        isCurrent
+          ? ['merge', '--ff-only', request.to]
+          : ['branch', '-f', request.branch, request.to],
+        () => this.fastForwardWork(repoId, request),
+        {
+          delayMs: 200,
+          refs: true,
+          journal: ({ upToDate }) =>
+            upToDate
+              ? null
+              : { op: { kind: 'fastForward', branch: request.branch, to: request.to } },
+        },
+      );
+    },
+    revisionRelation: (repoId, a, b) => {
+      const graph = this.graph(repoId);
+      if (!graph) return fail(this.notOpen(repoId));
+      const [ca, cb] = [graph.resolve(a), graph.resolve(b)];
+      if (ca === null) return fail(this.revisionNotFound(a));
+      if (cb === null) return fail(this.revisionNotFound(b));
+      return ok(revisionRelation(graph.history.commits, ca, cb));
+    },
     rebase: (repoId, request) =>
       this.runWrite(
         repoId,

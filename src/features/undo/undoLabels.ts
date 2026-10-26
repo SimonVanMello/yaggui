@@ -52,6 +52,8 @@ export function opMessage(op: JournalOp): Message {
       return { key: 'undo.op.removeRemote', params: { name: op.name } };
     case 'merge':
       return { key: 'undo.op.merge', params: { source: op.source } };
+    case 'fastForward':
+      return { key: 'undo.op.fastForward', params: { branch: op.branch, to: clip(op.to) } };
     case 'reset':
       return { key: 'undo.op.reset', params: { mode: op.mode, target: clip(op.target) } };
     case 'discard': {

@@ -22,6 +22,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ### Changed
 
+- Dragging a branch onto another one offers the fast-forward of whichever branch is behind: to
+  bring `develop` up to a branch ahead of it, drop `develop` on that branch, or that branch on
+  `develop`. The fast-forward no longer checks out the moved branch, and is disabled with the
+  reason when the branches have diverged or nothing would move (#PR).
 - Old undo backups are cleaned at startup, with the same bounds as the undo history (the last 100
   of each repository, up to 30 days); a backup that an undoable operation still needs is always
   kept (#72).

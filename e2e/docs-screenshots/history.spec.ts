@@ -218,7 +218,8 @@ test('compare-panel', async ({ page }, testInfo) => {
 
 test('history-drop-menu', async ({ page }, testInfo) => {
   await openYaggui(page);
-  const source = branchRow(page, /^develop/);
+  // feat/palette-31 is behind main: the fast-forward moves the dragged branch.
+  const source = branchRow(page, /^palette-31\b/);
   const target = branchRow(page, /^main\b/);
   await source.hover();
   await page.mouse.down();
@@ -228,7 +229,9 @@ test('history-drop-menu', async ({ page }, testInfo) => {
   await expect(target).toHaveAttribute('data-drop-over', 'true');
   await page.mouse.up();
   const menu = page.getByRole('menu');
-  await expect(menu.getByRole('menuitem', { name: /Merge develop into main/ })).toBeVisible();
+  await expect(
+    menu.getByRole('menuitem', { name: /Fast-forward feat\/palette-31 to main/ }),
+  ).toBeEnabled();
   // The tree is aria-hidden behind the menu: reach it by its role attribute.
   await captureUnion(
     page,

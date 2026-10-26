@@ -11,8 +11,9 @@ use yaggui_lib::git::cli::GitCli;
 use yaggui_lib::git::errors::{ErrorCode, ErrorPayload, YagguiError};
 use yaggui_lib::git::log::CommandLog;
 use yaggui_lib::git::ops::types::{
-    CherryPickRequest, ConflictKind, ConflictResolution, ConflictStage, HistoryEffect, LostChange,
-    MergeMode, MergeRequest, RebaseRequest, ResetMode, ResetRequest, RevertRequest,
+    CherryPickRequest, ConflictKind, ConflictResolution, ConflictStage, FastForwardRequest,
+    HistoryEffect, LostChange, MergeMode, MergeRequest, RebaseRequest, ResetMode, ResetRequest,
+    RevertRequest, RevisionRelation,
 };
 use yaggui_lib::git::read::state::RepoOperation;
 use yaggui_lib::repo::RepoManager;
@@ -214,6 +215,125 @@ fn merge_ff_only_refuses_diverged_branches() {
     assert!(err.message.en.contains("other"));
     assert_eq!(env.rev("HEAD"), before);
     assert_eq!(env.operation(), None);
+}
+
+fn ff_request(branch: &str, to: &str) -> FastForwardRequest {
+    FastForwardRequest {
+        branch: branch.into(),
+        to: to.into(),
+    }
+}
+
+#[test]
+fn revision_relation_says_which_side_can_fast_forward() {
+    let env = env();
+    env.fx.git(&["switch", "-q", "-c", "ahead"]);
+    env.commit("a.txt", "a\n", "ahead 1");
+    env.fx.git(&["switch", "-q", "main"]);
+    let relation = |a: &str, b: &str| env.repos.revision_relation(env.id, a, b).unwrap();
+    assert_eq!(relation("main", "main"), RevisionRelation::Same);
+    assert_eq!(relation("main", "ahead"), RevisionRelation::Behind);
+    assert_eq!(relation("ahead", "main"), RevisionRelation::Ahead);
+    env.commit("m.txt", "m\n", "main 1");
+    assert_eq!(relation("main", "ahead"), RevisionRelation::Diverged);
+    let (code, _) = fails(env.repos.revision_relation(env.id, "main", "--all"));
+    assert_eq!(code, ErrorCode::RevisionNotFound);
+}
+
+#[test]
+fn fast_forward_moves_a_branch_that_is_not_checked_out() {
+    let env = env();
+    let main = env.rev("main");
+    env.fx.git(&["branch", "develop"]);
+    env.fx.git(&["switch", "-q", "-c", "feat"]);
+    env.commit("f.txt", "f\n", "feat 1");
+    env.write("local.txt", "uncommitted\n");
+    let feat = env.rev("feat");
+
+    let result = env
+        .repos
+        .fast_forward(env.id, ff_request("develop", "feat"))
+        .unwrap();
+    assert!(!result.up_to_date);
+    assert_eq!(result.previous, main);
+    assert_eq!(result.sha, feat);
+    assert_eq!(env.rev("develop"), feat);
+    // No checkout: HEAD, the working tree and the tracking config stay as they were.
+    assert_eq!(env.out(&["symbolic-ref", "--short", "HEAD"]), "feat");
+    assert_eq!(env.read("local.txt").as_deref(), Some("uncommitted\n"));
+    assert_eq!(
+        env.out(&["config", "--get", "branch.develop.merge"]),
+        "",
+        "no upstream set up"
+    );
+
+    // Undone like a ref move: develop goes back, the working tree is untouched.
+    env.repos.undo(env.id).unwrap();
+    assert_eq!(env.rev("develop"), main);
+    assert_eq!(env.read("local.txt").as_deref(), Some("uncommitted\n"));
+
+    // A branch that already contains the target does not move, and journals nothing.
+    let again = env
+        .repos
+        .fast_forward(env.id, ff_request("feat", "develop"))
+        .unwrap();
+    assert!(again.up_to_date);
+    assert_eq!(env.rev("feat"), feat);
+}
+
+#[test]
+fn fast_forward_of_the_checked_out_branch_moves_the_working_tree() {
+    let env = env();
+    env.fx.git(&["switch", "-q", "-c", "ahead"]);
+    env.commit("a.txt", "a\n", "ahead 1");
+    env.fx.git(&["switch", "-q", "main"]);
+    let main = env.rev("main");
+
+    let result = env
+        .repos
+        .fast_forward(env.id, ff_request("main", "ahead"))
+        .unwrap();
+    assert!(!result.up_to_date);
+    assert_eq!(env.rev("main"), env.rev("ahead"));
+    assert_eq!(env.read("a.txt").as_deref(), Some("a\n"));
+    assert_eq!(env.status(), "");
+
+    env.repos.undo(env.id).unwrap();
+    assert_eq!(env.rev("main"), main);
+    assert_eq!(env.read("a.txt"), None);
+}
+
+#[test]
+fn fast_forward_refuses_diverged_branches_another_worktree_and_an_operation_in_progress() {
+    let env = env();
+    env.diverge_on_src();
+    let other = env.rev("other");
+    let (code, err) = fails(env.repos.fast_forward(env.id, ff_request("other", "main")));
+    assert_eq!(code, ErrorCode::NotFastForward, "{err:?}");
+    assert_eq!(env.rev("other"), other);
+
+    env.fx.git(&["branch", "behind", "main~1"]);
+    let worktree = env.fx.root.join("wt-behind");
+    env.fx.git(&[
+        "worktree",
+        "add",
+        "-q",
+        worktree.to_str().unwrap(),
+        "behind",
+    ]);
+    let behind = env.rev("behind");
+    let (code, err) = fails(env.repos.fast_forward(env.id, ff_request("behind", "main")));
+    assert_eq!(code, ErrorCode::BranchInOtherWorktree, "{err:?}");
+    assert_eq!(env.rev("behind"), behind);
+
+    // An operation in progress blocks it even for a branch that is not checked out.
+    env.fx.git(&["branch", "late", "main~1"]);
+    let late = env.rev("late");
+    let (code, _) = fails(env.merge("other", MergeMode::NoFastForward));
+    assert_eq!(code, ErrorCode::Conflicts);
+    let (code, err) = fails(env.repos.fast_forward(env.id, ff_request("late", "main")));
+    assert_eq!(code, ErrorCode::OperationInProgress, "{err:?}");
+    assert_eq!(env.rev("late"), late);
 }
 
 #[test]

@@ -1,3 +1,6 @@
+import { useQuery } from '@tanstack/react-query';
+
+import { ipc, unwrap } from '../../../ipc';
 import { useT } from '../../../i18n/useT';
 import { Menu } from '../../../ui/Menu';
 import { MenuItem } from '../../../ui/MenuItem';
@@ -7,7 +10,7 @@ import { openHistoryDialog } from '../historyDialogsStore';
 import {
   cherryPickCommits,
   currentBranchOf,
-  mergeBranch,
+  fastForwardBranch,
   operationOf,
   rebaseBranch,
 } from '../historyOps';
@@ -21,12 +24,7 @@ export function runDropAction(repoId: number, action: DropAction): void {
       return;
     case 'fastForward':
       // Never creates a commit and refuses when the branches diverged: no dialog needed.
-      void mergeBranch(repoId, {
-        source: action.source,
-        target: action.target,
-        mode: 'fastForwardOnly',
-        message: null,
-      });
+      void fastForwardBranch(repoId, { branch: action.target, to: action.source });
       return;
     case 'rebase':
       void rebaseBranch(repoId, { branch: action.source, onto: action.target });
@@ -39,15 +37,27 @@ export function runDropAction(repoId: number, action: DropAction): void {
 
 /**
  * Menu opened where a branch or commits were dropped on a branch: Merge X into Y, Rebase X onto
- * Y, Fast-forward Y to X, or Cherry-pick onto Y. Only what can run is enabled.
+ * Y, the fast-forward of whichever of X and Y is behind, or Cherry-pick onto Y. Only what can
+ * run is enabled.
  */
 export function DropMenu() {
   const t = useT();
   const menu = useDragStore((state) => state.menu);
   const setMenu = useDragStore((state) => state.setMenu);
+  const dragged = menu?.payload.kind === 'branch' ? menu.payload.name : null;
+  const relation = useQuery({
+    queryKey: ['revision-relation', menu?.repoId, dragged, menu?.target],
+    queryFn: () =>
+      menu && dragged !== null
+        ? unwrap(ipc.commands.revisionRelation(menu.repoId, dragged, menu.target))
+        : null,
+    enabled: dragged !== null && dragged !== menu?.target,
+    staleTime: 0,
+    gcTime: 0,
+  });
   if (!menu) return null;
   const current = currentBranchOf(menu.repoId);
-  const actions = planDrop(menu.payload, menu.target, current);
+  const actions = planDrop(menu.payload, menu.target, current, relation.data ?? null);
   const busy = operationOf(menu.repoId) !== null;
   const names = (action: DropAction) => ({
     source: action.source,
@@ -80,11 +90,15 @@ export function DropMenu() {
               ? t('history.menu.busy')
               : action.disabled === 'remoteSource'
                 ? t('dnd.remoteRebase')
-                : action.needsCheckout
-                  ? t('dnd.checkoutFirst', { target: action.target })
-                  : action.id === 'rebase' && action.source !== current
-                    ? t('dnd.checkoutFirst', { target: action.source })
-                    : undefined
+                : action.disabled === 'upToDate'
+                  ? t('dnd.upToDate', names(action))
+                  : action.disabled === 'diverged'
+                    ? t('dnd.diverged')
+                    : action.needsCheckout
+                      ? t('dnd.checkoutFirst', { target: action.target })
+                      : action.id === 'rebase' && action.source !== current
+                        ? t('dnd.checkoutFirst', { target: action.source })
+                        : undefined
           }
           onSelect={() => {
             runDropAction(menu.repoId, action);

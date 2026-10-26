@@ -302,6 +302,17 @@ export const commands = {
 	 */
 	merge: (repoId: number, request: MergeRequest) => typedError<HistoryResult, YagguiError>(__TAURI_INVOKE("merge", { repoId, request })),
 	/**
+	 *  Moves a local branch forward to a revision that contains it, checked out or not: only the
+	 *  checked-out branch touches the working tree. Errors: `notFastForward` (diverged),
+	 *  `dirtyWorktree` (checked-out branch), `branchInOtherWorktree`.
+	 */
+	fastForward: (repoId: number, request: FastForwardRequest) => typedError<FastForwardResult, YagguiError>(__TAURI_INVOKE("fast_forward", { repoId, request })),
+	/**
+	 *  How two revisions relate: which one, if any, can be fast-forwarded to the other.
+	 *  Read-only.
+	 */
+	revisionRelation: (repoId: number, a: string, b: string) => typedError<RevisionRelation, YagguiError>(__TAURI_INVOKE("revision_relation", { repoId, a, b })),
+	/**
 	 *  Rebases a branch onto another (non-interactive). Progress: `op-progress` with phase
 	 *  `Rebasing` and `current` / `total`. Errors: `conflicts`, `dirtyWorktree`. Cancellable.
 	 */
@@ -1883,6 +1894,28 @@ export type ExternalToolCheck = {
 /**  What an external tool setting is for. */
 export type ExternalToolKind = "editor" | "terminal" | "diffTool" | "mergeTool";
 
+/**
+ *  Moves a local branch forward to a revision that contains it, without creating a commit
+ *  (F-026). The branch need not be checked out.
+ */
+export type FastForwardRequest = {
+	/**  Local branch short name to move. */
+	branch: string,
+	/**
+	 *  Where it goes: a branch short name (`feat/x`, `origin/feat/x`), a full ref name or a
+	 *  commit SHA.
+	 */
+	to: string,
+};
+
+export type FastForwardResult = {
+	/**  The branch already contained `to`: nothing moved. */
+	upToDate: boolean,
+	/**  SHA the branch pointed to before, and after. */
+	previous: string,
+	sha: string,
+};
+
 export type FetchTarget = { kind: "remote"; name: string } | { kind: "all" };
 
 export type FileDiff = {
@@ -2347,7 +2380,9 @@ export type JournalOp =
 /**  Fetch and push URLs changed (`git remote set-url`). */
 { kind: "setRemoteUrls"; name: string } | 
 /**  Its tracking branches and the upstreams on it come back with an undo. */
-{ kind: "removeRemote"; name: string } | { kind: "merge"; source: string; mode: MergeMode } | { kind: "reset"; mode: ResetMode; target: string } | 
+{ kind: "removeRemote"; name: string } | { kind: "merge"; source: string; mode: MergeMode } | 
+/**  `branch` moved forward to `to` (a branch name or SHA as asked), checked out or not. */
+{ kind: "fastForward"; branch: string; to: string } | { kind: "reset"; mode: ResetMode; target: string } | 
 /**
  *  Discard of whole files or of hunks / lines. `paths`: the files touched (at most
  *  `JOURNAL_PATHS_MAX`), `count`: how many in total.
@@ -3148,6 +3183,20 @@ export type RevertRequest = {
 	 */
 	mainline: number | null,
 };
+
+/**
+ *  How two revisions `a` and `b` relate in the history: what a fast-forward between them can
+ *  do.
+ */
+export type RevisionRelation = 
+/**  Same commit. */
+"same" | 
+/**  `a` is an ancestor of `b`: `a` can be fast-forwarded to `b`. */
+"behind" | 
+/**  `b` is an ancestor of `a`: `b` can be fast-forwarded to `a`. */
+"ahead" | 
+/**  Neither contains the other (or unrelated histories): no fast-forward either way. */
+"diverged";
 
 /**  Progress of a folder scan (F-007), at most every 100 ms. */
 export type ScanProgress = {
