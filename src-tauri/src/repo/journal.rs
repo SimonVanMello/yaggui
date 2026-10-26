@@ -222,6 +222,9 @@ struct Record {
     mode: Mode,
     before: Side,
     after: Side,
+    /// Ids of the backup folders (`<config>/backups/<id>`) of the files it saved: the
+    /// cleanup keeps them as long as the entry is in the journal.
+    backups: Vec<String>,
 }
 
 /// What a saved row holds besides the entry (`StoredJournalRow::state`).
@@ -230,6 +233,8 @@ struct StateRef<'a> {
     mode: &'a Mode,
     before: &'a Side,
     after: &'a Side,
+    #[serde(skip_serializing_if = "<[String]>::is_empty")]
+    backups: &'a [String],
 }
 
 #[derive(Deserialize)]
@@ -237,6 +242,21 @@ struct StoredState {
     mode: Mode,
     before: Side,
     after: Side,
+    /// Absent from the rows saved before the backups were cleaned up.
+    #[serde(default)]
+    backups: Vec<String>,
+}
+
+/// The backup ids a saved `state` refers to; none when it cannot be read.
+pub(super) fn stored_backups(state: &str) -> Vec<String> {
+    #[derive(Deserialize)]
+    struct Backups {
+        #[serde(default)]
+        backups: Vec<String>,
+    }
+    serde_json::from_str::<Backups>(state)
+        .map(|b| b.backups)
+        .unwrap_or_default()
 }
 
 /// Journal of the operations of one repository, this session's after the restored ones.
@@ -283,11 +303,11 @@ impl OpJournal {
             let state = (row.format == STATE_FORMAT)
                 .then(|| serde_json::from_str::<StoredState>(&row.state))
                 .and_then(Result::ok);
-            let (mode, before, after) = match state {
-                Some(state) => (state.mode, state.before, state.after),
+            let (mode, before, after, backups) = match state {
+                Some(state) => (state.mode, state.before, state.after, state.backups),
                 None => {
                     entry.blocked.get_or_insert(UndoBlock::Unreadable);
-                    (Mode::Refs, Side::default(), Side::default())
+                    (Mode::Refs, Side::default(), Side::default(), Vec::new())
                 }
             };
             if let Some(order) = row.redo_order {
@@ -298,6 +318,7 @@ impl OpJournal {
                 mode,
                 before,
                 after,
+                backups,
             });
         }
         redo.sort_unstable();
@@ -348,6 +369,7 @@ impl OpJournal {
             mode: Mode::Refs,
             before: Side::default(),
             after: Side::default(),
+            backups: Vec::new(),
         });
         let last = self.records.len() - 1;
         &mut self.records[last]
@@ -402,6 +424,7 @@ fn stored_row(record: &Record) -> Result<StoredJournalRow, serde_json::Error> {
             mode: &record.mode,
             before: &record.before,
             after: &record.after,
+            backups: &record.backups,
         })?,
     })
 }
@@ -546,10 +569,12 @@ fn record(
     match sides(ctx, before, &plan) {
         Ok(None) => false,
         Ok(Some((before, after))) => {
+            let backups: BTreeSet<String> = plan.files.into_iter().map(|f| f.backup).collect();
             let record = journal.push(plan.op, None);
             record.mode = plan.mode;
             record.before = before;
             record.after = after;
+            record.backups = backups.into_iter().collect();
             true
         }
         Err(err) => {

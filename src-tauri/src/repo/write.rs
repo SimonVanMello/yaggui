@@ -741,6 +741,8 @@ pub(super) struct SavedPath {
     pub(super) path: String,
     pub(super) worktree: SavedWorktree,
     pub(super) index: IndexSide,
+    /// Id of the backup folder it is in: kept while the journal entry is (`backups.rs`).
+    pub(super) backup: String,
 }
 
 pub(super) enum SavedWorktree {
@@ -923,6 +925,7 @@ impl Backup {
             path: path.to_owned(),
             worktree: saved_worktree,
             index: saved_index,
+            backup: self.id.clone(),
         });
         Ok(())
     }

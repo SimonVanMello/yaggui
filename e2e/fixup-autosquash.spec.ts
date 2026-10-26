@@ -3,7 +3,7 @@ import { expect, test, type Page } from '@playwright/test';
 /**
  * M7-3: "Create a fixup for this commit" in the commit menu, then "Autosquash" opening the
  * interactive rebase with the fixup already under its target (F-147), on the mock backend,
- * repository `yaggui`.
+ * repository `yaggui`. M8-2: `squash!` and `amend!` commits arranged too.
  */
 
 const MOCK_NOW_MS = 1_791_795_600_000;
@@ -74,7 +74,7 @@ for (const { name: theme, colorScheme } of THEMES) {
 
       // From the parent of the target: target, fixup and the two commits after it.
       await expect(rows(page)).toHaveCount(4);
-      await expect(page.getByText('1 fixup moved under its target')).toBeVisible();
+      await expect(page.getByText('1 commit moved under its target')).toBeVisible();
       // Newest first: the fixup sits right above its target, melded into it.
       await expect(rows(page).nth(2)).toHaveAttribute('data-action', 'fixup');
       await expect(rows(page).nth(2)).toContainText(`Melded into “${target.summary}”`);
@@ -96,12 +96,45 @@ for (const { name: theme, colorScheme } of THEMES) {
       await capture(page, theme, 'menu-disabled');
     });
 
+    test('squash! and amend! commits are arranged like git rebase --autosquash', async ({
+      page,
+    }) => {
+      await openRepo(page);
+      const target = await grandparent(page);
+      await page.evaluate((summary) => {
+        const mock = window.__yagguiMock;
+        mock?.simulateCommit(1, `squash! ${summary}`, 'Also parse the header.');
+        mock?.simulateCommit(1, `amend! ${summary}`, 'feat: parse the whole file\n\nReworded.');
+        mock?.simulateCommit(1, `fixup! squash! ${summary}`);
+      }, target.summary);
+      await page.keyboard.press('ControlOrMeta+K');
+      await page.keyboard.type('autosquash');
+      await page.keyboard.press('Enter');
+
+      // Target, then (newest first above it) squash!, amend!, fixup!, and the 2 commits after.
+      await expect(rows(page)).toHaveCount(6);
+      await expect(page.getByText('3 commits moved under their targets')).toBeVisible();
+      await expect(rows(page).nth(5)).toContainText(target.summary);
+      await expect(rows(page).nth(4)).toHaveAttribute('data-action', 'squash');
+      await expect(rows(page).nth(3)).toHaveAttribute('data-action', 'fixup');
+      await expect(rows(page).nth(3)).toHaveAttribute('data-amend', 'true');
+      await expect(rows(page).nth(3)).toContainText('with this commit’s message (fixup -C)');
+      await expect(rows(page).nth(2)).toHaveAttribute('data-action', 'fixup');
+      // The amend! comes after the squash!: its message is added to the combination.
+      await expect(rows(page).nth(3)).toContainText(target.summary);
+      const result = page.getByRole('region', { name: 'Result' });
+      await expect(result).toContainText('3 melded');
+      await capture(page, theme, 'autosquash-squash-amend');
+    });
+
     test('autosquash from the palette with no fixup says so', async ({ page }) => {
       await openRepo(page);
       await page.keyboard.press('ControlOrMeta+K');
       await page.keyboard.type('autosquash');
       await page.keyboard.press('Enter');
-      await expect(toastWith(page, 'No fixup commit to squash on this branch')).toBeVisible();
+      await expect(
+        toastWith(page, 'No fixup!, squash! or amend! commit to squash on this branch'),
+      ).toBeVisible();
       await expect(todo(page)).toBeHidden();
     });
   });

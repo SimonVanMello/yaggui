@@ -188,10 +188,43 @@ describe('mock fixup and autosquash', () => {
       ],
       unmatched: [6],
     });
-    // A SHA prefix, then a summary prefix; an empty subject matches nothing.
-    expect(mockAutosquash(list(['A', 'fixup! 0abc'])).order[1]?.action).toBe('fixup');
+    // A name (SHA prefix, ref), then a summary prefix; an empty subject is no prefix at all.
+    const bySha = (name: string) => (name === '0abc' ? '0abc0000' : null);
+    expect(mockAutosquash(list(['A', 'fixup! 0abc']), bySha).order[1]?.action).toBe('fixup');
     expect(mockAutosquash(list(['Add x and y', 'fixup! Add x'])).order[1]?.action).toBe('fixup');
-    expect(mockAutosquash(list(['A', 'fixup! '])).unmatched).toEqual([1]);
+    expect(mockAutosquash(list(['A', 'fixup! '])).unmatched).toEqual([]);
+  });
+
+  it('arranges squash! and amend! commits like rebase_todo::autosquash', () => {
+    const list = (summaries: string[]) =>
+      summaries.map((summary, i) => ({ sha: `${String(i)}abc0000`, summary }));
+    const order = mockAutosquash(
+      list([
+        'A',
+        'B',
+        'squash! A',
+        'amend! B',
+        'fixup! squash! A',
+        'squash! fixup! B',
+        'amend! A',
+        'squash! A',
+      ]),
+    ).order.map(({ index, action }) => `${String(index)}:${action}`);
+    expect(order).toEqual([
+      '0:pick',
+      '2:squash',
+      '4:fixup',
+      '6:amend',
+      '7:squash',
+      '1:pick',
+      '3:amend',
+      '5:squash',
+    ]);
+    // A fixup of a moved commit goes right after it (Git's chained list).
+    const chained = mockAutosquash(list(['A', 'fixup! A', 'fixup! A', 'fixup! 1abc']), (name) =>
+      name === '1abc' ? '1abc0000' : null,
+    ).order.map(({ index }) => index);
+    expect(chained).toEqual([0, 1, 3, 2]);
   });
 
   it('commits a fixup of the staged changes, then plans it under its target', async () => {

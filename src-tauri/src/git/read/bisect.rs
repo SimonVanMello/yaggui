@@ -1,11 +1,13 @@
 //! The bisect in progress (F-263), read from what `git bisect` keeps in `.git`: the marks as
 //! `refs/bisect/<bad term>`, `refs/bisect/<good term>-<sha>` and `refs/bisect/skip-<sha>`,
-//! the terms in `BISECT_TERMS` (`bad` / `good` unless started with `--term-new/--term-old`)
-//! and the HEAD to go back to in `BISECT_START`. Nothing is kept by yaggui itself, so a bisect
+//! the terms in `BISECT_TERMS` (`bad` / `good` unless started with `--term-new/--term-old`),
+//! the HEAD to go back to in `BISECT_START` and, for `git bisect start --first-parent`
+//! (Git ≥ 2.29), an empty `BISECT_FIRST_PARENT`. Nothing is kept by yaggui itself, so a bisect
 //! started in a terminal, or interrupted by closing the app, reads back the same.
 //!
 //! The commits left are those reachable from the bad commit and from no good one (what
-//! `git rev-list --bisect-vars` counts), walked with `gix`; the estimate of the steps left is
+//! `git rev-list --bisect-vars` counts), only along first parents in first-parent mode (the
+//! good side still hides every ancestor), walked with `gix`; the estimate of the steps left is
 //! Git's own (`estimate_bisect_steps`).
 
 use std::collections::BTreeSet;
@@ -128,11 +130,14 @@ pub fn bisect_commit(repo: &gix::Repository, id: ObjectId) -> Option<BisectCommi
     })
 }
 
-/// Commits reachable from `bad` and from none of `good`.
+/// Commits reachable from `bad` and from none of `good`; with `first_parent`, only those of
+/// the first-parent chain of `bad` (`git rev-list --first-parent`, whose hidden side still
+/// follows every parent).
 fn range(
     repo: &gix::Repository,
     bad: ObjectId,
     good: &[ObjectId],
+    first_parent: bool,
 ) -> Result<Vec<ObjectId>, YagguiError> {
     let walk = repo
         .rev_walk([bad])
@@ -143,7 +148,24 @@ fn range(
     for info in walk {
         out.push(info.map_err(gix("walk the bisect range"))?.id);
     }
-    Ok(out)
+    if !first_parent {
+        return Ok(out);
+    }
+    // An ancestor of a hidden commit is hidden: the chain stops at the first one.
+    let all: BTreeSet<ObjectId> = out.into_iter().collect();
+    let mut chain = Vec::new();
+    let mut current = Some(bad);
+    while let Some(id) = current.filter(|id| all.contains(id)) {
+        chain.push(id);
+        let commit = repo.find_commit(id).map_err(gix("read a commit"))?;
+        current = commit.parent_ids().next().map(gix::Id::detach);
+    }
+    Ok(chain)
+}
+
+/// The bisect was started with `--first-parent`.
+pub fn is_first_parent(git_dir: &Path) -> bool {
+    git_dir.join("BISECT_FIRST_PARENT").exists()
 }
 
 /// Newest first, by commit time.
@@ -163,6 +185,7 @@ pub fn read_bisect(repo: &gix::Repository) -> Result<Option<BisectState>, Yaggui
     }
     let git_dir = repo.path();
     let terms = terms(git_dir);
+    let first_parent = is_first_parent(git_dir);
     let marks = read_marks(repo, &terms)?;
     // `--no-checkout` bisects move `BISECT_HEAD` instead of HEAD.
     let current_id =
@@ -176,7 +199,7 @@ pub fn read_bisect(repo: &gix::Repository) -> Result<Option<BisectState>, Yaggui
     let mut steps = None;
     let mut result = None;
     if let (Some(bad), false) = (marks.bad, marks.good.is_empty()) {
-        let range = range(repo, bad, &marks.good)?;
+        let range = range(repo, bad, &marks.good, first_parent)?;
         let skipped: BTreeSet<ObjectId> = marks.skipped.iter().copied().collect();
         let untested: Vec<ObjectId> = range
             .iter()
@@ -214,6 +237,7 @@ pub fn read_bisect(repo: &gix::Repository) -> Result<Option<BisectState>, Yaggui
         steps,
         result,
         original,
+        first_parent,
     }))
 }
 

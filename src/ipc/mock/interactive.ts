@@ -169,7 +169,8 @@ export function mockTodo(
             `${sha} ne peut pas être fusionné (squash / fixup) : aucun commit conservé ne le précède.`,
           );
         }
-        if (entry.action === 'squash') {
+        // A `fixup` with a message is `fixup -C`: it gives the group its message.
+        if (entry.action === 'squash' || entry.message !== null) {
           const message = normalizeMockMessage(entry.message ?? '');
           if (message === null) missingMessage = true;
           else {
@@ -193,58 +194,106 @@ export function mockTodo(
   return lines;
 }
 
-const FIXUP_PREFIX = 'fixup! ';
+/** How an autosquashed commit melds into its target (`rebase_todo::Meld`). */
+export type MockMeld = 'fixup' | 'amend' | 'squash';
 
-/** Like `rebase_todo::fixup_subject`: the subject without its `fixup! ` prefixes. */
-export function mockFixupSubject(summary: string): string | null {
-  if (!summary.startsWith(FIXUP_PREFIX)) return null;
-  let rest = summary;
-  while (rest.startsWith(FIXUP_PREFIX)) rest = rest.slice(FIXUP_PREFIX.length);
-  return rest;
+const MELD_PREFIXES: readonly (readonly [string, MockMeld])[] = [
+  ['fixup! ', 'fixup'],
+  ['amend! ', 'amend'],
+  ['squash! ', 'squash'],
+];
+
+function skipMeldPrefix(subject: string): [MockMeld, string] | null {
+  for (const [prefix, meld] of MELD_PREFIXES) {
+    if (subject.startsWith(prefix)) return [meld, subject.slice(prefix.length)];
+  }
+  return null;
 }
 
-/** Like `rebase_todo::autosquash`: the todo order with the fixups under their targets. */
-export function mockAutosquash(commits: readonly { sha: string; summary: string }[]): {
-  order: { index: number; action: 'pick' | 'fixup' }[];
+/** Like `rebase_todo::meld_subject`: the kind (first prefix) and the subject, every prefix skipped. */
+export function mockMeldSubject(summary: string): { meld: MockMeld; subject: string } | null {
+  const first = skipMeldPrefix(summary.trim());
+  if (!first) return null;
+  let rest = first[1];
+  for (;;) {
+    rest = rest.replace(/^[ \t\r\n]+/, '');
+    const next = skipMeldPrefix(rest);
+    if (!next) return { meld: first[0], subject: rest };
+    rest = next[1];
+  }
+}
+
+/** Like `rebase_todo::without_subject`: the message below its subject paragraph. */
+export function mockWithoutSubject(message: string): string {
+  const blank = /\n[ \t]*(\r?\n|$)/.exec(message);
+  return blank ? message.slice(blank.index).trim() : '';
+}
+
+export type MockAutosquashStep = 'pick' | MockMeld;
+
+/** Like `rebase_todo::autosquash`: Git's todo order, each melded commit under its target. */
+export function mockAutosquash(
+  commits: readonly { sha: string; summary: string }[],
+  resolve: (name: string) => string | null = () => null,
+): {
+  order: { index: number; action: MockAutosquashStep }[];
   unmatched: number[];
 } {
-  const targets: (number | null)[] = commits.map(() => null);
+  const next: (number | null)[] = commits.map(() => null);
+  const tail: (number | null)[] = commits.map(() => null);
+  const steps: MockAutosquashStep[] = commits.map(() => 'pick');
   const bySummary = new Map<string, number>();
   const unmatched: number[] = [];
-  commits.forEach(({ summary }, i) => {
-    const subject = mockFixupSubject(summary);
-    if (subject !== null) {
-      let found: number | undefined;
-      if (subject.trim() !== '') {
-        const prefix = subject.toLowerCase();
-        const earlier = commits.slice(0, i);
-        found = bySummary.get(subject);
-        if (found === undefined && prefix.length >= 4 && /^[0-9a-f]+$/.test(prefix)) {
-          const index = earlier.findIndex((c) => c.sha.startsWith(prefix));
-          if (index !== -1) found = index;
-        }
-        if (found === undefined) {
-          const index = earlier.findIndex((c) => c.summary.startsWith(subject));
-          if (index !== -1) found = index;
-        }
+  commits.forEach(({ summary: raw }, i) => {
+    const summary = raw.trim();
+    const meld = mockMeldSubject(summary);
+    let target: number | undefined;
+    if (meld) {
+      const { subject } = meld;
+      target = bySummary.get(subject);
+      if (target === undefined && !subject.includes(' ')) {
+        const sha = resolve(subject);
+        const index = sha === null ? -1 : commits.slice(0, i).findIndex((c) => c.sha === sha);
+        if (index !== -1) target = index;
       }
-      if (found !== undefined) {
-        targets[i] = targets[found] ?? found;
-        return;
+      if (target === undefined) {
+        const index = commits.slice(0, i).findIndex((c) => c.summary.trim().startsWith(subject));
+        if (index !== -1) target = index;
       }
-      unmatched.push(i);
+      if (target === undefined) unmatched.push(i);
+      else {
+        steps[i] = meld.meld;
+        const after = tail[target] ?? target;
+        next[i] = next[after] ?? null;
+        next[after] = i;
+        tail[target] = i;
+      }
     }
-    if (!bySummary.has(summary)) bySummary.set(summary, i);
+    if (target === undefined && !bySummary.has(summary)) bySummary.set(summary, i);
   });
-  const order: { index: number; action: 'pick' | 'fixup' }[] = [];
-  targets.forEach((target, i) => {
-    if (target !== null) return;
-    order.push({ index: i, action: 'pick' });
-    targets.forEach((t, k) => {
-      if (t === i) order.push({ index: k, action: 'fixup' });
-    });
+  const order: { index: number; action: MockAutosquashStep }[] = [];
+  steps.forEach((step, i) => {
+    if (step !== 'pick') return;
+    for (let k: number | null = i; k !== null; k = next[k] ?? null) {
+      order.push({ index: k, action: steps[k] ?? 'pick' });
+    }
   });
   return { order, unmatched };
+}
+
+/** A SHA prefix of 4 digits or more, or a ref of the mock (`resolve_name`). */
+function nameResolver(graph: MockGraph): (name: string) => string | null {
+  return (name) => {
+    if (name === '' || name.startsWith(':')) return null;
+    const lower = name.toLowerCase();
+    if (/^[0-9a-f]+$/.test(lower)) {
+      if (lower.length < 4) return null;
+      const hit = graph.history.commits.find((c) => c.sha.startsWith(lower));
+      return hit?.sha ?? null;
+    }
+    const commit = graph.resolve(name);
+    return commit === null ? null : (graph.history.commits[commit]?.sha ?? null);
+  };
 }
 
 /**
@@ -268,22 +317,27 @@ export function mockAutosquashBase(graph: MockGraph, head: number): number | nul
       sha: commits[id]?.sha ?? '',
       summary: commits[id]?.summary ?? '',
     })),
+    nameResolver(graph),
   );
-  const target = order.find((_, i) => order[i + 1]?.action === 'fixup');
+  const target = order.find((_, i) => (order[i + 1]?.action ?? 'pick') !== 'pick');
   return target ? (chain[target.index]?.parent ?? null) : null;
 }
 
 /** `autosquashPlan` of the mock, from the plan of `base..HEAD`. */
-export function mockAutosquashPlan(plan: InteractiveRebasePlan): AutosquashPlan {
-  const { order, unmatched } = mockAutosquash(plan.commits);
+export function mockAutosquashPlan(plan: InteractiveRebasePlan, graph: MockGraph): AutosquashPlan {
+  const { order, unmatched } = mockAutosquash(plan.commits, nameResolver(graph));
   return {
     plan,
-    todo: order.map(({ index, action }) => ({
-      sha: plan.commits[index]?.sha ?? '',
-      action,
-      message: null,
-    })),
+    todo: order.map(({ index, action }) => {
+      const commit = plan.commits[index];
+      return {
+        sha: commit?.sha ?? '',
+        action: action === 'pick' ? 'pick' : action === 'squash' ? 'squash' : 'fixup',
+        // `fixup -C`: the message the `amend!` commit carries below its subject.
+        message: action === 'amend' ? mockWithoutSubject(commit?.message ?? '') : null,
+      };
+    }),
     unmatched: unmatched.map((i) => plan.commits[i]?.sha ?? ''),
-    fixups: order.filter((entry) => entry.action === 'fixup').length,
+    fixups: order.filter((entry) => entry.action !== 'pick').length,
   };
 }

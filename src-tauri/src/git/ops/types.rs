@@ -557,6 +557,9 @@ pub struct BisectState {
     /// Where `bisect reset` takes HEAD back: the branch checked out when the bisect started,
     /// or a commit SHA when HEAD was detached.
     pub original: Option<String>,
+    /// Started with `--first-parent` (first-parent mode on, F-032): only the first parents of
+    /// the bad commit are tested, and `remaining` / `steps` count them alone.
+    pub first_parent: bool,
 }
 
 /// How a path is in conflict (index stages, as `git status` reports them).
@@ -680,7 +683,8 @@ pub enum RebaseAction {
     /// Meld into the previous kept commit, combining the messages: the group's message is
     /// the `message` of its last `squash` entry (required there).
     Squash,
-    /// Meld into the previous kept commit, keeping that commit's message.
+    /// Meld into the previous kept commit, keeping that commit's message; with a `message`,
+    /// Git's `fixup -C`: the group's message becomes that one (an `amend!` commit).
     Fixup,
     /// Remove the commit.
     Drop,
@@ -696,9 +700,9 @@ pub struct RebaseTodoEntry {
     /// Full SHA, as listed by `interactive_rebase_plan`.
     pub sha: String,
     pub action: RebaseAction,
-    /// New message (summary, blank line, body) for `reword`, and for the last `squash` of a
-    /// group: the message of the combined commit. Ignored for other actions. Kept verbatim,
-    /// lines starting with `#` included; no editor is ever opened.
+    /// New message (summary, blank line, body) for `reword`, and for the last `squash` or
+    /// `fixup -C` of a group: the message of the combined commit. Ignored for `pick`, `edit`
+    /// and `drop`. Kept verbatim, lines starting with `#` included; no editor is ever opened.
     pub message: Option<String>,
 }
 
@@ -747,12 +751,15 @@ pub struct InteractiveRebasePlan {
 #[serde(rename_all = "camelCase")]
 pub struct AutosquashPlan {
     pub plan: InteractiveRebasePlan,
-    /// Every commit of `plan` once, oldest first: each matched `fixup!` commit as a `fixup`
-    /// right after its target, the others as `pick`. No messages.
+    /// Every commit of `plan` once, oldest first, in the order `git rebase --autosquash`
+    /// gives: each matched `fixup!` commit as a `fixup`, `squash!` as a `squash` (no message:
+    /// the combination is the default) and `amend!` as a `fixup` whose `message` is the one
+    /// the `amend!` commit carries (`fixup -C`), under their target; the others as `pick`.
     pub todo: Vec<RebaseTodoEntry>,
-    /// SHAs of the `fixup!` commits whose target is not in the plan: left in place, picked.
+    /// SHAs of the `fixup!` / `squash!` / `amend!` commits whose target is not in the plan:
+    /// left in place, picked.
     pub unmatched: Vec<String>,
-    /// Number of `fixup` entries of `todo`.
+    /// Number of entries of `todo` moved under a target (`fixup` and `squash`).
     pub fixups: u32,
 }
 

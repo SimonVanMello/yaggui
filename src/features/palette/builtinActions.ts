@@ -14,6 +14,7 @@ import {
   skipOperation,
   startContinue,
 } from '../history/historyOps';
+import { BISECT_ACTIONS } from '../bisect/bisectActions';
 import { GRAPH_TOOL_ACTIONS } from '../compare/graphToolActions';
 import { INSPECT_ACTIONS } from '../inspect/inspectActions';
 import { fetchTags, forcePushRepo, pushAllTags } from '../network/networkOps';
@@ -388,6 +389,7 @@ const BUILTIN: readonly PaletteAction[] = [
   },
   ...INSPECT_ACTIONS,
   ...GRAPH_TOOL_ACTIONS,
+  ...BISECT_ACTIONS,
 ];
 
 /** Registers the actions of the shell; returns the function that removes them. */

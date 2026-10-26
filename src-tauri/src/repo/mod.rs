@@ -1,5 +1,6 @@
 //! `RepoManager`, `RepoSession`, `OpQueue` and `Watcher`.
 
+pub mod backups;
 mod bisect;
 mod commit_tools;
 mod config;

@@ -1,6 +1,9 @@
 import { expect, test, type Page } from '@playwright/test';
 
-/** M7-7: history of a line range, from the blame and from a commit diff (mock backend). */
+/**
+ * M7-7: history of a line range, from the blame and from a commit diff (mock backend). M8-2:
+ * the palette entry for the selected lines.
+ */
 
 const MOCK_NOW_MS = 1_791_795_600_000;
 
@@ -32,6 +35,39 @@ test.use({ locale: 'en-US' });
 for (const { name: theme, colorScheme } of THEMES) {
   test.describe(`${theme} theme`, () => {
     test.use({ colorScheme, locale: 'en-US' });
+
+    test('the palette opens the history of the lines selected in the blame (M8-2)', async ({
+      page,
+    }) => {
+      await openYaggui(page);
+      const palette = page.getByRole('listbox', { name: 'Command palette' });
+      const entry = palette.getByRole('option', { name: /^History of the selected lines/ });
+      // No lines selected anywhere: listed, with the reason.
+      await page.keyboard.press('ControlOrMeta+K');
+      await page.keyboard.type('selected lines');
+      await expect(entry).toContainText('Select lines in a blame or a commit diff first');
+      await page.keyboard.press('Escape');
+
+      await graphRow(page, 2).click();
+      await details(page)
+        .getByRole('option', { name: / layout\.ts / })
+        .click({ button: 'right' });
+      await page.getByRole('menuitem', { name: /^Blame at this commit$/ }).click();
+      const lines = page.getByRole('region', { name: /^Blame of / }).getByRole('grid');
+      await lines.getByRole('row').nth(9).click();
+      await lines
+        .getByRole('row')
+        .nth(13)
+        .click({ modifiers: ['Shift'] });
+      await page.keyboard.press('ControlOrMeta+K');
+      await page.keyboard.type('selected lines');
+      await expect(entry).not.toContainText('Select lines');
+      await capture(page, theme, 'palette');
+      await page.keyboard.press('Enter');
+      await expect(
+        page.getByRole('region', { name: /^Line history of .*\(Lines 10–14\)$/ }),
+      ).toBeVisible();
+    });
 
     test('blame: select lines, then open their history', async ({ page }) => {
       await openYaggui(page);

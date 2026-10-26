@@ -3,7 +3,15 @@ import { useDiffStore } from '../diff/diffStore';
 import type { PaletteAction } from '../palette/actionRegistry';
 import { useGraphNavigation } from '../repo/graphNavigation';
 import { activeRepoId } from '../repo/repoSessions';
-import { inspectViewOf, openBlame, openFileHistory, openReflog, openTree } from './inspectStore';
+import {
+  inspectViewOf,
+  openBlame,
+  openFileHistory,
+  openLineHistory,
+  openReflog,
+  openTree,
+} from './inspectStore';
+import { selectedLines } from './lineSelection';
 
 interface CurrentFile {
   repoId: number;
@@ -31,7 +39,17 @@ export function currentFile(): CurrentFile | null {
   return null;
 }
 
-/** Palette actions of M4-4 (F-220 to F-222) and M7-8 (F-224); ids are public, never renamed. */
+/** The lines selected in the active repository's blame or commit diff. */
+function activeLines() {
+  const repoId = activeRepoId();
+  const range = repoId === null ? null : selectedLines(repoId);
+  return repoId === null || range === null ? null : { repoId, range };
+}
+
+/**
+ * Palette actions of M4-4 (F-220 to F-222), M7-7 (F-223) and M7-8 (F-224); ids are public,
+ * never renamed.
+ */
 export const INSPECT_ACTIONS: readonly PaletteAction[] = [
   {
     id: 'file.history',
@@ -51,6 +69,18 @@ export const INSPECT_ACTIONS: readonly PaletteAction[] = [
     run: () => {
       const file = currentFile();
       if (file) openBlame(file.repoId, file.path, file.rev);
+    },
+  },
+  {
+    id: 'file.lineHistory',
+    title: 'palette.action.file.lineHistory',
+    group: 'repo',
+    enabled: () => activeLines() !== null,
+    disabledReason: () =>
+      activeRepoId() === null ? 'palette.disabled.noRepo' : 'palette.disabled.noLines',
+    run: () => {
+      const lines = activeLines();
+      if (lines) openLineHistory(lines.repoId, lines.range);
     },
   },
   {

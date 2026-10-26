@@ -18,6 +18,7 @@ function state(partial: Partial<BisectState>): BisectState {
     steps: null,
     result: null,
     original: 'main',
+    firstParent: false,
     ...partial,
   };
 }

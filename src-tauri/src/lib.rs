@@ -345,12 +345,14 @@ pub fn run() {
             tracing::info!(path = %config_dir.display(), "config folder");
             let cache_dir = state::cache_dir(app.path().app_cache_dir()?);
             let sink = Arc::new(events::TauriSink(app.handle().clone()));
-            app.manage(AppState::new(
+            let app_state = AppState::new(
                 state::open_store(&config_dir),
                 sink,
                 &config_dir,
                 &cache_dir,
-            ));
+            );
+            app_state.clean_backups_in_background();
+            app.manage(app_state);
             show_window_fallback(app.handle().clone());
             if std::env::var_os(PERF_PROBE_ENV).is_some() {
                 perf_probe(app.handle().clone(), started);

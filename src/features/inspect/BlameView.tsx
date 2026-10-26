@@ -38,6 +38,7 @@ import {
   type BlameTarget,
 } from './inspectStore';
 import { errorOf } from './ipcError';
+import { usePublishedLines } from './lineSelection';
 import { inSpan, spanOf, type LineSpan } from './lineRange';
 import { useCssPixels } from './useCssPixels';
 import { useEscapeToClose } from './useEscapeToClose';
@@ -154,6 +155,8 @@ function BlameLines({
   /** Lines selected for their history (0-based): a click sets both ends, `Shift` the focus. */
   const [range, setRange] = useState<{ anchor: number; focus: number } | null>(null);
   const span = range && spanOf(range.anchor, range.focus);
+  // The palette's "History of the selected lines" (F-223) opens the same range.
+  usePublishedLines(repoId, span ? { path, rev, ...span } : null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const rowHeight = useCssPixels('--blame-row-height', 20);
   const digits = String(lines.length).length;

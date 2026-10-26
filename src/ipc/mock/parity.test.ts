@@ -403,6 +403,7 @@ describe('mock / backend parity (M7)', () => {
     });
     expect(after?.bad).not.toBeNull();
     expect(after?.good).toHaveLength(2);
+    expect(after?.firstParent).toBe(before?.firstParent);
 
     // Ending the bisect forgets the marks for good.
     await unwrap(reloaded.commands.abortOperation(reopened.id));
@@ -630,6 +631,79 @@ describe('mock / backend parity (M8-3)', () => {
     expect(new Set(diffs.map((h) => h?.newStart)).size).toBeGreaterThan(1);
     const origin = entries.at(-1);
     expect(origin?.diff?.hunks[0]?.newStart).toBe(diffs.at(-1)?.oldStart);
+  });
+});
+
+/** M8-2: the product gaps of M7-10 (autosquash of `squash!` / `amend!`, first-parent bisect). */
+describe('mock / backend parity (M8-2)', () => {
+  it('arranges squash! and amend! commits like `fixup.rs` (`tests/fixup.rs`)', async () => {
+    const { id } = await unwrap(mock.openRepo('/Users/alex/dev/yaggui'));
+    await unwrap(mock.stashPush(id, { message: null, includeUntracked: true, keepIndex: false }));
+    const before = await unwrap(mock.interactiveRebasePlan(id, 'HEAD~2'));
+    const target = before.commits[0]?.summary ?? '';
+    mockBackend.simulateCommit(id, `squash! ${target}`, 'squash body');
+    mockBackend.simulateCommit(id, `amend! ${target}`, 'Reworded\n\nnew body');
+    const plan = await unwrap(mock.autosquashPlan(id, null));
+    if (!plan) throw new Error('no plan');
+    const actions = plan.todo.map((entry) => {
+      const commit = plan.plan.commits.find((c) => c.sha === entry.sha);
+      return [commit?.summary, entry.action, entry.message];
+    });
+    expect(actions).toEqual([
+      [target, 'pick', null],
+      [`squash! ${target}`, 'squash', null],
+      // `fixup -C`: the message below the `amend!` subject.
+      [`amend! ${target}`, 'fixup', 'Reworded\n\nnew body'],
+      [before.commits[1]?.summary, 'pick', null],
+    ]);
+    expect(plan.fixups).toBe(2);
+    // The todo runs: one commit with the group's message (the view's, sent on the amend!).
+    const message = `${target}\n\nsquash body\n\nReworded\n\nnew body`;
+    const todo = plan.todo.map((entry, i) => (i === 2 ? { ...entry, message } : entry));
+    await unwrap(mock.interactiveRebase(id, plan.plan.base.sha, todo));
+    const after = await unwrap(mock.interactiveRebasePlan(id, 'HEAD~2'));
+    expect(after.commits.map((c) => c.message)).toEqual([message, before.commits[1]?.message]);
+  });
+
+  it('a first-parent bisect stays first-parent after a page reload', async () => {
+    const { id } = await unwrap(mock.openRepo('/Users/alex/dev/yaggui'));
+    await unwrap(mock.stashPush(id, { message: null, includeUntracked: false, keepIndex: false }));
+    const filter = await unwrap(mock.graphFilter(id));
+    const all = await unwrap(mock.graphPage(id, 0, 60));
+    const good = all.shas[all.shas.length - 1] ?? '';
+    await unwrap(mock.setGraphFilter(id, { ...filter, firstParent: true }));
+    await unwrap(mock.bisectMark(id, null, 'bad'));
+    const before = await unwrap(mock.bisectMark(id, good, 'good'));
+    expect(before.firstParent).toBe(true);
+
+    const reloaded = new MockBackend();
+    const reopened = await unwrap(reloaded.commands.openRepo('/Users/alex/dev/yaggui'));
+    const after = await unwrap(reloaded.commands.bisectState(reopened.id));
+    expect(after).toMatchObject({ firstParent: true, remaining: before.remaining });
+  });
+
+  it('a bisect started in first-parent mode only tests first parents (`tests/bisect.rs`)', async () => {
+    const { id } = await unwrap(mock.openRepo('/Users/alex/dev/yaggui'));
+    // A bisect needs a clean tree; `yaggui` has merges in its last commits.
+    await unwrap(mock.stashPush(id, { message: null, includeUntracked: false, keepIndex: false }));
+    const filter = await unwrap(mock.graphFilter(id));
+    const all = await unwrap(mock.graphPage(id, 0, 60));
+    const good = all.shas[all.shas.length - 1] ?? '';
+
+    await unwrap(mock.bisectMark(id, null, 'bad'));
+    const full = await unwrap(mock.bisectMark(id, good, 'good'));
+    expect(full.firstParent).toBe(false);
+    await unwrap(mock.abortOperation(id));
+
+    await unwrap(mock.setGraphFilter(id, { ...filter, firstParent: true }));
+    await unwrap(mock.bisectMark(id, null, 'bad'));
+    const chain = await unwrap(mock.bisectMark(id, good, 'good'));
+    expect(chain.firstParent).toBe(true);
+    // Fewer commits left, the steps counted on them, the commit under test a graph row.
+    expect(chain.remaining).toBeLessThan(full.remaining ?? 0);
+    expect(chain.steps).toBeLessThanOrEqual(full.steps ?? 0);
+    const rows = await unwrap(mock.graphPage(id, 0, 500));
+    expect(rows.shas).toContain(chain.current?.sha);
   });
 });
 

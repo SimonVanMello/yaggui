@@ -29,6 +29,7 @@ import { ExternalDiffButtons } from './ExternalDiffButtons';
 import { ImageDiff } from './ImageDiff';
 import { applyHunks } from '../staging/stagingActions';
 import { openLineHistory } from '../inspect/inspectStore';
+import { usePublishedLines } from '../inspect/lineSelection';
 import { DiffPlaceholder } from './DiffPlaceholder';
 import { ModuleDiffActions } from '../submodules/ModuleDiffActions';
 import { DiffToolbar } from './DiffToolbar';
@@ -94,6 +95,12 @@ export function DiffView({ selection, onClose, onSelect, stepper, actions }: Dif
   const diff = query.data;
   // An SVG is text: shown as an image, its source one click away (path it was asked for).
   const [sourceOf, setSourceOf] = useState<string | null>(null);
+  // Lines selected in a commit diff: the palette opens their history (F-223).
+  const [selectedLines, setSelectedLines] = useState<{ start: number; end: number } | null>(null);
+  usePublishedLines(
+    repoId,
+    target.kind === 'commits' && selectedLines ? { path, rev: target.to, ...selectedLines } : null,
+  );
   const index = files?.findIndex((f) => f.path === path) ?? -1;
   const file = index >= 0 ? files?.[index] : undefined;
   const previous = files ? adjacentFile(files, path, -1) : null;
@@ -287,6 +294,7 @@ export function DiffView({ selection, onClose, onSelect, stepper, actions }: Dif
               }
             : undefined
         }
+        onSelectedLines={setSelectedLines}
         onHunks={
           worktree
             ? (action, hunks, lineCount) => {

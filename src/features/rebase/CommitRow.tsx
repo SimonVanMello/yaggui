@@ -9,7 +9,7 @@ import { shortSha } from '../diff/format';
 import { ActionButtons } from './ActionButtons';
 import styles from './CommitRow.module.css';
 import { MessageEditor } from './MessageEditor';
-import { isMelded, summaryOf, type RebaseRow, type RowIssue } from './rebaseModel';
+import { isAmend, isMelded, summaryOf, type RebaseRow, type RowIssue } from './rebaseModel';
 
 export interface RowHandlers {
   onSelect: (index: number) => void;
@@ -35,7 +35,7 @@ interface CommitRowProps extends RowHandlers {
   meldedInto: string | null;
   /** Another row melds into this one. */
   hasMelded: boolean;
-  /** Final message of the commit when this row holds it (reword, last squash). */
+  /** Final message of the commit when this row holds it (reword, last squash or fixup -C). */
   finalMessage: string | null;
   editing: boolean;
   upstream: string | null;
@@ -89,6 +89,7 @@ export function CommitRow({
       data-action={action}
       data-focused={focused}
       data-melded={isMelded(action)}
+      data-amend={isAmend(row) || undefined}
       data-has-melded={hasMelded}
       data-dragging={dragging}
       data-drop={drop ?? undefined}
@@ -153,7 +154,9 @@ export function CommitRow({
           {issue === 'emptyMessage' && t('rebaseInteractive.issue.emptyMessage')}
           {issue === undefined &&
             meldedInto !== null &&
-            t('rebaseInteractive.meldedInto', { summary: meldedInto })}
+            t(isAmend(row) ? 'rebaseInteractive.meldedIntoAmend' : 'rebaseInteractive.meldedInto', {
+              summary: meldedInto,
+            })}
           {issue === undefined && action === 'edit' && t('rebaseInteractive.stopsHere')}
           {issue === undefined && noTarget && t('rebaseInteractive.fixupNoTarget')}
         </p>

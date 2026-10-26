@@ -58,3 +58,16 @@
 .dot[data-mark='skip'] {
   --mark-color: var(--fg-muted);
 }
+
+/* Started in first-parent mode: only the first parents are tested. */
+.mode {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0 var(--space-2);
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--fg-secondary);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+}

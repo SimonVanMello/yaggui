@@ -53,6 +53,7 @@ import type {
   TabsState,
   UpdateInfo,
   Workspace,
+  HeadState,
 } from './bindings';
 import { GITIGNORE_PREVIEW_MAX, JOURNAL_PATHS_MAX } from './bindings';
 import type { YagguiClient, YagguiCommands, YagguiEventMap, YagguiEventName } from './client';
@@ -307,6 +308,7 @@ interface PersistedBisect {
   good: number[];
   skipped: number[];
   original: MockHead;
+  firstParent?: boolean;
 }
 
 /** Same bound as `MAX_REPO_UI_STATE` (bytes of UTF-8). */
@@ -641,9 +643,9 @@ export class MockBackend {
   /** The bisects to keep: those in progress, and those not read back since the reload. */
   private bisectsSnapshot(): [number, PersistedBisect][] {
     const live: [number, PersistedBisect][] = [];
-    for (const [repoId, { bad, good, skipped, original }] of this.bisects) {
+    for (const [repoId, { bad, good, skipped, original, firstParent }] of this.bisects) {
       if (this.operations.get(repoId)?.operation.kind !== 'bisect') continue;
-      live.push([repoId, { bad, good, skipped, original }]);
+      live.push([repoId, { bad, good, skipped, original, firstParent }]);
     }
     const liveIds = new Set(live.map(([repoId]) => repoId));
     const waiting = [...this.restoredBisects].filter(([repoId]) => !liveIds.has(repoId));
@@ -837,8 +839,12 @@ export class MockBackend {
    * Simulates a commit on HEAD made outside yaggui: the graph gets a new version and
    * `refs-changed` is emitted after the watcher debounce. Returns the new SHA.
    */
-  simulateCommit(repoId: number, summary = 'feat: commit made from a terminal'): string | null {
-    const sha = this.addCommit(repoId, summary, '', false);
+  simulateCommit(
+    repoId: number,
+    summary = 'feat: commit made from a terminal',
+    body = '',
+  ): string | null {
+    const sha = this.addCommit(repoId, summary, body, false);
     if (sha !== null) this.watcherSaw(repoId, true);
     return sha;
   }
@@ -1808,10 +1814,17 @@ export class MockBackend {
     if (!repo || !this.open.has(repoId)) return null;
     let graph = this.graphs.get(repoId);
     if (!graph) {
+      // A bisect saved before a reload left HEAD detached on a commit under test: the history
+      // is generated from the branch it started on, so the commits marks refer to exist again.
+      const saved = this.restoredBisects.get(repoId);
+      const head: HeadState =
+        saved?.original.kind === 'branch' && repo.state.head.kind === 'detached'
+          ? { kind: 'branch', name: saved.original.name, oid: repo.state.head.oid }
+          : repo.state.head;
       const history = createMockHistory(
         repoId,
         repo.known.path,
-        repo.state.head,
+        head,
         repo.state.upstream,
         MOCK_NOW - 600,
       );
@@ -2876,8 +2889,14 @@ export class MockBackend {
       good: saved.good.filter(known),
       skipped: saved.skipped.filter(known),
       original: saved.original,
+      firstParent: saved.firstParent,
     };
     this.bisects.set(repoId, bisect);
+    // HEAD on the next commit to test, as the bisect had left it.
+    const next = bisectOutcome(graph.history.commits, bisect);
+    if (next.result === null && next.next !== null) {
+      graph.history.head = { kind: 'detached', commit: next.next };
+    }
     return bisect;
   }
 
@@ -2897,6 +2916,8 @@ export class MockBackend {
           good: [],
           skipped: [],
           original: structuredClone(graph.history.head),
+          // `git bisect start --first-parent` when the graph is in first-parent mode.
+          firstParent: this.graphFilters.get(repoId)?.firstParent === true,
         };
         this.bisects.set(repoId, bisect);
         const operation: RepoOperation = { kind: 'bisect' };
@@ -4333,7 +4354,7 @@ export class MockBackend {
         if (commit === null) return fail(this.revisionNotFound(base));
       }
       const plan = mockPlan(graph, head.name, tip, commit);
-      return 'code' in plan ? fail(plan) : ok(mockAutosquashPlan(plan));
+      return 'code' in plan ? fail(plan) : ok(mockAutosquashPlan(plan, graph));
     },
     bisectState: (repoId) => {
       const graph = this.graph(repoId);
