@@ -123,17 +123,18 @@ describe('updatePreferences', () => {
     const first = updatePreferences({ fontSize: 14 }, client);
     const second = updatePreferences({ fontSize: 15 }, client);
     expect(currentPreferences().fontSize).toBe(15);
-    await Promise.resolve();
-    // Only one request in flight; it carries the value on screen (the last write wins).
+    // The first save left at once; the second waits for it and will carry the latest value.
     expect(sent).toHaveLength(1);
-    expect(sent[0]?.fontSize).toBe(15);
+    expect(sent[0]?.fontSize).toBe(14);
 
+    // A response that arrives after a later edit does not bring the older value back.
     pending[0]?.(sent[0] as Preferences);
     await first;
     expect(currentPreferences().fontSize).toBe(15);
     await vi.waitFor(() => {
       expect(sent).toHaveLength(2);
     });
+    expect(sent[1]?.fontSize).toBe(15);
     pending[1]?.(sent[1] as Preferences);
     await second;
     expect(currentPreferences().fontSize).toBe(15);
