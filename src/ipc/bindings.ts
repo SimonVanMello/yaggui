@@ -825,18 +825,18 @@ export const commands = {
 	 */
 	aiTestProvider: (provider: AiProviderKind) => typedError<AiTestResult, YagguiError>(__TAURI_INVOKE("ai_test_provider", { provider })),
 	/**
-	 *  The exact text a generation would send for the staged changes (and the amended commit's
-	 *  with `amend`), without sending it. Works while the feature is off.
+	 *  The exact text a generation would send for `request`, without sending it. Works while the
+	 *  feature is off.
 	 */
-	aiPreviewContext: (repoId: number, amend: boolean) => typedError<AiContextPreview, YagguiError>(__TAURI_INVOKE("ai_preview_context", { repoId, amend })),
+	aiPreviewContext: (repoId: number, request: AiMessageRequest) => typedError<AiContextPreview, YagguiError>(__TAURI_INVOKE("ai_preview_context", { repoId, request })),
 	/**
-	 *  Writes a commit message for the staged changes (plus HEAD's with `amend`) with the
+	 *  Writes a commit message for the staged changes (plus HEAD's with `request.amend`) with the
 	 *  provider of the preferences. Never commits, never writes to the repository. One
 	 *  generation per repository at a time. Errors: `aiDisabled`, `aiNotConfigured`,
 	 *  `nothingToCommit`, `aiBusy`, `aiAuthFailed`, `aiRateLimited`, `aiProviderUnavailable`,
 	 *  `aiTimeout`, `aiEmptyResponse`, `aiProviderFailed`, `cancelled`.
 	 */
-	aiGenerateCommitMessage: (repoId: number, amend: boolean) => typedError<GeneratedCommitMessage, YagguiError>(__TAURI_INVOKE("ai_generate_commit_message", { repoId, amend })),
+	aiGenerateCommitMessage: (repoId: number, request: AiMessageRequest) => typedError<GeneratedCommitMessage, YagguiError>(__TAURI_INVOKE("ai_generate_commit_message", { repoId, request })),
 	/**
 	 *  Cancels the generation running for `repo_id` (it then fails with `cancelled`); nothing
 	 *  happens when none is running.
@@ -974,6 +974,14 @@ configured: boolean };
 export type AiLanguage = 
 /**  The language of the recent subjects of the branch, English when there are none. */
 "auto" | "en" | "fr";
+
+/**  What to describe, for `ai_generate_commit_message` and `ai_preview_context`. */
+export type AiMessageRequest = {
+	/**  The commit will amend HEAD: HEAD's own changes are described too. */
+	amend: boolean,
+	/**  The Conventional Commits helper is on: ask for `type(scope): subject`. */
+	conventional: boolean,
+};
 
 /**
  *  Settings of the AI commit messages that travel with an exported preferences file. Whether

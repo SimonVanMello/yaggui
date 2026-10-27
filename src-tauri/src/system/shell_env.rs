@@ -23,8 +23,20 @@ const TIMEOUT: Duration = Duration::from_secs(5);
 const START: &str = "__YAGGUI_ENV_START__";
 const END: &str = "__YAGGUI_ENV_END__";
 
+/// Variables kept from the login shell besides `PATH`: the AI provider key (F-073), which a
+/// macOS app started from the Dock does not inherit either. Never logged.
+const KEPT_VARS: [&str; 1] = ["ANTHROPIC_API_KEY"];
+
 static STARTED: AtomicBool = AtomicBool::new(false);
-static LOGIN_PATH: OnceLock<Option<OsString>> = OnceLock::new();
+static LOGIN_ENV: OnceLock<Option<LoginEnv>> = OnceLock::new();
+
+/// What yaggui keeps of the login shell's environment. No `Debug`: it may hold a key.
+#[derive(Default, Clone, PartialEq, Eq)]
+struct LoginEnv {
+    path: Option<String>,
+    /// `KEPT_VARS` that are set, by name.
+    vars: Vec<(String, String)>,
+}
 
 /// Starts reading the login shell's `PATH` on a background thread. Without this call (tests,
 /// Windows, where GUI apps get the user's full `PATH`), children keep yaggui's own `PATH`.
@@ -35,11 +47,11 @@ pub fn resolve_in_background() {
     let spawned = std::thread::Builder::new()
         .name("shell-env".into())
         .spawn(|| {
-            LOGIN_PATH.get_or_init(read_login_path);
+            LOGIN_ENV.get_or_init(read_login_env);
         });
     if let Err(err) = spawned {
         tracing::warn!(%err, "could not start reading the login shell environment");
-        LOGIN_PATH.get_or_init(|| None);
+        LOGIN_ENV.get_or_init(|| None);
     }
 }
 
@@ -49,9 +61,28 @@ pub fn child_path() -> Option<OsString> {
     if !STARTED.load(Ordering::SeqCst) {
         return None;
     }
-    let login = LOGIN_PATH.get_or_init(read_login_path).as_deref()?;
+    let login = LOGIN_ENV
+        .get_or_init(read_login_env)
+        .as_ref()?
+        .path
+        .as_deref()?;
     let own = std::env::var_os("PATH").unwrap_or_default();
-    Some(merge(login, &own))
+    Some(merge(OsStr::new(login), &own))
+}
+
+/// A variable of `KEPT_VARS` as the login shell sets it; `None` when it does not, or when the
+/// shell was not read (Windows, tests). Waits for the background read like [`child_path`].
+pub fn login_var(name: &str) -> Option<String> {
+    if !STARTED.load(Ordering::SeqCst) {
+        return None;
+    }
+    LOGIN_ENV
+        .get_or_init(read_login_env)
+        .as_ref()?
+        .vars
+        .iter()
+        .find(|(n, _)| n == name)
+        .map(|(_, v)| v.clone())
 }
 
 /// Sets [`child_path`] on `command`, if there is one.
@@ -72,11 +103,11 @@ fn merge(login: &OsStr, own: &OsStr) -> OsString {
     std::env::join_paths(seen).unwrap_or_else(|_| own.to_os_string())
 }
 
-fn read_login_path() -> Option<OsString> {
+fn read_login_env() -> Option<LoginEnv> {
     let shell = std::env::var_os("SHELL").filter(|s| !s.is_empty())?;
     let started = std::time::Instant::now();
-    let path = run_shell(&shell);
-    match &path {
+    let env = run_shell(&shell);
+    match env.as_ref().and_then(|e| e.path.as_ref()) {
         Some(_) => tracing::info!(
             shell = %shell.to_string_lossy(),
             ms = started.elapsed().as_millis() as u64,
@@ -87,14 +118,14 @@ fn read_login_path() -> Option<OsString> {
             "could not read PATH from the login shell; hooks see yaggui's own PATH"
         ),
     }
-    path
+    env
 }
 
 /// Runs `$SHELL -l -i -c` and prints the environment between markers: `-i` because version
 /// managers (nvm, fnm) are usually set up in `.zshrc` / `.bashrc`, and markers because an
 /// interactive shell may print a banner. `env` keeps it shell-agnostic (fish lists `$PATH`
 /// with spaces).
-fn run_shell(shell: &OsStr) -> Option<OsString> {
+fn run_shell(shell: &OsStr) -> Option<LoginEnv> {
     let script = format!("echo {START}; command env; echo {END}");
     let mut child = Command::new(shell)
         .args(["-l", "-i", "-c", &script])
@@ -123,16 +154,31 @@ fn run_shell(shell: &OsStr) -> Option<OsString> {
         }
     };
     let _ = child.wait();
-    parse_path(&String::from_utf8_lossy(&out)).map(OsString::from)
+    parse_env(&String::from_utf8_lossy(&out))
 }
 
-fn parse_path(output: &str) -> Option<String> {
+fn parse_env(output: &str) -> Option<LoginEnv> {
     let (_, rest) = output.split_once(START)?;
     let (env, _) = rest.split_once(END)?;
-    env.lines()
-        .find_map(|line| line.strip_prefix("PATH="))
-        .filter(|path| !path.is_empty())
-        .map(str::to_owned)
+    let var = |name: &str| {
+        let prefix = format!("{name}=");
+        env.lines()
+            .find_map(|line| line.strip_prefix(prefix.as_str()))
+            .filter(|value| !value.is_empty())
+            .map(str::to_owned)
+    };
+    Some(LoginEnv {
+        path: var("PATH"),
+        vars: KEPT_VARS
+            .iter()
+            .filter_map(|name| var(name).map(|value| ((*name).to_owned(), value)))
+            .collect(),
+    })
+}
+
+#[cfg(test)]
+fn parse_path(output: &str) -> Option<String> {
+    parse_env(output)?.path
 }
 
 #[cfg(test)]
@@ -147,6 +193,16 @@ mod tests {
         assert_eq!(
             parse_path(&output).as_deref(),
             Some("/opt/homebrew/bin:/usr/bin")
+        );
+    }
+
+    #[test]
+    fn keeps_the_api_key_only() {
+        let output = format!("{START}\nANTHROPIC_API_KEY=sk-1\nOTHER_SECRET=x\nPATH=/bin\n{END}\n");
+        let env = parse_env(&output).unwrap();
+        assert_eq!(
+            env.vars,
+            vec![("ANTHROPIC_API_KEY".to_owned(), "sk-1".to_owned())]
         );
     }
 
@@ -170,7 +226,7 @@ mod tests {
     #[test]
     #[cfg(unix)]
     fn reads_the_path_from_a_real_shell() {
-        let path = run_shell(OsStr::new("/bin/sh")).expect("PATH from sh");
-        assert!(!path.is_empty());
+        let env = run_shell(OsStr::new("/bin/sh")).expect("environment from sh");
+        assert!(env.path.is_some_and(|p| !p.is_empty()));
     }
 }

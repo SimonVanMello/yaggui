@@ -224,6 +224,16 @@ pub struct AiSkill {
     pub legacy_command: bool,
 }
 
+/// What to describe, for `ai_generate_commit_message` and `ai_preview_context`.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub struct AiMessageRequest {
+    /// The commit will amend HEAD: HEAD's own changes are described too.
+    pub amend: bool,
+    /// The Conventional Commits helper is on: ask for `type(scope): subject`.
+    pub conventional: bool,
+}
+
 /// What the context sent to the provider holds, for the result and the preview.
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
