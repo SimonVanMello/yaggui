@@ -1162,7 +1162,7 @@
   "prefs.git.notFound": "Git was not found. Install Git or enter its path.",
   "prefs.git.saved": "Git path saved",
   "prefs.autoFetch": "Fetch automatically",
-  "prefs.autoFetch.hint": "Fetch the repository of the visible tab in the background.",
+  "prefs.autoFetch.hint": "Fetch every open repository in the background, the other tabs included.",
   "prefs.autoFetchMinutes": "Every (minutes)",
   "prefs.prune": "Prune on fetch",
   "prefs.prune.hint": "Remove remote-tracking branches that were deleted on the remote.",

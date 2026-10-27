@@ -60,7 +60,7 @@ A fetch with prune cannot be undone (see [What cannot be undone](#what-cannot-be
 
 ## Auto-fetch
 
-yaggui fetches all remotes of the active repository in the background, at a fixed interval.
+yaggui fetches all remotes of every open repository in the background, at a fixed interval: the repository of the visible tab and the repositories of the other tabs alike.
 
 | Setting (Preferences → Behavior) | Default | Effect                                                           |
 | -------------------------------- | ------- | ---------------------------------------------------------------- |
@@ -69,10 +69,10 @@ yaggui fetches all remotes of the active repository in the background, at a fixe
 
 How it behaves:
 
-- Only the visible tab fetches. Tabs in the background pause their timer; when you switch back to one, its timer restarts for a full interval.
+- Every open repository has its own timer, whether its tab is visible or in the background. Switching tabs changes nothing: the timer runs from the moment the repository was opened until its last tab closes.
 - No fetch runs when you open a repository: the first one comes after one full interval.
 - A tick is skipped when another operation is running in that repository.
-- Auto-fetch is silent: no toast on success or failure. The status bar still shows the progress and **Fetch completed** or **Fetch failed**. If a fetch fails, open the command log to see why.
+- Auto-fetch is silent: no toast on success or failure. The status bar of the repository still shows the progress and **Fetch completed** or **Fetch failed**. If a fetch fails, open the command log to see why.
 - The footer of the **Fetch** menu shows the current state: **Auto-fetch every 10 min** or **Auto-fetch is off**.
 
 To turn it off, uncheck **Fetch automatically** in **Preferences → Behavior**.
