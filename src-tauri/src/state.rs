@@ -3,6 +3,7 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+use crate::ai::AiService;
 use crate::events::EventSink;
 use crate::git::cli::{DEFAULT_GIT, GitCli};
 use crate::git::errors::YagguiError;
@@ -40,6 +41,8 @@ pub struct AppState {
     pub ptys: Arc<PtyManager>,
     /// Gravatar images on disk, in the OS cache folder (F-033).
     pub avatars: Arc<AvatarCache>,
+    /// AI commit messages (F-072).
+    pub ai: Arc<AiService>,
 }
 
 impl AppState {
@@ -50,7 +53,9 @@ impl AppState {
         config_dir: &Path,
         cache_dir: &Path,
     ) -> Self {
-        let git = Arc::new(GitCli::new(Arc::new(CommandLog::new()), Arc::clone(&sink)));
+        let log = Arc::new(CommandLog::new());
+        let git = Arc::new(GitCli::new(Arc::clone(&log), Arc::clone(&sink)));
+        let ai = Arc::new(AiService::new(log, Arc::clone(&sink)));
         let store = Arc::new(store);
         apply_stored_git_path(&git, &store);
         let creator = Arc::new(RepoCreator::new(
@@ -78,6 +83,7 @@ impl AppState {
                 Arc::new(HttpTransport::new()),
                 Limits::default(),
             )),
+            ai,
         }
     }
 }
