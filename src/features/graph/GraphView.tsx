@@ -29,7 +29,7 @@ import { HistoryWalkStatus } from './HistoryWalkStatus';
 import { useGraphSource } from './graphSource';
 import { directionalRange } from './overscan';
 import type { GraphRow } from './pageCache';
-import { isDisplayRefKind, type MenuRef } from './refLabels';
+import { refOfEvent, type MenuRef } from './refLabels';
 import { useRemoteTags } from './remoteTags';
 import styles from './GraphView.module.css';
 import { ScrollMapper } from './scrollMapper';
@@ -42,17 +42,6 @@ const SKELETON_ROWS = 40;
 
 function rowOfEvent(event: { target: EventTarget }): HTMLElement | null {
   return event.target instanceof Element ? event.target.closest<HTMLElement>('[data-row]') : null;
-}
-
-/** The ref label (pill) a right click landed on, if any. */
-function refOfEvent(event: { target: EventTarget }): MenuRef | null {
-  const pill =
-    event.target instanceof Element
-      ? event.target.closest<HTMLElement>('[data-ref-kind][data-ref-name]')
-      : null;
-  const kind = pill?.dataset.refKind;
-  const name = pill?.dataset.refName;
-  return kind && name && isDisplayRefKind(kind) ? { kind, name } : null;
 }
 
 /** The commit graph (F-020…F-031): canvas lanes, virtualized rows, header, search. */

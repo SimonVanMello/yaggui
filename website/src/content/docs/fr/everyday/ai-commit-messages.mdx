@@ -1,0 +1,198 @@
+---
+title: Messages de commit par IA
+description: Laissez un fournisseur d’IA (l’API Claude ou votre Claude Code) rédiger le message de commit à partir de vos changements indexés. Désactivé par défaut ; ce qui est envoyé, comment le limiter et comment personnaliser le prompt.
+sidebar:
+  order: 3
+sources:
+  - src/features/preferences/AiTab.tsx
+  - src/features/preferences/Ai*.tsx
+  - src/features/ai/**
+  - src/features/staging/AiButton.tsx
+  - src/features/staging/aiGenerate.ts
+  - src/features/staging/aiMessage.ts
+  - src/features/staging/MessageTools.tsx
+  - src/features/palette/builtinActions.ts
+  - src-tauri/src/ai/**
+  - src-tauri/src/commands/ai.rs
+  - src-tauri/src/git/errors.rs
+requirements: [F-072, F-073, F-074, F-075]
+---
+
+import Screenshot from '~/components/Screenshot.astro';
+import aiPrefsDark from '../../../../assets/screens/ai-prefs-fr-dark.png';
+import aiPrefsLight from '../../../../assets/screens/ai-prefs-fr-light.png';
+import aiPrefsClaudeCodeDark from '../../../../assets/screens/ai-prefs-claude-code-fr-dark.png';
+import aiPrefsClaudeCodeLight from '../../../../assets/screens/ai-prefs-claude-code-fr-light.png';
+import aiPreviewDark from '../../../../assets/screens/ai-preview-fr-dark.png';
+import aiPreviewLight from '../../../../assets/screens/ai-preview-fr-light.png';
+import aiCommitAreaDark from '../../../../assets/screens/ai-commit-area-fr-dark.png';
+import aiCommitAreaLight from '../../../../assets/screens/ai-commit-area-fr-light.png';
+
+yaggui peut rédiger le résumé et la description d’un commit à partir des changements que vous avez indexés. La fonction est **désactivée par défaut**, rien n’est envoyé tant que vous ne cliquez pas sur le bouton, et le résultat ne fait que remplir les champs du message : yaggui ne commite jamais de lui-même. Vous le relisez, le modifiez et commitez comme d’habitude (voir [Commiter](../../everyday/committing/)).
+
+## L’activer
+
+Ouvrez les [préférences](../../reference/preferences/#ia) (<kbd>⌘,</kbd> ou <kbd>Ctrl+,</kbd>), allez dans l’onglet **IA** et activez **Messages de commit par IA**. Tant que ce n’est pas fait, la zone de commit n’affiche aucun bouton d’IA. Ce réglage appartient à cet ordinateur : il ne fait jamais partie d’un [fichier de préférences exporté](../../reference/preferences/#import-et-export), donc importer un fichier ne peut pas l’activer.
+
+Choisissez ensuite un fournisseur et rendez-le prêt (ci-dessous). Tout ce qui se trouve dans l’onglet s’applique immédiatement.
+
+<Screenshot
+  dark={aiPrefsDark}
+  light={aiPrefsLight}
+  alt="L’onglet IA des préférences avec l’interrupteur Messages de commit par IA activé, l’encart Ce qui quitte ta machine, le fournisseur API Claude avec sa clé d’API et son modèle, et le bouton Tester"
+/>
+
+## Choisir un fournisseur
+
+**Fournisseur** propose deux choix. Les deux rédigent le message à partir du même contexte et du même prompt ; ils diffèrent par qui parle à Anthropic et avec quels identifiants.
+
+### Claude API
+
+yaggui appelle l’API Messages d’Anthropic (`https://api.anthropic.com/v1/messages`, HTTPS uniquement) avec votre clé d’API.
+
+- **Clé d’API** : collez-la puis cliquez sur **Enregistrer**. La clé va dans le trousseau de votre système, jamais dans `yaggui.db`, dans les journaux ou dans un fichier exporté, et elle n’est plus jamais affichée : la ligne indique seulement « Clé enregistrée dans le trousseau ». **Supprimer** l’efface.
+- Au lieu d’enregistrer une clé, vous pouvez définir la variable d’environnement `ANTHROPIC_API_KEY` (yaggui lit son propre environnement, puis celui de votre shell de connexion). La ligne indique alors « ANTHROPIC_API_KEY de l’environnement est utilisée ». Une clé enregistrée dans le trousseau l’emporte sur la variable.
+- Quand le trousseau du système n’est pas disponible (par exemple pas de Secret Service sous Linux), la ligne indique « Le trousseau du système n'est pas disponible ici : définis plutôt la variable d'environnement ANTHROPIC_API_KEY. ».
+- **Modèle** : choisissez une suggestion (`claude-haiku-5-5`, `claude-sonnet-5-5`, `claude-opus-5-5`) ou saisissez n’importe quel identifiant de modèle. Par défaut : `claude-haiku-5-5`, assez rapide et économique pour un message de commit. Un champ vide revient au défaut.
+
+### Claude Code
+
+yaggui lance votre propre programme `claude`, avec votre connexion à Claude Code : rien à configurer côté yaggui, hormis le choisir.
+
+- **Programme Claude Code** : yaggui trouve `claude` dans le `PATH` de votre shell de connexion et dans les dossiers d’installation habituels, et la ligne indique « Détecté : _chemin_ (_version_) ». S’il est ailleurs, saisissez son chemin ; la ligne indique alors « Chemin que tu as défini : … ». Quand rien n’est trouvé : « claude est introuvable. Installe Claude Code, ou saisis son chemin. ». Ce chemin appartient à cet ordinateur et n’est jamais exporté.
+- **Modèle** : un alias (`haiku`, `sonnet`, `opus`) ou un identifiant complet, transmis à `claude --model`. Vide : le modèle par défaut de Claude Code.
+- **Skill** : voir [plus bas](#utiliser-un-skill-claude-code).
+
+Comment il s’exécute, pour savoir ce qu’il peut et ne peut pas faire :
+
+- Il démarre dans le dossier du dépôt, en mode non interactif (`claude -p`), avec le prompt sur son entrée standard. Comme il s’exécute là avec votre connexion, vos propres réglages de Claude Code s’appliquent, ainsi que le `CLAUDE.md` du dépôt et ses skills de projet, comme quand vous lancez vous-même `claude` dans ce dossier.
+- Il est en **lecture seule**. Les seuls outils autorisés sont `Read`, `Grep` et `Glob` (plus `Skill` quand vous avez choisi un skill). `Bash`, `Edit`, `Write`, `NotebookEdit`, `WebFetch` et `WebSearch` sont refusés même si vos réglages les autorisent, et tout ce qui n’est pas autorisé est refusé sans demande. Il ne peut ni lancer `git`, ni modifier un fichier, ni indexer, ni commiter.
+- Il peut lire d’autres fichiers du dépôt quand le diff seul n’explique pas un changement. Ces lectures sont aussi des données envoyées à Anthropic : voir [Ce qui quitte votre ordinateur](#ce-qui-quitte-votre-ordinateur).
+- Aucune session n’est enregistrée et aucun serveur MCP n’est chargé.
+
+<Screenshot
+  dark={aiPrefsClaudeCodeDark}
+  light={aiPrefsClaudeCodeLight}
+  alt="L’onglet IA avec le fournisseur Claude Code : le programme détecté, le champ du modèle, un champ Skill renseigné avec commit et sa suggestion, et le bouton Tester"
+/>
+
+### Utiliser un skill Claude Code
+
+Si vous avez déjà un skill Claude Code qui connaît la façon dont votre équipe écrit ses messages de commit, saisissez son nom dans **Skill** (le champ propose les skills qu’il trouve : les vôtres, ceux du dépôt courant et ceux des plugins installés, avec la mention « commande » pour les commandes à l’ancienne). Vide : le prompt de yaggui seul. Le fournisseur Claude API n’a pas de skill.
+
+yaggui demande à Claude Code de rédiger le message avec ce skill et d’en suivre les conventions **pour le style uniquement**. Il lui demande aussi d’ignorer toute étape qui indexe, commite, pousse ou lance une commande, et de répondre avec le message seul. Un skill écrit pour commiter ne peut donc pas commiter ici : les outils qui le permettraient sont refusés (voir plus haut), et le message revient dans la zone de commit pour que vous le relisiez.
+
+### Tester le fournisseur
+
+**Tester** (sous les réglages du fournisseur) envoie un tout petit prompt avec les réglages enregistrés et affiche « _Fournisseur_ a répondu en _n_ s (modèle _nom_). » ou l’erreur. Il n’envoie aucune donnée du dépôt (Claude Code l’exécute dans un dossier neutre) : c’est une façon sûre de vérifier une clé, un nom de modèle, le chemin de `claude` ou une connexion. Il s’arrête au bout de 120 secondes au plus.
+
+## Ce qui quitte votre ordinateur
+
+L’encart **Ce qui quitte ta machine**, en haut de l’onglet, indique ce que chaque génération envoie :
+
+- le **diff indexé**, dans les limites ci-dessous (avec **Modifier le commit précédent** cochée, aussi les changements du commit corrigé) ;
+- la **liste des fichiers modifiés** et leur statut, avec le nombre de lignes ajoutées et supprimées (jusqu’à 500 fichiers par section) ;
+- le **nom de la branche courante** ;
+- en option, les **sujets des derniers commits** de la branche, comme exemples de style ;
+- le prompt (ci-dessous) et quelques règles fixes sur le format de la réponse.
+
+Avec Claude API, c’est tout, et cela part vers Anthropic en HTTPS avec votre clé. Avec Claude Code, la requête part vers Anthropic depuis votre programme `claude`, avec sa propre connexion, et il peut lire d’autres fichiers du dépôt. Rien d’autre n’est envoyé, et rien n’est envoyé avant que vous cliquiez sur le bouton ou utilisiez le raccourci.
+
+### Limites
+
+Le groupe **Contexte envoyé** règle la quantité de diff envoyée :
+
+| Réglage                         | Par défaut                                                   | Plage                                      | Effet                                                                                                                                                                                                                         |
+| ------------------------------- | ------------------------------------------------------------ | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Taille maximale du diff**     | 60000 octets                                                 | 4000 à 1000000                             | Octets de diff envoyés au total. Les fichiers au-delà sont listés par leur nom seulement.                                                                                                                                     |
+| **Taille maximale par fichier** | 12000 octets                                                 | 500 à 1000000                              | Un diff plus long est coupé à une limite de ligne, avec une note indiquant que la suite n’a pas été envoyée.                                                                                                                  |
+| **Chemins exclus**              | Fichiers de verrouillage et bundles minifiés (voir plus bas) | Jusqu’à 200 motifs                         | Un motif par ligne. Seuls le nom et le statut des fichiers concernés sont envoyés. Sans `/`, un motif correspond au nom du fichier où qu’il soit (`*.lock`) ; avec un `/`, au chemin depuis la racine du dépôt (`vendor/**`). |
+| **Sujets récents**              | Activé, **Combien** : 10                                     | 1 à 50                                     | Envoie les sujets des derniers commits de la branche, du plus récent au plus ancien, pour que le message suive leur style. Désactivé : aucun envoi.                                                                           |
+| **Langue**                      | **Automatique**                                              | **Automatique**, **English**, **Français** | **Automatique** suit les sujets récents, et l’anglais quand il n’y en a pas (ou qu’aucun n’est envoyé).                                                                                                                       |
+| **Délai maximal (secondes)**    | 120                                                          | 10 à 900                                   | Une génération plus longue est abandonnée.                                                                                                                                                                                    |
+
+Les chemins exclus par défaut sont `package-lock.json`, `pnpm-lock.yaml`, `yarn.lock`, `bun.lockb`, `Cargo.lock`, `Gemfile.lock`, `composer.lock`, `poetry.lock`, `uv.lock`, `go.sum`, `*.min.js` et `*.min.css`. Les fichiers binaires et les diffs trop volumineux pour être lus sont aussi listés par leur nom seulement. Quand un fichier a été coupé ou envoyé par son nom seulement, le toast qui suit la génération indique « _n_ fichiers ont été coupés ou envoyés par leur nom seulement. ».
+
+### Voir ce qui serait envoyé
+
+**Voir ce qui serait envoyé** ouvre **Contexte envoyé au fournisseur** : le texte exact qu’une génération enverrait pour les changements indexés du dépôt de l’onglet actif, suivi d’un résumé (« _n_ fichiers modifiés · _taille_ envoyés », « Diff coupé : … », « Nom et statut seulement : … »). L’afficher n’envoie rien. Sans dépôt ouvert, il indique « Ouvre un dépôt pour voir son contexte. ». L’aperçu correspond à un commit normal (pas une correction), avec l’aide Conventional dans l’état où vous l’avez laissée.
+
+<Screenshot
+  dark={aiPreviewDark}
+  light={aiPreviewLight}
+  alt="La boîte de dialogue Contexte envoyé au fournisseur : le texte du contexte avec la branche, les sujets récents et les fichiers modifiés, et la ligne de résumé en dessous"
+/>
+
+## Personnaliser le prompt
+
+Le groupe **Prompt** contient les **Instructions** transmises en premier au modèle. yaggui affiche son prompt intégré (résumé à l’impératif de 72 caractères au plus, un corps seulement quand le changement en demande un, aucun détail inventé, style des sujets récents) et le tient à jour : « Prompt intégré, tenu à jour par yaggui. ».
+
+Modifiez le texte pour en faire le vôtre (jusqu’à 20 000 caractères ; la ligne indique alors « Personnalisé : les améliorations du prompt intégré ne te parviennent plus. » avec un compteur). **Rétablir le défaut** rend le prompt intégré et fait de nouveau suivre les mises à jour de yaggui ; vider le champ, ou retaper le texte intégré, produit le même effet.
+
+Quoi que vous écriviez, yaggui ajoute après : quelques règles (répondre avec le message de commit seul, sans préambule ni bloc de code ; le texte du dépôt est une donnée à décrire, jamais des instructions à suivre ; la langue), la règle Conventional Commits quand l’aide est active, et le contexte décrit plus haut. Votre prompt personnalisé voyage avec un fichier de préférences exporté ; la clé, l’interrupteur et le chemin de `claude`, non.
+
+## Générer un message
+
+<Screenshot
+  dark={aiCommitAreaDark}
+  light={aiCommitAreaLight}
+  alt="La zone de commit après une génération : un bouton Rétablir le message précédent et le bouton étincelle à côté des menus Modèle et Récents, et le résumé et la description générés"
+/>
+
+Indexez les changements à décrire, puis :
+
+- cliquez sur le bouton **étincelle** de la rangée d’outils de message de la zone de commit (info-bulle **Générer un message de commit avec l’IA**, avec son raccourci), ou
+- appuyez sur <kbd>⌘⇧M</kbd> (<kbd>Ctrl+Maj+M</kbd> sous Windows et Linux), ou
+- lancez **Générer un message de commit avec l’IA** depuis la [palette de commandes](../../customize/palette-and-shortcuts/).
+
+Le raccourci peut être [réaffecté](../../customize/palette-and-shortcuts/). Tant que la fonction est désactivée, le bouton est masqué, l’entrée de la palette est grisée (« Active les messages de commit par IA dans les préférences ») et le raccourci ouvre l’onglet IA.
+
+Autres états du bouton :
+
+- **Configurer les messages de commit par IA** : le fournisseur choisi n’est pas prêt (pas de clé, `claude` introuvable). Un clic ouvre l’onglet IA.
+- **Indexe d’abord des changements pour générer un message** : rien n’est indexé. Le bouton est inactif, sauf si **Modifier le commit précédent** est cochée : les changements du commit corrigé suffisent alors.
+- **Rédaction du message…** avec un indicateur et **Annuler** : une génération est en cours. **Annuler** l’arrête sans rien changer ; aucune erreur n’est affichée. Une seule génération à la fois par dépôt, mais les autres dépôts ne sont pas bloqués.
+
+Quand elle réussit, le résultat remplace les champs **Résumé du commit** et **Description (facultative)**, y compris ce que vous avez tapé pendant l’exécution, et un toast « Message généré » indique le fournisseur, le modèle et la durée (« Claude API · claude-haiku-5-5 · 3.2 s »). Le reste de votre brouillon est conservé : **Modifier le commit précédent** reste comme elle était, et le message n’est plus considéré comme celui du commit corrigé.
+
+### Récupérer le message précédent
+
+Si les champs contenaient un message avant la génération, le toast propose **Rétablir le message précédent** pendant une douzaine de secondes, et un bouton du même nom (une flèche d’annulation) apparaît dans la zone de commit, à gauche de l’étincelle. L’un ou l’autre remet le résumé et la description remplacés (« Message précédent rétabli »). Dès que vous modifiez le texte généré, il n’y a plus rien à rétablir : le bouton du toast indique alors « Le message a été modifié depuis : rien à rétablir » au lieu d’écraser votre travail. Rien n’est proposé quand les champs étaient vides.
+
+### Avec la correction et Conventional
+
+- Avec **Modifier le commit précédent** cochée, le contexte contient aussi les changements du commit corrigé (présentés comme « Changes of the commit being amended (HEAD) »), et le modèle sait que le nouveau message remplace l’ancien. Le message est rédigé pour les deux ensemble.
+- Avec l’aide **Conventional** active, le prompt demande un résumé au format Conventional Commits (`type(scope): subject`), et les champs de l’aide suivent le résumé généré. Voir [Aide Conventional Commits](../../everyday/committing/#aide-conventional-commits).
+
+## Quand ça échoue
+
+Une génération en échec affiche un toast intitulé « Impossible de générer un message », avec le message dessous et, quand c’est utile, un bouton. La réponse brute du fournisseur se trouve sous **Détails**. Une annulation n’affiche rien.
+
+| Message                                                                                                                                               | Que faire                                                                                                            |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| « Les messages de commit par IA sont désactivés. Active-les dans les préférences (IA). »                                                              | Bouton **Ouvrir les préférences IA**.                                                                                |
+| « Aucune clé d'API : enregistres-en une dans les préférences (IA), ou définis ANTHROPIC_API_KEY. »                                                    | Bouton **Ouvrir les préférences IA** : enregistrez une clé ou définissez la variable.                                |
+| « Claude Code (claude) est introuvable. Installe-le, ou indique son chemin dans les préférences (IA). »                                               | Bouton **Ouvrir les préférences IA** : installez Claude Code ou saisissez son chemin.                                |
+| « La clé d'API a été refusée. Vérifie-la, ou enregistre-en une nouvelle dans les préférences (IA). »                                                  | Bouton **Ouvrir les préférences IA**.                                                                                |
+| « Claude Code n'est pas connecté, ou sa connexion a expiré. Lance claude dans un terminal et connecte-toi, puis réessaie. »                           | Connectez-vous depuis un terminal, puis relancez la génération.                                                      |
+| « Le fournisseur d'IA limite les requêtes en ce moment (débit ou plafond de dépenses). Réessaie dans un instant. »                                    | Bouton **Réessayer**.                                                                                                |
+| « Le fournisseur d'IA est injoignable ou surchargé. Vérifie la connexion et réessaie. »                                                               | Bouton **Réessayer**.                                                                                                |
+| « Le fournisseur d'IA n'a pas répondu en _n_ s. Réessaie, ou augmente le délai dans les préférences (IA). »                                           | Bouton **Réessayer**, ou augmentez **Délai maximal (secondes)**.                                                     |
+| « Le fournisseur d'IA a répondu sans message de commit. Réessaie. »                                                                                   | Bouton **Réessayer**.                                                                                                |
+| « Le fournisseur d'IA a signalé une erreur. Sa réponse est dans les détails ; vérifie le modèle et les réglages dans les préférences (IA). »          | Bouton **Ouvrir les préférences IA**. **Détails** contient la réponse du fournisseur, par exemple un modèle inconnu. |
+| « Le trousseau du système est inutilisable, la clé ne peut donc pas être enregistrée. Définis plutôt la variable d'environnement ANTHROPIC_API_KEY. » | Définissez `ANTHROPIC_API_KEY`.                                                                                      |
+| « Un message de commit est déjà en cours de génération pour ce dépôt. »                                                                               | Attendez la fin, ou annulez-la.                                                                                      |
+| « Rien n'est indexé : indexe d'abord les modifications à décrire. »                                                                                   | Indexez des changements, ou cochez **Modifier le commit précédent**.                                                 |
+
+Ces messages figurent aussi dans [Messages d’erreur](../../reference/error-messages/#messages-de-commit-par-ia).
+
+## Dans le journal des commandes
+
+Chaque génération et chaque **Tester** est enregistré dans le [journal des commandes](../../reference/command-log/), comme les commandes Git : vous voyez qu’elle a eu lieu, combien de temps elle a duré et ce qui a été envoyé :
+
+- avec Claude API, la commande s’écrit `claude-api messages --model claude-haiku-5-5` ;
+- avec Claude Code, c’est la ligne de commande `claude` avec ses options de lecture seule (`claude -p --output-format json … --tools Read,Grep,Glob …`), exécutée dans le dossier du dépôt.
+
+La sortie indique `[yaggui] sent 4210 bytes, received 182 bytes, model claude-haiku-5-5` (la mention est en anglais) et le modèle, plus le texte d’erreur du fournisseur en cas d’échec. Le journal ne contient jamais le diff, le message ni votre clé d’API (une clé renvoyée par un fournisseur est masquée). Un **Tester** n’est lié à aucun dépôt : il n’apparaît que quand le filtre est sur **Toutes**.
+
+Voir [Données et confidentialité](../../reference/data-and-privacy/#requêtes-réseau) pour la liste complète de ce que yaggui envoie et conserve.

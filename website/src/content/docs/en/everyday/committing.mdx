@@ -12,6 +12,7 @@ sources:
   - src/features/staging/CommitIdentity.tsx
   - src/features/staging/ProfilesDialog.tsx
   - src/features/staging/MessageTools.tsx
+  - src/features/staging/AiButton.tsx
   - src/features/staging/ConventionalFields.tsx
   - src/features/staging/TemplatesDialog.tsx
   - src/features/staging/conventional.ts
@@ -39,7 +40,7 @@ The commit area sits at the bottom of the **Local changes** panel. It records yo
 
 From top to bottom, the commit area contains:
 
-1. The message tools row: **Conventional**, **Template** and **Recent** (see [Reuse messages](#reuse-messages)).
+1. The message tools row: **Conventional**, the sparkle button of [AI commit messages](../../everyday/ai-commit-messages/) (only when you turned them on), **Template** and **Recent** (see [Reuse messages](#reuse-messages)).
 2. The **Commit summary** field, with a `{length}/72` counter.
 3. The **Description (optional)** field, for the commit body.
 4. The **Amend previous commit** and **Push after commit** checkboxes.
@@ -176,6 +177,10 @@ The fields write `type(scope)!: subject` into the summary and read it back if yo
 ### Recent messages
 
 The **Recent** menu lists the last 30 messages committed from yaggui in this repository, newest first (messages with a body are marked **with a description**). Choosing one fills the summary and description. Commits made outside yaggui do not appear.
+
+### Write the message with AI
+
+When **AI commit messages** is turned on in the preferences (it is off by default), a sparkle button in the message tools row writes the summary and the description from your staged changes. It replaces the two fields, never commits, and a **Restore previous message** button brings your previous text back. The **Conventional** helper and **Amend previous commit** are taken into account. See [AI commit messages](../../everyday/ai-commit-messages/).
 
 ## Errors
 

@@ -84,6 +84,28 @@ for (const { name: theme, colorScheme } of THEMES) {
       await expect(page.getByRole('menuitem', { name: 'Edit commit message…' })).toBeVisible();
     });
 
+    test('a label of the commit details has the menu of its ref', async ({ page }) => {
+      await openRepo(page, 'yaggui');
+      const details = page.getByRole('region', { name: 'Commit details' });
+      const branchRow = page
+        .locator('[data-row]')
+        .filter({ has: page.locator('[data-ref-kind="local"]') })
+        .first();
+      await branchRow.click();
+      await details.locator('[data-ref-kind="local"]').first().click({ button: 'right' });
+      await expect(page.getByRole('menuitem', { name: /^Rename/ })).toBeVisible();
+      await page.keyboard.press('Escape');
+
+      const { name: tag } = await tagPill(page);
+      await details
+        .locator(`[data-ref-kind="tag"][data-ref-name="${tag}"]`)
+        .click({ button: 'right' });
+      const menu = page.getByRole('menu');
+      await expect(menu.getByRole('menuitem', { name: 'Delete the tag…' })).toBeVisible();
+      await expect(menu.getByRole('menuitem', { name: /Cherry-pick onto/ })).toHaveCount(0);
+      await capture(page, theme, 'detail-tag-menu');
+    });
+
     test('double-click on a remote label brings the local branch behind it up to it', async ({
       page,
     }) => {

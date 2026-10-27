@@ -16,7 +16,26 @@ sources:
   - src-tauri/src/commands/store.rs
   - src-tauri/src/commands/settings.rs
   - src-tauri/src/state.rs
-requirements: [F-320, F-321, F-322, F-323, F-324, F-325, F-033, F-266, F-267, F-281, F-326]
+  - src-tauri/src/ai/prefs.rs
+  - src-tauri/src/ai/types.rs
+requirements:
+  [
+    F-320,
+    F-321,
+    F-322,
+    F-323,
+    F-324,
+    F-325,
+    F-033,
+    F-266,
+    F-267,
+    F-281,
+    F-326,
+    F-072,
+    F-073,
+    F-074,
+    F-075,
+  ]
 ---
 
 This page lists every setting of the **Preferences** dialog, tab by tab. Each row links to the page that explains the feature.
@@ -121,6 +140,30 @@ The **Confirmations** group of the **Behavior** tab ("Ask before these actions. 
 
 A turned-off confirmation runs the action at once. Other confirmations are always shown and have no switch, for example: rebase ("Rebase _branch_ onto _target_?"), rewriting commits in an interactive rebase, aborting an operation, deleting a remote branch or tag, removing a remote, publishing a branch, deleting a workspace, undo when local changes are in the way, trusting a folder (`safe.directory`) and removing an index lock. Reset and branch deletion use their own dialogs.
 
+## AI
+
+The **AI** tab turns on and sets up [AI commit messages](../../everyday/ai-commit-messages/). Everything here is off or empty until you opt in. The tab has the **AI commit messages** switch, a **What leaves your machine** notice with the **Show what would be sent** button, then three groups.
+
+| Label                                          | Values                                                   | Default                                              | Effect                                                                                                                                                |
+| ---------------------------------------------- | -------------------------------------------------------- | ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **AI commit messages**                         | On, off                                                  | Off                                                  | Shows the AI button in the commit area and enables the palette action and the shortcut. Nothing is sent until you use them. Specific to this computer |
+| **Show what would be sent**                    | Button                                                   |                                                      | Opens **Context sent to the provider**: the exact text a generation would send for the staged changes of the active repository                        |
+| **Provider** (group **Provider**)              | **Claude API**, **Claude Code**                          | **Claude API**                                       | Who writes the message                                                                                                                                |
+| **API key**                                    | Text, write-only                                         | None                                                 | Claude API only. **Save** puts it in the system keychain; **Remove** deletes it. Never shown again. `ANTHROPIC_API_KEY` is used when no key is saved  |
+| **Model**                                      | A model id (Claude API); an alias or an id (Claude Code) | `claude-haiku-5-5` (Claude API); empty (Claude Code) | Model used. Empty with Claude Code keeps Claude Code's default                                                                                        |
+| **Claude Code program**                        | A program name or a path                                 | Detected automatically                               | Claude Code only. Specific to this computer                                                                                                           |
+| **Skill**                                      | A Claude Code skill name                                 | None                                                 | Claude Code only. A skill asked to write the message, for its style only                                                                              |
+| **Test**                                       | Button                                                   |                                                      | Sends a tiny prompt with the saved settings, with no repository data                                                                                  |
+| **Instructions** (group **Prompt**)            | Text, up to 20,000 characters                            | Built-in prompt                                      | **Reset to default** brings the built-in prompt back                                                                                                  |
+| **Maximum diff size** (group **Context sent**) | 4000 to 1000000 bytes                                    | 60000                                                | Diff bytes sent in total                                                                                                                              |
+| **Maximum size per file**                      | 500 to 1000000 bytes                                     | 12000                                                | Diff bytes sent for one file                                                                                                                          |
+| **Excluded paths**                             | One pattern per line, up to 200                          | Lockfiles and minified bundles                       | Only the name and status of matching files are sent                                                                                                   |
+| **Recent subjects** and **How many**           | On, off; 1 to 50                                         | On, 10                                               | Subjects of the last commits, as style examples                                                                                                       |
+| **Language**                                   | **Automatic**, **English**, **Français**                 | **Automatic**                                        | Language of the message                                                                                                                               |
+| **Time limit (seconds)**                       | 10 to 900                                                | 120                                                  | A longer generation is abandoned                                                                                                                      |
+
+Values out of range are refused, and the setting goes back to its previous value with a toast. The page [AI commit messages](../../everyday/ai-commit-messages/) explains each setting.
+
 ## Preferences not in the dialog
 
 | Setting                                                                                  | Where you change it                                                                           | Default                 |
@@ -166,8 +209,8 @@ To carry your preferences and shortcuts to another machine by hand, use **Export
 }
 ```
 
-- **Exported preferences:** theme, style, language, what the Terminal button opens, diff layout and options, high contrast, density, interface and code fonts, text size, automatic fetch and its interval, prune on fetch, default pull strategy, protected branches, turned-off confirmations, Gravatar avatars and tags on the remotes.
-- **Never exported (specific to a machine):** the Git binary path, the editor, the external terminal, the diff and merge tools, and the answer to the update check question. Their paths and programs differ from one install to the next, and the update check is an opt-in you answer on each machine. If a file contains them anyway, they are ignored and listed under **Left out**, and the values on this machine stay as they are.
+- **Exported preferences:** theme, style, language, what the Terminal button opens, diff layout and options, high contrast, density, interface and code fonts, text size, automatic fetch and its interval, prune on fetch, default pull strategy, protected branches, turned-off confirmations, Gravatar avatars, tags on the remotes and the AI settings (provider, models, skill, prompt and context limits).
+- **Never exported (specific to a machine):** the Git binary path, the editor, the external terminal, the diff and merge tools, the answer to the update check question, the **AI commit messages** switch and the **Claude Code program** path. Their paths and programs differ from one install to the next, and the update check and AI commit messages are opt-ins you answer on each machine. The API key is never exported either: it lives in the system keychain. If a file contains them anyway, they are ignored and listed under **Left out**, and the values on this machine stay as they are.
 - **Shortcuts:** the list in `keybindings` is your whole set of custom shortcuts. Importing it **replaces** the custom shortcuts of this machine: a command the file does not list goes back to its default shortcut. The preview shows each change.
 - **Preferences missing from the file** keep their value on this machine. **Unknown keys** (a setting added by a newer yaggui, or a typo) are ignored and listed.
 - Identity profiles, commit templates, repositories, tabs and workspaces are not preferences and are never exported.

@@ -9,6 +9,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Added
+
+- AI commit messages (opt-in, off by default: Preferences → AI): a sparkle button in the commit
+  area, the palette and `⌘⇧M` / `Ctrl+Shift+M` write the summary and description
+  from your staged changes (with Amend, also the amended commit's). Choose the Claude API (key kept
+  in the system keychain, or `ANTHROPIC_API_KEY`) or your own Claude Code (read-only, optionally
+  with one of your skills). The preferences say what leaves your machine, let you cap the diff,
+  exclude paths (lockfiles by default), edit or reset the prompt and **Show what would be sent**.
+  A generation can be cancelled, the previous message restored, and it never commits by itself.
+  Each call is recorded in the command log.
+
 ## [0.10.0] - 2026-10-27
 
 ### Added

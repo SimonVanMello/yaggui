@@ -16,7 +16,26 @@ sources:
   - src-tauri/src/commands/store.rs
   - src-tauri/src/commands/settings.rs
   - src-tauri/src/state.rs
-requirements: [F-320, F-321, F-322, F-323, F-324, F-325, F-033, F-266, F-267, F-281, F-326]
+  - src-tauri/src/ai/prefs.rs
+  - src-tauri/src/ai/types.rs
+requirements:
+  [
+    F-320,
+    F-321,
+    F-322,
+    F-323,
+    F-324,
+    F-325,
+    F-033,
+    F-266,
+    F-267,
+    F-281,
+    F-326,
+    F-072,
+    F-073,
+    F-074,
+    F-075,
+  ]
 ---
 
 Cette page recense tous les réglages de la boîte de dialogue **Préférences**, onglet par onglet. Chaque ligne renvoie vers la page qui explique la fonctionnalité.
@@ -121,6 +140,30 @@ Le groupe **Confirmations** de l’onglet **Comportement** (« Demander avant c
 
 Une confirmation désactivée exécute l’action immédiatement. Les autres confirmations sont toujours affichées et n’ont pas d’interrupteur, par exemple : le rebase (« Rebaser _branche_ sur _cible_ ? »), la réécriture de commits dans un rebase interactif, l’abandon d’une opération, la suppression d’une branche ou d’un tag distant, la suppression d’un remote, la publication d’une branche, la suppression d’un workspace, l’annulation quand des modifications locales gênent, la confiance accordée à un dossier (`safe.directory`) et la suppression d’un verrou d’index. Le reset et la suppression de branche ont leurs propres boîtes de dialogue.
 
+## IA
+
+L’onglet **IA** active et règle les [messages de commit par IA](../../everyday/ai-commit-messages/). Tout y est désactivé ou vide tant que vous n’avez pas choisi de l’utiliser. L’onglet contient l’interrupteur **Messages de commit par IA**, un encart **Ce qui quitte ta machine** avec le bouton **Voir ce qui serait envoyé**, puis trois groupes.
+
+| Libellé                                                  | Valeurs                                                                          | Par défaut                                           | Effet                                                                                                                                                                                         |
+| -------------------------------------------------------- | -------------------------------------------------------------------------------- | ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Messages de commit par IA**                            | Activé, désactivé                                                                | Désactivé                                            | Affiche le bouton d’IA dans la zone de commit et active l’action de la palette et le raccourci. Rien n’est envoyé tant que vous ne les utilisez pas. Propre à cet ordinateur                  |
+| **Voir ce qui serait envoyé**                            | Bouton                                                                           |                                                      | Ouvre **Contexte envoyé au fournisseur** : le texte exact qu’une génération enverrait pour les changements indexés du dépôt actif                                                             |
+| **Fournisseur** (groupe **Fournisseur**)                 | **Claude API**, **Claude Code**                                                  | **Claude API**                                       | Qui rédige le message                                                                                                                                                                         |
+| **Clé d’API**                                            | Texte, en écriture seule                                                         | Aucune                                               | Claude API uniquement. **Enregistrer** la place dans le trousseau du système ; **Supprimer** l’efface. Jamais réaffichée. `ANTHROPIC_API_KEY` est utilisée quand aucune clé n’est enregistrée |
+| **Modèle**                                               | Un identifiant de modèle (Claude API) ; un alias ou un identifiant (Claude Code) | `claude-haiku-5-5` (Claude API) ; vide (Claude Code) | Modèle utilisé. Vide avec Claude Code : le modèle par défaut de Claude Code                                                                                                                   |
+| **Programme Claude Code**                                | Un nom de programme ou un chemin                                                 | Détecté automatiquement                              | Claude Code uniquement. Propre à cet ordinateur                                                                                                                                               |
+| **Skill**                                                | Un nom de skill Claude Code                                                      | Aucun                                                | Claude Code uniquement. Un skill chargé de rédiger le message, pour son style seulement                                                                                                       |
+| **Tester**                                               | Bouton                                                                           |                                                      | Envoie un tout petit prompt avec les réglages enregistrés, sans donnée du dépôt                                                                                                               |
+| **Instructions** (groupe **Prompt**)                     | Texte, jusqu’à 20 000 caractères                                                 | Prompt intégré                                       | **Rétablir le défaut** rend le prompt intégré                                                                                                                                                 |
+| **Taille maximale du diff** (groupe **Contexte envoyé**) | 4000 à 1000000 octets                                                            | 60000                                                | Octets de diff envoyés au total                                                                                                                                                               |
+| **Taille maximale par fichier**                          | 500 à 1000000 octets                                                             | 12000                                                | Octets de diff envoyés pour un fichier                                                                                                                                                        |
+| **Chemins exclus**                                       | Un motif par ligne, 200 au plus                                                  | Fichiers de verrouillage et bundles minifiés         | Seuls le nom et le statut des fichiers concernés sont envoyés                                                                                                                                 |
+| **Sujets récents** et **Combien**                        | Activé, désactivé ; 1 à 50                                                       | Activé, 10                                           | Sujets des derniers commits, comme exemples de style                                                                                                                                          |
+| **Langue**                                               | **Automatique**, **English**, **Français**                                       | **Automatique**                                      | Langue du message                                                                                                                                                                             |
+| **Délai maximal (secondes)**                             | 10 à 900                                                                         | 120                                                  | Une génération plus longue est abandonnée                                                                                                                                                     |
+
+Les valeurs hors plage sont refusées, et le réglage revient à sa valeur précédente avec un toast. La page [Messages de commit par IA](../../everyday/ai-commit-messages/) explique chaque réglage.
+
 ## Préférences hors de la boîte de dialogue
 
 | Réglage                                                                                                       | Où le modifier                                                                                              | Par défaut                        |
@@ -166,8 +209,8 @@ Pour emporter vos préférences et vos raccourcis sur une autre machine à la ma
 }
 ```
 
-- **Préférences exportées :** thème, style, langue, ce qu’ouvre le bouton Terminal, disposition et options du diff, contraste élevé, densité, polices de l’interface et du code, taille du texte, fetch automatique et son intervalle, nettoyage au fetch, stratégie de pull par défaut, branches protégées, confirmations désactivées, avatars Gravatar et tags sur les remotes.
-- **Jamais exportés (propres à une machine) :** le chemin du binaire Git, l’éditeur, le terminal externe, les outils de diff et de merge, et la réponse à la question sur la vérification des mises à jour. Leurs chemins et leurs programmes diffèrent d’une installation à l’autre, et la vérification des mises à jour est un choix que vous faites sur chaque machine. Si un fichier les contient malgré tout, ils sont ignorés et listés sous **Laissé de côté**, et les valeurs de cette machine restent telles quelles.
+- **Préférences exportées :** thème, style, langue, ce qu’ouvre le bouton Terminal, disposition et options du diff, contraste élevé, densité, polices de l’interface et du code, taille du texte, fetch automatique et son intervalle, nettoyage au fetch, stratégie de pull par défaut, branches protégées, confirmations désactivées, avatars Gravatar, tags sur les remotes et réglages de l’IA (fournisseur, modèles, skill, prompt et limites du contexte).
+- **Jamais exportés (propres à une machine) :** le chemin du binaire Git, l’éditeur, le terminal externe, les outils de diff et de merge, la réponse à la question sur la vérification des mises à jour, l’interrupteur **Messages de commit par IA** et le chemin du **Programme Claude Code**. Leurs chemins et leurs programmes diffèrent d’une installation à l’autre, et la vérification des mises à jour comme les messages de commit par IA sont des choix que vous faites sur chaque machine. La clé d’API n’est jamais exportée non plus : elle vit dans le trousseau du système. Si un fichier les contient malgré tout, ils sont ignorés et listés sous **Laissé de côté**, et les valeurs de cette machine restent telles quelles.
 - **Raccourcis :** la liste `keybindings` est l’ensemble de vos raccourcis personnalisés. L’importer **remplace** les raccourcis personnalisés de cette machine : une commande que le fichier ne liste pas retrouve son raccourci par défaut. L’aperçu montre chaque changement.
 - **Les préférences absentes du fichier** gardent leur valeur sur cette machine. **Les clés inconnues** (un réglage ajouté par une version plus récente de yaggui, ou une faute de frappe) sont ignorées et listées.
 - Les profils d’identité, les modèles de commit, les dépôts, les onglets et les workspaces ne sont pas des préférences et ne sont jamais exportés.
