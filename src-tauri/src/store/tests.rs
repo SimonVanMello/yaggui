@@ -148,6 +148,7 @@ fn stores_preferences() {
         protected_branches: vec!["main".into(), "hotfix/*".into()],
         disabled_confirmations: vec![ConfirmationKind::DropStash],
         gravatar: true,
+        remote_tags: true,
         check_updates: Some(true),
     };
     assert_eq!(store.set_preferences(&prefs).unwrap(), prefs);

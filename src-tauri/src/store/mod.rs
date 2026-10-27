@@ -48,6 +48,7 @@ const PREF_PULL_STRATEGY: &str = "pull_strategy";
 const PREF_PROTECTED_BRANCHES: &str = "protected_branches";
 const PREF_DISABLED_CONFIRMATIONS: &str = "disabled_confirmations";
 const PREF_GRAVATAR: &str = "gravatar";
+const PREF_REMOTE_TAGS: &str = "remote_tags";
 const PREF_CHECK_UPDATES: &str = "check_updates";
 /// Folders remembered for the clone / init dialogs.
 const RECENT_DIRS_KEPT: i64 = 10;
@@ -247,6 +248,7 @@ impl Store {
         load!(disabled_confirmations, PREF_DISABLED_CONFIRMATIONS);
         load!(diff_options, PREF_DIFF_OPTIONS);
         load!(gravatar, PREF_GRAVATAR);
+        load!(remote_tags, PREF_REMOTE_TAGS);
         load_optional!(check_updates, PREF_CHECK_UPDATES);
         load_optional!(ui_font, PREF_UI_FONT);
         load_optional!(code_font, PREF_CODE_FONT);
@@ -295,6 +297,7 @@ impl Store {
                 &prefs.disabled_confirmations,
             )?;
             set_pref(&tx, PREF_GRAVATAR, &prefs.gravatar)?;
+            set_pref(&tx, PREF_REMOTE_TAGS, &prefs.remote_tags)?;
             set_pref(&tx, PREF_CHECK_UPDATES, &prefs.check_updates)?;
             tx.commit()?;
         }

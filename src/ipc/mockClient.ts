@@ -182,6 +182,7 @@ import {
   removeRemote,
   renameRemote,
   setRemoteUrls,
+  matchRemoteTags,
   type MockRemoteTags,
 } from './mock/remotes';
 import type { MockFileChange } from './mock/diffData';
@@ -348,6 +349,7 @@ const DEFAULT_MOCK_PREFERENCES: Preferences = {
   protectedBranches: ['main', 'master', 'develop', 'release/*'],
   disabledConfirmations: [],
   gravatar: false,
+  remoteTags: false,
   // Answered: under the mock, the one-time update question would cover every screen.
   checkUpdates: false,
 };
@@ -460,6 +462,8 @@ export class MockBackend {
   terminalAvailable = true;
   /** Hashes asked of `avatar`, for tests: nothing is asked while Gravatar is off. */
   readonly avatarRequests: string[] = [];
+  /** `refresh` of each `remoteTags` call, for tests: no call while the preference is off. */
+  readonly remoteTagRequests: boolean[] = [];
   /** Hashes in the fake avatar disk cache. */
   private avatarCache = new Set<string>();
   /** Newer version announced by `checkForUpdate`; `null` means up to date. */
@@ -603,6 +607,7 @@ export class MockBackend {
     this.terminalAvailable = true;
     this.openedTerminals.length = 0;
     this.avatarRequests.length = 0;
+    this.remoteTagRequests.length = 0;
     this.avatarCache.clear();
     this.availableUpdate = null;
     this.updateFailure = null;
@@ -4970,6 +4975,13 @@ export class MockBackend {
         },
         { cancellable: true, delayMs: 900, progress: true, refs: true },
       ),
+    remoteTags: (repoId, refresh) => {
+      const graph = this.graph(repoId);
+      if (!graph) return fail(this.notOpen(repoId));
+      this.remoteTagRequests.push(refresh);
+      // The mock remotes are in memory: always the current listing.
+      return ok(matchRemoteTags(graph.history.tags, this.remoteTagsOf(repoId)));
+    },
     validateRemoteName: (repoId, name) => {
       const graph = this.graph(repoId);
       if (!graph) return fail(this.notOpen(repoId));

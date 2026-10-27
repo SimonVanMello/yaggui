@@ -20,6 +20,7 @@ import { clampInt, setConfirmation } from './prefsLogic';
 import { ProtectedBranchesField } from './ProtectedBranchesField';
 import { Row } from './Row';
 import { savePreferenceOrToast } from './savePreference';
+import { SettingDetails } from './SettingDetails';
 import { useDraft } from './useDraft';
 import styles from './BehaviorTab.module.css';
 
@@ -87,6 +88,36 @@ export function BehaviorTab() {
         onCheckedChange={(prune) => {
           savePreferenceOrToast({ prune });
         }}
+      />
+      <Switch
+        checked={prefs.remoteTags === true}
+        label={t('prefs.remoteTags')}
+        hint={t('prefs.remoteTags.hint')}
+        onCheckedChange={(remoteTags) => {
+          savePreferenceOrToast({ remoteTags });
+        }}
+      />
+      <SettingDetails
+        summary={t('prefs.remoteTags.details')}
+        sections={[
+          {
+            title: t('prefs.remoteTags.details.what.title'),
+            body: t('prefs.remoteTags.details.what'),
+          },
+          {
+            title: t('prefs.remoteTags.details.how.title'),
+            body: t('prefs.remoteTags.details.how'),
+          },
+          {
+            title: t('prefs.remoteTags.details.notes.title'),
+            body: [
+              t('prefs.remoteTags.details.notes.network'),
+              t('prefs.remoteTags.details.notes.mismatch'),
+              t('prefs.remoteTags.details.notes.offline'),
+              t('prefs.remoteTags.details.notes.outside'),
+            ],
+          },
+        ]}
       />
       <Row label={t('prefs.pull')} hint={t('prefs.pull.hint')}>
         <SegmentedControl<PullStrategy | typeof GIT_CONFIG>

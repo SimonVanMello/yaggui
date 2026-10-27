@@ -9,6 +9,7 @@ use super::blocking;
 use crate::git::errors::YagguiError;
 use crate::git::ops::remotes::{RemoteRemovalPreview, RemovedRemote, TagPushResult};
 use crate::git::ops::types::FetchTarget;
+use crate::git::read::remote_tags::RemoteTag;
 use crate::state::AppState;
 
 /// Live check of a new remote name. Errors: `invalidRemoteName`, `remoteExists`. Not queued.
@@ -111,4 +112,19 @@ pub async fn fetch_tags(
 ) -> Result<(), YagguiError> {
     let repos = Arc::clone(&state.repos);
     blocking(move || repos.fetch_tags(repo_id, target)).await
+}
+
+/// Local tags found, at the same object, on the remotes (`remoteTags` preference, which the
+/// frontend honors: it only asks while it is on). `refresh` lists the remote tags again with
+/// `git ls-remote`; otherwise the session's last listing is reused. Never fails for the
+/// network: an unreachable remote keeps its previous listing. Not queued.
+#[tauri::command]
+#[specta::specta]
+pub async fn remote_tags(
+    state: State<'_, AppState>,
+    repo_id: u32,
+    refresh: bool,
+) -> Result<Vec<RemoteTag>, YagguiError> {
+    let repos = Arc::clone(&state.repos);
+    blocking(move || repos.remote_tags(repo_id, refresh)).await
 }

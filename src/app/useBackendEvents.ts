@@ -1,4 +1,5 @@
 import { graphWalkProgress, invalidateGraph } from '../features/graph/graphSource';
+import { invalidateRemoteTags, relistRemoteTags } from '../features/graph/remoteTags';
 import { useOpsStore } from '../features/repo/opsStore';
 import { useRepoSessions } from '../features/repo/repoSessions';
 import { translate, useI18nStore } from '../i18n/i18n';
@@ -100,6 +101,7 @@ export function useBackendEvents(): void {
     invalidateOperation(repoId);
     void queryClient.invalidateQueries({ queryKey: queryKeys.repoRefs(repoId) });
     void queryClient.invalidateQueries({ queryKey: ['commit-detail', repoId] });
+    invalidateRemoteTags(repoId);
     // A ref moved outside yaggui can make the next undo `diverged`.
     void queryClient.invalidateQueries({ queryKey: queryKeys.undoState(repoId) });
   });
@@ -138,6 +140,8 @@ export function useBackendEvents(): void {
 
     void queryClient.invalidateQueries({ queryKey: queryKeys.repoState(repoId) });
     invalidateOperation(repoId);
+    // Even a failed push may have sent some tags (`tagRejected` lists only the refused ones).
+    if (isNetworkOp(kind) && outcome.kind !== 'cancelled') relistRemoteTags(repoId);
     const locale = useI18nStore.getState().locale;
     const name = repoName(repoId);
     const params = { op: opLabel(kind), repo: name ?? '' };

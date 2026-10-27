@@ -1,5 +1,6 @@
 import type { RefLabel } from '../../ipc';
 import { stashTitle } from '../sidebar/sidebarRows';
+import type { RemoteTagMap } from './remoteTags';
 
 export type DisplayRefKind = 'head' | 'local' | 'remote' | 'tag' | 'stash';
 
@@ -13,7 +14,10 @@ export interface DisplayRef {
   text: string;
   /** Checked out branch, or detached HEAD. */
   isHead: boolean;
-  /** Remote branch merged into this local label (`origin/main`). */
+  /**
+   * Remote shown as a cloud: the remote branch merged into a local label (`origin/main`), or
+   * the remotes holding a tag (`origin, upstream`).
+   */
   remote: string | null;
   /** Branch name a checkout would use (`null` for tags and stashes). */
   branch: string | null;
@@ -37,7 +41,11 @@ function sameShortName(remote: string, local: string): boolean {
   return slash > 0 && remote.slice(slash + 1) === local;
 }
 
-export function displayRefs(labels: readonly RefLabel[]): DisplayRef[] {
+/** `remoteTags`: tags known to be on a remote (opt-in), `null` when not shown. */
+export function displayRefs(
+  labels: readonly RefLabel[],
+  remoteTags: RemoteTagMap | null = null,
+): DisplayRef[] {
   const remotes = labels.filter((l) => l.kind === 'remoteBranch');
   const merged = new Set<string>();
   const out: DisplayRef[] = [];
@@ -93,7 +101,7 @@ export function displayRefs(labels: readonly RefLabel[]): DisplayRef[] {
           name: label.name,
           text: label.name,
           isHead: false,
-          remote: null,
+          remote: remoteTags?.get(label.name)?.join(', ') ?? null,
           branch: null,
         });
         break;

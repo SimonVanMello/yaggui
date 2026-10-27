@@ -13,6 +13,8 @@ sources:
   - src-tauri/src/repo/graph_tools.rs
   - src-tauri/src/store/graph_filters.rs
   - src-tauri/src/system/avatars.rs
+  - src-tauri/src/repo/remote_tags.rs
+  - src-tauri/src/git/read/remote_tags.rs
   - src-tauri/src/git/ops/commit_graph.rs
 requirements:
   [
@@ -95,6 +97,16 @@ Les étiquettes de la colonne de message indiquent quelles références pointent
 | HEAD détaché     | Point                                                                                                                                                                                            |
 
 Une branche locale et une branche distante situées sur le même commit partagent une seule étiquette quand la branche distante est l’upstream de la branche locale, ou porte le même nom court (`origin/feat/x` et `feat/x`). L’étiquette porte alors une icône de nuage supplémentaire, nommée d’après le remote.
+
+#### Tags présents sur les remotes
+
+Git ne garde aucune trace locale des tags d’un remote : un tag reçu par un fetch ressemble en tout point à un tag que vous avez créé. Pour voir quels tags sont publiés, activez **Afficher les tags présents sur les remotes** dans **Préférences → Comportement** (désactivé par défaut). L’étiquette d’un tag porte alors un nuage quand un remote possède ce tag sur le même commit, dans le graphe et dans le détail d’un commit ; survolez l’étiquette pour lire `v1.2.0 — sur origin`.
+
+- **Quand yaggui interroge** : il liste les tags de chaque remote avec `git ls-remote --tags` quand vous activez la préférence, à l’ouverture d’un dépôt, et après chaque fetch (automatique compris), pull et push. La réponse est gardée en mémoire, pour la session seulement. Désactivée, yaggui ne la lance jamais.
+- **Coût** : une requête par remote à chaque fois, avec les mêmes identifiants qu’un fetch. Elle ne liste que des noms, ne télécharge rien et apparaît dans le [journal des commandes](../../reference/command-log/).
+- **Même nom, autre commit** : un tag distant qui porte le nom d’un tag local mais sur un autre commit ne donne pas de nuage. Pousser le tag local serait refusé, voir [Tags](../../history/tags/).
+- **Hors ligne** : quand un remote est injoignable, sa dernière réponse est gardée, sans erreur.
+- **Changements faits ailleurs** : un tag poussé ou supprimé en dehors de yaggui est vu après le fetch suivant. Un tag que vous créez ou supprimez localement est mis à jour aussitôt, sans requête.
 
 Les étiquettes sont classées ainsi : HEAD, branches locales (la courante d’abord), branches distantes, tags, stashes. Les noms longs sont raccourcis en leur milieu. Quand toutes les étiquettes ne tiennent pas, une pastille `+N` indique le nombre de références masquées ; survolez-la pour les lister.
 

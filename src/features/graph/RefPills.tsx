@@ -5,6 +5,7 @@ import { startPress } from '../history/dnd/pointerDrag';
 import { checkout } from '../refs/refOps';
 import { fitPills, NAME_MIN_CH, pillArea, truncateMiddle } from './pillFit';
 import { displayRefs, splitOverflow, type DisplayRef } from './refLabels';
+import type { RemoteTagMap } from './remoteTags';
 import styles from './RefPills.module.css';
 import { measureWith, type PillMetrics } from './usePillMetrics';
 
@@ -28,6 +29,8 @@ export interface PillSpace {
   /** Commit summary sharing the column: pills may use the room it does not need. */
   summary: string;
   metrics: PillMetrics;
+  /** Tags on a remote (opt-in), `null` when not shown: they get a cloud. */
+  remoteTags: RemoteTagMap | null;
 }
 
 interface RowLayout {
@@ -39,7 +42,7 @@ interface RowLayout {
 
 function layoutRefs(labels: readonly RefLabel[], space: PillSpace): RowLayout {
   const { metrics } = space;
-  const refs = displayRefs(labels);
+  const refs = displayRefs(labels, space.remoteTags);
   const pills = refs.map((ref_) => ({
     name: ref_.text,
     natural: metrics.measure(ref_.text, ref_.isHead),
@@ -77,6 +80,7 @@ interface CachedLayout {
   signed: boolean;
   summary: string;
   metrics: PillMetrics;
+  remoteTags: RemoteTagMap | null;
   layout: RowLayout;
 }
 
@@ -93,7 +97,8 @@ function cachedLayout(labels: readonly RefLabel[], space: PillSpace): RowLayout 
     hit.width === space.width &&
     hit.signed === space.signed &&
     hit.summary === space.summary &&
-    hit.metrics === space.metrics
+    hit.metrics === space.metrics &&
+    hit.remoteTags === space.remoteTags
   ) {
     return hit.layout;
   }
@@ -122,6 +127,10 @@ function Pill({
     .filter(Boolean)
     .join(' ');
   const switchable = ref_.branch !== null;
+  const onRemotes =
+    ref_.kind === 'tag' && ref_.remote !== null
+      ? t('graph.tagOnRemotes', { remotes: ref_.remote })
+      : null;
   return (
     <span
       className={classes}
@@ -147,9 +156,11 @@ function Pill({
       title={
         switchable
           ? `${ref_.name} — ${t('graph.checkoutHint')}`
-          : ref_.text === ref_.name
-            ? ref_.name
-            : `${ref_.text} (${ref_.name})`
+          : onRemotes !== null
+            ? `${ref_.name} — ${onRemotes}`
+            : ref_.text === ref_.name
+              ? ref_.name
+              : `${ref_.text} (${ref_.name})`
       }
       onDoubleClick={
         switchable && ref_.branch !== null
@@ -180,7 +191,7 @@ function Pill({
       </span>
       {truncated && <span className={styles.srOnly}>{ref_.text}</span>}
       {ref_.remote !== null && (
-        <Icon name="cloud" className={styles.cloud} aria-label={ref_.remote} />
+        <Icon name="cloud" className={styles.cloud} aria-label={onRemotes ?? ref_.remote} />
       )}
     </span>
   );
@@ -196,17 +207,20 @@ export function RefPills({
   labels,
   color,
   space,
+  remoteTags = null,
 }: {
   repoId: number;
   labels: readonly RefLabel[];
   color: number;
   space?: PillSpace;
+  /** Without `space`: tags on a remote (opt-in), given in `space` otherwise. */
+  remoteTags?: RemoteTagMap | null;
 }) {
   const t = useT();
   if (labels.length === 0) return null;
   const { shown, names, hidden } = space
     ? cachedLayout(labels, space)
-    : { ...splitOverflow(displayRefs(labels), MAX_PILLS), names: null };
+    : { ...splitOverflow(displayRefs(labels, remoteTags), MAX_PILLS), names: null };
   return (
     <span className={styles.pills}>
       {shown.map((ref_, i) => (

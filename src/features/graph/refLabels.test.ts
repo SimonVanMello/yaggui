@@ -96,6 +96,17 @@ describe('displayRefs', () => {
   });
 });
 
+describe('displayRefs with the remote tags', () => {
+  it('gives a cloud to the tags on a remote, named after the remotes', () => {
+    const refs = displayRefs([tag('v1'), tag('v2')], new Map([['v1', ['mirror', 'origin']]]));
+    expect(refs).toEqual([
+      expect.objectContaining({ kind: 'tag', name: 'v1', remote: 'mirror, origin' }),
+      expect.objectContaining({ kind: 'tag', name: 'v2', remote: null }),
+    ]);
+    expect(displayRefs([tag('v1')])[0]?.remote).toBeNull();
+  });
+});
+
 describe('splitOverflow', () => {
   const refs = displayRefs([local('a'), local('b'), local('c'), tag('t')]);
 

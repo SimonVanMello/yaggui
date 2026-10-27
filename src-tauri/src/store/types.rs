@@ -129,6 +129,10 @@ pub struct Preferences {
     /// author e-mail is sent to gravatar.com.
     #[serde(default)]
     pub gravatar: bool,
+    /// Cloud on the tag labels of the graph for the tags the remotes hold. Off by default:
+    /// when on, `git ls-remote --tags` asks every remote after each fetch, pull and push.
+    #[serde(default)]
+    pub remote_tags: bool,
     /// Look for a newer version at startup (SPEC §10). `None` until the user answered the
     /// one-time question: the check is opt-in, nothing is asked of GitHub before.
     #[serde(default)]
@@ -173,6 +177,7 @@ impl Default for Preferences {
             disabled_confirmations: Vec::new(),
             diff_options: DiffPreferences::default(),
             gravatar: false,
+            remote_tags: false,
             check_updates: None,
         }
     }

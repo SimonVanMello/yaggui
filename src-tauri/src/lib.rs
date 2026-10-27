@@ -157,6 +157,7 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             commands::remotes::remove_remote,
             commands::remotes::push_all_tags,
             commands::remotes::fetch_tags,
+            commands::remotes::remote_tags,
             commands::undo::undo,
             commands::undo::redo,
             commands::undo::undo_state,

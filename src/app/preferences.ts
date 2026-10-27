@@ -51,6 +51,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   protectedBranches: ['main', 'master', 'develop', 'release/*'],
   disabledConfirmations: [],
   gravatar: false,
+  remoteTags: false,
   checkUpdates: null,
 };
 

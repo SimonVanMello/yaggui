@@ -497,3 +497,54 @@ fn local_tags_are_undone_and_pushes_are_not() {
     env.repos.push_all_tags(env.id, "origin").unwrap();
     assert_eq!(code(env.repos.undo(env.id)), ErrorCode::UndoBlocked);
 }
+
+fn tag_names(tags: &[yaggui_lib::git::read::remote_tags::RemoteTag]) -> Vec<(String, Vec<String>)> {
+    tags.iter()
+        .map(|t| (t.name.clone(), t.remotes.clone()))
+        .collect()
+}
+
+#[test]
+fn remote_tags_match_local_tags_by_object_and_refresh_on_demand() {
+    let env = env();
+    env.fx.git(&["tag", "v-light"]);
+    env.fx.git(&["tag", "-a", "-m", "annotated", "v-ann"]);
+    env.repos.push_tag(env.id, "origin", "v-ann").unwrap();
+    // On the remote under a local tag's name, but at another commit.
+    git_at(&env.origin(), &["tag", "v-other", "main~1"]);
+    env.fx.git(&["tag", "v-other"]);
+    // A remote that cannot be reached is skipped, not an error.
+    env.fx
+        .git(&["remote", "add", "gone", &env.url("missing.git")]);
+
+    let o = || vec!["origin".to_owned()];
+    // The first request lists the remotes even without `refresh`.
+    let tags = env.repos.remote_tags(env.id, false).unwrap();
+    assert_eq!(tag_names(&tags), [("v-ann".into(), o())]);
+
+    // Pushed outside yaggui: seen once listed again.
+    env.fx.git(&["push", "-q", "origin", "refs/tags/v-light"]);
+    let cached = env.repos.remote_tags(env.id, false).unwrap();
+    assert_eq!(tag_names(&cached), [("v-ann".into(), o())]);
+    let tags = env.repos.remote_tags(env.id, true).unwrap();
+    assert_eq!(
+        tag_names(&tags),
+        [("v-ann".into(), o()), ("v-light".into(), o())]
+    );
+
+    // Local changes need no listing: the last one is compared with the current tags.
+    env.fx.git(&["tag", "-d", "v-light"]);
+    let tags = env.repos.remote_tags(env.id, false).unwrap();
+    assert_eq!(tag_names(&tags), [("v-ann".into(), o())]);
+
+    let ls_remotes = env
+        .sink
+        .events()
+        .iter()
+        .filter(|e| {
+            matches!(e, BackendEvent::CommandLogged(c) if c.entry.args.first().is_some_and(|a| a == "ls-remote"))
+        })
+        .count();
+    // Two listings of two remotes.
+    assert_eq!(ls_remotes, 4);
+}

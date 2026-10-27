@@ -30,6 +30,7 @@ import { useGraphSource } from './graphSource';
 import { directionalRange } from './overscan';
 import type { GraphRow } from './pageCache';
 import { isDisplayRefKind, type MenuRef } from './refLabels';
+import { useRemoteTags } from './remoteTags';
 import styles from './GraphView.module.css';
 import { ScrollMapper } from './scrollMapper';
 import { useRowHeight } from './useRowHeight';
@@ -196,6 +197,7 @@ export function GraphView({
   const graphWidth = columns.graph ?? autoGraphWidth(cache.laneCount);
   const widths = fitColumns(columns, graphWidth, size.width);
   const pillMetrics = usePillMetrics();
+  const remoteTags = useRemoteTags(repoId);
   const bisectState = useBisectState(repoId).data;
   // One map per bisect state: each visible row only looks its SHA up (P-04).
   const marks = useMemo(() => bisectMarks(bisectState), [bisectState]);
@@ -451,6 +453,7 @@ export function GraphView({
                   columns={rowColumns}
                   messageWidth={messageWidth}
                   pillMetrics={pillMetrics}
+                  remoteTags={remoteTags}
                   now={now}
                   locale={locale}
                 />
@@ -511,6 +514,7 @@ export function GraphView({
                     columns={rowColumns}
                     messageWidth={messageWidth}
                     pillMetrics={pillMetrics}
+                    remoteTags={remoteTags}
                     now={now}
                     locale={locale}
                     bisect={mark}

@@ -35,6 +35,7 @@ const PORTABLE = [
   'protectedBranches',
   'disabledConfirmations',
   'gravatar',
+  'remoteTags',
 ] as const satisfies readonly (keyof Preferences)[];
 
 const MACHINE_SPECIFIC = [
@@ -92,6 +93,7 @@ const SHAPES: Record<(typeof PORTABLE)[number], (v: unknown) => boolean> = {
   protectedBranches: listOf(isString),
   disabledConfirmations: listOf(oneOf('discardChanges', 'deleteTag', 'dropStash', 'forcePush')),
   gravatar: isBool,
+  remoteTags: isBool,
 };
 
 function invalidFile(detail: string): YagguiError {

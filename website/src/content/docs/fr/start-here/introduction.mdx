@@ -28,9 +28,10 @@ yaggui est un client Git graphique pour macOS, Windows et Linux. Il s’exécute
 
 - **Votre propre Git.** yaggui lit directement les dépôts pour aller vite, et lance la commande `git` installée sur votre système pour chaque modification qu’il effectue. Vos hooks, votre configuration, votre credential helper et votre `ssh-agent` s’appliquent, comme dans un terminal. Il faut Git 2.30 ou plus récent ; voir [Installer yaggui](../install/).
 - **Pas de compte, pas de télémétrie.** yaggui ne vous demande jamais de vous connecter et n’envoie aucune donnée d’usage.
-- **Le réseau seulement quand vous le demandez.** yaggui contacte un serveur pour les opérations Git (clone, fetch, pull, push, fetch automatique) et pour deux fonctions désactivées tant que vous ne les activez pas :
+- **Le réseau seulement quand vous le demandez.** yaggui contacte un serveur pour les opérations Git (clone, fetch, pull, push, fetch automatique) et pour trois fonctions désactivées tant que vous ne les activez pas :
   - **Avatars Gravatar** : un hash de l’e-mail de chaque auteur est envoyé à gravatar.com. Voir [Préférences](../../reference/preferences/).
   - **Vérification des mises à jour** : yaggui consulte la dernière release sur github.com au lancement. Voir [Mises à jour](../updates/).
+  - **Tags présents sur les remotes** : yaggui liste les tags de vos remotes (`git ls-remote --tags`) pour signaler dans le graphe ceux qui sont publiés. Voir [Graphe des commits](../../history/commit-graph/#tags-présents-sur-les-remotes).
 - **Aucun secret stocké.** yaggui ne demande ni ne stocke jamais de mot de passe ou de jeton. Les identifiants viennent de votre credential helper Git ou de `ssh-agent` ; voir [Authentification](../../remotes/authentication/).
 
 Ce que yaggui conserve sur le disque (dépôts récents, onglets, préférences) est détaillé dans [Données et confidentialité](../../reference/data-and-privacy/).
