@@ -9,6 +9,10 @@ const LINUX = '/Users/alex/dev/linux';
 
 const sources: GraphSource[] = [];
 
+// Opening the 100k-row linux mock lays out the whole graph: well under a second alone, but the
+// default 5 s is too tight when the whole suite runs on a loaded machine (see search.test.ts).
+const LINUX_TIMEOUT_MS = 30_000;
+
 /** A source shown on screen (subscribed) with its first page loaded. */
 async function openSource(path: string): Promise<GraphSource> {
   const info = await unwrap(ipc.commands.openRepo(path));
@@ -54,38 +58,46 @@ describe('GraphSource', () => {
     expect([...source.picks.picked]).toEqual([[target, 6]]);
   });
 
-  it('drops the load error once the page that failed is loaded again', async () => {
-    const source = await openSource(LINUX);
-    vi.useFakeTimers({ toFake: ['Date'] });
-    vi.spyOn(ipc.commands, 'graphPage').mockRejectedValueOnce(new Error('transient'));
-    source.ensure(600, 610);
-    await vi.waitFor(() => {
-      expect(source.loadError).not.toBeNull();
-    });
-    expect(source.cache.row(600)).toBeUndefined();
-    // The cache asks for a failed page again after its delay (the view calls `ensure` on
-    // every scroll): the page arrives and the banner goes without the Retry button.
-    vi.setSystemTime(Date.now() + 3000);
-    source.ensure(600, 610);
-    await vi.waitFor(() => {
-      expect(source.cache.row(600)).toBeDefined();
-    });
-    expect(source.loadError).toBeNull();
-  });
+  it(
+    'drops the load error once the page that failed is loaded again',
+    async () => {
+      const source = await openSource(LINUX);
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.spyOn(ipc.commands, 'graphPage').mockRejectedValueOnce(new Error('transient'));
+      source.ensure(600, 610);
+      await vi.waitFor(() => {
+        expect(source.loadError).not.toBeNull();
+      });
+      expect(source.cache.row(600)).toBeUndefined();
+      // The cache asks for a failed page again after its delay (the view calls `ensure` on
+      // every scroll): the page arrives and the banner goes without the Retry button.
+      vi.setSystemTime(Date.now() + 3000);
+      source.ensure(600, 610);
+      await vi.waitFor(() => {
+        expect(source.cache.row(600)).toBeDefined();
+      });
+      expect(source.loadError).toBeNull();
+    },
+    LINUX_TIMEOUT_MS,
+  );
 
-  it('⇧↓ onto a row whose page is not loaded extends the selection when it arrives', async () => {
-    const source = await openSource(LINUX);
-    const last = source.cache.row(499);
-    expect(last).toBeDefined();
-    if (!last) return;
-    source.selectCommit(last.sha, 499);
-    expect(source.cache.row(500)).toBeUndefined();
-    source.extendSelection(1);
-    await vi.waitFor(() => {
-      expect(source.pickedRows.has(500)).toBe(true);
-    });
-    expect(source.selectedCommits().map((c) => c.row)).toEqual([499, 500]);
-    expect(source.selection).toMatchObject({ kind: 'commit', row: 500 });
-    expect(source.picks.anchor).toBe(499);
-  });
+  it(
+    '⇧↓ onto a row whose page is not loaded extends the selection when it arrives',
+    async () => {
+      const source = await openSource(LINUX);
+      const last = source.cache.row(499);
+      expect(last).toBeDefined();
+      if (!last) return;
+      source.selectCommit(last.sha, 499);
+      expect(source.cache.row(500)).toBeUndefined();
+      source.extendSelection(1);
+      await vi.waitFor(() => {
+        expect(source.pickedRows.has(500)).toBe(true);
+      });
+      expect(source.selectedCommits().map((c) => c.row)).toEqual([499, 500]);
+      expect(source.selection).toMatchObject({ kind: 'commit', row: 500 });
+      expect(source.picks.anchor).toBe(499);
+    },
+    LINUX_TIMEOUT_MS,
+  );
 });
