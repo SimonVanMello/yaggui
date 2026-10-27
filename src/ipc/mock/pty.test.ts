@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { PtyExited, PtyOutput } from '../bindings';
-import { MockPtys } from './pty';
+import { MAX_PTYS_PER_REPO, MockPtys } from './pty';
 
 const output: PtyOutput[] = [];
 const exited: PtyExited[] = [];
@@ -59,6 +59,34 @@ describe('mock integrated terminal', () => {
     expect(ptys.count(1)).toBe(0);
     expect(ptys.count(2)).toBe(1);
     expect(exited.map((e) => e.exitCode)).toEqual([null, null]);
+  });
+
+  it('caps the terminals of a repository', () => {
+    for (let i = 0; i < MAX_PTYS_PER_REPO; i++)
+      expect('ptyId' in ptys.spawn(1, '/a', 80, 24)).toBe(true);
+    expect(ptys.spawn(1, '/a', 80, 24)).toMatchObject({ code: 'invalidArgument' });
+    expect('ptyId' in ptys.spawn(2, '/b', 80, 24)).toBe(true);
+    ptys.close(1);
+    vi.runAllTimers();
+    expect('ptyId' in ptys.spawn(1, '/a', 80, 24)).toBe(true);
+  });
+
+  it('refuses a terminal reached with the wrong kind', () => {
+    const shell = ptys.spawn(1, '/a', 80, 24);
+    if ('code' in shell) throw new Error('spawn failed');
+    const upgrade = ptys.spawnUpgrade('sudo', ['apt', 'upgrade'], 80, 24, {
+      lines: [],
+      exitCode: 0,
+    });
+    expect(ptys.write(shell.ptyId, 'ls\r', 'update')).toMatchObject({ code: 'invalidArgument' });
+    expect(ptys.resize(upgrade.ptyId, 100, 30)).toMatchObject({ code: 'invalidArgument' });
+    expect(ptys.write(upgrade.ptyId, 'hunter2\r', 'update')).toBeNull();
+    // Closing with the wrong kind is a no-op.
+    ptys.close(upgrade.ptyId, 'shell');
+    ptys.close(shell.ptyId, 'update');
+    vi.runAllTimers();
+    expect(ptys.count(1)).toBe(1);
+    expect(exited.map((e) => e.ptyId)).toEqual([upgrade.ptyId]);
   });
 
   it('can simulate a shell that does not start', () => {

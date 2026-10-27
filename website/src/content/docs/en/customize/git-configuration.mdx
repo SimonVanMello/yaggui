@@ -124,7 +124,7 @@ git config --global --replace-all -- user.email ada@example.com
 git config --local --unset-all -- core.autocrlf
 ```
 
-Changes to the global file are applied one at a time, and changes to a repository wait for any operation running in that repository. They take effect at once and cannot be undone from yaggui: to go back, set the old value again.
+The listing itself (`git config --list -z`) is logged without its output, and the value of a key that holds a credential (`credential.*`, `http.<url>.extraHeader`, any name with `pass`, `token` or `secret` in it) is logged as `***`: a copied log entry never carries a token. Changes to the global file are applied one at a time, and changes to a repository wait for any operation running in that repository. They take effect at once and cannot be undone from yaggui: to go back, set the old value again.
 
 ### Errors
 

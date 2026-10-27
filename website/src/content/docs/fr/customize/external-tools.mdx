@@ -44,13 +44,15 @@ Cliquez sur **Tester** à côté d’une ligne. Le test utilise la valeur que vo
 
 ## Éditeur
 
-**Éditeur** désigne le programme qui ouvre un dépôt ou un fichier. Saisissez un nom et appuyez sur <kbd>Enter</kbd> ou quittez le champ pour l’enregistrer. Laissez-le vide pour utiliser l’application par défaut du système.
+**Éditeur** désigne le programme qui ouvre un dépôt ou un fichier. Saisissez un nom et appuyez sur <kbd>Enter</kbd> ou quittez le champ pour l’enregistrer. Laissez-le vide pour utiliser l’éditeur de texte du système : il n’ouvre que des fichiers, jamais le dossier du dépôt.
 
-| OS      | Avec une valeur                                                                                                 | Vide                   |
-| ------- | --------------------------------------------------------------------------------------------------------------- | ---------------------- |
-| macOS   | `open -a <application> <cible>` : la valeur est un nom d’application, par exemple `Visual Studio Code` ou `Zed` | `open <cible>`         |
-| Windows | `<programme> <cible>` : un programme présent dans le `PATH` ou un chemin complet, par exemple `code`            | `explorer.exe <cible>` |
-| Linux   | `<programme> <cible>`, par exemple `code` ou `subl`                                                             | `xdg-open <cible>`     |
+| OS      | Avec une valeur                                                                                                 | Vide                                                                                                                                                                               |
+| ------- | --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| macOS   | `open -a <application> <cible>` : la valeur est un nom d’application, par exemple `Visual Studio Code` ou `Zed` | `open -t <fichier>` : l’éditeur de texte par défaut (TextEdit, sauf si vous l’avez changé)                                                                                         |
+| Windows | `<programme> <cible>` : un programme présent dans le `PATH` ou un chemin complet, par exemple `code`            | `notepad.exe <fichier>`                                                                                                                                                            |
+| Linux   | `<programme> <cible>`, par exemple `code` ou `subl`                                                             | `xdg-open <fichier>`, seulement pour un fichier texte (aucun octet NUL dans ses 8 premiers Kio, et pas un fichier `.desktop`) : l’application par défaut du bureau pour ce fichier |
+
+Sans éditeur, un fichier n’est jamais confié à l’ouvreur générique du système (`open`, `explorer.exe`, `xdg-open` sur n’importe quoi) : sous Windows et macOS, il exécuterait un script (`.bat`, `.vbs`, `.command`…) d’un dépôt que vous venez de cloner au lieu de l’afficher. Le dossier du dépôt, un fichier binaire et, sous Linux, un fichier que le bureau pourrait exécuter plutôt qu’afficher demandent un éditeur configuré.
 
 L’éditeur est utilisé par :
 
@@ -60,7 +62,8 @@ L’éditeur est utilisé par :
 Quand l’éditeur ne peut pas démarrer, un toast « Impossible d'ouvrir l'éditeur » affiche l’un de ces messages (il n’y a pas de bouton : corrigez le réglage, puis réessayez) :
 
 - « L'éditeur « _nom_ » n'a pas pu être lancé. Vérifie son nom dans les préférences. » Vérifiez l’orthographe, ou donnez le chemin complet du programme.
-- « Aucune application n'a pu ouvrir le fichier. Choisis un éditeur dans les préférences. » Aucun éditeur n’est défini et le système n’a pas d’application par défaut pour ce fichier.
+- « Aucun éditeur n'est configuré. Choisis-en un dans les préférences (Outils). » Aucun éditeur n’est défini et la cible ne peut pas aller à l’éditeur de texte du système : le dossier du dépôt, un fichier binaire ou, sous Linux, un fichier `.desktop`.
+- « Aucune application n'a pu ouvrir le fichier. Choisis un éditeur dans les préférences. » Aucun éditeur n’est défini et l’éditeur de texte du système n’a pas pu être lancé.
 
 Une valeur qui commence par `-`, contient des caractères de contrôle ou dépasse 512 caractères est refusée avec « L'éditeur doit être un nom de programme ou d'application, ou un chemin. »
 
@@ -83,7 +86,7 @@ La ligne **Terminal externe** affiche le choix actuel (« Actuel : _nom_ » ou
 | Windows | Windows Terminal (`wt` ou `wt.exe`) reçoit `-d <dépôt>` ; tout autre programme est lancé seul, avec le dépôt comme dossier de travail | `wt.exe -d <dépôt>`, sinon `cmd.exe`                                                                                                                                 |
 | Linux   | Le programme, lancé seul avec le dépôt comme dossier de travail                                                                       | Le premier trouvé parmi `$TERMINAL`, `x-terminal-emulator`, GNOME Terminal, Konsole, Xfce Terminal, Console (`kgx`), Tilix, Alacritty, kitty, WezTerm, foot et xterm |
 
-Sous Windows et Linux, un terminal que vous nommez est utilisé seul, sans solution de repli : une faute de frappe se traduit donc par une erreur au lieu d’ouvrir silencieusement un autre terminal.
+Sous Windows et Linux, un terminal que vous nommez est utilisé seul, sans solution de repli : une faute de frappe se traduit donc par une erreur au lieu d’ouvrir silencieusement un autre terminal. Sous Windows, un programme donné par son nom est cherché dans les dossiers système (`System32`, puis le dossier Windows) et dans les entrées absolues du `PATH`, jamais dans le dossier courant, et `.exe` est implicite ; un chemin doit être absolu.
 
 Quand aucun terminal ne peut démarrer, un toast « Impossible d'ouvrir un terminal » affiche l’un de ces messages, avec un bouton **Choisir un terminal…** qui ouvre la boîte de dialogue Terminal :
 
@@ -136,7 +139,7 @@ Un nom d’outil ne peut contenir que des lettres, des chiffres et `- _ . +`, ne
 
 Le gestionnaire de fichiers est toujours celui du système ; il n’a pas de préférence.
 
-- Le bouton **Fichiers** de la barre d’outils du dépôt (ou **Ouvrir le dépôt dans le gestionnaire de fichiers** dans la palette) ouvre le dossier du dépôt : `open` sous macOS, `explorer.exe` sous Windows, `xdg-open` sous Linux. En cas d’échec : « Impossible d'ouvrir le gestionnaire de fichiers » avec « Le gestionnaire de fichiers n'a pas pu ouvrir le dossier du dépôt. »
+- Le bouton **Fichiers** de la barre d’outils du dépôt (ou **Ouvrir le dépôt dans le gestionnaire de fichiers** dans la palette) ouvre le dossier du dépôt : `open` sous macOS, `explorer.exe` sous Windows, `xdg-open` sous Linux. Sous macOS, un dossier dont le nom a une extension (`Foo.app`, `next.js`) peut être un bundle que `open` lancerait : il est sélectionné dans son dossier parent (`open -R`), comme un fichier. En cas d’échec : « Impossible d'ouvrir le gestionnaire de fichiers » avec « Le gestionnaire de fichiers n'a pas pu ouvrir le dossier du dépôt. »
 - **Ouvrir hors de yaggui › Afficher dans le gestionnaire de fichiers**, dans la vue diff, montre le fichier : sélectionné dans le Finder (`open -R`) ou dans l’Explorateur (`explorer.exe /select,`), et son dossier ouvert sous Linux (`xdg-open`, sans sélection). L’entrée est désactivée pour un fichier supprimé. En cas d’échec : « Le fichier n'a pas pu être affiché ».
 
 ## Voir aussi

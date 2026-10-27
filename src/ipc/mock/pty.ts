@@ -1,4 +1,4 @@
-import type { YagguiError, PtyExited, PtyInfo, PtyOutput } from '../bindings';
+import type { YagguiError, PtyExited, PtyInfo, PtyKind, PtyOutput } from '../bindings';
 
 /** Errors of the integrated terminal, with the messages of `git/errors.rs`. */
 function mockError(code: YagguiError['code'], en: string, fr: string): YagguiError {
@@ -11,9 +11,13 @@ function prompt(cwd: string): string {
   return `\x1b[32m${name}\x1b[0m \x1b[90m$\x1b[0m `;
 }
 
+/** Same cap as `pty::MAX_PER_REPO`. */
+export const MAX_PTYS_PER_REPO = 8;
+
 interface MockPty {
   /** `null` for the update terminal, which belongs to no repository. */
   repoId: number | null;
+  kind: PtyKind;
   /** The fake upgrade, when this terminal runs one instead of the shell. */
   upgrade: MockUpgrade | null;
   cwd: string;
@@ -45,6 +49,27 @@ export function terminalClosed(ptyId: number): YagguiError {
     ),
     detail: `pty ${String(ptyId)}`,
   };
+}
+
+/** Same message as `PtyManager::get` for a terminal reached with the wrong kind. */
+function wrongKind(ptyId: number, actual: PtyKind, given: PtyKind): YagguiError {
+  return {
+    ...mockError(
+      'invalidArgument',
+      'This terminal is not of the given kind.',
+      "Ce terminal n'est pas du type indiqué.",
+    ),
+    detail: `pty ${String(ptyId)}: ${actual}, not ${given}`,
+  };
+}
+
+/** Same message as `PtyManager::spawn` beyond `MAX_PER_REPO` terminals. */
+function tooManyTerminals(): YagguiError {
+  return mockError(
+    'invalidArgument',
+    `This repository already has ${String(MAX_PTYS_PER_REPO)} terminals open: close one first.`,
+    `Ce dépôt a déjà ${String(MAX_PTYS_PER_REPO)} terminaux ouverts : ferme-en un d'abord.`,
+  );
 }
 
 /**
@@ -83,8 +108,9 @@ export class MockPtys {
         detail: 'No such file or directory (os error 2)',
       };
     }
+    if (this.count(repoId) >= MAX_PTYS_PER_REPO) return tooManyTerminals();
     const ptyId = this.nextId++;
-    this.ptys.set(ptyId, { repoId, upgrade: null, cwd, cols, rows, line: '' });
+    this.ptys.set(ptyId, { repoId, kind: 'shell', upgrade: null, cwd, cols, rows, line: '' });
     this.send(ptyId, `yaggui mock shell — ${this.shell}\r\n${prompt(cwd)}`);
     return { ptyId, shell: this.shell };
   }
@@ -101,14 +127,22 @@ export class MockPtys {
     upgrade: MockUpgrade,
   ): PtyInfo {
     const ptyId = this.nextId++;
-    this.ptys.set(ptyId, { repoId: null, upgrade, cwd: '/', cols, rows, line: '' });
+    this.ptys.set(ptyId, { repoId: null, kind: 'update', upgrade, cwd: '/', cols, rows, line: '' });
     this.send(ptyId, `\x1b[2m$ ${[program, ...args].join(' ')}\x1b[0m\r\n[sudo] password for me: `);
     return { ptyId, shell: program };
   }
 
-  write(ptyId: number, data: string): YagguiError | null {
+  /** The terminal `ptyId` if it runs and is of `kind`, else the error the backend returns. */
+  private get(ptyId: number, kind: PtyKind): MockPty | YagguiError {
     const pty = this.ptys.get(ptyId);
     if (!pty) return terminalClosed(ptyId);
+    if (pty.kind !== kind) return wrongKind(ptyId, pty.kind, kind);
+    return pty;
+  }
+
+  write(ptyId: number, data: string, kind: PtyKind = 'shell'): YagguiError | null {
+    const pty = this.get(ptyId, kind);
+    if ('code' in pty) return pty;
     this.written.set(ptyId, (this.written.get(ptyId) ?? '') + data);
     if (pty.upgrade) {
       this.answerUpgrade(ptyId, pty.upgrade, data);
@@ -143,16 +177,17 @@ export class MockPtys {
     return null;
   }
 
-  resize(ptyId: number, cols: number, rows: number): YagguiError | null {
-    const pty = this.ptys.get(ptyId);
-    if (!pty) return terminalClosed(ptyId);
+  resize(ptyId: number, cols: number, rows: number, kind: PtyKind = 'shell'): YagguiError | null {
+    const pty = this.get(ptyId, kind);
+    if ('code' in pty) return pty;
     pty.cols = cols;
     pty.rows = rows;
     return null;
   }
 
-  close(ptyId: number): void {
-    if (this.ptys.has(ptyId)) this.exit(ptyId, null);
+  /** No-op for a terminal that already exited, or is of another kind. */
+  close(ptyId: number, kind: PtyKind = 'shell'): void {
+    if (this.ptys.get(ptyId)?.kind === kind) this.exit(ptyId, null);
   }
 
   /** Ends every terminal of a repository, like `PtyManager::close_repo`. */

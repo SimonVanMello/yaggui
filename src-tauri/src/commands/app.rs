@@ -52,12 +52,25 @@ pub async fn changelog() -> Vec<ChangelogRelease> {
     changelog::releases()
 }
 
+static LAUNCH_PATH: std::sync::OnceLock<Option<String>> = std::sync::OnceLock::new();
+
+/// Reads the path of the command line while the process is still in its start folder: a
+/// relative one (`yaggui .`) is resolved against it, before `lib.rs` leaves that folder.
+pub fn capture_launch_path() {
+    LAUNCH_PATH.get_or_init(read_launch_path);
+}
+
+fn read_launch_path() -> Option<String> {
+    let arg = std::env::args_os()
+        .skip(1)
+        .find(|arg| !arg.to_string_lossy().starts_with('-'))?;
+    let path = std::path::absolute(&arg).unwrap_or_else(|_| arg.into());
+    Some(path.to_string_lossy().into_owned())
+}
+
 /// Path given on the command line (`yaggui <path>`), if any, to open at startup (F-001).
 #[tauri::command]
 #[specta::specta]
 pub async fn launch_path() -> Option<String> {
-    std::env::args_os()
-        .skip(1)
-        .find(|arg| !arg.to_string_lossy().starts_with('-'))
-        .map(|arg| arg.to_string_lossy().into_owned())
+    LAUNCH_PATH.get_or_init(read_launch_path).clone()
 }

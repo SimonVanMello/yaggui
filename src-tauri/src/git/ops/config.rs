@@ -99,6 +99,20 @@ pub fn validate_key(key: &str) -> Result<(), YagguiError> {
     if valid { Ok(()) } else { Err(invalid_key(key)) }
 }
 
+/// Whether the value of `key` is a credential, kept out of the command log when it is set:
+/// `credential.*` (a helper may embed a password in its command), `http.<url>.extraHeader`
+/// (`AUTHORIZATION: basic …`), and any variable whose name mentions a password, a token or
+/// a secret (`sendemail.smtpPass`, `github.token`).
+pub fn is_sensitive_key(key: &str) -> bool {
+    let key = key.to_ascii_lowercase();
+    let name = key.rsplit('.').next().unwrap_or(&key);
+    key.starts_with("credential.")
+        || name == "extraheader"
+        || name.contains("pass")
+        || name.contains("token")
+        || name.contains("secret")
+}
+
 pub fn validate_value(value: &str) -> Result<(), YagguiError> {
     if value.contains('\0') || value.len() > MAX_VALUE {
         return Err(YagguiError::invalid_argument(
@@ -220,5 +234,29 @@ user-defined:
         let help = parse_tool_help(out);
         assert_eq!(help.available, ["meld", "vimdiff", "mine"]);
         assert_eq!(help.missing, ["kdiff3", "opendiff"]);
+    }
+    #[test]
+    fn credential_keys_are_detected() {
+        for key in [
+            "credential.helper",
+            "credential.https://github.com.username",
+            "http.https://example.com/.extraHeader",
+            "http.extraheader",
+            "sendemail.smtpPass",
+            "user.password",
+            "github.token",
+            "gitlab.oauth-token",
+            "remote.origin.secret",
+        ] {
+            assert!(is_sensitive_key(key), "{key}");
+        }
+        for key in [
+            "user.name",
+            "remote.origin.url",
+            "http.proxy",
+            "core.editor",
+        ] {
+            assert!(!is_sensitive_key(key), "{key}");
+        }
     }
 }

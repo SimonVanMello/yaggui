@@ -7,7 +7,7 @@ use std::time::Duration;
 
 use common::RecordingSink;
 use yaggui_lib::events::BackendEvent;
-use yaggui_lib::system::pty::PtyManager;
+use yaggui_lib::system::pty::{MAX_PER_REPO, PtyKind, PtyManager};
 
 const TIMEOUT: Duration = Duration::from_secs(20);
 
@@ -43,7 +43,9 @@ fn wait_output(sink: &RecordingSink, pty_id: u32, needle: &str) {
 fn answer_cursor_query(manager: &PtyManager, sink: &RecordingSink, pty_id: u32) {
     if cfg!(windows) {
         wait_output(sink, pty_id, "\x1b[6n");
-        manager.write(pty_id, "\x1b[1;1R").expect("write");
+        manager
+            .write(pty_id, PtyKind::Shell, "\x1b[1;1R")
+            .expect("write");
     }
 }
 
@@ -60,28 +62,38 @@ fn runs_a_shell_in_the_folder_resizes_and_closes() {
     answer_cursor_query(&manager, &sink, info.pty_id);
 
     // The echo of the typed line shows `he''llo`: only the command output reads `hello`.
-    manager.write(info.pty_id, "echo he''llo\r").expect("write");
+    manager
+        .write(info.pty_id, PtyKind::Shell, "echo he''llo\r")
+        .expect("write");
     wait_output(&sink, info.pty_id, "hello");
 
     #[cfg(unix)]
     {
-        manager.write(info.pty_id, "pwd\r").expect("write");
+        manager
+            .write(info.pty_id, PtyKind::Shell, "pwd\r")
+            .expect("write");
         wait_output(&sink, info.pty_id, &cwd.display().to_string());
 
-        manager.resize(info.pty_id, 100, 30).expect("resize");
-        manager.write(info.pty_id, "stty size\r").expect("write");
+        manager
+            .resize(info.pty_id, PtyKind::Shell, 100, 30)
+            .expect("resize");
+        manager
+            .write(info.pty_id, PtyKind::Shell, "stty size\r")
+            .expect("write");
         wait_output(&sink, info.pty_id, "30 100");
     }
     #[cfg(windows)]
-    manager.resize(info.pty_id, 100, 30).expect("resize");
+    manager
+        .resize(info.pty_id, PtyKind::Shell, 100, 30)
+        .expect("resize");
 
-    manager.close(info.pty_id);
+    manager.close(info.pty_id, PtyKind::Shell);
     assert_eq!(manager.count(7), 0);
     assert!(
         sink.wait_for(TIMEOUT, |_| exited(&sink, info.pty_id).is_some()),
         "no pty-exited after close"
     );
-    assert!(manager.write(info.pty_id, "ls\r").is_err());
+    assert!(manager.write(info.pty_id, PtyKind::Shell, "ls\r").is_err());
 }
 
 #[test]
@@ -93,7 +105,7 @@ fn reports_the_exit_code_after_the_last_output() {
     answer_cursor_query(&manager, &sink, info.pty_id);
 
     manager
-        .write(info.pty_id, "echo by''e; exit 3\r")
+        .write(info.pty_id, PtyKind::Shell, "echo by''e; exit 3\r")
         .expect("write");
     assert!(
         sink.wait_for(TIMEOUT, |_| exited(&sink, info.pty_id).is_some()),
@@ -140,6 +152,41 @@ fn closing_a_repository_ends_all_its_terminals_only() {
     assert!(sink.wait_for(TIMEOUT, |_| exited(&sink, other.pty_id).is_some()));
 }
 
+/// A repository cannot open terminals without bound; a shell of another repository cannot be
+/// reached as the update terminal.
+#[test]
+fn caps_the_terminals_of_a_repository() {
+    let dir = tempfile::tempdir().expect("temp dir");
+    let sink = Arc::new(RecordingSink::default());
+    let manager = PtyManager::new(sink.clone());
+    let mut ids = Vec::new();
+    for _ in 0..MAX_PER_REPO {
+        ids.push(manager.spawn(5, dir.path(), 80, 24).expect("shell").pty_id);
+    }
+    assert_eq!(manager.count(5), MAX_PER_REPO);
+    let err = manager
+        .spawn(5, dir.path(), 80, 24)
+        .expect_err("one too many");
+    assert_eq!(
+        err.code,
+        yaggui_lib::git::errors::ErrorCode::InvalidArgument
+    );
+    assert!(err.message.en.contains("close one first"));
+    // Another repository is not affected.
+    let other = manager.spawn(6, dir.path(), 80, 24).expect("other repo");
+    // A shell is not the update terminal.
+    assert!(manager.write(ids[0], PtyKind::Update, "ls\r").is_err());
+    manager.close(ids[0], PtyKind::Update);
+    assert_eq!(manager.count(5), MAX_PER_REPO);
+    // Closing one makes room.
+    manager.close(ids[0], PtyKind::Shell);
+    assert_eq!(manager.count(5), MAX_PER_REPO - 1);
+    manager.spawn(5, dir.path(), 80, 24).expect("room again");
+    manager.close(other.pty_id, PtyKind::Shell);
+    manager.close_all();
+    assert!(sink.wait_for(TIMEOUT, |_| exited(&sink, ids[0]).is_some()));
+}
+
 #[test]
 fn rejects_a_bad_size() {
     let dir = tempfile::tempdir().expect("temp dir");
@@ -174,7 +221,23 @@ fn runs_a_program_outside_the_repositories() {
     manager.close_repo(0);
     assert_eq!(manager.count(0), 0);
 
-    manager.write(info.pty_id, "secret\r").expect("write");
+    // The update terminal is not a shell of the panel: input for a shell is refused.
+    let err = manager
+        .write(info.pty_id, PtyKind::Shell, "secret\r")
+        .expect_err("wrong kind");
+    assert_eq!(
+        err.code,
+        yaggui_lib::git::errors::ErrorCode::InvalidArgument
+    );
+    assert!(manager.resize(info.pty_id, PtyKind::Shell, 90, 30).is_err());
+    manager.close(info.pty_id, PtyKind::Shell);
+    assert!(
+        exited(&sink, info.pty_id).is_none(),
+        "closed by the wrong kind"
+    );
+    manager
+        .write(info.pty_id, PtyKind::Update, "secret\r")
+        .expect("write");
     // One argument, not split by a shell.
     wait_output(&sink, info.pty_id, "got-two words");
     assert!(

@@ -36,6 +36,20 @@ const EXIT_GRACE: Duration = Duration::from_secs(2);
 const READ_BUFFER: usize = 16 * 1024;
 /// Accepted terminal sizes, in cells.
 pub const PTY_SIZE_RANGE: std::ops::RangeInclusive<u16> = 1..=1000;
+/// Terminals one repository may have open at once; beyond, `spawn` is refused.
+pub const MAX_PER_REPO: usize = 8;
+
+/// What a terminal runs. The frontend gives it back with every write, resize and close, so
+/// a terminal of the panel cannot be mistaken for the update terminal (where the user types
+/// a password into a package manager), nor the reverse.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[serde(rename_all = "camelCase")]
+pub enum PtyKind {
+    /// The user's shell in a repository (`spawn`).
+    Shell,
+    /// The package manager of an upgrade, outside any repository (`spawn_program`).
+    Update,
+}
 
 /// A started terminal.
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]
@@ -182,6 +196,7 @@ struct Io {
 struct Session {
     /// `None` for a terminal that belongs to no repository (an update).
     repo_id: Option<u32>,
+    kind: PtyKind,
     io: Mutex<Io>,
     killer: Mutex<Box<dyn ChildKiller + Send + Sync>>,
 }
@@ -245,8 +260,24 @@ impl PtyManager {
         cols: u16,
         rows: u16,
     ) -> Result<PtyInfo, YagguiError> {
+        if self.count(repo_id) >= MAX_PER_REPO {
+            return Err(YagguiError::invalid_argument(
+                format!(
+                    "This repository already has {MAX_PER_REPO} terminals open: close one first."
+                ),
+                format!("Ce dépôt a déjà {MAX_PER_REPO} terminaux ouverts : ferme-en un d'abord."),
+            ));
+        }
         let (command, shell) = shell_command();
-        self.spawn_command(Some(repo_id), command, shell, cwd, cols, rows)
+        self.spawn_command(
+            Some(repo_id),
+            PtyKind::Shell,
+            command,
+            shell,
+            cwd,
+            cols,
+            rows,
+        )
     }
 
     /// Starts `program` with `args` in `cwd`, outside any repository. `program` is started
@@ -262,12 +293,14 @@ impl PtyManager {
         let mut command = CommandBuilder::new(program);
         command.args(args);
         let name = program.to_string_lossy().into_owned();
-        self.spawn_command(None, command, name, cwd, cols, rows)
+        self.spawn_command(None, PtyKind::Update, command, name, cwd, cols, rows)
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn spawn_command(
         &self,
         repo_id: Option<u32>,
+        kind: PtyKind,
         mut command: CommandBuilder,
         shell: String,
         cwd: &Path,
@@ -293,6 +326,7 @@ impl PtyManager {
         let writer = pair.master.take_writer().map_err(|err| failed(&err))?;
         let session = Arc::new(Session {
             repo_id,
+            kind,
             io: Mutex::new(Io {
                 master: pair.master,
                 writer,
@@ -344,24 +378,33 @@ impl PtyManager {
             }
         });
         if let Err(err) = waiter {
-            self.close(pty_id);
+            self.close(pty_id, kind);
             return Err(err);
         }
-        tracing::info!(pty_id, ?repo_id, shell = %shell, cwd = %cwd.display(), "terminal started");
+        tracing::info!(pty_id, ?repo_id, ?kind, shell = %shell, cwd = %cwd.display(), "terminal started");
         Ok(PtyInfo { pty_id, shell })
     }
 
-    fn get(&self, pty_id: u32) -> Result<Arc<Session>, YagguiError> {
-        lock_sessions(&self.sessions)
+    /// The running terminal `pty_id`, which must be of `kind`.
+    fn get(&self, pty_id: u32, kind: PtyKind) -> Result<Arc<Session>, YagguiError> {
+        let session = lock_sessions(&self.sessions)
             .get(&pty_id)
             .cloned()
-            .ok_or_else(|| YagguiError::terminal_closed(pty_id))
+            .ok_or_else(|| YagguiError::terminal_closed(pty_id))?;
+        if session.kind != kind {
+            return Err(YagguiError::invalid_argument(
+                "This terminal is not of the given kind.",
+                "Ce terminal n'est pas du type indiqué.",
+            )
+            .with_detail(format!("pty {pty_id}: {:?}, not {kind:?}", session.kind)));
+        }
+        Ok(session)
     }
 
     /// Sends keyboard input (or pasted text) to the shell. May block while the shell does
     /// not read its input.
-    pub fn write(&self, pty_id: u32, data: &str) -> Result<(), YagguiError> {
-        let session = self.get(pty_id)?;
+    pub fn write(&self, pty_id: u32, kind: PtyKind, data: &str) -> Result<(), YagguiError> {
+        let session = self.get(pty_id, kind)?;
         let mut io = session.io();
         io.writer
             .write_all(data.as_bytes())
@@ -372,9 +415,15 @@ impl PtyManager {
             })
     }
 
-    pub fn resize(&self, pty_id: u32, cols: u16, rows: u16) -> Result<(), YagguiError> {
+    pub fn resize(
+        &self,
+        pty_id: u32,
+        kind: PtyKind,
+        cols: u16,
+        rows: u16,
+    ) -> Result<(), YagguiError> {
         let size = pty_size(cols, rows)?;
-        let session = self.get(pty_id)?;
+        let session = self.get(pty_id, kind)?;
         session
             .io()
             .master
@@ -382,9 +431,15 @@ impl PtyManager {
             .map_err(|err| YagguiError::internal(format!("pty {pty_id}: {err}")))
     }
 
-    /// Ends a terminal. No-op if it already exited.
-    pub fn close(&self, pty_id: u32) {
-        let removed = lock_sessions(&self.sessions).remove(&pty_id);
+    /// Ends a terminal of `kind`. No-op if it already exited, or is of another kind.
+    pub fn close(&self, pty_id: u32, kind: PtyKind) {
+        let removed = {
+            let mut sessions = lock_sessions(&self.sessions);
+            match sessions.get(&pty_id) {
+                Some(session) if session.kind == kind => sessions.remove(&pty_id),
+                _ => None,
+            }
+        };
         end(removed);
     }
 
@@ -570,10 +625,12 @@ mod tests {
     #[test]
     fn unknown_terminals_are_a_typed_error() {
         let manager = PtyManager::new(Arc::new(crate::events::NullSink));
-        let err = manager.write(42, "ls\r").expect_err("no such terminal");
+        let err = manager
+            .write(42, PtyKind::Shell, "ls\r")
+            .expect_err("no such terminal");
         assert_eq!(err.code, crate::git::errors::ErrorCode::TerminalClosed);
-        assert!(manager.resize(42, 80, 24).is_err());
+        assert!(manager.resize(42, PtyKind::Update, 80, 24).is_err());
         // Closing twice, or something that never existed, is not an error.
-        manager.close(42);
+        manager.close(42, PtyKind::Shell);
     }
 }

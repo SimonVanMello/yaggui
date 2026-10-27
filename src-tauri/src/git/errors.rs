@@ -645,6 +645,16 @@ impl YagguiError {
         error.with_action(ErrorAction::Retry)
     }
 
+    /// No editor is set and the target cannot go to the system's text editor (a folder, or
+    /// on Linux a file the desktop could run rather than show).
+    pub fn editor_not_configured() -> Self {
+        Self::new(
+            ErrorCode::EditorNotFound,
+            "No editor is configured. Choose one in the preferences (Tools).",
+            "Aucun éditeur n'est configuré. Choisis-en un dans les préférences (Outils).",
+        )
+    }
+
     pub fn file_manager_failed() -> Self {
         Self::new(
             ErrorCode::FileManagerFailed,

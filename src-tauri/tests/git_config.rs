@@ -21,6 +21,7 @@ struct Env {
     sink: Arc<RecordingSink>,
     repos: Arc<RepoManager>,
     store: Arc<Store>,
+    log: Arc<CommandLog>,
     global: PathBuf,
     id: u32,
 }
@@ -29,7 +30,8 @@ fn env() -> Env {
     let fx = Fixture::new("clean");
     let global = fx.root.join("global-gitconfig");
     let sink = Arc::new(RecordingSink::default());
-    let git = GitCli::new(Arc::new(CommandLog::new()), sink.clone())
+    let log = Arc::new(CommandLog::new());
+    let git = GitCli::new(log.clone(), sink.clone())
         .with_env("GIT_CONFIG_NOSYSTEM", "1")
         .with_env("GIT_CONFIG_GLOBAL", &global);
     let store = Arc::new(Store::open_in_memory().unwrap());
@@ -41,6 +43,7 @@ fn env() -> Env {
         sink,
         repos,
         store,
+        log,
         global,
         id,
     }
@@ -126,6 +129,98 @@ fn local_writes_land_in_the_repository_file() {
         ev,
         BackendEvent::OpFinished(f) if f.kind == OpKind::Config && f.repo_id == e.id
     )));
+}
+
+/// Settings that hold credentials (an `extraHeader` token, a credential helper that prints
+/// a password, an SMTP password) reach the editor through its own channel and never the
+/// command log, where "Copy output" would paste them into a bug report; other settings stay
+/// readable there.
+#[test]
+fn credential_settings_stay_out_of_the_command_log() {
+    const SECRET: &str = "s3cr3t-T0ken-XYZ";
+    let e = env();
+    let header_key = "http.https://example.com/.extraheader";
+    e.repos
+        .git_config_set(
+            Some(e.id),
+            ConfigScope::Global,
+            header_key.to_owned(),
+            Some(format!("AUTHORIZATION: basic {SECRET}")),
+        )
+        .unwrap();
+    e.repos
+        .git_config_set(
+            None,
+            ConfigScope::Global,
+            "credential.helper".to_owned(),
+            Some(format!("!f() {{ echo password={SECRET}; }}; f")),
+        )
+        .unwrap();
+    e.repos
+        .git_config_set(
+            Some(e.id),
+            ConfigScope::Repo,
+            "sendemail.smtpPass".to_owned(),
+            Some(SECRET.to_owned()),
+        )
+        .unwrap();
+    e.repos
+        .git_config_set(
+            Some(e.id),
+            ConfigScope::Repo,
+            "user.name".to_owned(),
+            Some("Ada".to_owned()),
+        )
+        .unwrap();
+
+    // The editor still receives every value.
+    let global = e
+        .repos
+        .git_config_list(Some(e.id), ConfigScope::Global)
+        .unwrap();
+    assert_eq!(
+        value(&global, header_key).as_deref(),
+        Some(format!("AUTHORIZATION: basic {SECRET}").as_str())
+    );
+    assert!(
+        value(&global, "credential.helper")
+            .unwrap()
+            .contains(SECRET)
+    );
+    let local = e
+        .repos
+        .git_config_list(Some(e.id), ConfigScope::Repo)
+        .unwrap();
+    assert_eq!(value(&local, "sendemail.smtppass").as_deref(), Some(SECRET));
+    assert_eq!(value(&local, "user.name").as_deref(), Some("Ada"));
+
+    let entries = e.log.entries();
+    for entry in &entries {
+        let all = format!("{:?} {} {}", entry.args, entry.stdout, entry.stderr);
+        assert!(!all.contains(SECRET), "secret in the command log: {all}");
+    }
+    let listings: Vec<_> = entries
+        .iter()
+        .filter(|entry| entry.args.iter().any(|a| a == "--list"))
+        .collect();
+    assert_eq!(listings.len(), 2);
+    for listing in listings {
+        assert!(
+            listing.stdout.contains("not logged"),
+            "{:?}",
+            listing.stdout
+        );
+    }
+    let header_set = entries
+        .iter()
+        .find(|entry| entry.args.iter().any(|a| a == header_key))
+        .expect("the extraHeader write is logged");
+    assert_eq!(header_set.args.last().map(String::as_str), Some("***"));
+    let name_set = entries
+        .iter()
+        .find(|entry| entry.args.iter().any(|a| a == "user.name"))
+        .expect("the user.name write is logged");
+    assert_eq!(name_set.args.last().map(String::as_str), Some("Ada"));
 }
 
 #[test]

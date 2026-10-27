@@ -44,13 +44,15 @@ Click **Test** next to a row. It uses the value you are typing, even before it i
 
 ## Editor
 
-**Editor** names the program that opens a repository or a file. Type a name and press <kbd>Enter</kbd> or leave the field to save it. Leave it empty to use the system's default application.
+**Editor** names the program that opens a repository or a file. Type a name and press <kbd>Enter</kbd> or leave the field to save it. Leave it empty to use the system's text editor: it opens files only, never the repository folder.
 
-| OS      | With a value                                                                                                  | Empty                   |
-| ------- | ------------------------------------------------------------------------------------------------------------- | ----------------------- |
-| macOS   | `open -a <application> <target>`: the value is an application name, for example `Visual Studio Code` or `Zed` | `open <target>`         |
-| Windows | `<program> <target>`: a program on the `PATH` or a full path, for example `code`                              | `explorer.exe <target>` |
-| Linux   | `<program> <target>`, for example `code` or `subl`                                                            | `xdg-open <target>`     |
+| OS      | With a value                                                                                                  | Empty                                                                                                                                         |
+| ------- | ------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| macOS   | `open -a <application> <target>`: the value is an application name, for example `Visual Studio Code` or `Zed` | `open -t <file>`: the default text editor (TextEdit unless you changed it)                                                                    |
+| Windows | `<program> <target>`: a program on the `PATH` or a full path, for example `code`                              | `notepad.exe <file>`                                                                                                                          |
+| Linux   | `<program> <target>`, for example `code` or `subl`                                                            | `xdg-open <file>`, only for a text file (no NUL byte in its first 8 KiB, and not a `.desktop` file): the desktop's default application for it |
+
+Without an editor, a file is never handed to the system's generic opener (`open`, `explorer.exe`, `xdg-open` on anything): on Windows and macOS it would run a script (`.bat`, `.vbs`, `.command`…) of a repository you just cloned instead of showing it. The folder of the repository, a binary file and, on Linux, a file the desktop could run rather than show need a configured editor.
 
 The editor is used by:
 
@@ -60,7 +62,8 @@ The editor is used by:
 When the editor cannot start, a toast "Could not open the editor" shows one of these messages (there is no button: fix the setting, then try again):
 
 - "The editor "_name_" could not be started. Check its name in the preferences." Check the spelling, or give the full path of the program.
-- "No application could open the file. Choose an editor in the preferences." No editor is set and the system has no default application for this file.
+- "No editor is configured. Choose one in the preferences (Tools)." No editor is set, and the target cannot go to the system's text editor: the repository folder, a binary file, or on Linux a `.desktop` file.
+- "No application could open the file. Choose an editor in the preferences." No editor is set and the system's text editor could not be started.
 
 A value that starts with `-`, contains control characters or is longer than 512 characters is refused with "The editor must be a program or application name, or a path."
 
@@ -83,7 +86,7 @@ The **External terminal** row shows the current choice ("Current: _name_" or "Sy
 | Windows | Windows Terminal (`wt` or `wt.exe`) gets `-d <repository>`; any other program is started alone with the repository as its working folder | `wt.exe -d <repository>`, otherwise `cmd.exe`                                                                                                                           |
 | Linux   | The program, started alone with the repository as its working folder                                                                     | The first one found among `$TERMINAL`, `x-terminal-emulator`, GNOME Terminal, Konsole, Xfce Terminal, Console (`kgx`), Tilix, Alacritty, kitty, WezTerm, foot and xterm |
 
-On Windows and Linux, a terminal you name is used on its own, with no fallback, so a typo shows up as an error instead of silently opening another terminal.
+On Windows and Linux, a terminal you name is used on its own, with no fallback, so a typo shows up as an error instead of silently opening another terminal. On Windows, a program given by name is looked up in the system folders (`System32`, then the Windows folder) and in the absolute entries of the `PATH`, never in the current folder, and `.exe` is implied; a path must be absolute.
 
 When no terminal can be started, a toast "Could not open a terminal" shows one of these messages, with a **Choose a terminal…** button that opens the Terminal dialog:
 
@@ -136,7 +139,7 @@ A tool name may only contain letters, digits and `- _ . +`, must not start with 
 
 The file manager is always the system one; it has no preference.
 
-- The **Files** button of the repository toolbar (or **Open the repository in the file manager** in the palette) opens the repository folder: `open` on macOS, `explorer.exe` on Windows, `xdg-open` on Linux. On failure: "Could not open the file manager" with "The file manager could not open the repository folder."
+- The **Files** button of the repository toolbar (or **Open the repository in the file manager** in the palette) opens the repository folder: `open` on macOS, `explorer.exe` on Windows, `xdg-open` on Linux. On macOS, a folder whose name has an extension (`Foo.app`, `next.js`) may be a bundle that `open` would launch: it is selected in its parent folder instead (`open -R`), like a file. On failure: "Could not open the file manager" with "The file manager could not open the repository folder."
 - **Open outside yaggui › Show in the file manager** in the diff view shows the file: selected in Finder (`open -R`) or Explorer (`explorer.exe /select,`), and its folder opened on Linux (`xdg-open`, no selection). It is disabled for a deleted file. On failure: "The file could not be shown".
 
 ## Related

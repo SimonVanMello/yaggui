@@ -9,10 +9,10 @@
 //! with a new console and no handle redirection; the command line and flags are computed
 //! by pure functions ([`windows_command_line`], [`windows_creation_flags`]) tested on any host.
 
-use std::ffi::OsString;
+use std::ffi::{OsStr, OsString};
 #[cfg(not(windows))]
 use std::io::Read;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 #[cfg(not(windows))]
 use std::process::{Command, Stdio};
 
@@ -212,6 +212,72 @@ pub fn candidates(
     }
 }
 
+/// Whether a Windows path is absolute: a drive (`C:\\…`), a UNC share (`\\\\srv\\…`) or the
+/// root of the current drive (`\\x`). A `str` test, so it holds on any host.
+fn windows_absolute(path: &str) -> bool {
+    let bytes = path.as_bytes();
+    matches!(bytes, [b'\\' | b'/', ..])
+        || (bytes.len() >= 3
+            && bytes[0].is_ascii_alphabetic()
+            && bytes[1] == b':'
+            && matches!(bytes[2], b'\\' | b'/'))
+}
+
+/// The absolute path of `program` on Windows, or `None` when it is not installed: a name
+/// (`wt.exe`, `pwsh`, `.exe` implied) is looked up in `System32`, the Windows folder, then
+/// each absolute entry of `PATH`; a path is used as is when it is absolute. Never the
+/// current directory, which `CreateProcessW` searches before `PATH` when it is left to find
+/// the program: a repository that commits a `cmd.exe` at its root and is the process cwd
+/// would be run instead of the shell. A relative path (`tools\\wt.exe`) is refused too.
+pub fn resolve_windows_program(
+    program: &OsStr,
+    system_root: Option<&OsStr>,
+    path: Option<&OsStr>,
+    exists: impl Fn(&Path) -> bool,
+) -> Option<PathBuf> {
+    let program = program.to_string_lossy();
+    let program = program.trim();
+    if program.is_empty() {
+        return None;
+    }
+    if program.contains(['\\', '/']) {
+        let candidate = PathBuf::from(program);
+        return (windows_absolute(program) && exists(&candidate)).then_some(candidate);
+    }
+    let name = if program.contains('.') {
+        program.to_owned()
+    } else {
+        format!("{program}.exe")
+    };
+    let system_root = system_root.map(|r| r.to_string_lossy().into_owned());
+    let system = system_root
+        .iter()
+        .flat_map(|root| [format!("{root}\\System32"), root.clone()]);
+    let path = path.map(|p| p.to_string_lossy().into_owned());
+    let path_dirs = path
+        .iter()
+        .flat_map(|p| p.split(';'))
+        .map(|d| d.trim().trim_matches('"'))
+        .filter(|d| windows_absolute(d))
+        .map(str::to_owned);
+    system
+        .chain(path_dirs)
+        .map(|dir| PathBuf::from(format!("{}\\{name}", dir.trim_end_matches(['\\', '/']))))
+        .find(|candidate| exists(candidate))
+}
+
+/// [`resolve_windows_program`] with the environment of this process. App execution aliases
+/// (`wt.exe` under `WindowsApps`) are reparse points: `symlink_metadata` sees them where
+/// `metadata` fails.
+pub fn windows_program(program: &OsStr) -> Option<PathBuf> {
+    resolve_windows_program(
+        program,
+        std::env::var_os("SystemRoot").as_deref(),
+        std::env::var_os("PATH").as_deref(),
+        |candidate| std::fs::symlink_metadata(candidate).is_ok_and(|meta| !meta.is_dir()),
+    )
+}
+
 /// Starts a candidate in `dir`. `Ok(false)` means "not installed, try the next one".
 #[cfg(windows)]
 fn launch(candidate: &Candidate, dir: &Path) -> Result<bool, String> {
@@ -223,6 +289,21 @@ fn launch(candidate: &Candidate, dir: &Path) -> Result<bool, String> {
         CreateProcessW, PROCESS_INFORMATION, STARTUPINFOW,
     };
 
+    // Resolved here and given as the application name: `CreateProcessW` must not search for
+    // it (its order starts with the current directory).
+    let Some(program) = windows_program(&candidate.program) else {
+        return Ok(false);
+    };
+    let candidate = &Candidate {
+        program: program.into_os_string(),
+        args: candidate.args.clone(),
+        wait: candidate.wait,
+    };
+    let application: Vec<u16> = candidate
+        .program
+        .encode_wide()
+        .chain(std::iter::once(0))
+        .collect();
     let mut command_line: Vec<u16> = windows_command_line(candidate)
         .encode_utf16()
         .chain(std::iter::once(0))
@@ -237,12 +318,12 @@ fn launch(candidate: &Candidate, dir: &Path) -> Result<bool, String> {
     startup.cb = u32::try_from(std::mem::size_of::<STARTUPINFOW>()).unwrap_or(u32::MAX);
     // SAFETY: as above.
     let mut process: PROCESS_INFORMATION = unsafe { std::mem::zeroed() };
-    // SAFETY: every pointer is valid for the call: the command line is a mutable,
-    // NUL-terminated buffer (CreateProcessW may write to it), the cwd is NUL-terminated,
-    // and the structs live on this stack frame. No handle is inherited.
+    // SAFETY: every pointer is valid for the call: the application name and the cwd are
+    // NUL-terminated, the command line is a mutable, NUL-terminated buffer (CreateProcessW
+    // may write to it), and the structs live on this stack frame. No handle is inherited.
     let created = unsafe {
         CreateProcessW(
-            std::ptr::null(),
+            application.as_ptr(),
             command_line.as_mut_ptr(),
             std::ptr::null(),
             std::ptr::null(),
@@ -594,6 +675,84 @@ mod tests {
             std::fs::canonicalize(cwd.trim()).expect("cwd"),
             std::fs::canonicalize(repo.path()).expect("repo")
         );
+    }
+
+    #[test]
+    fn windows_programs_are_resolved_outside_the_current_directory() {
+        let root = OsStr::new(r"C:\Windows");
+        let path = OsStr::new(
+            r#".;"C:\Program Files\PowerShell\7";C:\Users\me\AppData\Local\Microsoft\WindowsApps; ;tools"#,
+        );
+        let installed = [
+            r"C:\Windows\System32\cmd.exe",
+            r"C:\Program Files\PowerShell\7\pwsh.exe",
+            r"C:\Users\me\AppData\Local\Microsoft\WindowsApps\wt.exe",
+            r"C:\evil-repo\cmd.exe",
+            r"C:\evil-repo\wt.exe",
+            r"C:\tools\alacritty.exe",
+        ];
+        let exists = |p: &Path| installed.contains(&p.to_string_lossy().as_ref());
+        let resolve = |program: &str| {
+            resolve_windows_program(OsStr::new(program), Some(root), Some(path), exists)
+                .map(|p| p.to_string_lossy().into_owned())
+        };
+        // System32 before PATH, whatever a folder on PATH holds.
+        assert_eq!(
+            resolve("cmd.exe").as_deref(),
+            Some(r"C:\Windows\System32\cmd.exe")
+        );
+        assert_eq!(
+            resolve("cmd").as_deref(),
+            Some(r"C:\Windows\System32\cmd.exe")
+        );
+        // `.exe` is implied; quoted PATH entries are read.
+        assert_eq!(
+            resolve("pwsh").as_deref(),
+            Some(r"C:\Program Files\PowerShell\7\pwsh.exe")
+        );
+        // The hostile repository (the cwd, `C:\evil-repo`) has a `wt.exe` too, and `.` is on
+        // PATH: a relative entry is skipped, and the cwd is never searched.
+        assert_eq!(
+            resolve("wt.exe").as_deref(),
+            Some(r"C:\Users\me\AppData\Local\Microsoft\WindowsApps\wt.exe")
+        );
+        // An absolute path is taken as is; a relative one never goes through the cwd.
+        assert_eq!(
+            resolve(r"C:\tools\alacritty.exe").as_deref(),
+            Some(r"C:\tools\alacritty.exe")
+        );
+        assert_eq!(resolve(r"tools\alacritty.exe"), None);
+        assert_eq!(resolve(r".\cmd.exe"), None);
+        assert_eq!(resolve("notepad.exe"), None);
+        assert_eq!(resolve("  "), None);
+        // Without `SystemRoot`, only PATH.
+        assert_eq!(
+            resolve_windows_program(OsStr::new("cmd.exe"), None, Some(path), exists),
+            None
+        );
+    }
+
+    #[test]
+    fn hostile_repository_on_path_cannot_shadow_system32() {
+        // `cd evil && yaggui .`: the repository is the cwd, and appears first on PATH.
+        let exists = |p: &Path| {
+            let p = p.to_string_lossy();
+            p == r"C:\evil\cmd.exe" || p == r"C:\Windows\System32\cmd.exe"
+        };
+        let found = resolve_windows_program(
+            OsStr::new("cmd.exe"),
+            Some(OsStr::new(r"C:\Windows")),
+            Some(OsStr::new(r"C:\evil;C:\Windows\System32")),
+            exists,
+        );
+        assert_eq!(
+            found.as_deref(),
+            Some(Path::new(r"C:\Windows\System32\cmd.exe"))
+        );
+        assert!(windows_absolute(r"\\srv\share\x.exe"));
+        assert!(windows_absolute(r"\x.exe"));
+        assert!(!windows_absolute(r"x\y.exe"));
+        assert!(!windows_absolute("C:x.exe"));
     }
 
     #[test]

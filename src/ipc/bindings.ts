@@ -168,12 +168,16 @@ export const commands = {
 	 *  `cols`×`rows` cells (F-267). Its output arrives as `pty-output` events, then `pty-exited`.
 	 */
 	ptySpawn: (repoId: number, cols: number, rows: number) => typedError<PtyInfo, YagguiError>(__TAURI_INVOKE("pty_spawn", { repoId, cols, rows })),
-	/**  Sends keyboard input or pasted text to an integrated terminal. */
-	ptyWrite: (ptyId: number, data: string) => typedError<null, YagguiError>(__TAURI_INVOKE("pty_write", { ptyId, data })),
+	/**
+	 *  Sends keyboard input or pasted text to an integrated terminal. `kind` is what the caller
+	 *  believes the terminal runs (a shell, or the package manager of an upgrade): a mismatch is
+	 *  refused.
+	 */
+	ptyWrite: (ptyId: number, kind: PtyKind, data: string) => typedError<null, YagguiError>(__TAURI_INVOKE("pty_write", { ptyId, kind, data })),
 	/**  New size of an integrated terminal, in cells. */
-	ptyResize: (ptyId: number, cols: number, rows: number) => typedError<null, YagguiError>(__TAURI_INVOKE("pty_resize", { ptyId, cols, rows })),
+	ptyResize: (ptyId: number, kind: PtyKind, cols: number, rows: number) => typedError<null, YagguiError>(__TAURI_INVOKE("pty_resize", { ptyId, kind, cols, rows })),
 	/**  Ends an integrated terminal and its shell. No-op if it already exited. */
-	ptyClose: (ptyId: number) => typedError<null, YagguiError>(__TAURI_INVOKE("pty_close", { ptyId })),
+	ptyClose: (ptyId: number, kind: PtyKind) => typedError<null, YagguiError>(__TAURI_INVOKE("pty_close", { ptyId, kind })),
 	/**  Folder used last and default branch, to fill the clone and init dialogs. */
 	newRepoDefaults: () => typedError<NewRepoDefaults, YagguiError>(__TAURI_INVOKE("new_repo_defaults")),
 	/**
@@ -2841,6 +2845,17 @@ export type PtyInfo = {
 	/**  The shell that was started (`/bin/zsh`, `pwsh.exe`…), for the tab title. */
 	shell: string,
 };
+
+/**
+ *  What a terminal runs. The frontend gives it back with every write, resize and close, so
+ *  a terminal of the panel cannot be mistaken for the update terminal (where the user types
+ *  a password into a package manager), nor the reverse.
+ */
+export type PtyKind = 
+/**  The user's shell in a repository (`spawn`). */
+"shell" | 
+/**  The package manager of an upgrade, outside any repository (`spawn_program`). */
+"update";
 
 /**
  *  Output of an integrated terminal (F-267), batched: at most one event every few

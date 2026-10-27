@@ -17,7 +17,7 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use crate::events::{BackendEvent, CommandLogged, EventSink};
 use crate::git::errors::{BackendError, YagguiError, classify_git_failure};
 use crate::git::log::{CommandLog, CommandLogEntry, CommandStatus, bounded_output};
-use crate::git::redact::redact_urls;
+use crate::git::redact::{MASK, redact_urls};
 
 /// Oldest Git version yaggui is tested against; older ones get a warning.
 pub const MIN_GIT_VERSION: &str = "2.30";
@@ -109,7 +109,14 @@ pub struct GitCommand {
     capture_limit: Option<usize>,
     index_lock: Option<PathBuf>,
     env: Vec<(OsString, OsString)>,
+    /// Keep stdout out of the log (configuration listings may hold credentials).
+    log_stdout: bool,
+    /// Indexes in `args` logged as `***`.
+    private_args: Vec<usize>,
 }
+
+/// What the log shows instead of a stdout kept private.
+pub const PRIVATE_STDOUT: &str = "[yaggui] output not logged: it may hold credentials\n";
 
 impl GitCommand {
     /// `args` are passed as separate arguments, never through a shell.
@@ -127,11 +134,28 @@ impl GitCommand {
             capture_limit: None,
             index_lock: None,
             env: Vec::new(),
+            log_stdout: true,
+            private_args: Vec::new(),
         }
     }
 
     pub fn arg(mut self, arg: impl AsRef<OsStr>) -> Self {
         self.args.push(arg.as_ref().to_owned());
+        self
+    }
+
+    /// An argument the log shows as `***`: the value of a credential setting. Git receives it
+    /// as is.
+    pub fn private_arg(mut self, arg: impl AsRef<OsStr>) -> Self {
+        self.private_args.push(self.args.len());
+        self.args.push(arg.as_ref().to_owned());
+        self
+    }
+
+    /// Keeps the command's stdout out of the log, replaced by [`PRIVATE_STDOUT`]: for output
+    /// that may hold credentials (`git config --list`), which callers still receive in full.
+    pub fn private_stdout(mut self) -> Self {
+        self.log_stdout = false;
         self
     }
 
@@ -339,7 +363,14 @@ impl GitCli {
             args: command
                 .args
                 .iter()
-                .map(|a| redact_urls(&a.to_string_lossy()).into_owned())
+                .enumerate()
+                .map(|(i, a)| {
+                    if command.private_args.contains(&i) {
+                        MASK.to_owned()
+                    } else {
+                        redact_urls(&a.to_string_lossy()).into_owned()
+                    }
+                })
                 .collect(),
             cwd: command.cwd.as_deref().map(|p| p.display().to_string()),
             started_at,
@@ -407,7 +438,11 @@ impl GitCli {
         let stderr_bytes = redact_urls(&String::from_utf8_lossy(&stderr_capture.into_bytes()))
             .into_owned()
             .into_bytes();
-        let stdout_logged = redact_urls(&String::from_utf8_lossy(&stdout_bytes)).into_owned();
+        let stdout_logged = if command.log_stdout {
+            redact_urls(&String::from_utf8_lossy(&stdout_bytes)).into_owned()
+        } else {
+            PRIVATE_STDOUT.to_owned()
+        };
         if let Some(writer) = stdin_writer
             && writer.is_finished()
         {

@@ -12,8 +12,8 @@ use crate::events::OpKind;
 use crate::git::cli::{GitCli, GitCommand};
 use crate::git::errors::{BackendError, YagguiError};
 use crate::git::ops::config::{
-    ConfigEntry, ExternalToolCheck, ExternalToolKind, ToolIssue, parse_config_list,
-    parse_tool_help, validate_key, validate_value,
+    ConfigEntry, ExternalToolCheck, ExternalToolKind, ToolIssue, is_sensitive_key,
+    parse_config_list, parse_tool_help, validate_key, validate_value,
 };
 use crate::git::ops::types::ConfigScope;
 use crate::store::is_tool_name;
@@ -58,7 +58,10 @@ impl RepoManager {
         repo_id: Option<u32>,
         scope: ConfigScope,
     ) -> Result<Vec<ConfigEntry>, YagguiError> {
-        let mut command = GitCommand::new(["config", scope_flag(scope), "--list", "-z"]);
+        // Credential helpers, `extraHeader` tokens and passwords are values like any other:
+        // the listing goes to the editor, not to the log.
+        let mut command =
+            GitCommand::new(["config", scope_flag(scope), "--list", "-z"]).private_stdout();
         match (scope, repo_id) {
             (ConfigScope::Repo, None) => return Err(local_needs_repo()),
             (ConfigScope::Repo, Some(id)) => {
@@ -92,6 +95,7 @@ impl RepoManager {
             validate_value(value)?;
         }
         let removing = value.is_none();
+        let sensitive = is_sensitive_key(&key);
         let mut list = vec!["config".to_owned(), scope_flag(scope).to_owned()];
         list.push(
             if removing {
@@ -103,20 +107,25 @@ impl RepoManager {
         );
         list.push("--".to_owned());
         list.push(key);
-        list.extend(value);
+        // A credential value is shown as `***` in the command log.
+        let with_value = move |command: GitCommand| match &value {
+            Some(value) if sensitive => command.private_arg(value),
+            Some(value) => command.arg(value),
+            None => command,
+        };
         let git: Arc<GitCli> = Arc::clone(&self.git);
         match (scope, repo_id) {
             (ConfigScope::Repo, None) => Err(local_needs_repo()),
             (ConfigScope::Repo, Some(id)) => self.write_op(id, OpKind::Config, false, move |ctx| {
-                let run = ctx
-                    .git
-                    .run_raw(&ctx.command(list), Some(ctx.cancel), None)?;
+                let run =
+                    ctx.git
+                        .run_raw(&with_value(ctx.command(list)), Some(ctx.cancel), None)?;
                 finish_set(&run, removing)
             }),
             (ConfigScope::Global, _) => {
                 let repo = repo_id.unwrap_or(0);
                 self.global_queue()?.run(OpKind::Config, false, move |op| {
-                    let mut command = GitCommand::new(list);
+                    let mut command = with_value(GitCommand::new(list));
                     if repo != 0 {
                         command = command.repo(repo);
                     }

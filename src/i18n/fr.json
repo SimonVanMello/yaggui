@@ -1683,7 +1683,7 @@
   "prefs.style.terminal": "Terminal",
   "prefs.style.terminalHint": "Dense, monospace et sombre : le choix clair / sombre ne s'applique pas.",
   "tools.editor": "Éditeur",
-  "tools.editor.hint": "Ouvre le dépôt ou un fichier. Vide : celui du système.",
+  "tools.editor.hint": "Ouvre le dépôt ou un fichier. Vide : l'éditeur de texte du système, pour les fichiers seulement.",
   "tools.editor.placeholder": "code, subl, Zed…",
   "tools.diff": "Outil de diff",
   "tools.diff.hint": "Un nom connu de Git (git difftool --tool-help). Vide : diff.tool.",
