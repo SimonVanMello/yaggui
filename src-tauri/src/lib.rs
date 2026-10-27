@@ -1,3 +1,4 @@
+pub mod ai;
 pub mod commands;
 pub mod events;
 pub mod git;
@@ -204,6 +205,15 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             commands::graph_tools::reveal_path,
             commands::graph_tools::branch_cleanup,
             commands::graph_tools::delete_branches,
+            commands::ai::ai_status,
+            commands::ai::ai_set_api_key,
+            commands::ai::ai_clear_api_key,
+            commands::ai::ai_default_prompt,
+            commands::ai::ai_list_skills,
+            commands::ai::ai_test_provider,
+            commands::ai::ai_preview_context,
+            commands::ai::ai_generate_commit_message,
+            commands::ai::ai_cancel,
         ])
         .events(collect_events![
             events::CommandLogged,
@@ -246,6 +256,17 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
         .constant("WORKSPACE_NAME_MAX", store::MAX_WORKSPACE_NAME)
         .constant("COMPARE_MAX_COMMITS", graph::types::COMPARE_MAX_COMMITS)
         .constant("GRAPH_FILTER_MAX", graph::types::GRAPH_FILTER_MAX)
+        .constant("AI_DIFF_BYTES_MIN", *ai::AI_DIFF_BYTES_RANGE.start())
+        .constant("AI_DIFF_BYTES_MAX", *ai::AI_DIFF_BYTES_RANGE.end())
+        .constant("AI_FILE_BYTES_MIN", *ai::AI_FILE_BYTES_RANGE.start())
+        .constant("AI_FILE_BYTES_MAX", *ai::AI_FILE_BYTES_RANGE.end())
+        .constant(
+            "AI_RECENT_SUBJECTS_MAX",
+            *ai::AI_RECENT_SUBJECTS_RANGE.end(),
+        )
+        .constant("AI_TIMEOUT_MIN", *ai::AI_TIMEOUT_RANGE.start())
+        .constant("AI_TIMEOUT_MAX", *ai::AI_TIMEOUT_RANGE.end())
+        .constant("AI_PROMPT_MAX", ai::AI_PROMPT_MAX)
 }
 
 /// Writes the TypeScript bindings to `path`.

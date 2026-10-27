@@ -29,7 +29,7 @@ const MAX_FILE_BYTES: u64 = 1024 * 1024;
 const MAX_KEYBINDINGS: usize = 1000;
 
 /// Settings that travel between machines.
-const PORTABLE: [&str; 19] = [
+const PORTABLE: [&str; 20] = [
     "theme",
     "style",
     "locale",
@@ -49,18 +49,21 @@ const PORTABLE: [&str; 19] = [
     "disabledConfirmations",
     "gravatar",
     "remoteTags",
+    "ai",
 ];
 
 /// Settings that only mean something on the machine they were set on: programs and paths
-/// (they differ per OS and install), and the one-time answer about update checks. Never
-/// exported; ignored (and listed) when a file holds them.
-const MACHINE_SPECIFIC: [&str; 6] = [
+/// (they differ per OS and install), the one-time answer about update checks and the consent
+/// to send code to an AI provider. Never exported; ignored (and listed) when a file holds them.
+const MACHINE_SPECIFIC: [&str; 8] = [
     "gitPath",
     "terminal",
     "editor",
     "diffTool",
     "mergeTool",
     "checkUpdates",
+    "aiEnabled",
+    "claudePath",
 ];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]
@@ -291,6 +294,12 @@ fn parse(text: &str, current: &Preferences) -> Result<Parsed, YagguiError> {
 /// `prefs` with the setting `key` replaced by `value`; the reason when the value is refused.
 fn with_value(prefs: &Preferences, key: &str, value: Value) -> Result<Preferences, String> {
     let mut object = to_object(prefs).map_err(|e| e.message.en)?;
+    // A file from another version may lack AI settings added since, or hold newer ones:
+    // what it lacks keeps its current value.
+    let value = match (key, object.remove(key)) {
+        ("ai", Some(current)) if value.is_object() => crate::ai::prefs::merge_json(current, value),
+        _ => value,
+    };
     object.insert(key.to_owned(), value);
     let next: Preferences =
         serde_json::from_value(Value::Object(object)).map_err(|e| e.to_string())?;

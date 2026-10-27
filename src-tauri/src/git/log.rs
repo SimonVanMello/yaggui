@@ -28,7 +28,11 @@ pub struct CommandLogEntry {
     pub id: u32,
     /// Repository the command ran for, if any.
     pub repo_id: Option<u32>,
-    /// Arguments after `git` (e.g. `["fetch", "--progress", "origin"]`).
+    /// Program run when it is not `git` (`claude`), or the AI provider called
+    /// (`claude-api`); `None` for Git commands.
+    #[serde(default)]
+    pub program: Option<String>,
+    /// Arguments after the program (e.g. `["fetch", "--progress", "origin"]`).
     pub args: Vec<String>,
     pub cwd: Option<String>,
     /// Start time, seconds since the Unix epoch.
@@ -110,6 +114,7 @@ mod tests {
         CommandLogEntry {
             id: 0,
             repo_id: None,
+            program: None,
             args: vec!["status".into()],
             cwd: None,
             started_at: 0,

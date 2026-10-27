@@ -150,6 +150,18 @@ fn stores_preferences() {
         gravatar: true,
         remote_tags: true,
         check_updates: Some(true),
+        ai_enabled: true,
+        ai: crate::ai::AiPreferences {
+            provider: crate::ai::AiProviderKind::ClaudeCode,
+            claude_code: crate::ai::ClaudeCodeSettings {
+                model: Some("haiku".into()),
+                skill: Some("commit".into()),
+            },
+            custom_prompt: Some("Write it in haiku.".into()),
+            recent_subjects: 0,
+            ..crate::ai::AiPreferences::default()
+        },
+        claude_path: Some("/opt/claude/bin/claude".into()),
     };
     assert_eq!(store.set_preferences(&prefs).unwrap(), prefs);
     // The same values after reopening: they are in the database, not in memory.

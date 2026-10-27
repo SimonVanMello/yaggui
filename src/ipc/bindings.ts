@@ -800,6 +800,48 @@ export const commands = {
 	 *  protected: `currentBranch`, `branchCheckedOut`, `protectedBranchDelete`.
 	 */
 	deleteBranches: (repoId: number, names: string[]) => typedError<DeleteBranchesResult, YagguiError>(__TAURI_INVOKE("delete_branches", { repoId, names })),
+	/**
+	 *  Every provider with what it needs and what yaggui found (key source, `claude` path and
+	 *  version). Never the key.
+	 */
+	aiStatus: () => typedError<AiStatus, YagguiError>(__TAURI_INVOKE("ai_status")),
+	/**
+	 *  Saves the API key of `provider` in the OS keychain. Errors: `invalidArgument` (empty or
+	 *  malformed key, provider without key), `aiKeychainUnavailable`.
+	 */
+	aiSetApiKey: (provider: AiProviderKind, key: string) => typedError<null, YagguiError>(__TAURI_INVOKE("ai_set_api_key", { provider, key })),
+	/**  Removes the saved API key of `provider` (the environment variable, if any, is used again). */
+	aiClearApiKey: (provider: AiProviderKind) => typedError<null, YagguiError>(__TAURI_INVOKE("ai_clear_api_key", { provider })),
+	/**  The built-in instructions, used while `customPrompt` is `null` (and shown by "Reset"). */
+	aiDefaultPrompt: () => typedError<string, YagguiError>(__TAURI_INVOKE("ai_default_prompt")),
+	/**
+	 *  Claude Code skills and custom commands of the user, of the repository when `repo_id` is
+	 *  given, and of installed plugins, sorted by name.
+	 */
+	aiListSkills: (repoId: number | null) => typedError<AiSkill[], YagguiError>(__TAURI_INVOKE("ai_list_skills", { repoId })),
+	/**
+	 *  Sends a tiny prompt (no repository data) to `provider` with the saved preferences, to check
+	 *  the key, the binary, its login and the model. Works while the feature is off.
+	 */
+	aiTestProvider: (provider: AiProviderKind) => typedError<AiTestResult, YagguiError>(__TAURI_INVOKE("ai_test_provider", { provider })),
+	/**
+	 *  The exact text a generation would send for the staged changes (and the amended commit's
+	 *  with `amend`), without sending it. Works while the feature is off.
+	 */
+	aiPreviewContext: (repoId: number, amend: boolean) => typedError<AiContextPreview, YagguiError>(__TAURI_INVOKE("ai_preview_context", { repoId, amend })),
+	/**
+	 *  Writes a commit message for the staged changes (plus HEAD's with `amend`) with the
+	 *  provider of the preferences. Never commits, never writes to the repository. One
+	 *  generation per repository at a time. Errors: `aiDisabled`, `aiNotConfigured`,
+	 *  `nothingToCommit`, `aiBusy`, `aiAuthFailed`, `aiRateLimited`, `aiProviderUnavailable`,
+	 *  `aiTimeout`, `aiEmptyResponse`, `aiProviderFailed`, `cancelled`.
+	 */
+	aiGenerateCommitMessage: (repoId: number, amend: boolean) => typedError<GeneratedCommitMessage, YagguiError>(__TAURI_INVOKE("ai_generate_commit_message", { repoId, amend })),
+	/**
+	 *  Cancels the generation running for `repo_id` (it then fails with `cancelled`); nothing
+	 *  happens when none is running.
+	 */
+	aiCancel: (repoId: number) => typedError<null, YagguiError>(__TAURI_INVOKE("ai_cancel", { repoId })),
 };
 
 /** Events */
@@ -820,6 +862,22 @@ export const events = {
 };
 
 /* Constants */
+export const AI_DIFF_BYTES_MAX = 1000000 as const;
+
+export const AI_DIFF_BYTES_MIN = 4000 as const;
+
+export const AI_FILE_BYTES_MAX = 1000000 as const;
+
+export const AI_FILE_BYTES_MIN = 500 as const;
+
+export const AI_PROMPT_MAX = 20000 as const;
+
+export const AI_RECENT_SUBJECTS_MAX = 50 as const;
+
+export const AI_TIMEOUT_MAX = 900 as const;
+
+export const AI_TIMEOUT_MIN = 10 as const;
+
 export const AUTO_FETCH_MAX_MINUTES = 240 as const;
 
 export const AUTO_FETCH_MIN_MINUTES = 1 as const;
@@ -867,6 +925,165 @@ export const SIGNATURE_X509 = 3 as const;
 export const WORKSPACE_NAME_MAX = 100 as const;
 
 /* Types */
+/**  The exact text a generation would send, without sending anything. */
+export type AiContextPreview = {
+	text: string,
+	summary: AiContextSummary,
+};
+
+/**  What the context sent to the provider holds, for the result and the preview. */
+export type AiContextSummary = {
+	/**  Changed files, all listed with their status. */
+	files: number,
+	/**  Files whose diff was cut to `maxFileBytes`. */
+	truncatedFiles: string[],
+	/**  Files matching `excludedPaths`: name and status only. */
+	excludedFiles: string[],
+	/**  Binary files: name and status only. */
+	binaryFiles: string[],
+	/**  Files left out once `maxDiffBytes` was reached: name and status only. */
+	omittedFiles: string[],
+	/**  Size of the whole text sent (instructions and context), in bytes. */
+	sentBytes: number,
+};
+
+/**  What a provider needs to work, and what yaggui found. */
+export type AiCredential = 
+/**  An API key, saved in the keychain or read from the environment. */
+{ kind: "apiKey"; source: ApiKeySource; 
+/**
+ *  The OS keychain can be used (`ai_set_api_key` would work). When it cannot (no
+ *  Secret Service on Linux), the environment variable is the only way.
+ */
+keychainAvailable: boolean; 
+/**  Name of the environment variable read when no key is saved. */
+envVar: string } | 
+/**  A command-line program and its own login. */
+{ kind: "cli"; 
+/**
+ *  Absolute path of the program found (the configured one, or on the login shell's
+ *  `PATH`); `None` when it was not found.
+ */
+path: string | null; 
+/**  What `--version` printed; `None` when it does not run. */
+version: string | null; 
+/**  The path comes from the preferences rather than auto-detection. */
+configured: boolean };
+
+/**  Language of the generated message. */
+export type AiLanguage = 
+/**  The language of the recent subjects of the branch, English when there are none. */
+"auto" | "en" | "fr";
+
+/**
+ *  Settings of the AI commit messages that travel with an exported preferences file. Whether
+ *  the feature is on (`Preferences::ai_enabled`) and the `claude` path
+ *  (`Preferences::claude_path`) are kept per machine.
+ */
+export type AiPreferences = {
+	/**  The provider used by the commit area. */
+	provider: AiProviderKind,
+	claudeApi: ClaudeApiSettings,
+	claudeCode: ClaudeCodeSettings,
+	/**
+	 *  Instructions replacing the default ones (`ai_default_prompt`); `None` follows the
+	 *  default, so its improvements reach users who never edited it. The context block is
+	 *  always appended by yaggui.
+	 */
+	customPrompt: string | null,
+	/**  Diff bytes sent at most, all files together, within `AI_DIFF_BYTES_RANGE`. */
+	maxDiffBytes: number,
+	/**
+	 *  Diff bytes sent at most for one file, within `AI_FILE_BYTES_RANGE`; the rest of the
+	 *  file is cut and the file is listed as truncated.
+	 */
+	maxFileBytes: number,
+	/**
+	 *  Globs of paths whose diff is never sent, only their name and status. A pattern
+	 *  without `/` matches the file name anywhere (`*.lock`), else the path from the root
+	 *  (`vendor/**`).
+	 */
+	excludedPaths: string[],
+	/**
+	 *  Subjects of the last commits of the branch sent as style examples, within
+	 *  `AI_RECENT_SUBJECTS_RANGE`; 0 sends none.
+	 */
+	recentSubjects: number,
+	language: AiLanguage,
+	/**  Seconds before a generation is abandoned, within `AI_TIMEOUT_RANGE`. */
+	timeoutSeconds: number,
+};
+
+/**
+ *  A service that writes the message. Adding one (Codex CLI, another API) is a new variant
+ *  and a new module of `ai/`: the commands keep their shape.
+ */
+export type AiProviderKind = 
+/**  Anthropic's Messages API with the user's API key. */
+"claudeApi" | 
+/**  The user's `claude` CLI and login, run read-only in the repository. */
+"claudeCode";
+
+/**  One provider as the preferences screen lists it. */
+export type AiProviderStatus = {
+	kind: AiProviderKind,
+	/**  Display name (a product name, the same in every language). */
+	name: string,
+	/**  Model used when none is set; `None` when the provider picks it itself. */
+	defaultModel: string | null,
+	/**  Models offered in the picker (any other id can be typed). */
+	suggestedModels: string[],
+	/**  The provider can run a Claude Code skill (`ai_list_skills`). */
+	supportsSkills: boolean,
+	credential: AiCredential,
+	/**  Everything needed is there; a generation can still fail (key refused, offline). */
+	ready: boolean,
+	/**  Why it is not ready (`aiNotConfigured`, `aiKeychainUnavailable`…). */
+	problem: YagguiError | null,
+};
+
+/**  A Claude Code skill or custom command the Claude Code provider can be asked to use. */
+export type AiSkill = {
+	/**  Name to save in `ClaudeCodeSettings::skill` (`commit`, `plugin:commit`). */
+	name: string,
+	/**  The `description` of its frontmatter. */
+	description: string | null,
+	scope: AiSkillScope,
+	/**  A legacy `commands/<name>.md` custom command rather than a `skills/<name>/SKILL.md`. */
+	legacyCommand: boolean,
+};
+
+export type AiSkillScope = 
+/**  `~/.claude/skills` or `~/.claude/commands`. */
+"user" | 
+/**  `.claude/skills` or `.claude/commands` of the repository. */
+"project" | 
+/**  A skill of an installed Claude Code plugin (best effort). */
+"plugin";
+
+export type AiStatus = {
+	/**  Every provider this version knows, in display order. */
+	providers: AiProviderStatus[],
+};
+
+/**  Answer of `ai_test_provider`: the provider answered a tiny prompt (no repository data). */
+export type AiTestResult = {
+	provider: AiProviderKind,
+	model: string | null,
+	durationMs: number,
+	/**  The provider's reply, cut to a few hundred characters. */
+	reply: string,
+};
+
+/**  Where the API key comes from. The key itself never leaves the backend. */
+export type ApiKeySource = 
+/**  No key: neither saved nor in the environment. */
+"none" | 
+/**  Saved by yaggui in the OS keychain (`ai_set_api_key`). */
+"keychain" | 
+/**  `ANTHROPIC_API_KEY` of yaggui's or the login shell's environment. */
+"environment";
+
 export type AppInfo = {
 	/**  yaggui version, from `Cargo.toml`. */
 	appVersion: string,
@@ -1166,6 +1383,21 @@ export type CherryPickRequest = {
 	mainline: number | null,
 };
 
+export type ClaudeApiSettings = {
+	/**  Model id sent to the API (`claude-haiku-5-5`). */
+	model: string,
+};
+
+export type ClaudeCodeSettings = {
+	/**  `--model` (an alias like `haiku` or a full id); `None` keeps the CLI's default. */
+	model: string | null,
+	/**
+	 *  Name of a Claude Code skill to write the message with (`commit`, `plugin:skill`);
+	 *  `None` uses yaggui's prompt alone.
+	 */
+	skill: string | null,
+};
+
 /**  Why the cleanup lists a branch (F-105). */
 export type CleanupBranch = {
 	/**  Short name, `feat/x`. */
@@ -1218,7 +1450,12 @@ export type CommandLogEntry = {
 	id: number,
 	/**  Repository the command ran for, if any. */
 	repoId: number | null,
-	/**  Arguments after `git` (e.g. `["fetch", "--progress", "origin"]`). */
+	/**
+	 *  Program run when it is not `git` (`claude`), or the AI provider called
+	 *  (`claude-api`); `None` for Git commands.
+	 */
+	program?: string | null,
+	/**  Arguments after the program (e.g. `["fetch", "--progress", "origin"]`). */
 	args: string[],
 	cwd: string | null,
 	/**  Start time, seconds since the Unix epoch. */
@@ -1661,7 +1898,9 @@ export type ErrorAction =
 /**  Pull (default strategy), then push again. */
 { kind: "pullThenPush" } | 
 /**  Push again with `setUpstream`, after confirmation. */
-{ kind: "pushSetUpstream" };
+{ kind: "pushSetUpstream" } | 
+/**  Open the AI section of the preferences (provider, key, `claude` path, model). */
+{ kind: "configureAi" };
 
 /**  Stable machine-readable error code; the frontend switches on it, never on messages. */
 export type ErrorCode = 
@@ -1853,7 +2092,33 @@ export type ErrorCode =
  */
 "preferencesFileInvalid" | 
 /**  A preferences file written by a newer format version than this yaggui reads. */
-"preferencesFileTooNew";
+"preferencesFileTooNew" | 
+/**  An AI commit message was asked while the feature is off in the preferences. */
+"aiDisabled" | 
+/**  The AI provider lacks what it needs: no API key, `claude` not found. */
+"aiNotConfigured" | 
+/**  The AI provider refused the credentials (key revoked or wrong, Claude Code logged out). */
+"aiAuthFailed" | 
+/**  The AI provider limits the requests or the spending: try again later. */
+"aiRateLimited" | 
+/**
+ *  The AI provider could not be reached or is overloaded (offline, 5xx, 529), or the
+ *  `claude` program could not be started.
+ */
+"aiProviderUnavailable" | 
+/**  The AI provider did not answer within the configured time. */
+"aiTimeout" | 
+/**  The AI provider answered without a usable message. */
+"aiEmptyResponse" | 
+/**
+ *  The AI provider reported another failure (unknown model, refused request, the CLI
+ *  failed); its answer is in `detail`.
+ */
+"aiProviderFailed" | 
+/**  The OS keychain cannot be used (no Secret Service on Linux, access denied). */
+"aiKeychainUnavailable" | 
+/**  A message is already being generated for this repository. */
+"aiBusy";
 
 /**  Structured data attached to some errors, for a dedicated display. */
 export type ErrorPayload = 
@@ -2020,6 +2285,18 @@ export type ForcePushPreview = {
 	hidden: number,
 	/**  Force push is refused on this branch. */
 	protected: boolean,
+};
+
+export type GeneratedCommitMessage = {
+	/**  First line, trimmed. */
+	summary: string,
+	/**  The rest after the first blank line, trimmed; empty when there is none. */
+	description: string,
+	provider: AiProviderKind,
+	/**  Model that answered, when the provider says (or the one asked for). */
+	model: string | null,
+	durationMs: number,
+	context: AiContextSummary,
 };
 
 /**  What yaggui knows about a `git` binary, for the preferences screen (F-322). */
@@ -2845,6 +3122,15 @@ export type Preferences = {
 	 *  one-time question: the check is opt-in, nothing is asked of GitHub before.
 	 */
 	checkUpdates?: boolean | null,
+	/**
+	 *  AI commit messages (F-072). Off by default: when on, the staged changes are sent to
+	 *  the provider of `ai` on request. Kept per machine, like the consent it stands for.
+	 */
+	aiEnabled?: boolean,
+	/**  AI commit message settings (F-073 to F-075). */
+	ai?: AiPreferences,
+	/**  Path of the `claude` program (F-073); `None` looks it up on the login shell's `PATH`. */
+	claudePath?: string | null,
 };
 
 export type PreferencesImportPreview = {
