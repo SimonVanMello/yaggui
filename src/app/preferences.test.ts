@@ -1,14 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { mockBackend, mockClient } from '../ipc/mockClient';
-import type { YagguiClient } from '../ipc';
+import { YagguiIpcError, type IpcResult, type Preferences, type YagguiClient } from '../ipc';
 import {
+  currentPreferences,
   DEFAULT_PREFERENCES,
   LEGACY_LOCALE_KEY,
   LEGACY_THEME_KEY,
   loadPreferences,
   readLegacyPreferences,
   savePreferences,
+  updatePreferences,
 } from './preferences';
 
 beforeEach(() => {
@@ -93,6 +95,74 @@ describe('savePreferences', () => {
       await expect(mockClient.commands.getPreferences()).resolves.toMatchObject({
         data: { theme: 'dark', locale: 'en' },
       });
+    });
+  });
+});
+
+describe('updatePreferences', () => {
+  function deferredClient() {
+    const pending: ((value: Preferences) => void)[] = [];
+    const sent: Preferences[] = [];
+    const client = {
+      commands: {
+        setPreferences: (prefs: Preferences) =>
+          new Promise<IpcResult<Preferences>>((resolve) => {
+            sent.push(prefs);
+            pending.push((value) => {
+              resolve({ status: 'ok', data: value });
+            });
+          }),
+      },
+    } as unknown as YagguiClient;
+    return { client, sent, pending };
+  }
+
+  it('sends the saves one after the other, each with the latest values', async () => {
+    const { client, sent, pending } = deferredClient();
+    await loadPreferences(mockClient, localStorage);
+    const first = updatePreferences({ fontSize: 14 }, client);
+    const second = updatePreferences({ fontSize: 15 }, client);
+    expect(currentPreferences().fontSize).toBe(15);
+    // The first save left at once; the second waits for it and will carry the latest value.
+    expect(sent).toHaveLength(1);
+    expect(sent[0]?.fontSize).toBe(14);
+
+    // A response that arrives after a later edit does not bring the older value back.
+    pending[0]?.(sent[0] as Preferences);
+    await first;
+    expect(currentPreferences().fontSize).toBe(15);
+    await vi.waitFor(() => {
+      expect(sent).toHaveLength(2);
+    });
+    expect(sent[1]?.fontSize).toBe(15);
+    pending[1]?.(sent[1] as Preferences);
+    await second;
+    expect(currentPreferences().fontSize).toBe(15);
+  });
+
+  it('goes on after a refused save', async () => {
+    await loadPreferences(mockClient, localStorage);
+    const failing = {
+      commands: {
+        setPreferences: () =>
+          Promise.resolve({
+            status: 'error',
+            error: {
+              code: 'invalidArgument',
+              message: { en: 'no', fr: 'non' },
+              action: null,
+              detail: null,
+              payload: null,
+            },
+          } satisfies IpcResult<Preferences>),
+      },
+    } as unknown as YagguiClient;
+    await expect(updatePreferences({ fontSize: 14 }, failing)).rejects.toBeInstanceOf(
+      YagguiIpcError,
+    );
+    expect(currentPreferences().fontSize).toBe(13);
+    await expect(updatePreferences({ fontSize: 16 }, mockClient)).resolves.toMatchObject({
+      fontSize: 16,
     });
   });
 });

@@ -11,6 +11,7 @@ import { Icon } from '../../ui/Icon';
 import { TextInput } from '../../ui/TextInput';
 import { toast } from '../../ui/toastStore';
 import { gitStatus, type GitStatus } from './prefsLogic';
+import { useDraft } from './useDraft';
 import styles from './GitTab.module.css';
 
 const PROBE_DELAY_MS = 300;
@@ -20,7 +21,7 @@ export function GitTab() {
   const t = useT();
   const inputId = useId();
   const stored = usePreferences().gitPath;
-  const [draft, setDraft] = useState(stored ?? '');
+  const [draft, setDraft] = useDraft(stored ?? '');
   const [status, setStatus] = useState<GitStatus>({ kind: 'checking' });
   const [saveError, setSaveError] = useState<YagguiError | null>(null);
   const [busy, setBusy] = useState(false);

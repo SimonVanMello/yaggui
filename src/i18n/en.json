@@ -95,6 +95,7 @@
   "op.toast.success": "{op} completed",
   "op.toast.cancelled": "{op} cancelled",
   "op.toast.failed": "{op} failed",
+  "op.toast.failedIn": "{op} failed ({repo})",
   "operation.merge.short": "Merge in progress",
   "operation.rebase.short": "Rebase in progress",
   "operation.cherryPick.short": "Cherry-pick in progress",

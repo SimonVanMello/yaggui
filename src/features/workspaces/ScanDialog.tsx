@@ -285,17 +285,19 @@ function ScanResults({ result, defaultWorkspaceId, onBack, onDone }: ScanResults
     if (selected.size === 0 || needsName || busy) return;
     setBusy(true);
     try {
-      let workspaceId: number | null = null;
+      const existingId =
+        target === NEW_WORKSPACE || target === NO_WORKSPACE ? null : Number(target);
+      const paths = repos.filter((repo) => selected.has(repo.path)).map((repo) => repo.path);
+      const imported = await importRepos(paths, existingId);
+      if (!imported) return;
+      let workspaceId = existingId;
       if (target === NEW_WORKSPACE) {
-        const created = await createWorkspace(newName);
+        // Created after the import, from the imported ids: a failed import leaves no empty
+        // workspace behind, and a retry does not create a second one with the same name.
+        const created = await createWorkspace(newName, imported);
         if (!created) return;
         workspaceId = created.id;
-      } else if (target !== NO_WORKSPACE) {
-        workspaceId = Number(target);
       }
-      const paths = repos.filter((repo) => selected.has(repo.path)).map((repo) => repo.path);
-      const imported = await importRepos(paths, workspaceId);
-      if (!imported) return;
       toast({ variant: 'success', title: t('scan.imported', { count: imported.length }) });
       onDone();
       if (workspaceId !== null) useWorkspaceUi.getState().openManager(workspaceId);

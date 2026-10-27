@@ -18,6 +18,17 @@ interface RawConfigEditorProps {
 
 const ROW_HEIGHT_REM = 2.25;
 
+/** `key#n`: the n-th entry of that key (a multi-valued key is listed once per value). */
+function rowId(entries: readonly ConfigEntry[], entry: ConfigEntry): string {
+  const key = normalizeConfigKey(entry.key);
+  let occurrence = 0;
+  for (const other of entries) {
+    if (other === entry) break;
+    if (normalizeConfigKey(other.key) === key) occurrence++;
+  }
+  return `${key}#${String(occurrence)}`;
+}
+
 /** Raw editor (F-325): every entry of the file, with add, edit and remove. */
 export function RawConfigEditor({ entries, multiple, scope, onWrite }: RawConfigEditorProps) {
   const t = useT();
@@ -25,8 +36,17 @@ export function RawConfigEditor({ entries, multiple, scope, onWrite }: RawConfig
   const [filter, setFilter] = useState('');
   const [newKey, setNewKey] = useState('');
   const [newValue, setNewValue] = useState('');
-  const [editing, setEditing] = useState<{ index: number; draft: string } | null>(null);
-  const [confirming, setConfirming] = useState<number | null>(null);
+  // Rows are identified by key (and occurrence, for a key set several times), never by index:
+  // after a removal the indexes shift, and a draft would be written under another key.
+  const [editing, setEditing] = useState<{ id: string; draft: string } | null>(null);
+  const [confirming, setConfirming] = useState<string | null>(null);
+  // Any refetch (a write here or in the common fields) drops the pending edit and removal.
+  const [seen, setSeen] = useState(entries);
+  if (seen !== entries) {
+    setSeen(entries);
+    setEditing(null);
+    setConfirming(null);
+  }
   const scroller = useRef<HTMLDivElement>(null);
 
   const visible = filterEntries(entries, filter);
@@ -94,13 +114,13 @@ export function RawConfigEditor({ entries, multiple, scope, onWrite }: RawConfig
           {virtualizer.getVirtualItems().map((item) => {
             const entry = visible[item.index];
             if (!entry) return null;
-            const index = entries.indexOf(entry);
             const key = normalizeConfigKey(entry.key);
             const locked = multiple.has(key);
-            const isEditing = editing?.index === index;
+            const id = rowId(entries, entry);
+            const isEditing = editing?.id === id;
             return (
               <div
-                key={`${entry.key}:${String(index)}`}
+                key={id}
                 role="row"
                 className={styles.entry}
                 style={{ height: item.size, transform: `translateY(${String(item.start)}px)` }}
@@ -116,7 +136,7 @@ export function RawConfigEditor({ entries, multiple, scope, onWrite }: RawConfig
                     value={editing.draft}
                     aria-label={t('gitconfig.raw.edit', { key: entry.key })}
                     onChange={(event) => {
-                      setEditing({ index, draft: event.target.value });
+                      setEditing({ id, draft: event.target.value });
                     }}
                     onKeyDown={(event) => {
                       if (event.key === 'Escape') {
@@ -136,7 +156,7 @@ export function RawConfigEditor({ entries, multiple, scope, onWrite }: RawConfig
                   </code>
                 )}
                 <span className={styles.entryActions} role="cell">
-                  {confirming === index ? (
+                  {confirming === id ? (
                     <>
                       <Button
                         size="sm"
@@ -166,7 +186,7 @@ export function RawConfigEditor({ entries, multiple, scope, onWrite }: RawConfig
                         title={locked ? t('gitconfig.raw.multiple') : undefined}
                         aria-label={t('gitconfig.raw.edit', { key: entry.key })}
                         onClick={() => {
-                          setEditing({ index, draft: entry.value ?? '' });
+                          setEditing({ id, draft: entry.value ?? '' });
                         }}
                       >
                         {t('keybindings.edit')}
@@ -176,7 +196,7 @@ export function RawConfigEditor({ entries, multiple, scope, onWrite }: RawConfig
                         variant="ghost"
                         aria-label={t('gitconfig.raw.remove', { key: entry.key })}
                         onClick={() => {
-                          setConfirming(index);
+                          setConfirming(id);
                         }}
                       >
                         {t('keybindings.remove')}

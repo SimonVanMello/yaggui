@@ -37,6 +37,8 @@ export function useConfigWriter(scope: ConfigScope, repoId: number | null) {
     }
     // The commit box asks for an identity when none is configured: it may be set now.
     void client.invalidateQueries({ queryKey: ['git-identity'] });
+    // `pull.rebase` / `pull.ff` decide the default pull strategy shown on the Pull button.
+    void client.invalidateQueries({ queryKey: ['pullDefaultStrategy'] });
     return true;
   };
 }

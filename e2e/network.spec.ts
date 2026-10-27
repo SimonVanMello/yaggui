@@ -82,6 +82,49 @@ for (const { name: theme, colorScheme } of THEMES) {
       await capture(page, theme, 'stale-lease');
     });
 
+    test('a pull that would overwrite local changes is refused (dirtyWorktree)', async ({
+      page,
+    }) => {
+      await page.clock.setFixedTime(new Date(MOCK_NOW_MS));
+      await page.goto('/');
+      // A repository whose path contains `overwrite`: the mock checks the files of the
+      // incoming commits against the local changes, as the backend's `git pull` does.
+      await page.getByRole('button', { name: 'Enter a path…' }).click();
+      const open = page.getByRole('dialog', { name: 'Open a repository' });
+      await open.getByRole('textbox').fill('/Users/alex/dev/overwrite-pull');
+      await open.getByRole('button', { name: 'Open', exact: true }).click();
+      await expect(page.getByRole('tab', { selected: true })).toHaveAccessibleName(
+        /^overwrite-pull/,
+      );
+      const path = await page.evaluate(async () => {
+        const mock = window.__yagguiMock;
+        if (!mock) return null;
+        const repos = await mock.commands.listRepos();
+        if (repos.status !== 'ok') return null;
+        const id = repos.data.find((r) => r.path === '/Users/alex/dev/overwrite-pull')?.id;
+        if (id === undefined) return null;
+        mock.setRepoState(id, {
+          upstream: { name: 'origin/main', ahead: 0, behind: 2, gone: false },
+        });
+        return mock.simulatePullOverwrite(id);
+      });
+      expect(path).not.toBeNull();
+
+      await toolbar(page).getByRole('button', { name: /^Pull/ }).first().click();
+      const toast = page.getByRole('listitem').filter({ hasText: 'Pull failed' });
+      await expect(toast).toBeVisible({ timeout: 5000 });
+      await expect(toast).toContainText('overwrite-pull');
+      await expect(toast).toContainText(
+        'Your local changes would be overwritten by the checkout. Stash them first',
+      );
+      await toast.getByText('Details').click();
+      await expect(toast).toContainText(`would be overwritten by merge:`);
+      await expect(toast).toContainText(path ?? '');
+      await capture(page, theme, 'pull-dirty');
+      // Nothing moved: the branch is still behind.
+      await expect(toolbar(page).getByRole('button', { name: /^Pull/ }).first()).toContainText('2');
+    });
+
     test('a rejected push offers pull then push', async ({ page }) => {
       // `blog` is 4 commits behind origin/main: a local commit makes the push non-fast-forward.
       await openRepo(page, 'blog');

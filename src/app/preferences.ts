@@ -147,10 +147,39 @@ export function currentPreferences(): Preferences {
   return current;
 }
 
+/**
+ * Saves run one after the other: every save sends the whole object, so two in flight at once
+ * could commit in either order and leave the store (or the screen) with the older value.
+ */
+let pendingSave: Promise<void> | null = null;
+/** Number of saves enqueued so far: a response is final only for the last one. */
+let saveSeq = 0;
+
+/**
+ * Sends the preferences now when no save is in flight, else once the previous one settles,
+ * as they are at that moment (later edits included: the last write wins). Resolves to what
+ * the backend stored, with the sequence number of this save.
+ */
+function enqueueSave(client: YagguiClient): { seq: number; save: Promise<Preferences> } {
+  const send = () => unwrap(client.commands.setPreferences(current));
+  const save = pendingSave ? pendingSave.then(send) : send();
+  const settled: Promise<void> = save.then(
+    () => {
+      if (pendingSave === settled) pendingSave = null;
+    },
+    () => {
+      if (pendingSave === settled) pendingSave = null;
+    },
+  );
+  pendingSave = settled;
+  saveSeq += 1;
+  return { seq: saveSeq, save };
+}
+
 /** Persists a change; the UI has already applied it, so failures are only logged. */
 export function savePreferences(patch: Partial<Preferences>, client: YagguiClient = ipc): void {
   setCurrent({ ...current, ...patch });
-  void unwrap(client.commands.setPreferences(current)).catch((error: unknown) => {
+  void enqueueSave(client).save.catch((error: unknown) => {
     console.warn('Could not save preferences', error);
   });
 }
@@ -166,15 +195,17 @@ export async function updatePreferences(
   client: YagguiClient = ipc,
 ): Promise<Preferences> {
   const previous = current;
-  const next = { ...current, ...patch };
-  setCurrent(next);
+  const keys = Object.keys(patch) as (keyof Preferences)[];
+  setCurrent({ ...current, ...patch });
+  const { seq, save } = enqueueSave(client);
   try {
-    const stored = await unwrap(client.commands.setPreferences(next));
-    // Keep what was typed meanwhile; the backend only normalizes the fields of this call.
-    setCurrent({ ...current, ...pick(stored, Object.keys(patch) as (keyof Preferences)[]) });
+    const stored = await save;
+    // Keep what was typed meanwhile; the backend only normalizes the fields of this call. A
+    // save enqueued since carries the newer values: its own response will settle them.
+    if (seq === saveSeq) setCurrent({ ...current, ...pick(stored, keys) });
     return current;
   } catch (error) {
-    setCurrent({ ...current, ...pick(previous, Object.keys(patch) as (keyof Preferences)[]) });
+    setCurrent({ ...current, ...pick(previous, keys) });
     throw error;
   }
 }

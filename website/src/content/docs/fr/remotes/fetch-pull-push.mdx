@@ -50,7 +50,7 @@ git fetch --progress --prune --all      # tous les remotes
 git fetch --progress --prune origin     # un seul remote
 ```
 
-Une fois l’opération terminée, une notification **Fetch terminé** apparaît et la barre d’état affiche **Fetch terminé** avec l’heure. Les branches distantes de la barre latérale et du graphe se mettent à jour d’elles-mêmes.
+Une fois l’opération terminée, une notification **Fetch terminé** apparaît, avec le nom du dépôt sous le titre, et la barre d’état affiche **Fetch terminé** avec l’heure. Les branches distantes de la barre latérale et du graphe se mettent à jour d’elles-mêmes.
 
 ### Nettoyer au fetch
 
@@ -222,7 +222,7 @@ Les opérations d’un même dépôt s’exécutent l’une après l’autre. Un
 
 ## Erreurs
 
-Un fetch, un pull ou un push qui échoue affiche une notification d’erreur intitulée **Fetch a échoué**, **Pull a échoué** ou **Push a échoué**. Elle reste affichée jusqu’à ce que vous la fermiez, et contient :
+Un fetch, un pull ou un push qui échoue affiche une notification d’erreur intitulée **Fetch a échoué**, **Pull a échoué** ou **Push a échoué**, suivie du nom du dépôt entre parenthèses pour la distinguer quand plusieurs onglets sont ouverts. Elle reste affichée jusqu’à ce que vous la fermiez, et contient :
 
 - un message qui dit ce qui s’est mal passé et ce qu’il faut faire,
 - **Détails**, replié, avec la sortie brute de Git,

@@ -41,6 +41,10 @@ for (const { name: theme, colorScheme } of THEMES) {
     }) => {
       await start(page);
       const prefs = await openPrefs(page);
+      // The file sets the dark theme: it is applied at once, no restart needed.
+      await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+      const themeChoice = prefs.getByRole('radiogroup', { name: 'Theme' });
+      await expect(themeChoice.getByRole('radio', { name: 'System' })).toBeChecked();
       await prefs.getByRole('button', { name: 'Import…' }).click();
 
       const review = dialog(page, 'Import preferences');
@@ -54,6 +58,11 @@ for (const { name: theme, colorScheme } of THEMES) {
       await review.getByRole('button', { name: 'Import', exact: true }).click();
       await expect(review).toBeHidden();
       await expect(page.getByText('Preferences and shortcuts imported').first()).toBeVisible();
+      await expect(page.locator('html')).toHaveAttribute('data-theme', 'graphite');
+      await expect(themeChoice.getByRole('radio', { name: 'Dark' })).toBeChecked();
+      // Fields already on screen show the imported values.
+      await expect(prefs.getByLabel('Text size')).toHaveValue('15');
+      await capture(page, theme, 'import-applied');
 
       // Applied: the same file now changes nothing.
       await prefs.getByRole('button', { name: 'Import…' }).click();
