@@ -2720,7 +2720,6 @@ export class MockBackend {
             operation: { kind: 'cherryPick' },
             labels: { ours: this.headLabel(graph), theirs: this.sideLabel(graph, null, first) },
             message: commits[first]?.summary ?? null,
-            sequence: picked.length > 1,
             complete: (g, message) => {
               this.replay(g, picked.slice(1), message);
               return this.historyResult(g, picked.length > 1 ? 'commits' : 'upToDate', head);
@@ -2739,7 +2738,6 @@ export class MockBackend {
             operation: { kind: 'cherryPick' },
             labels: { ours: this.headLabel(graph), theirs: this.sideLabel(graph, null, first) },
             message: commits[first]?.summary ?? null,
-            sequence: picked.length > 1,
             complete: (g, message) => {
               this.replay(g, picked, message);
               return this.historyResult(g, 'commits', head);
@@ -2814,10 +2812,16 @@ export class MockBackend {
     });
   }
 
+  /**
+   * Like the backend (M9-9): a reset and its preview are refused while an operation is in
+   * progress, whatever the mode. Conflicts without an operation (a stash pop) do not count.
+   */
   private resetPreviewOf(repoId: number, target: string): ResetPreview | YagguiError {
+    const repo = this.find(repoId);
     const graph = this.graph(repoId);
     const wip = this.wip(repoId);
-    if (!graph || !wip) return this.notOpen(repoId);
+    if (!repo || !graph || !wip) return this.notOpen(repoId);
+    if (repo.state.operation || this.operations.has(repoId)) return operationInProgress();
     const commit = graph.resolve(target);
     if (commit === null) return this.revisionNotFound(target);
     const head = graph.headCommit();
@@ -2862,11 +2866,6 @@ export class MockBackend {
       if (!wip) return { error: this.notOpen(repoId) };
       const preview = this.resetPreviewOf(repoId, request.target);
       if ('code' in preview) return { error: preview };
-      const op = this.operation(repoId);
-      // Like Git: "Cannot do a soft reset in the middle of a merge".
-      if (request.mode === 'soft' && op?.operation.kind === 'merge') {
-        return { error: operationInProgress() };
-      }
       const commit = graph.resolve(request.target);
       const previous = graph.headCommit();
       if (commit === null || previous === null)
@@ -2881,12 +2880,6 @@ export class MockBackend {
         wip.resetIndex();
       }
       this.setHead(graph, commit);
-      // Like `git reset`: ends a merge or a single cherry-pick / revert; a rebase, a bisect
-      // or a cherry-pick sequence stays in progress.
-      const kind = op?.operation.kind;
-      if (op && kind !== 'rebase' && kind !== 'bisect' && op.sequence !== true) {
-        this.endOperation(repoId);
-      }
       return {
         ok: {
           previousHead: this.commitSha(graph, previous),

@@ -117,6 +117,7 @@ impl RepoManager {
     pub fn reset_preview(&self, repo_id: u32, target: &str) -> Result<ResetPreview, YagguiError> {
         let session = self.session(repo_id)?;
         let repo = session.repo()?.to_thread_local();
+        ensure_no_operation(&repo)?;
         let target = resolve_commit(&repo, target)?;
         let status = GitCommand::new(STATUS_ARGS)
             .cwd(&session.workdir)
@@ -129,6 +130,7 @@ impl RepoManager {
         let backups = self.backup_dir()?;
         let mixed = request.mode == ResetMode::Mixed;
         self.journal_op(repo_id, OpKind::Reset, false, mixed, move |ctx| {
+            ensure_no_operation(ctx.repo)?;
             let target = resolve_commit(ctx.repo, &request.target)?;
             let previous = head_id(ctx)?
                 .ok_or_else(|| YagguiError::revision_not_found("HEAD"))?
@@ -342,11 +344,20 @@ pub(super) fn head_id(ctx: &WriteContext<'_>) -> Result<Option<ObjectId>, Yaggui
 
 /// Refuses to start an operation over another one or over unresolved conflicts.
 pub(super) fn ensure_idle(ctx: &WriteContext<'_>) -> Result<(), YagguiError> {
-    if read_operation(ctx.repo).is_some() {
-        return Err(YagguiError::operation_in_progress());
-    }
+    ensure_no_operation(ctx.repo)?;
     if !unmerged_paths(ctx)?.is_empty() {
         return Err(YagguiError::unresolved_conflicts());
+    }
+    Ok(())
+}
+
+/// Refuses a reset (and its preview) while a merge, rebase, cherry-pick, revert or bisect is
+/// in progress: Git would refuse a soft reset in a merge, end the merge silently on a mixed or
+/// hard reset, or leave a cherry-pick sequence behind. Conflicts without an operation (a stash
+/// pop) are not checked: a hard reset is the way out of them.
+pub(super) fn ensure_no_operation(repo: &gix::Repository) -> Result<(), YagguiError> {
+    if read_operation(repo).is_some() {
+        return Err(YagguiError::operation_in_progress());
     }
     Ok(())
 }

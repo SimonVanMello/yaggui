@@ -13,6 +13,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 - Auto-fetch now runs for every open repository, the tabs in the background included, instead of
   the visible tab only (#85).
+- A reset (soft, mixed or hard) is refused while a merge, rebase, cherry-pick or revert is in
+  progress: finish or abort the operation first. Before, a mixed or hard reset silently ended the
+  merge (#86).
 
 ### Fixed
 
