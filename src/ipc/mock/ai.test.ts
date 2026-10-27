@@ -7,6 +7,8 @@ import { guessMessage, matchesExcluded, normalizeAi } from './ai';
 
 const { commands: mock } = mockClient;
 
+const request = (amend: boolean, conventional = false) => ({ amend, conventional });
+
 beforeEach(() => {
   mockBackend.reset();
   mockBackend.simulateAiLatency(20);
@@ -135,7 +137,7 @@ describe('mock AI status and key', () => {
 describe('mock AI generation', () => {
   it('refuses while the feature is off', async () => {
     const id = await openYaggui();
-    await expect(mock.aiGenerateCommitMessage(id, false)).resolves.toMatchObject({
+    await expect(mock.aiGenerateCommitMessage(id, request(false))).resolves.toMatchObject({
       status: 'error',
       error: { code: 'aiDisabled', action: { kind: 'configureAi' } },
     });
@@ -144,7 +146,7 @@ describe('mock AI generation', () => {
   it('asks for a provider that is not ready', async () => {
     const id = await openYaggui();
     await enable();
-    await expect(mock.aiGenerateCommitMessage(id, false)).resolves.toMatchObject({
+    await expect(mock.aiGenerateCommitMessage(id, request(false))).resolves.toMatchObject({
       status: 'error',
       error: { code: 'aiNotConfigured' },
     });
@@ -157,7 +159,7 @@ describe('mock AI generation', () => {
     const staged = await unwrap(mock.changedFiles(id, { kind: 'staged' }));
     expect(staged.files.length).toBeGreaterThan(0);
 
-    const result = await unwrap(mock.aiGenerateCommitMessage(id, false));
+    const result = await unwrap(mock.aiGenerateCommitMessage(id, request(false, true)));
     expect(result.summary).toMatch(/^[a-z]+(\([^)]+\))?: .+/);
     expect(result.provider).toBe('claudeApi');
     expect(result.context.files).toBe(staged.files.length);
@@ -172,9 +174,9 @@ describe('mock AI generation', () => {
     await enable();
     await unwrap(mock.aiSetApiKey('claudeApi', 'sk-ant-secret'));
     mockBackend.simulateAiLatency(60_000);
-    const pending = mock.aiGenerateCommitMessage(id, false);
+    const pending = mock.aiGenerateCommitMessage(id, request(false));
     await new Promise((resolve) => setTimeout(resolve, 10));
-    await expect(mock.aiGenerateCommitMessage(id, false)).resolves.toMatchObject({
+    await expect(mock.aiGenerateCommitMessage(id, request(false))).resolves.toMatchObject({
       error: { code: 'aiBusy' },
     });
     await unwrap(mock.aiCancel(id));
@@ -189,15 +191,15 @@ describe('mock AI generation', () => {
     await enable();
     await unwrap(mock.aiSetApiKey('claudeApi', 'sk-ant-secret'));
     mockBackend.simulateAiFailure('aiRateLimited');
-    await expect(mock.aiGenerateCommitMessage(id, false)).resolves.toMatchObject({
+    await expect(mock.aiGenerateCommitMessage(id, request(false))).resolves.toMatchObject({
       error: { code: 'aiRateLimited', action: { kind: 'retry' } },
     });
-    await expect(mock.aiGenerateCommitMessage(id, false)).resolves.toMatchObject({
+    await expect(mock.aiGenerateCommitMessage(id, request(false))).resolves.toMatchObject({
       status: 'ok',
     });
     mockBackend.simulateAiFailure('aiAuthFailed', true);
     for (let i = 0; i < 2; i++) {
-      await expect(mock.aiGenerateCommitMessage(id, false)).resolves.toMatchObject({
+      await expect(mock.aiGenerateCommitMessage(id, request(false))).resolves.toMatchObject({
         error: { code: 'aiAuthFailed' },
       });
     }
@@ -213,13 +215,25 @@ describe('mock AI generation', () => {
 
   it('previews the exact context, honoring the exclusions', async () => {
     const id = await openYaggui();
-    const preview = await unwrap(mock.aiPreviewContext(id, false));
+    const preview = await unwrap(mock.aiPreviewContext(id, request(false)));
     expect(preview.text).toContain('Changed files:');
     expect(preview.summary.files).toBeGreaterThan(0);
   });
 });
 
 describe('guessed message', () => {
+  it('follows the Conventional Commits flag', async () => {
+    const id = await openYaggui();
+    await enable();
+    await unwrap(mock.aiSetApiKey('claudeApi', 'sk-ant-secret'));
+    const plain = await unwrap(mock.aiGenerateCommitMessage(id, request(false, false)));
+    expect(plain.summary).not.toMatch(/^[a-z]+(\([^)]+\))?: /);
+    const conventional = await unwrap(mock.aiGenerateCommitMessage(id, request(false, true)));
+    expect(conventional.summary).toMatch(/^[a-z]+(\([^)]+\))?: /);
+    const preview = await unwrap(mock.aiPreviewContext(id, request(false, true)));
+    expect(preview.text).toContain('Conventional Commits');
+  });
+
   const file = (path: string, status = 'modified') => ({
     path,
     status,

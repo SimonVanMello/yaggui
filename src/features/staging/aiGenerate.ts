@@ -8,6 +8,7 @@ import { aiKeys } from '../ai/aiQueries';
 import { queryClient } from '../../app/queryClient';
 import { shouldOfferRestore, useAiUi, withGenerated, withRestored, canRestore } from './aiMessage';
 import { EMPTY_DRAFT, useCommitDrafts } from './commitDraft';
+import { useCommitTools } from './commitToolsStore';
 
 function t(key: MessageKey, params?: MessageParams): string {
   return translate(useI18nStore.getState().locale, key, params);
@@ -62,9 +63,13 @@ export async function generateCommitMessage(repoId: number): Promise<void> {
     return;
   }
   const amend = (useCommitDrafts.getState().drafts[repoId] ?? EMPTY_DRAFT).amend;
+  // The helper's header is asked for; its fields then follow the generated summary.
+  const { conventional } = useCommitTools.getState();
   ui.start(repoId);
   try {
-    const generated = await unwrap(ipc.commands.aiGenerateCommitMessage(repoId, amend));
+    const generated = await unwrap(
+      ipc.commands.aiGenerateCommitMessage(repoId, { amend, conventional }),
+    );
     const drafts = useCommitDrafts.getState();
     // What the user typed while it ran is what the result replaces.
     const current = drafts.drafts[repoId] ?? EMPTY_DRAFT;

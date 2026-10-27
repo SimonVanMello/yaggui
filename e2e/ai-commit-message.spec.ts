@@ -165,7 +165,7 @@ for (const { name: theme, colorScheme } of THEMES) {
       // Generate for real.
       await page.evaluate(() => window.__yagguiMock?.simulateAiLatency(50));
       await sparkle(page).click();
-      await expect(summary(page)).toHaveValue(/^[a-z]+(\([^)]+\))?: .+/);
+      await expect(summary(page)).toHaveValue(/^Update 2 files/);
       await expect(description(page)).toHaveValue(/Changes:/);
       const done = toastWith(page, 'Message generated');
       await expect(done).toBeVisible();
@@ -182,7 +182,7 @@ for (const { name: theme, colorScheme } of THEMES) {
       await openYaggui(page);
       await summary(page).fill('wip: my draft');
       await sparkle(page).click();
-      await expect(summary(page)).toHaveValue(/: .+/);
+      await expect(summary(page)).toHaveValue(/^Update 2 files/);
       // The button of the commit area, not the one of the toast.
       const restore = page.locator('button[aria-label="Restore previous message"]:not(ol *)');
       await expect(restore).toBeVisible();
@@ -209,7 +209,18 @@ for (const { name: theme, colorScheme } of THEMES) {
       await expect(failure).toContainText('limits requests');
       await capture(page, theme, 'commit-error');
       await failure.getByRole('button', { name: 'Retry' }).click();
-      await expect(summary(page)).toHaveValue(/: .+/);
+      await expect(summary(page)).toHaveValue(/^Update 2 files/);
+    });
+
+    test('with the Conventional helper on, the header fills its fields', async ({ page }) => {
+      await start(page, { enabled: true, key: true, latencyMs: 50 });
+      await openYaggui(page);
+      await page.getByRole('button', { name: 'Conventional', exact: true }).click();
+      await sparkle(page).click();
+      await expect(summary(page)).toHaveValue(/^[a-z]+(\([^)]+\))?: .+/);
+      const fields = page.getByRole('group', { name: 'Conventional Commits header' });
+      await expect(fields.getByLabel('Type')).not.toHaveValue('');
+      await capture(page, theme, 'commit-conventional');
     });
 
     test('the palette action generates a message', async ({ page }) => {
@@ -218,7 +229,7 @@ for (const { name: theme, colorScheme } of THEMES) {
       await page.keyboard.press('ControlOrMeta+K');
       await page.getByRole('combobox').fill('commit message with AI');
       await page.getByRole('option', { name: /Generate a commit message with AI/ }).click();
-      await expect(summary(page)).toHaveValue(/: .+/);
+      await expect(summary(page)).toHaveValue(/^Update 2 files/);
     });
   });
 }

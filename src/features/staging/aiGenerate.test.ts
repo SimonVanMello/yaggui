@@ -8,6 +8,8 @@ import { useToastStore } from '../../ui/toastStore';
 import { cancelGeneration, generateCommitMessage, restoreAiMessage } from './aiGenerate';
 import { useAiUi } from './aiMessage';
 import { EMPTY_DRAFT, useCommitDrafts } from './commitDraft';
+import { useCommitTools } from './commitToolsStore';
+import { parseConventional } from './conventional';
 
 let repoId = 0;
 
@@ -34,7 +36,7 @@ describe('generateCommitMessage', () => {
     useCommitDrafts.getState().update(repoId, { summary: 'wip', description: 'notes' });
     await generateCommitMessage(repoId);
 
-    expect(draft().summary).toMatch(/^[a-z]+(\([^)]+\))?: /);
+    expect(draft().summary).not.toBe('wip');
     expect(draft().description).not.toBe('notes');
     expect(useAiUi.getState().generating[repoId]).toBeUndefined();
     const toast = useToastStore.getState().toasts.find((t) => t.title === 'Message generated');
@@ -60,7 +62,18 @@ describe('generateCommitMessage', () => {
     });
     await generateCommitMessage(repoId);
     expect(draft()).toMatchObject({ amend: true, prefilled: null });
-    expect(mockBackend.aiGenerations).toEqual([{ repoId, amend: true }]);
+    expect(mockBackend.aiGenerations).toEqual([{ repoId, amend: true, conventional: false }]);
+  });
+
+  it('asks for a Conventional Commits header while the helper is on', async () => {
+    useCommitTools.getState().setConventional(true);
+    try {
+      await generateCommitMessage(repoId);
+    } finally {
+      useCommitTools.getState().setConventional(false);
+    }
+    expect(mockBackend.aiGenerations).toEqual([{ repoId, amend: false, conventional: true }]);
+    expect(parseConventional(draft().summary)).not.toBeNull();
   });
 
   it('does not overwrite what was typed after the restore became stale', async () => {

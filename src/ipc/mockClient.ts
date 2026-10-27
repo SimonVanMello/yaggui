@@ -1,4 +1,5 @@
 import type {
+  AiMessageRequest,
   BisectMark,
   BisectState,
   BranchStart,
@@ -1096,7 +1097,7 @@ export class MockBackend {
   }
 
   /** Generations asked so far, for tests. */
-  get aiGenerations(): readonly { repoId: number; amend: boolean }[] {
+  get aiGenerations(): readonly ({ repoId: number } & AiMessageRequest)[] {
     return this.ai.generations;
   }
 
@@ -3902,20 +3903,20 @@ export class MockBackend {
       this.logAiCall(null, result.call);
       return { status: 'ok', data: result.ok };
     },
-    aiPreviewContext: (repoId, amend) => {
-      const repo = this.aiRepo(repoId, amend);
+    aiPreviewContext: (repoId, request) => {
+      const repo = this.aiRepo(repoId, request.amend);
       if (!repo) return fail(this.notOpen(repoId));
-      return ok(this.ai.preview(repo, this.preferences.ai ?? DEFAULT_AI_PREFERENCES));
+      return ok(this.ai.preview(repo, this.preferences.ai ?? DEFAULT_AI_PREFERENCES, request));
     },
-    aiGenerateCommitMessage: async (repoId, amend) => {
-      const repo = this.aiRepo(repoId, amend);
+    aiGenerateCommitMessage: async (repoId, request) => {
+      const repo = this.aiRepo(repoId, request.amend);
       if (!repo) return { status: 'error', error: this.notOpen(repoId) };
       if (this.preferences.aiEnabled !== true) {
         return { status: 'error', error: mockAiError('aiDisabled') };
       }
       const result = await this.ai.generate(
         repoId,
-        amend,
+        request,
         repo,
         this.preferences.ai ?? DEFAULT_AI_PREFERENCES,
         this.preferences.claudePath ?? null,

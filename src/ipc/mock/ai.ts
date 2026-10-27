@@ -2,6 +2,7 @@ import type {
   AiContextPreview,
   AiContextSummary,
   AiCredential,
+  AiMessageRequest,
   AiPreferences,
   AiProviderKind,
   AiProviderStatus,
@@ -300,6 +301,7 @@ export interface MockAiRepo {
 export function guessMessage(
   files: readonly MockChangedFile[],
   language: 'en' | 'fr',
+  conventional = true,
 ): { summary: string; description: string } {
   const fr = language === 'fr';
   if (files.length === 0) {
@@ -341,8 +343,10 @@ export function guessMessage(
       fr ? `- … et ${String(files.length - 6)} autres` : `- … and ${String(files.length - 6)} more`,
     );
   }
+  // Without the helper the header is a plain sentence, like a model told nothing about the format.
+  const plain = subject.charAt(0).toUpperCase() + subject.slice(1);
   return {
-    summary: `${type}${scope ? `(${scope})` : ''}: ${subject}`,
+    summary: conventional ? `${type}${scope ? `(${scope})` : ''}: ${subject}` : plain,
     description: `${fr ? 'Modifications :' : 'Changes:'}\n${lines.join('\n')}`,
   };
 }
@@ -377,7 +381,12 @@ export function summarizeContext(
   return summary;
 }
 
-function contextText(repo: MockAiRepo, ai: AiPreferences, summary: AiContextSummary): string {
+function contextText(
+  repo: MockAiRepo,
+  ai: AiPreferences,
+  summary: AiContextSummary,
+  conventional: boolean,
+): string {
   const instructions = ai.customPrompt ?? MOCK_DEFAULT_PROMPT;
   const subjects = repo.subjects.slice(0, ai.recentSubjects);
   const named = new Set([
@@ -389,6 +398,7 @@ function contextText(repo: MockAiRepo, ai: AiPreferences, summary: AiContextSumm
     instructions,
     '',
     `Branch: ${repo.branch ?? '(detached HEAD)'}`,
+    ...(conventional ? ['Format: Conventional Commits, type(scope): subject'] : []),
     ...(subjects.length ? ['', 'Recent subjects:', ...subjects.map((s) => `- ${s}`)] : []),
     '',
     'Changed files:',
@@ -456,7 +466,7 @@ export class MockAi {
   failure: { code: AiErrorCode; sticky: boolean } | null = null;
   latencyMs = DEFAULT_LATENCY_MS;
   /** Requests received by `aiGenerateCommitMessage`, for tests. */
-  readonly generations: { repoId: number; amend: boolean }[] = [];
+  readonly generations: ({ repoId: number } & AiMessageRequest)[] = [];
   private pending = new Map<number, () => void>();
 
   constructor() {
@@ -613,9 +623,9 @@ export class MockAi {
     };
   }
 
-  preview(repo: MockAiRepo, ai: AiPreferences): AiContextPreview {
+  preview(repo: MockAiRepo, ai: AiPreferences, request: AiMessageRequest): AiContextPreview {
     const summary = summarizeContext(repo.files, ai);
-    return { text: contextText(repo, ai, summary), summary };
+    return { text: contextText(repo, ai, summary, request.conventional), summary };
   }
 
   /**
@@ -624,14 +634,14 @@ export class MockAi {
    */
   async generate(
     repoId: number,
-    amend: boolean,
+    { amend, conventional }: AiMessageRequest,
     repo: MockAiRepo,
     ai: AiPreferences,
     claudePath: string | null,
   ): Promise<
     { ok: GeneratedCommitMessage; call: LoggedAiCall } | { error: YagguiError; call?: LoggedAiCall }
   > {
-    this.generations.push({ repoId, amend });
+    this.generations.push({ repoId, amend, conventional });
     if (this.pending.has(repoId)) return { error: mockAiError('aiBusy') };
     const status = this.providerStatus(ai.provider, claudePath);
     if (!status.ready && status.problem) return { error: status.problem };
@@ -662,7 +672,7 @@ export class MockAi {
     }
     const language = ai.language === 'auto' ? 'en' : ai.language;
     const context = summarizeContext(repo.files, ai);
-    const message = guessMessage(repo.files, language);
+    const message = guessMessage(repo.files, language, conventional);
     return {
       ok: { ...message, provider: ai.provider, model, durationMs, context },
       call: this.call(

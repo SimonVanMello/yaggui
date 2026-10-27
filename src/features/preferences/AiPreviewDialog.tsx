@@ -6,6 +6,7 @@ import { YagguiIpcError, ipc, unwrap } from '../../ipc';
 import { Button } from '../../ui/Button';
 import { Dialog } from '../../ui/Dialog';
 import { Spinner } from '../../ui/Spinner';
+import { useCommitTools } from '../staging/commitToolsStore';
 import { formatBytes } from '../ai/formatBytes';
 import styles from './AiTab.module.css';
 
@@ -20,9 +21,11 @@ export function AiPreviewDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const t = useT();
+  const conventional = useCommitTools((tools) => tools.conventional);
   const preview = useQuery({
-    queryKey: ['ai-preview', repoId],
-    queryFn: () => unwrap(ipc.commands.aiPreviewContext(repoId ?? 0, false)),
+    queryKey: ['ai-preview', repoId, conventional],
+    queryFn: () =>
+      unwrap(ipc.commands.aiPreviewContext(repoId ?? 0, { amend: false, conventional })),
     enabled: open && repoId !== null,
     // The staged changes move under it: always show what would be sent now.
     gcTime: 0,
