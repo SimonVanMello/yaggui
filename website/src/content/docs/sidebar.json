@@ -14,7 +14,13 @@
   {
     "label": "Everyday work",
     "translations": { "fr": "Au quotidien" },
-    "items": ["everyday/staging", "everyday/committing", "everyday/stash", "everyday/diff"]
+    "items": [
+      "everyday/staging",
+      "everyday/committing",
+      "everyday/ai-commit-messages",
+      "everyday/stash",
+      "everyday/diff"
+    ]
   },
   {
     "label": "Branches and history",

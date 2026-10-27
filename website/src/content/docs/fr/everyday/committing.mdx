@@ -12,6 +12,7 @@ sources:
   - src/features/staging/CommitIdentity.tsx
   - src/features/staging/ProfilesDialog.tsx
   - src/features/staging/MessageTools.tsx
+  - src/features/staging/AiButton.tsx
   - src/features/staging/ConventionalFields.tsx
   - src/features/staging/TemplatesDialog.tsx
   - src/features/staging/conventional.ts
@@ -39,7 +40,7 @@ La zone de commit se trouve en bas du panneau **Changements locaux**. Elle enreg
 
 De haut en bas, la zone de commit contient :
 
-1. La rangée d’outils de message : **Conventional**, **Modèle** et **Récents** (voir [Réutiliser des messages](#réutiliser-des-messages)).
+1. La rangée d’outils de message : **Conventional**, le bouton étincelle des [messages de commit par IA](../../everyday/ai-commit-messages/) (uniquement si vous les avez activés), **Modèle** et **Récents** (voir [Réutiliser des messages](#réutiliser-des-messages)).
 2. Le champ **Résumé du commit**, avec un compteur `{length}/72`.
 3. Le champ **Description (facultative)**, pour le corps du commit.
 4. Les cases **Modifier le commit précédent** et **Push après commit**.
@@ -176,6 +177,10 @@ Les champs écrivent `type(scope)!: subject` dans le résumé et le relisent si 
 ### Messages récents
 
 Le menu **Récents** liste les 30 derniers messages commités depuis yaggui dans ce dépôt, du plus récent au plus ancien (les messages avec un corps sont marqués **avec une description**). En choisir un remplit le résumé et la description. Les commits faits en dehors de yaggui n’apparaissent pas.
+
+### Rédiger le message avec l’IA
+
+Quand **Messages de commit par IA** est activé dans les préférences (c’est désactivé par défaut), un bouton étincelle de la rangée d’outils de message rédige le résumé et la description à partir de vos changements indexés. Il remplace les deux champs, ne commite jamais, et un bouton **Rétablir le message précédent** rend votre texte précédent. L’aide **Conventional** et **Modifier le commit précédent** sont prises en compte. Voir [Messages de commit par IA](../../everyday/ai-commit-messages/).
 
 ## Erreurs
 

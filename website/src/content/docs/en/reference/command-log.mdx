@@ -7,10 +7,11 @@ sources:
   - src/features/command-log/**
   - src-tauri/src/git/log.rs
   - src-tauri/src/git/cli.rs
+  - src-tauri/src/ai/service.rs
   - src-tauri/src/commands/log.rs
   - src/app/useBackendEvents.ts
   - src/features/statusbar/StatusBar.tsx
-requirements: [F-300]
+requirements: [F-300, F-075]
 ---
 
 import Screenshot from '~/components/Screenshot.astro';
@@ -31,7 +32,8 @@ Every Git process yaggui starts is recorded, including the ones you did not ask 
 
 - commands you trigger (commit, checkout, fetch, push…);
 - background commands, such as automatic fetches and the `git commit-graph write --reachable --changed-paths --no-progress` that speeds up the graph of large repositories (see [Slow first open](../../help/troubleshooting/#the-first-open-of-a-big-repository-is-slow));
-- checks such as `git --version` when you set the Git path.
+- checks such as `git --version` when you set the Git path;
+- [AI commit message](../../everyday/ai-commit-messages/#in-the-command-log) generations and **Test** runs, when you use them: `claude-api messages --model …` for the Claude API, the `claude` command line for Claude Code. They show the number of bytes sent and received, never the diff, the message or your key.
 
 Most reads (the graph, the status, diffs) do not run Git at all: yaggui reads the repository directly, so they do not appear here.
 
