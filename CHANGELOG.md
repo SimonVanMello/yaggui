@@ -9,6 +9,118 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Fixed
+
+- Undo of a checkout that brought the checked-out branch up to its remote one left the whole update
+  as staged changes (or carried it onto the branch you came from): the branch now goes back with
+  its files (#76).
+- Checking out a remote branch with local changes in the way of the update no longer moves HEAD
+  before refusing: the checkout is refused up front with the files listed (#76).
+- Branch cleanup: when Git refuses one of the branches midway (for example a branch a worktree
+  started using in the meantime), the branches deleted before it are in the undo history and come
+  back with one Undo, and the error names the branch (#76).
+- Undo of a hard reset done over an unresolved conflict restores the conflict (all stages of the
+  file) instead of a resolved "ours" version (#76).
+- Opening the conflicts panel no longer fails when the message of the cherry-picked or reverted
+  commit has a line starting with an accented character or an emoji (#82).
+- Searching commits by path no longer fails when that path was a file, a symlink or a submodule in
+  an older commit (#82).
+- Closing the last tab of a repository (or moving it) while a commit, a push or a stash runs lets
+  that operation finish instead of killing Git mid-way (#82).
+- The graph shows the branches and tags an operation just created, deleted or fetched as soon as it
+  finishes, without waiting for the file watcher (#82).
+- Cancelling an operation no longer removes an `index.lock` taken by another Git process while Git
+  stopped on its own; when Git has to be killed (always on Windows), every lock file it left under
+  `.git` (branch and tag locks, `packed-refs.lock`…) is removed, so later operations do not fail
+  with "File exists". A failed command that names another lock file than `index.lock` offers
+  **Remove the lock…** for that file (#82).
+- Unset preferences (locale, terminal, editor, tools, fonts, Git path, pull strategy) no longer log
+  an "unreadable preference" warning on every read (#82).
+- A repository whose upstream branch points at a missing commit opens with no upstream state
+  instead of failing to open (#82).
+- A revert stopped on conflicts during a bisect is shown as the revert to finish, not as the bisect;
+  a bisect read back from a terminal whose bad commit is an ancestor of a good one shows **Bisect
+  marks contradict each other** instead of "0 commits to test" with no result (#82).
+- Showing a commit from the sidebar, the palette, a comparison, a bisect link or a search right
+  after the refs changed could select the commit that sat at the same row in the previous graph
+  (#78).
+- The **Refs** of the selected commit's panel follow a branch or tag created on it or moved away
+  from it (#78).
+- The "The graph could not be loaded" alert goes away by itself once the page loads again (#78).
+- A ⇧-click range longer than 1000 commits always keeps the clicked commit selected; ⇧↑ / ⇧↓ onto
+  a row not loaded yet extends the selection once it arrives instead of being lost (#78).
+- Comparison and branch clean-up lists had gaps between rows in compact density (#78).
+- A column resize no longer keeps following the pointer after a cancelled drag (#78).
+- The palette no longer shows an endless spinner for a commit search when the history changed
+  meanwhile (#78).
+- On Windows and Linux, a hand-edited `Ctrl+K` and a `Mod+K` are reported as the same shortcut in
+  Preferences › Shortcuts (#78).
+- The graph stays sharp after the window moves to a screen with another pixel density, and screen
+  readers are no longer pointed at a selected row scrolled out of view (#78).
+- Diff: resizing the window, dragging a panel or a working tree change no longer rebuilds the diff
+  editors and loses the scroll position and the line selection (#80).
+- Staging: cancelling the discard confirmation (or a failed stage / unstage) keeps the diff on the
+  same file instead of moving to the next one (#80).
+- Interactive rebase: choosing "Pick" on a reworded commit while editing its message no longer
+  disables reordering by drag; leaving an edited list with Escape or Cancel asks for confirmation
+  (#80).
+- Conflicts: "Take mine / theirs" and "Mark resolved" on the file open in the merge editor with
+  unsaved choices ask before dropping them (#80).
+- Blame, line history, file history, reflog, commit tree: Escape and `j` / `k` work again after a
+  click in the gutter of the code; "Blame of the parent" in the bottom bar starts from the clicked
+  line (#80).
+- Diff: the staged diff of a file that is also unstaged no longer shows the unstaged hunks while it
+  loads (#80).
+- Worktrees: a failed removal check shows its message in the UI language, with a Retry button
+  (#80).
+- Reopening a repository within a few minutes of closing its tab no longer shows the file lists,
+  conflicts or remotes of the previous session; closing a tab also forgets its comparison, stash
+  preview, commit hints, open diff and conflict editor (#81).
+- A rendering error in a dialog or a toast shows the crash screen instead of a blank window (#81).
+- Tabs opened, closed or reordered are saved at once, and the pending saves (panel sizes,
+  repository layouts) are written when the window closes; a temporary failure to read the saved
+  tabs at startup no longer overwrites them (#81).
+- Locating a moved repository that is open in a tab reopens it from its new folder instead of
+  leaving the tab on a closed session (#81).
+- The Fetch menu follows the remotes added, renamed or removed in the Remotes dialog (#81).
+- Global shortcuts and menu commands keep working while the branch selector or the stash list is
+  open; the shortcut hints of the status bar, the welcome screen and the clean-tree actions follow
+  the user's keybindings (#81).
+- Importing a preferences file applies the theme, style and language at once, without a restart
+  (#77).
+- Text fields of the Preferences dialog (fonts, text size, tools, auto-fetch interval, Git path)
+  follow an import made while the dialog is open, instead of writing the old value back on blur
+  (#77).
+- Git configuration editor: after removing an entry, an edit in progress no longer moves to another
+  key (#77).
+- Changing `pull.rebase` or `pull.ff` in the Git configuration editor updates the default strategy
+  shown on the Pull button (#77).
+- Preference saves no longer race each other: dragging the text size slider keeps the last value
+  (#77).
+- Fetch, pull and push toasts name the repository, so results can be told apart with several tabs
+  open (#77).
+- Scanning a folder into a new workspace no longer leaves an empty workspace behind when the import
+  fails (#77).
+
+### Security
+
+- Protected branches are never deleted on the remote: **Delete on the remote…** and **Also delete
+  the remote branch** are refused for a protected name, like a force push; the local branch alone
+  can still be deleted (#76).
+- "Open in editor" without a configured editor no longer hands the file to the system's generic
+  opener, which ran scripts committed in a repository: it opens the system text editor (TextEdit,
+  Notepad, the desktop's text application for text files) or asks you to choose an editor (#79).
+- On macOS, **Files** reveals a repository folder whose name has an extension (such as `Foo.app`)
+  instead of opening it, so a cloned bundle is never launched (#79).
+- On Windows, the external terminal and Notepad are started from their absolute path in the system
+  folders or the `PATH`, never from the current folder, and yaggui leaves the folder it was started
+  from at startup (#79).
+- The command log no longer shows the output of the configuration listing nor the value of
+  credential settings (`credential.*`, `extraHeader`, passwords, tokens) written from the Git
+  configuration editor (#79).
+- The integrated terminal is limited to 8 terminals per repository, and a terminal tab can no
+  longer reach the update terminal (#79).
+
 ## [0.8.0] - 2026-10-26
 
 ### Added
