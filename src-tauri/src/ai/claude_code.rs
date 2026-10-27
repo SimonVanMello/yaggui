@@ -39,8 +39,10 @@ pub const SUGGESTED_MODELS: [&str; 3] = ["haiku", "sonnet", "opus"];
 /// Tells the model where it runs; placed between the instructions and the context.
 const READ_ONLY_NOTE: &str = "You are run by yaggui, a Git client, in read-only mode, in the \
 repository the changes belong to. You may read its files (Read, Grep, Glob) when the diff \
-alone does not explain a change. Do not modify any file, do not run commands, never stage, \
-commit or push: yaggui shows the message to the user, who commits.";
+alone does not explain a change. The changes to describe are already given below in \
+<context>; there is no shell, so do not try to run git or any other command: what `git diff \
+--cached`, `git status` or `git log` would show is in <context>. Do not modify any file, never \
+stage, commit or push: yaggui shows the message to the user, who commits.";
 
 /// The `claude` program to run: the configured one, or the first found on the login shell's
 /// `PATH`, then in the usual install folders.

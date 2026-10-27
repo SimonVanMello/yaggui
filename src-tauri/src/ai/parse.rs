@@ -49,17 +49,19 @@ pub fn parse_message(answer: &str) -> Result<(String, String), YagguiError> {
     Ok((summary, description))
 }
 
-/// The inside of a ``` fence wrapping the whole text, or the text as it is.
+/// The inside of a ``` fence opening the text, or the text as it is. What follows the closing
+/// fence (a model's comment on what it did) is dropped.
 fn strip_fence(text: &str) -> &str {
     let Some(rest) = text.strip_prefix("```") else {
         return text;
     };
     // The language tag (` ```text `) ends the opening line.
     let body = rest.split_once('\n').map_or("", |(_, body)| body);
-    body.trim_end()
-        .strip_suffix("```")
-        .unwrap_or(body)
-        .trim_matches('\n')
+    let inside = match body.find("\n```") {
+        Some(end) => &body[..end],
+        None => body.strip_suffix("```").unwrap_or(body),
+    };
+    inside.trim_matches('\n')
 }
 
 fn strip_quotes(text: &str) -> &str {
@@ -110,6 +112,10 @@ mod tests {
             ("Fix the graph".into(), String::new())
         );
         assert_eq!(parsed("```\nFix it\n```"), ("Fix it".into(), String::new()));
+        assert_eq!(
+            parsed("```\nAdd a.txt\n\nBody.\n```\n\nI skipped the skill's commit step."),
+            ("Add a.txt".into(), "Body.".into())
+        );
         // A quoted word inside the message is kept.
         assert_eq!(
             parsed("Rename \"foo\" to \"bar\""),

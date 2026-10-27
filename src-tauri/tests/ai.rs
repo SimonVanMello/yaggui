@@ -422,6 +422,7 @@ fn claude_code_runs_read_only_in_the_worktree() {
     assert!(stdin.contains("+line 2"));
     assert!(stdin.contains("\"commit\" skill"));
     assert!(stdin.contains("never stage"));
+    assert!(stdin.contains("there is no shell"));
     assert_eq!(
         Path::new(read("cwd").trim()).canonicalize().unwrap(),
         env.fx.repo().canonicalize().unwrap()
