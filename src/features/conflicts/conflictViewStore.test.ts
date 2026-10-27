@@ -4,6 +4,7 @@ import {
   closeConflictView,
   conflictPathOf,
   conflictViewId,
+  hasUnsavedConflictEdits,
   openConflictView,
   setConflictLeaveGuard,
   useConflictViewStore,
@@ -49,5 +50,18 @@ describe('leaving a file with unsaved edits', () => {
     );
     expect(asked).toBe(2);
     setConflictLeaveGuard('tab-1', null);
+  });
+
+  it('tells the conflicts panel when a quick resolution would drop edits of the open file', async () => {
+    await openConflictView('tab-1', { repoId: 1, path: 'a.ts' });
+    expect(hasUnsavedConflictEdits('tab-1', { repoId: 1, path: 'a.ts' })).toBe(false);
+    setConflictLeaveGuard('tab-1', () => Promise.resolve(true));
+    expect(hasUnsavedConflictEdits('tab-1', { repoId: 1, path: 'a.ts' })).toBe(true);
+    // Another file, another repo or another tab: nothing of the editor is at stake.
+    expect(hasUnsavedConflictEdits('tab-1', { repoId: 1, path: 'b.ts' })).toBe(false);
+    expect(hasUnsavedConflictEdits('tab-1', { repoId: 2, path: 'a.ts' })).toBe(false);
+    expect(hasUnsavedConflictEdits('tab-2', { repoId: 1, path: 'a.ts' })).toBe(false);
+    setConflictLeaveGuard('tab-1', null);
+    expect(hasUnsavedConflictEdits('tab-1', { repoId: 1, path: 'a.ts' })).toBe(false);
   });
 });

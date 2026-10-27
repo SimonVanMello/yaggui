@@ -151,6 +151,38 @@ for (const { name: theme, colorScheme } of THEMES) {
   test.describe(`${theme} theme, conflicts panel`, () => {
     test.use({ colorScheme, locale: 'en-US' });
 
+    test('a quick resolution of the file open with unsaved choices asks first', async ({
+      page,
+    }) => {
+      await stopOn(page, 'merge');
+      await openFile(page, 'src/app/App.tsx');
+      await center(page).getByRole('checkbox').first().check();
+      const row = conflictsPanel(page)
+        .getByRole('listitem')
+        .filter({ has: page.locator('[title="src/app/App.tsx"]') });
+      await row
+        .getByRole('button', { name: /^Take / })
+        .first()
+        .click();
+      const dialog = page.getByRole('dialog');
+      await expect(dialog).toContainText('Discard the resolution in progress?');
+      await expect(dialog).toContainText('the file is resolved with this choice instead');
+      await capture(page, theme, 'quick-resolve-unsaved');
+      await dialog.getByRole('button', { name: 'Cancel' }).click();
+      // Nothing happened: the file is still open, unsaved and in conflict.
+      await expect(center(page).locator('[data-view="conflict:src/app/App.tsx"]')).toBeVisible();
+      await expect(center(page).getByRole('checkbox').first()).toBeChecked();
+      await expect(row).not.toContainText('Resolved');
+
+      // Confirmed, the quick resolution goes through.
+      await row
+        .getByRole('button', { name: /^Take / })
+        .first()
+        .click();
+      await dialog.getByRole('button', { name: 'Discard' }).click();
+      await expect(row).toContainText('Resolved');
+    });
+
     test('every file resolved in the editor lets Continue finish the merge', async ({ page }) => {
       await stopOn(page, 'merge');
       await openFile(page, 'assets/logo.png');

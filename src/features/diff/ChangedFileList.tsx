@@ -39,12 +39,12 @@ export type WorktreeList = 'unstaged' | 'staged';
 /** Staging behaviour of a working tree list (absent for the files of a commit). */
 export interface FileListStaging {
   list: WorktreeList;
-  /** Stage (unstaged list) or unstage (staged list) these files. */
-  onToggle: (files: ChangedFile[]) => void;
+  /** Stage (unstaged list) or unstage (staged list) these files; whether it was done. */
+  onToggle: (files: ChangedFile[]) => Promise<boolean>;
   /** Same for every file of the list. */
   onToggleAll: () => void;
-  /** Discard working tree changes (unstaged list only). */
-  onDiscard?: (files: ChangedFile[]) => void;
+  /** Discard working tree changes (unstaged list only); `false` when cancelled or failed. */
+  onDiscard?: (files: ChangedFile[]) => Promise<boolean>;
   onDiscardAll?: () => void;
   /** Files dropped from the other list. */
   onDrop: (paths: string[]) => void;
@@ -176,11 +176,14 @@ export function ChangedFileList({
     onSelect(file);
   };
 
-  /** Runs `act` on the files of an action started on `clicked`, then moves on to the next. */
-  const actOn = (clicked: string, act: (files: ChangedFile[]) => void) => {
+  /**
+   * Runs `act` on the files of an action started on `clicked`, then moves on to the next: only
+   * once it is done, so a cancelled confirmation or a failed write leaves the open diff alone.
+   */
+  const actOn = async (clicked: string, act: (files: ChangedFile[]) => Promise<boolean>) => {
     const targets = actionTargets(files, selected, clicked);
     if (targets.length === 0) return;
-    act(targets);
+    if (!(await act(targets))) return;
     const acted = new Set(targets.map((f) => f.path));
     const next = nextAfter(order, acted);
     const nextFile = files.find((f) => f.path === next);
@@ -196,7 +199,7 @@ export function ChangedFileList({
     if (staging && event.key === ' ' && !event.metaKey && !event.ctrlKey && !event.altKey) {
       event.preventDefault();
       const first = [...selected][0];
-      if (first !== undefined) actOn(first, staging.onToggle);
+      if (first !== undefined) void actOn(first, staging.onToggle);
       return;
     }
     if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
@@ -222,7 +225,7 @@ export function ChangedFileList({
         icon: staged ? ('minus' as const) : ('plus' as const),
         label: t(staged ? 'changes.unstageFiles' : 'changes.stageFiles', { count }),
         onClick: () => {
-          actOn(file.path, staging.onToggle);
+          void actOn(file.path, staging.onToggle);
         },
       },
       discard: staging.onDiscard
@@ -230,7 +233,7 @@ export function ChangedFileList({
             label: t('changes.discardFiles', { count }),
             onClick: () => {
               const { onDiscard } = staging;
-              if (onDiscard) actOn(file.path, onDiscard);
+              if (onDiscard) void actOn(file.path, onDiscard);
             },
           }
         : undefined,

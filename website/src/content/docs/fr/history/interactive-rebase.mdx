@@ -44,7 +44,7 @@ L’éditeur refuse de démarrer, avec un message, dans les cas suivants :
 | **Aucun commit après cette base : rien à rebaser.**                                                                                            | La base est la pointe de la branche                                                      |
 | **Cette plage contient des commits de merge. yaggui ne reconstruit pas les merges dans un rebase interactif : choisis une base plus récente.** | Un commit de merge se trouve au-dessus de la base ; **Lancer le rebase** reste désactivé |
 
-Vos modifications n’existent que dans l’éditeur ouvert : le quitter (**Annuler**, <kbd>Esc</kbd>) les abandonne, et choisir une autre base repart de zéro.
+Vos modifications n’existent que dans l’éditeur ouvert : le quitter (**Annuler**, <kbd>Esc</kbd>) les abandonne, après la confirmation **Abandonner les modifications de la liste ?** dès que quelque chose a changé, et choisir une autre base repart de zéro.
 
 ## Modifier la liste
 
@@ -100,7 +100,7 @@ Quand rien n’a changé, l’indication est **Modifie au moins un commit pour l
 
 Le panneau **Résultat** montre les commits tels qu’ils seront après le rebase : **\{count\} commits**, **\{count\} commits supprimés**, et pour chaque commit des pastilles comme **\{count\} fusionnés**, **message modifié** ou **arrêt pour modification**. Son pied de page rappelle la base : **sur \{sha\} \{summary\}**.
 
-Pour quitter sans rien faire, cliquez sur **Annuler** ou appuyez sur <kbd>Esc</kbd>.
+Pour quitter sans rien faire, cliquez sur **Annuler** ou appuyez sur <kbd>Esc</kbd>. Dès que la liste diffère du plan (une action, l’ordre ou un message), yaggui demande d’abord **Abandonner les modifications de la liste ?** : **Abandonner** quitte l’éditeur, la branche intacte ; **Annuler** garde la liste telle quelle.
 
 ## Confirmer et lancer
 

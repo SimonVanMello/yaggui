@@ -102,7 +102,9 @@ for (const { name: theme, colorScheme } of THEMES) {
       await expect(view.locator('.cm-editor').first()).toBeVisible();
       await capture(page, theme, 'view');
 
-      // `j` steps to the older commit; the oldest one adds the lines.
+      // `j` steps to the older commit, also once a gutter click moved the focus into the
+      // read-only code; the oldest one adds the lines.
+      await view.locator('.yaggui-signs .yaggui-selectable').first().click();
       await page.keyboard.press('j');
       await expect(commits.getByRole('option').nth(1)).toHaveAttribute('aria-selected', 'true');
       await commits.focus();

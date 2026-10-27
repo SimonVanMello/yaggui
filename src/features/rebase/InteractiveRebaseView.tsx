@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 
+import { confirm } from '../../app/errors/confirmStore';
 import { ErrorPanel } from '../../app/errors/ErrorPanel';
 import { modalOpen } from '../../app/shellActions';
 import type { MessageKey } from '../../i18n/i18n';
@@ -108,9 +109,28 @@ export function InteractiveRebaseView({
   const busy = run.busy !== null;
   const blocked = plan?.hasMerges === true || !validation?.ok || unchanged || busy;
 
+  // Leaving forgets the edited list: once something changed, it asks first (a stopped rebase
+  // is already running from it: nothing to lose).
   const close = () => {
-    leaveRebase(repoId);
+    void (async () => {
+      if (
+        unchanged ||
+        stop !== null ||
+        (await confirm({
+          title: t('rebaseInteractive.leave.title'),
+          description: t('rebaseInteractive.leave.description'),
+          confirmLabel: t('rebaseInteractive.leave.confirm'),
+          danger: true,
+        }))
+      ) {
+        leaveRebase(repoId);
+      }
+    })();
   };
+  const closeRef = useRef(close);
+  useEffect(() => {
+    closeRef.current = close;
+  });
   const reload = () => {
     run.clearError();
     setRebaseRows(repoId, null);
@@ -124,13 +144,13 @@ export function InteractiveRebaseView({
       if (target instanceof HTMLElement && target.closest('input, textarea')) return;
       if (modalOpen()) return;
       event.preventDefault();
-      leaveRebase(repoId);
+      closeRef.current();
     };
     window.addEventListener('keydown', onKeyDown);
     return () => {
       window.removeEventListener('keydown', onKeyDown);
     };
-  }, [repoId, busy]);
+  }, [busy]);
 
   let body;
   if (stop) {

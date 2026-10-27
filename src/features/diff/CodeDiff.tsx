@@ -130,9 +130,16 @@ export function CodeDiff({
     [model],
   );
   const history = worktree === null && onLineHistory !== undefined;
+  // The parent passes `onHunks` as a new function on every render (a resize, a status event):
+  // the editors are built from a ref to it, so only its presence takes part in their deps.
+  const hasHunks = onHunks !== undefined;
+  const onHunksRef = useRef(onHunks);
+  useEffect(() => {
+    onHunksRef.current = onHunks;
+  });
   const selectable = useMemo(
     () =>
-      worktree && onHunks
+      worktree && hasHunks
         ? new Set(
             model.kind === 'split'
               ? selectableRows(model.left, model.right)
@@ -141,7 +148,7 @@ export function CodeDiff({
         : history
           ? new Set(newSideRows(sides))
           : undefined,
-    [model, worktree, onHunks, history, sides],
+    [model, worktree, hasHunks, history, sides],
   );
 
   // The selection belongs to one diff: a refreshed diff (other lines) starts empty.
@@ -221,11 +228,12 @@ export function CodeDiff({
   const hunksOf = useCallback(
     (action: HunkActionKind, hunk: number) => {
       const view = model.hunks[hunk];
+      const onHunks = onHunksRef.current;
       if (!view || !onHunks) return;
       const whole = wholeHunk(view);
       onHunks(action, whole, selectedLineCount(whole, model.hunks));
     },
-    [model, onHunks],
+    [model],
   );
 
   const wrapRef = useRef(wrap);
@@ -241,7 +249,7 @@ export function CodeDiff({
     });
     return {
       noNewline: t('diff.noNewline'),
-      hunkActions: !onHunks
+      hunkActions: !hasHunks
         ? null
         : worktree === 'staged'
           ? [action('unstage')]
@@ -249,7 +257,7 @@ export function CodeDiff({
             ? [action('discard'), action('stage')]
             : null,
     };
-  }, [t, worktree, onHunks, actionsDisabled]);
+  }, [t, worktree, hasHunks, actionsDisabled]);
 
   useLayoutEffect(() => {
     const left = leftRef.current;

@@ -36,6 +36,20 @@ export function setConflictLeaveGuard(tabId: string, guard: ConflictLeaveGuard |
 }
 
 /**
+ * Whether the editor of `tabId` holds unsaved choices or edits on this very file: a quick
+ * resolution of it from the conflicts panel would throw them away, so it asks first.
+ */
+export function hasUnsavedConflictEdits(tabId: string, selection: ConflictViewSelection): boolean {
+  const current = useConflictViewStore.getState().open[tabId];
+  return (
+    current !== undefined &&
+    current.repoId === selection.repoId &&
+    current.path === selection.path &&
+    guards.has(tabId)
+  );
+}
+
+/**
  * "Resolve…": opens the conflict editor on `path` in place of the graph of `tabId`. Leaving a
  * file with unsaved edits asks first, unless `force` (the editor itself, after saving). Returns
  * whether the file was opened.

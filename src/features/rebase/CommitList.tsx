@@ -64,6 +64,11 @@ export function CommitList({ rows, onRows, upstream, unmatched, label }: CommitL
     element.current?.focus();
   }, []);
 
+  // The editor also goes away without its own close, e.g. "pick" on the reworded row takes
+  // its message away: still counted as editing, the drag would stay disabled for every row.
+  const editingRow =
+    editing !== null && groups.get(editing)?.messageRow === editing ? editing : null;
+
   const focused = Math.min(focus, count - 1);
   const rowId = (index: number) => `rebase-row-${rows[index]?.commit.sha ?? String(index)}`;
 
@@ -102,7 +107,7 @@ export function CommitList({ rows, onRows, upstream, unmatched, label }: CommitL
   };
 
   const gripDown = (event: PointerEvent<HTMLElement>, index: number) => {
-    if (event.button !== 0 || editing !== null) return;
+    if (event.button !== 0 || editingRow !== null) return;
     event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
     setFocus(index);
@@ -214,7 +219,7 @@ export function CommitList({ rows, onRows, upstream, unmatched, label }: CommitL
             meldedInto={group && group.index !== index ? group.head.commit.summary : null}
             hasMelded={group?.index === index && group.melded.length > 0}
             finalMessage={group && holdsMessage ? group.message : null}
-            editing={editing === index}
+            editing={editingRow === index}
             upstream={upstream}
             unmatched={unmatched?.has(row.commit.sha) === true}
             now={now}
@@ -224,7 +229,14 @@ export function CommitList({ rows, onRows, upstream, unmatched, label }: CommitL
               refocus();
             }}
             onAction={(next, action) => {
-              onRows(setAction(rows, next, action));
+              const changed = setAction(rows, next, action);
+              onRows(changed);
+              // The row edited may have lost its message (see `editingRow`).
+              if (
+                editing !== null &&
+                !preview(changed).commits.some((c) => c.messageRow === editing)
+              )
+                setEditing(null);
               setFocus(next);
               refocus();
             }}

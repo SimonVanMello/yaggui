@@ -237,7 +237,10 @@ export function LineHistoryView({
     const onKeyDown = (event: globalThis.KeyboardEvent) => {
       if (event.defaultPrevented) return;
       const target = event.target;
-      if (target instanceof HTMLElement && target.closest('input, textarea, [contenteditable]')) {
+      if (
+        target instanceof HTMLElement &&
+        target.closest('input, textarea, [contenteditable="true"]')
+      ) {
         return;
       }
       if (modalOpen() || document.querySelector('[role="menu"][data-state="open"]')) return;
