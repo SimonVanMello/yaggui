@@ -4,7 +4,7 @@
 use tauri::State;
 
 use crate::ai::{
-    AiContextPreview, AiProviderKind, AiSkill, AiStatus, AiTestResult, GeneratedCommitMessage,
+    AiContextPreview, AiMessageRequest, AiProviderKind, AiSkill, AiStatus, AiTestResult, GeneratedCommitMessage,
 };
 use crate::git::errors::YagguiError;
 use crate::state::AppState;
@@ -73,20 +73,20 @@ pub async fn ai_test_provider(
     Err(YagguiError::not_implemented())
 }
 
-/// The exact text a generation would send for the staged changes (and the amended commit's
-/// with `amend`), without sending it. Works while the feature is off.
+/// The exact text a generation would send for `request`, without sending it. Works while the
+/// feature is off.
 #[tauri::command]
 #[specta::specta]
 pub async fn ai_preview_context(
     state: State<'_, AppState>,
     repo_id: u32,
-    amend: bool,
+    request: AiMessageRequest,
 ) -> Result<AiContextPreview, YagguiError> {
-    let _ = (state, repo_id, amend);
+    let _ = (state, repo_id, request);
     Err(YagguiError::not_implemented())
 }
 
-/// Writes a commit message for the staged changes (plus HEAD's with `amend`) with the
+/// Writes a commit message for the staged changes (plus HEAD's with `request.amend`) with the
 /// provider of the preferences. Never commits, never writes to the repository. One
 /// generation per repository at a time. Errors: `aiDisabled`, `aiNotConfigured`,
 /// `nothingToCommit`, `aiBusy`, `aiAuthFailed`, `aiRateLimited`, `aiProviderUnavailable`,
@@ -96,9 +96,9 @@ pub async fn ai_preview_context(
 pub async fn ai_generate_commit_message(
     state: State<'_, AppState>,
     repo_id: u32,
-    amend: bool,
+    request: AiMessageRequest,
 ) -> Result<GeneratedCommitMessage, YagguiError> {
-    let _ = (state, repo_id, amend);
+    let _ = (state, repo_id, request);
     Err(YagguiError::not_implemented())
 }
 
