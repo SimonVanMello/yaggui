@@ -4,7 +4,7 @@ import { queryClient } from '../../app/queryClient';
 import { useTabsStore } from '../../app/tabs/tabsStore';
 import { ipc, type YagguiError } from '../../ipc';
 import { mockBackend } from '../../ipc/mockClient';
-import { closeTabAndRepo } from '../repo/repoSessions';
+import { closeTabAndRepo, openRepoPath, useRepoSessions } from '../repo/repoSessions';
 import { useToastStore } from '../../ui/toastStore';
 import { fetchWorkspace, forgetRepo, openWorkspace, relocateRepo } from './workspaceOps';
 import { useWorkspaceUi } from './workspaceStore';
@@ -102,6 +102,30 @@ describe('fetchWorkspace', () => {
 });
 
 describe('relocateRepo', () => {
+  it('reopens the repository of an open tab from its new folder', async () => {
+    const known = await ipc.commands.listRepos();
+    const path = known.status === 'ok' ? known.data[0]?.path : undefined;
+    if (!path) throw new Error('a known repo is expected');
+    await openRepoPath(path, useTabsStore.getState().tabs[0]?.id);
+    const tab = useTabsStore.getState().tabs.find((t) => t.repoId !== null);
+    const repoId = tab?.repoId ?? -1;
+    expect(useRepoSessions.getState().sessions[repoId]?.status).toBe('open');
+    queryClient.setQueryData(['diff', repoId, 'worktree', 'files', 'staged'], 'old folder');
+
+    await expect(relocateRepo(repoId, '/Users/alex/dev/moved')).resolves.toBe(true);
+    // The backend closed the old session; the tab opened a new one on the new folder.
+    await vi.waitFor(() => {
+      expect(useRepoSessions.getState().sessions[repoId]?.status).toBe('open');
+    });
+    const settings = await ipc.commands.commitSettings(repoId);
+    expect(settings.status).toBe('ok');
+    expect(
+      queryClient.getQueryData(['diff', repoId, 'worktree', 'files', 'staged']),
+    ).toBeUndefined();
+    const session = useRepoSessions.getState().sessions[repoId];
+    expect(session?.status === 'open' && session.info.path).toBe('/Users/alex/dev/moved');
+  });
+
   it('moves the tabs of a repo merged into another entry', async () => {
     const tabs = useTabsStore.getState();
     const tabId = tabs.tabs[0]?.id ?? '';

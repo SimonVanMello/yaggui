@@ -4,6 +4,7 @@ import { Button } from '../../ui/Button';
 import { Icon, type IconName } from '../../ui/Icon';
 import { execShellAction } from '../../app/shellActions';
 import { Kbd } from '../../ui/Kbd';
+import { useShortcut } from '../keybindings/registry';
 import { WorktreeChanges } from '../diff/WorktreeChanges';
 import { changedFiles, workingBranch } from '../repo/repoStatus';
 import { CommitBox } from './CommitBox';
@@ -17,14 +18,14 @@ function NextAction({
 }: {
   icon: IconName;
   label: string;
-  shortcut: string;
+  shortcut: string | undefined;
   onClick: () => void;
 }) {
   return (
     <Button size="sm" className={styles.nextAction} onClick={onClick}>
       <Icon name={icon} />
       <span className={styles.nextLabel}>{label}</span>
-      <Kbd shortcut={shortcut} />
+      {shortcut && <Kbd shortcut={shortcut} />}
     </Button>
   );
 }
@@ -43,6 +44,9 @@ export function ChangesPanel({
   tabId: string;
 }) {
   const t = useT();
+  const pullShortcut = useShortcut('git.pull');
+  const branchShortcut = useShortcut('git.branch.create');
+  const fetchShortcut = useShortcut('git.fetch');
   const branch = workingBranch(state);
   const clean = changedFiles(state) === 0;
 
@@ -65,7 +69,7 @@ export function ChangesPanel({
               <NextAction
                 icon="pull"
                 label={t('changes.next.pull', { count: state.upstream.behind })}
-                shortcut="Mod+Shift+L"
+                shortcut={pullShortcut}
                 onClick={() => {
                   execShellAction('pull');
                 }}
@@ -74,7 +78,7 @@ export function ChangesPanel({
             <NextAction
               icon="branch"
               label={t('changes.next.branch')}
-              shortcut="Mod+B"
+              shortcut={branchShortcut}
               onClick={() => {
                 execShellAction('createBranch');
               }}
@@ -83,7 +87,7 @@ export function ChangesPanel({
               <NextAction
                 icon="fetch"
                 label={t('changes.next.fetch')}
-                shortcut="Mod+Shift+F"
+                shortcut={fetchShortcut}
                 onClick={() => {
                   execShellAction('fetch');
                 }}

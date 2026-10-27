@@ -59,9 +59,16 @@ vi.mock('../../ipc', async (importOriginal) => {
   };
 });
 
-const { closeTabAndRepo, heldSessionCount, restoreRepoSession, tryOpenRepo, useRepoSessions } =
-  await import('./repoSessions');
+const {
+  closeTabAndRepo,
+  heldSessionCount,
+  resetRepoSession,
+  restoreRepoSession,
+  tryOpenRepo,
+  useRepoSessions,
+} = await import('./repoSessions');
 const { useTabsStore } = await import('../../app/tabs/tabsStore');
+const { queryClient } = await import('../../app/queryClient');
 
 /** Backend references still open, per repository. */
 function balance(): Record<number, number> {
@@ -73,16 +80,17 @@ function balance(): Record<number, number> {
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
-describe('repository sessions keep openRepo / closeRepo balanced', () => {
-  beforeEach(() => {
-    // Close every tab from a previous test, which releases its sessions.
-    for (const tab of useTabsStore.getState().tabs) closeTabAndRepo(tab.id);
-    calls.open.length = 0;
-    calls.close.length = 0;
-    pending.gate = null;
-    useRepoSessions.setState({ sessions: {} });
-  });
+beforeEach(() => {
+  // Close every tab from a previous test, which releases its sessions.
+  for (const tab of useTabsStore.getState().tabs) closeTabAndRepo(tab.id);
+  calls.open.length = 0;
+  calls.close.length = 0;
+  pending.gate = null;
+  useRepoSessions.setState({ sessions: {} });
+  queryClient.clear();
+});
 
+describe('repository sessions keep openRepo / closeRepo balanced', () => {
   it('holds one reference per tab and releases it when the tab closes', async () => {
     await tryOpenRepo('/repos/yaggui', useTabsStore.getState().activeTabId);
     expect(balance()).toEqual({ 1: 1 });
@@ -132,5 +140,55 @@ describe('repository sessions keep openRepo / closeRepo balanced', () => {
     await Promise.all([restoring, opening]);
     expect(calls.open).toEqual([1, 1]);
     expect(balance()).toEqual({ 1: 1 });
+  });
+});
+
+describe('closing the last tab of a repository forgets what was cached about it', () => {
+  it('removes every per-repository query, not only the state and the refs', async () => {
+    await tryOpenRepo('/repos/yaggui', useTabsStore.getState().activeTabId);
+    const mine = [
+      ['repo-state', 1],
+      ['repo-refs', 1],
+      ['diff', 1, 'worktree', 'files', 'staged'],
+      ['conflicts', 1],
+      ['remotes', 1],
+      ['git-config', 'repo', 1],
+    ];
+    const others = [
+      ['repo-state', 2],
+      ['diff', 2, 'worktree', 'files', 'staged'],
+      ['git-config', 'global', null],
+      ['known-repos'],
+    ];
+    for (const key of [...mine, ...others]) queryClient.setQueryData(key, 'cached');
+    closeTabAndRepo(useTabsStore.getState().activeTabId);
+    for (const key of mine) expect(queryClient.getQueryData(key)).toBeUndefined();
+    for (const key of others) expect(queryClient.getQueryData(key)).toBe('cached');
+  });
+
+  it('reads the repository again when it is reopened', async () => {
+    await tryOpenRepo('/repos/yaggui', useTabsStore.getState().activeTabId);
+    queryClient.setQueryData(['diff', 1, 'worktree', 'files', 'staged'], 'previous session');
+    closeTabAndRepo(useTabsStore.getState().activeTabId);
+    await tryOpenRepo('/repos/yaggui', useTabsStore.getState().activeTabId);
+    expect(queryClient.getQueryData(['diff', 1, 'worktree', 'files', 'staged'])).toBeUndefined();
+  });
+});
+
+describe('resetRepoSession', () => {
+  it('drops a session the backend closed, without closing it again, so the tab reopens it', async () => {
+    await tryOpenRepo('/repos/yaggui', useTabsStore.getState().activeTabId);
+    queryClient.setQueryData(['diff', 1, 'worktree', 'files', 'staged'], 'old folder');
+    resetRepoSession(1);
+    expect(useRepoSessions.getState().sessions[1]).toBeUndefined();
+    expect(heldSessionCount()).toBe(0);
+    expect(calls.close).toEqual([]);
+    expect(queryClient.getQueryData(['diff', 1, 'worktree', 'files', 'staged'])).toBeUndefined();
+    await restoreRepoSession(1);
+    expect(useRepoSessions.getState().sessions[1]?.status).toBe('open');
+    // The backend closed the first session itself: only the reopen is held.
+    expect(calls.open).toEqual([1, 1]);
+    expect(calls.close).toEqual([]);
+    expect(heldSessionCount()).toBe(1);
   });
 });

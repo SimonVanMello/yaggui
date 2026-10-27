@@ -6,6 +6,7 @@ import { mockBackend } from '../../ipc/mockClient';
 import { serializeTabUiState } from '../layout/panels';
 import {
   DEFAULT_REPO_LAYOUT,
+  flushRepoLayouts,
   loadRepoLayout,
   parseRepoLayout,
   persistRepoLayouts,
@@ -71,6 +72,23 @@ describe('loadRepoLayout', () => {
 });
 
 describe('persistRepoLayouts', () => {
+  it('writes the pending saves at once when flushed (the window closes)', async () => {
+    const [a] = await knownRepoIds();
+    if (a === undefined) throw new Error('a known repo expected');
+    vi.useFakeTimers();
+    const tabs = useTabsStore.getState();
+    const tabA = tabs.tabs[0]?.id ?? '';
+    tabs.setRepo(tabA, a, LAYOUT);
+    const stop = persistRepoLayouts(DELAY);
+    await vi.advanceTimersByTimeAsync(DELAY);
+    tabs.setPanel(tabA, 'details', { size: 333 });
+    await vi.advanceTimersByTimeAsync(DELAY - 1);
+    expect(parseRepoLayout(await saved(a)).panels.details.size).not.toBe(333);
+    await flushRepoLayouts();
+    expect(parseRepoLayout(await saved(a)).panels.details.size).toBe(333);
+    stop();
+  });
+
   it('saves the layout of the repository whose tab changed, once settled', async () => {
     const [a, b] = await knownRepoIds();
     if (a === undefined || b === undefined) throw new Error('two known repos expected');

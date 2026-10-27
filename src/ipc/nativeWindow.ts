@@ -26,6 +26,11 @@ export interface NativeWindow {
   /** Called after every resize (maximize, restore, snap…). */
   subscribeResized: (handler: () => void) => Unsubscribe;
   subscribeFolderDrop: (handlers: FolderDropHandlers) => Unsubscribe;
+  /**
+   * Called when the window is about to close (its button, `close()`): the window waits for
+   * the returned promise. Not called on a quit that skips the window (⌘Q on macOS).
+   */
+  onCloseRequested: (handler: () => Promise<void>) => Unsubscribe;
 }
 
 const tauriWindow: NativeWindow = {
@@ -38,13 +43,16 @@ const tauriWindow: NativeWindow = {
   subscribeResized(handler) {
     let unlisten: (() => void) | undefined;
     let active = true;
-    void getCurrentWindow()
+    getCurrentWindow()
       .onResized(() => {
         handler();
       })
       .then((fn) => {
         if (active) unlisten = fn;
         else fn();
+      })
+      .catch((error: unknown) => {
+        console.warn('Could not watch the window size', error);
       });
     return () => {
       active = false;
@@ -54,7 +62,7 @@ const tauriWindow: NativeWindow = {
   subscribeFolderDrop(handlers) {
     let unlisten: (() => void) | undefined;
     let active = true;
-    void getCurrentWebview()
+    getCurrentWebview()
       .onDragDropEvent((event) => {
         const payload = event.payload;
         if (payload.type === 'enter') handlers.onEnter();
@@ -64,6 +72,28 @@ const tauriWindow: NativeWindow = {
       .then((fn) => {
         if (active) unlisten = fn;
         else fn();
+      })
+      .catch((error: unknown) => {
+        console.warn('Could not watch folder drops', error);
+      });
+    return () => {
+      active = false;
+      unlisten?.();
+    };
+  },
+  onCloseRequested(handler) {
+    let unlisten: (() => void) | undefined;
+    let active = true;
+    // With a listener, Tauri leaves the close to it: the window is destroyed once the handler
+    // returns (unless it prevents the close, which this one never does).
+    getCurrentWindow()
+      .onCloseRequested(() => (active ? handler() : Promise.resolve()))
+      .then((fn) => {
+        if (active) unlisten = fn;
+        else fn();
+      })
+      .catch((error: unknown) => {
+        console.warn('Could not watch the window close', error);
       });
     return () => {
       active = false;
@@ -100,6 +130,15 @@ const browserWindow: NativeWindow = {
   close: () => Promise.resolve(),
   isMaximized: () => Promise.resolve(false),
   subscribeResized: () => () => undefined,
+  onCloseRequested(handler) {
+    const onBeforeUnload = () => {
+      void handler();
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', onBeforeUnload);
+    };
+  },
   subscribeFolderDrop(handlers) {
     // dragenter/dragleave fire for every child element: count them to know when the drag leaves.
     let depth = 0;

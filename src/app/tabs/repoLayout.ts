@@ -82,6 +82,11 @@ function flush(repoId: number): Promise<void> {
   return save(repoId, waiting.json);
 }
 
+/** Writes every pending save now (before the window closes). */
+export function flushRepoLayouts(): Promise<void> {
+  return Promise.all([...pending.keys()].map(flush)).then(() => undefined);
+}
+
 /** The saved layout of a repository; the default one when none is saved or it is unreadable. */
 export async function loadRepoLayout(repoId: number): Promise<RepoLayout> {
   try {

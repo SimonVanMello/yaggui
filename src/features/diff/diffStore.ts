@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import { currentPreferences, savePreferences } from '../../app/preferences';
+import { useTabsStore } from '../../app/tabs/tabsStore';
 import type { DiffPreferences, DiffTarget, DiffViewMode } from '../../ipc';
 import { closeConflictView } from '../conflicts/conflictViewStore';
 import { preloadCodeDiff } from './codeDiffModule';
@@ -117,3 +118,16 @@ export function forceRender(selection: DiffSelection): void {
 export function setFileLayout(fileLayout: 'list' | 'tree'): void {
   useDiffStore.setState({ fileLayout });
 }
+
+// A closed tab forgets its open diff.
+useTabsStore.subscribe((state, previous) => {
+  if (state.tabs === previous.tabs) return;
+  const { open } = useDiffStore.getState();
+  const closed = Object.keys(open).filter(
+    (tabId) => open[tabId] !== undefined && !state.tabs.some((tab) => tab.id === tabId),
+  );
+  if (closed.length === 0) return;
+  useDiffStore.setState({
+    open: Object.fromEntries(Object.entries(open).filter(([tabId]) => !closed.includes(tabId))),
+  });
+});

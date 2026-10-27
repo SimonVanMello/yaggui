@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 
+import { useTabsStore } from '../../app/tabs/tabsStore';
+
 /**
  * The conflicted file open in the 3-way merge editor (M3-3), per tab. The editor replaces the
  * graph, like a diff does; its view id is `conflict:<path>` (`conflictViewId`).
@@ -63,3 +65,17 @@ export function closeConflictView(tabId: string): void {
 export function useConflictView(tabId: string): ConflictViewSelection | undefined {
   return useConflictViewStore((state) => state.open[tabId]);
 }
+
+// A closed tab forgets its open conflict editor (its guard goes with the editor).
+useTabsStore.subscribe((state, previous) => {
+  if (state.tabs === previous.tabs) return;
+  const { open } = useConflictViewStore.getState();
+  const closed = Object.keys(open).filter(
+    (tabId) => open[tabId] !== undefined && !state.tabs.some((tab) => tab.id === tabId),
+  );
+  if (closed.length === 0) return;
+  for (const tabId of closed) guards.delete(tabId);
+  useConflictViewStore.setState({
+    open: Object.fromEntries(Object.entries(open).filter(([tabId]) => !closed.includes(tabId))),
+  });
+});

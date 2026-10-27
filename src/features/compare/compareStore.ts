@@ -36,3 +36,15 @@ export function swapCompare(repoId: number): void {
 export function useCompare(repoId: number): CompareRequest | undefined {
   return useCompareStore((state) => state.compare[repoId]);
 }
+
+/** A closed repository forgets its comparison: reopened, it shows the commit details again. */
+export function forgetCompare(repoId: number): void {
+  useCompareStore.setState((state) => {
+    if (!(repoId in state.compare)) return state;
+    return {
+      compare: Object.fromEntries(
+        Object.entries(state.compare).filter(([id]) => Number(id) !== repoId),
+      ),
+    };
+  });
+}

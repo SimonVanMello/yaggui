@@ -34,6 +34,7 @@ export function Dialog({
         <RadixDialog.Overlay className={styles.overlay} />
         <RadixDialog.Content
           className={wide ? `${styles.content} ${styles.wide}` : styles.content}
+          data-modal=""
           onEscapeKeyDown={onEscapeKeyDown}
           {...(description ? {} : { 'aria-describedby': undefined })}
         >

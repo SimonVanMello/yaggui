@@ -26,6 +26,8 @@ export function App() {
     <QueryClientProvider client={queryClient}>
       {/* Non-hoverable tooltips close as soon as the pointer leaves: never two on screen. */}
       <Tooltip.Provider delayDuration={400} skipDelayDuration={200} disableHoverableContent>
+        {/* The dialogs and the toaster are inside too: a render error anywhere shows the
+            crash screen instead of unmounting the whole window. */}
         <ErrorBoundary>
           {showPrimitives ? (
             <PrimitivesDemo />
@@ -34,16 +36,16 @@ export function App() {
           ) : (
             <Shell />
           )}
+          <ConfirmDialog />
+          <RefDialogs />
+          <RemoteDialogs />
+          <HistoryDialogs />
+          <CommitToolsDialogs />
+          <BranchToolsDialogs />
+          <DropMenu />
+          <DragLayer />
+          <Toaster />
         </ErrorBoundary>
-        <ConfirmDialog />
-        <RefDialogs />
-        <RemoteDialogs />
-        <HistoryDialogs />
-        <CommitToolsDialogs />
-        <BranchToolsDialogs />
-        <DropMenu />
-        <DragLayer />
-        <Toaster />
       </Tooltip.Provider>
     </QueryClientProvider>
   );

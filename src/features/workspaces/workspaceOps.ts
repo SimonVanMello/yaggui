@@ -6,7 +6,12 @@ import { useTabsStore } from '../../app/tabs/tabsStore';
 import { translate, useI18nStore, type MessageKey, type MessageParams } from '../../i18n/i18n';
 import { ipc, unwrap, type KnownRepo, type Workspace } from '../../ipc';
 import { toast } from '../../ui/toastStore';
-import { closeTabAndRepo, restoreRepoSession, tryOpenRepo } from '../repo/repoSessions';
+import {
+  closeTabAndRepo,
+  resetRepoSession,
+  restoreRepoSession,
+  tryOpenRepo,
+} from '../repo/repoSessions';
 import { workspaceKeys } from './workspaceQueries';
 import { useWorkspaceUi } from './workspaceStore';
 
@@ -245,6 +250,9 @@ export async function relocateRepo(repoId: number, path?: string): Promise<boole
     return false;
   }
   invalidateRepoLists([repoId, relocated.id]);
+  // The backend closed every session of the old folder: forget ours (its cached reads are
+  // those of the old folder) so that the tab reopens the repository from the new one.
+  resetRepoSession(repoId);
   // Merged into an entry already known at that folder: its tabs now show that one.
   const tabs = useTabsStore.getState();
   for (const tab of tabs.tabs) {

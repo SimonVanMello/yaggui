@@ -66,6 +66,10 @@ for (const { name: theme, colorScheme } of THEMES) {
       await dialog(page).getByRole('button', { name: 'Add', exact: true }).click();
       await expect(toastText(page, 'Remote fork added')).toBeVisible();
       await expect(remoteFolder(page, 'fork')).toBeVisible();
+      // The Fetch menu of the toolbar follows the remotes (M9-6).
+      await page.getByRole('button', { name: 'Fetch options' }).click();
+      await expect(page.getByRole('menuitem', { name: 'Fetch fork' })).toBeVisible();
+      await page.keyboard.press('Escape');
     });
 
     test('edits, renames and removes a remote from its folder', async ({ page }) => {
@@ -91,6 +95,12 @@ for (const { name: theme, colorScheme } of THEMES) {
       await confirm.getByRole('button', { name: 'Remove', exact: true }).click();
       await expect(toastText(page, 'Remote upstream removed')).toBeVisible();
       await expect(remoteFolder(page, 'upstream')).toHaveCount(0);
+      await page.getByRole('button', { name: 'Fetch options' }).click();
+      await expect(page.getByRole('menuitem', { name: 'Fetch all remotes' })).toBeVisible();
+      await expect(page.getByRole('menuitem', { name: /^Fetch (origin|upstream)$/ })).toHaveCount(
+        0,
+      );
+      await page.keyboard.press('Escape');
     });
 
     test('manages remotes from the palette', async ({ page }) => {

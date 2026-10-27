@@ -110,3 +110,27 @@ describe('hidden tab views', () => {
     expect(spies.fetchFresh).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('useRepoEvent switched to another repository', () => {
+  function Watcher({ repoId, onEvent }: { repoId: number; onEvent: () => void }) {
+    useRepoEvent('statusChanged', repoId, onEvent);
+    return null;
+  }
+
+  it('does not replay the events of the previous repository as a missed one', () => {
+    const onEvent = vi.fn();
+    const { rerender } = render(<Watcher repoId={1} onEvent={onEvent} />);
+    act(() => {
+      mockBackend.emit('statusChanged', { repoId: 1 });
+      mockBackend.emit('statusChanged', { repoId: 1 });
+    });
+    expect(onEvent).toHaveBeenCalledTimes(2);
+    // Same view, other repository: repo 1 saw 2 events, repo 2 none, nothing was missed.
+    rerender(<Watcher repoId={2} onEvent={onEvent} />);
+    expect(onEvent).toHaveBeenCalledTimes(2);
+    act(() => {
+      mockBackend.emit('statusChanged', { repoId: 2 });
+    });
+    expect(onEvent).toHaveBeenCalledTimes(3);
+  });
+});
