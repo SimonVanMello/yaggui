@@ -61,6 +61,8 @@ pub(super) enum Mode {
     /// branch creation / deletion, soft and mixed reset.
     Refs,
     /// HEAD moves to another branch or commit with `git switch`, carrying local changes.
+    /// The branch HEAD leaves goes to its recorded commit first, with `git reset --keep`,
+    /// when the operation moved it (a local branch brought up to its remote one).
     Switch,
     /// HEAD's commit moves with `git reset --keep`: refused when local changes are in the
     /// way. Merge, cherry-pick, revert.
@@ -768,7 +770,7 @@ fn open_index(repo: &gix::Repository) -> Result<gix::index::File, YagguiError> {
     }
 }
 
-fn index_side(index: &gix::index::File, path: &str) -> IndexSide {
+pub(super) fn index_side(index: &gix::index::File, path: &str) -> IndexSide {
     use gix::index::entry::Stage;
 
     let key = BStr::new(path.as_bytes());
@@ -1084,9 +1086,21 @@ fn step(ctx: &WriteContext<'_>, record: &Record, undo: bool) -> Result<(), Yaggu
             fix_upstreams(ctx, from, to)
         }
         Mode::Switch => {
-            update_refs(ctx, from, to, &message, None, Option::is_some)?;
+            // The branch HEAD is on moves with the index and the working tree (`reset
+            // --keep`), never with a bare `update-ref`: they would stay on the old commit
+            // and its whole diff would show up as staged changes.
+            let moved = from
+                .head
+                .as_ref()
+                .and_then(Head::branch)
+                .and_then(|name| to.refs.get(name).copied().flatten().map(|id| (name, id)));
+            if let Some((_, target)) = moved {
+                reset_keep(ctx, target)?;
+            }
+            let skip = moved.map(|(name, _)| name);
+            update_refs(ctx, from, to, &message, skip, Option::is_some)?;
             switch_head(ctx, to)?;
-            update_refs(ctx, from, to, &message, None, Option::is_none)?;
+            update_refs(ctx, from, to, &message, skip, Option::is_none)?;
             fix_upstreams(ctx, from, to)
         }
         Mode::Keep => keep(ctx, from, to, &message),
@@ -1273,20 +1287,24 @@ fn head_commit(side: &Side) -> Result<ObjectId, YagguiError> {
 fn keep(ctx: &WriteContext<'_>, from: &Side, to: &Side, message: &str) -> Result<(), YagguiError> {
     let mut moved_branch = None;
     if to.head.is_some() {
-        let target = head_commit(to)?;
-        let run = raw(
-            ctx,
-            &ctx.command(["reset", "-q", "--keep", &target.to_string(), "--"]),
-        )?;
-        if !run.success {
-            return Err(
-                refused_by_local_changes(ctx, &run.stderr).unwrap_or_else(|| classify(ctx, &run))
-            );
-        }
+        reset_keep(ctx, head_commit(to)?)?;
         moved_branch = from.head.as_ref().and_then(Head::branch);
     }
     update_refs(ctx, from, to, message, moved_branch, |_| true)?;
     fix_upstreams(ctx, from, to)
+}
+
+/// `git reset --keep` of HEAD's branch, the index and the working tree to `target`:
+/// refused when local changes are in the way.
+fn reset_keep(ctx: &WriteContext<'_>, target: ObjectId) -> Result<(), YagguiError> {
+    let run = raw(
+        ctx,
+        &ctx.command(["reset", "-q", "--keep", &target.to_string(), "--"]),
+    )?;
+    if run.success {
+        return Ok(());
+    }
+    Err(refused_by_local_changes(ctx, &run.stderr).unwrap_or_else(|| classify(ctx, &run)))
 }
 
 /// HEAD to the branch or commit of `to`, with `git switch` (carries local changes).

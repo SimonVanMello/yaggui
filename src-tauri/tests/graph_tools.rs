@@ -427,3 +427,36 @@ fn runs_the_configured_diff_tool() {
         ErrorCode::DiffToolFailed
     );
 }
+
+/// A branch Git refuses in the middle of the batch (here: being rebased in another
+/// worktree, which the listing cannot see): the branches deleted before it are journaled
+/// and come back with one undo, and the refusal is reported.
+#[test]
+fn a_deletion_refused_midway_keeps_the_deleted_branches_undoable() {
+    let e = env();
+    let (merged_sha, gone_sha) = (e.rev("merged"), e.rev("gone"));
+    let folder = e.fx.root.join("rebasing");
+    e.fx.git(&["worktree", "add", "-q", folder.to_str().unwrap(), "gone"]);
+    // Stops after the first pick: HEAD detached there, `gone` still "used by" that worktree.
+    let status = std::process::Command::new("git")
+        .args(["rebase", "--exec", "false", "HEAD~1"])
+        .current_dir(&folder)
+        .env("GIT_CONFIG_NOSYSTEM", "1")
+        .env("GIT_CONFIG_GLOBAL", "/dev/null")
+        .status()
+        .unwrap();
+    assert!(!status.success(), "the rebase stops on the exec");
+
+    let err = e
+        .repos
+        .delete_branches(e.id, vec!["merged".into(), "gone".into()])
+        .unwrap_err();
+    assert_eq!(err.code, ErrorCode::BranchCheckedOut, "{err:?}");
+    assert_eq!(e.rev("merged"), "");
+    assert_eq!(e.rev("gone"), gone_sha);
+
+    let entry = e.repos.undo(e.id).unwrap();
+    assert!(format!("{:?}", entry.op).contains("DeleteBranches"));
+    assert_eq!(e.rev("merged"), merged_sha);
+    assert_eq!(e.rev("gone"), gone_sha);
+}

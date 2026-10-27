@@ -11,7 +11,7 @@ use std::sync::Arc;
 use common::{Fixture, RecordingSink};
 use yaggui_lib::events::{BackendEvent, OpKind};
 use yaggui_lib::git::cli::GitCli;
-use yaggui_lib::git::errors::{ErrorCode, ErrorPayload};
+use yaggui_lib::git::errors::{ErrorCode, ErrorPayload, YagguiError};
 use yaggui_lib::git::log::CommandLog;
 use yaggui_lib::git::ops::types::{
     BranchStart, CheckoutMode, CheckoutTarget, CherryPickRequest, CommitRequest, ConfigScope,
@@ -1025,4 +1025,129 @@ fn worktree_prune_is_not_journaled() {
             || line == "branch refs/heads/wt"
     });
     assert!(!left, "pruned worktree still listed:\n{list}");
+}
+
+// --- Checkout fast-forward and hard reset over conflicts (M9-1) ------------------------------
+
+impl Env {
+    /// `main` one commit ahead of where `feat` was made; `feat` one commit behind
+    /// `origin/feat`, which adds `r.txt` and changes `src.txt`. HEAD ends on `main`.
+    fn feat_behind_origin(&self) {
+        self.fx.git(&["switch", "-q", "-c", "feat"]);
+        self.write("r.txt", "r\n");
+        self.write("src.txt", "feat\n");
+        self.fx.git(&["add", "-A", "--", "r.txt", "src.txt"]);
+        self.fx.git(&["commit", "-q", "-m", "feat adds r"]);
+        self.fx.git(&["push", "-q", "-u", "origin", "feat"]);
+        self.fx.git(&["reset", "-q", "--hard", "HEAD~1"]);
+        self.fx.git(&["switch", "-q", "main"]);
+        self.commit("m.txt", "m\n", "main moves on");
+    }
+
+    fn checkout_origin_feat(&self, mode: CheckoutMode) -> Result<(), YagguiError> {
+        self.repos
+            .checkout(
+                self.id,
+                CheckoutTarget::Remote {
+                    name: "origin/feat".into(),
+                },
+                mode,
+            )
+            .map(drop)
+    }
+}
+
+/// The checked-out branch brought up to its remote one: the undo must move the index and
+/// the working tree back with it, not only the ref.
+#[test]
+fn checkout_of_a_remote_branch_fast_forwards_the_current_branch_back() {
+    let e = env();
+    e.feat_behind_origin();
+    e.fx.git(&["switch", "-q", "feat"]);
+    let behind = e.rev("refs/heads/feat");
+    let op = e.round_trip(|e| e.checkout_origin_feat(CheckoutMode::Clean).unwrap());
+    assert!(matches!(op, JournalOp::Checkout { branch: Some(b), .. } if b == "feat"));
+    assert_eq!(e.rev("refs/heads/feat"), behind);
+    assert_eq!(e.out(&["status", "--porcelain"]), "");
+    assert!(e.read("r.txt").is_none());
+}
+
+/// Same from another branch that is not at the fast-forward target: the undo moves `feat`
+/// back while it is checked out, then switches back to `main` without carrying anything.
+#[test]
+fn checkout_of_a_remote_branch_from_another_branch_fast_forwards_back() {
+    let e = env();
+    e.feat_behind_origin();
+    assert_ne!(e.rev("main"), e.rev("origin/feat"));
+    e.round_trip(|e| e.checkout_origin_feat(CheckoutMode::Clean).unwrap());
+    assert_eq!(e.out(&["symbolic-ref", "--short", "HEAD"]), "main");
+    assert_eq!(e.out(&["status", "--porcelain"]), "");
+    assert!(e.read("r.txt").is_none());
+}
+
+/// Local changes the fast-forward would overwrite are refused before the switch: HEAD must
+/// not move when the `merge --ff-only` that follows would be refused.
+#[test]
+fn checkout_refuses_local_changes_in_the_way_of_the_fast_forward() {
+    let e = env();
+    e.feat_behind_origin();
+    let refused = |e: &Env, mode, path: &str| {
+        let before = e.state();
+        let err = e.checkout_origin_feat(mode).unwrap_err();
+        assert_eq!(err.code, ErrorCode::DirtyWorktree, "{err:?}");
+        assert!(
+            matches!(err.payload.as_deref(), Some(ErrorPayload::DirtyWorktree { paths, .. }) if paths.as_slice() == [path]),
+            "{err:?}"
+        );
+        assert_eq!(e.state(), before, "nothing moved");
+    };
+    // A tracked change the remote branch also changes: carrying it over the switch works,
+    // the fast-forward would then refuse it.
+    e.write("src.txt", "local\n");
+    refused(&e, CheckoutMode::Carry, "src.txt");
+    e.fx.git(&["checkout", "--", "src.txt"]);
+    // An untracked file the remote branch adds.
+    e.write("r.txt", "mine\n");
+    refused(&e, CheckoutMode::Clean, "r.txt");
+    refused(&e, CheckoutMode::Carry, "r.txt");
+    assert!(e.repos.op_history(e.id).unwrap().is_empty());
+    // Out of the way, the checkout goes through.
+    std::fs::remove_file(e.path("r.txt")).unwrap();
+    e.checkout_origin_feat(CheckoutMode::Carry).unwrap();
+    assert_eq!(e.rev("refs/heads/feat"), e.rev("origin/feat"));
+}
+
+/// A hard reset over an unresolved conflict: the undo puts the three stages of the file
+/// back in the index, not a resolved "ours" entry.
+#[test]
+fn undo_of_a_hard_reset_over_a_conflict_restores_the_stages() {
+    let e = env();
+    e.fx.git(&["switch", "-q", "-c", "other"]);
+    e.commit("src.txt", "other\n", "other changes src");
+    e.fx.git(&["switch", "-q", "main"]);
+    e.commit("src.txt", "main\n", "main changes src");
+    e.out(&["merge", "other"]);
+    assert_eq!(
+        e.out(&["diff", "--name-only", "--diff-filter=U"]),
+        "src.txt"
+    );
+    let before = e.state();
+    assert_eq!(
+        before.index.matches("src.txt").count(),
+        3,
+        "{}",
+        before.index
+    );
+    e.repos
+        .reset(
+            e.id,
+            ResetRequest {
+                target: "HEAD".into(),
+                mode: ResetMode::Hard,
+            },
+        )
+        .unwrap();
+    assert_eq!(e.out(&["ls-files", "-u"]), "");
+    e.repos.undo(e.id).unwrap();
+    assert_eq!(e.state(), before);
 }

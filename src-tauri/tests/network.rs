@@ -564,3 +564,26 @@ fn an_explicit_pull_strategy_beats_the_preference() {
     assert_eq!(result.strategy, PullStrategy::Merge);
     assert_eq!(env.rev("HEAD^2"), theirs);
 }
+
+#[test]
+fn a_protected_branch_is_never_deleted_on_the_remote() {
+    let env = env();
+    git_at(&env.fx.repo(), &["push", "-q", "origin", "main:release/2"]);
+    git_at(&env.fx.repo(), &["fetch", "-q"]);
+    for name in ["main", "release/2"] {
+        let err = env
+            .repos
+            .delete_remote_branch(env.id, "origin", name)
+            .unwrap_err();
+        assert_eq!(err.code, ErrorCode::ProtectedBranchDelete, "{name}");
+        assert_eq!(
+            env.remote_rev(&format!("refs/heads/{name}")),
+            env.rev("HEAD")
+        );
+        assert_eq!(
+            env.rev(&format!("refs/remotes/origin/{name}")),
+            env.rev("HEAD")
+        );
+    }
+    assert!(env.repos.op_history(env.id).unwrap().is_empty());
+}

@@ -180,10 +180,14 @@ impl RepoManager {
         branch: &str,
     ) -> Result<Option<DeletedRef>, YagguiError> {
         let (remote, branch) = (remote.to_owned(), branch.to_owned());
+        let protected = self.store.preferences()?.protected_branches;
         self.journal_op(repo_id, OpKind::Push, true, false, move |ctx| {
             let remote = checked_remote(ctx, &remote)?;
             if branch.is_empty() || branch.starts_with('-') {
                 return Err(YagguiError::revision_not_found(&branch));
+            }
+            if is_protected_branch(&branch, &protected) {
+                return Err(YagguiError::protected_branch_remote_delete(&branch));
             }
             let tracking = format!("refs/remotes/{remote}/{branch}");
             let before = find_ref(ctx.repo, &tracking)?;

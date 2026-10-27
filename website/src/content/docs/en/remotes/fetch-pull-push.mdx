@@ -192,6 +192,8 @@ If someone pushed in the meantime, Git refuses: "Force push refused: the remote 
 
 Force push to a protected branch is always refused, with no override: "\"main\" is a protected branch: force push is refused." Nothing runs. The check uses the name of the remote branch.
 
+Deleting a protected branch on the remote is refused the same way, from the remote branch menu (**Delete on the remote…**) or with **Also delete the remote branch** in the delete dialog of a local branch: "\"main\" is a protected branch: it is never deleted on the remote. Remove it from the protected branches first if you really mean to." The local branch alone can still be deleted. See [Branches](../../history/branches/#delete-a-branch).
+
 The list is in **Preferences → Behavior → Protected branches**. Defaults: `main`, `master`, `develop`, `release/*`.
 
 - An entry is an exact name, or a pattern `prefix/*` that matches any branch under `prefix/` (at any depth), but not `prefix` itself.
