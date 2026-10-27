@@ -14,6 +14,7 @@ import { pushRepo } from '../network/networkOps';
 import { useOpsStore } from '../repo/opsStore';
 import { activeRepoId } from '../repo/repoSessions';
 import { workingBranch } from '../repo/repoStatus';
+import { useAiUi } from './aiMessage';
 import styles from './CommitBox.module.css';
 import {
   commitBlock,
@@ -81,6 +82,7 @@ export function CommitBox({ repoId, state }: { repoId: number; state: RepoState 
         }),
       );
       useCommitDrafts.getState().clear(repoId);
+      useAiUi.getState().setRestore(repoId, null);
       void queryClient.invalidateQueries({ queryKey: commitToolsKeys.recent(repoId) });
       toast({
         variant: 'success',
@@ -181,7 +183,7 @@ export function CommitBox({ repoId, state }: { repoId: number; state: RepoState 
           }}
         />
       )}
-      <MessageTools repoId={repoId} />
+      <MessageTools repoId={repoId} stagedCount={state.dirty.staged} />
       {conventional && <ConventionalFields repoId={repoId} />}
       <div className={styles.summary} data-level={level}>
         <input

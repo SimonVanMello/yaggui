@@ -75,6 +75,16 @@ import {
   mockIgnoreRule,
   mockSignatureCheck,
 } from './mock/commitTools';
+import { DEFAULT_AI_PREFERENCES } from './aiDefaults';
+import {
+  MockAi,
+  mockAiError,
+  mockDefaultPrompt,
+  type AiErrorCode,
+  type LoggedAiCall,
+  type MockAiRepo,
+  type MockAiSetup,
+} from './mock/ai';
 import { mockChangedFiles, mockFileDiff } from './mock/diff';
 import {
   branchCleanup,
@@ -350,6 +360,9 @@ const DEFAULT_MOCK_PREFERENCES: Preferences = {
   disabledConfirmations: [],
   gravatar: false,
   remoteTags: false,
+  aiEnabled: false,
+  claudePath: null,
+  ai: DEFAULT_AI_PREFERENCES,
   // Answered: under the mock, the one-time update question would cover every screen.
   checkUpdates: false,
 };
@@ -512,6 +525,7 @@ export class MockBackend {
   private globalIdentity: GitIdentity | null = null;
   /** Identity profiles, commit templates and recent messages (M4-7a). */
   private commitStore = new MockCommitStore();
+  private ai = new MockAi();
   /** Merges, rebases, cherry-picks and reverts stopped on conflicts, by repository. */
   private operations = new Map<number, MockOperation>();
   /** Bisect marks per repository while `operation` is a bisect (`refs/bisect/*`). */
@@ -629,6 +643,7 @@ export class MockBackend {
     this.wips.clear();
     this.identities.clear();
     this.globalIdentity = null;
+    this.ai.reset();
     this.commitStore.reset(this.repos.find((r) => r.known.name === 'yaggui')?.known.id ?? null);
     this.operations.clear();
     this.bisects.clear();
@@ -758,6 +773,23 @@ export class MockBackend {
     this.log.push(stored);
     this.emit('commandLogged', { entry: stored });
     return stored;
+  }
+
+  /** Records an AI call in the command log, like the backend: sizes only, never the diff. */
+  private logAiCall(repoId: number | null, call: LoggedAiCall): void {
+    this.logCommand({
+      repoId,
+      program: call.program,
+      args: call.args,
+      cwd: repoId === null ? null : (this.find(repoId)?.known.path ?? null),
+      startedAt: Math.floor(Date.now() / 1000),
+      durationMs: call.durationMs,
+      exitCode: call.status === 'success' ? 0 : call.status === 'failed' ? 1 : null,
+      status: call.status,
+      stdout: call.stdout,
+      stderr: '',
+      truncated: false,
+    });
   }
 
   /** Simulates a queued fetch-like operation: started → progress… → logged → finished. */
@@ -1048,6 +1080,26 @@ export class MockBackend {
     });
   }
 
+  /** Sets what the mock AI providers find: the key source, the keychain, the `claude` program. */
+  simulateAiSetup(setup: Partial<MockAiSetup>): void {
+    Object.assign(this.ai.setup, setup);
+  }
+
+  /** The next AI generation or test fails with `code` (every one while `sticky`); `null` clears. */
+  simulateAiFailure(code: AiErrorCode | null, sticky = false): void {
+    this.ai.failure = code === null ? null : { code, sticky };
+  }
+
+  /** Time a mock generation takes, in ms (default 1500): long enough to see and cancel it. */
+  simulateAiLatency(ms: number): void {
+    this.ai.latencyMs = ms;
+  }
+
+  /** Generations asked so far, for tests. */
+  get aiGenerations(): readonly { repoId: number; amend: boolean }[] {
+    return this.ai.generations;
+  }
+
   /** Makes the next bisect checkout of a repository fail on an untracked file in the way. */
   simulateBisectCheckoutFailure(repoId: number): void {
     this.bisectCheckoutFailures.add(repoId);
@@ -1170,6 +1222,36 @@ export class MockBackend {
   }
 
   /** Working state of an open repository, created from its fixture on first use. */
+  /** The staged changes, branch and recent subjects the mock AI writes its message from. */
+  private aiRepo(repoId: number, amend: boolean): MockAiRepo | null {
+    const repo = this.find(repoId);
+    const wip = this.wip(repoId);
+    if (!repo || !wip) return null;
+    const files = wip.changes('staged').map((c) => ({
+      path: c.path,
+      status: c.status,
+      bytes: new TextEncoder().encode(c.new ?? c.old ?? '').length + 120,
+      binary: c.binary !== undefined,
+    }));
+    if (amend && files.length === 0) {
+      files.push({
+        path: 'src/features/staging/CommitBox.tsx',
+        status: 'modified',
+        bytes: 2400,
+        binary: false,
+      });
+    }
+    const head = repo.state.head;
+    return {
+      name: repo.known.name,
+      branch: head.kind === 'branch' ? head.name : null,
+      files,
+      subjects: this.commitStore
+        .recentMessages(repoId)
+        .map((m) => m.message.split('\n', 1)[0] ?? ''),
+    };
+  }
+
   private wip(repoId: number): MockWip | null {
     const repo = this.find(repoId);
     if (!repo || !this.open.has(repoId)) return null;
@@ -3799,6 +3881,53 @@ export class MockBackend {
         }
         return result;
       }),
+    aiStatus: () => ok(this.ai.status(this.preferences.claudePath ?? null)),
+    aiSetApiKey: (provider, key) => {
+      const failure = this.ai.setApiKey(provider, key);
+      return failure ? fail(failure) : ok(null);
+    },
+    aiClearApiKey: (provider) => {
+      const failure = this.ai.clearApiKey(provider);
+      return failure ? fail(failure) : ok(null);
+    },
+    aiDefaultPrompt: () => ok(mockDefaultPrompt()),
+    aiListSkills: (repoId) => ok(this.ai.skills(repoId)),
+    aiTestProvider: async (provider) => {
+      const result = await this.ai.test(
+        provider,
+        this.preferences.ai ?? DEFAULT_AI_PREFERENCES,
+        this.preferences.claudePath ?? null,
+      );
+      if ('error' in result) return { status: 'error', error: result.error };
+      this.logAiCall(null, result.call);
+      return { status: 'ok', data: result.ok };
+    },
+    aiPreviewContext: (repoId, amend) => {
+      const repo = this.aiRepo(repoId, amend);
+      if (!repo) return fail(this.notOpen(repoId));
+      return ok(this.ai.preview(repo, this.preferences.ai ?? DEFAULT_AI_PREFERENCES));
+    },
+    aiGenerateCommitMessage: async (repoId, amend) => {
+      const repo = this.aiRepo(repoId, amend);
+      if (!repo) return { status: 'error', error: this.notOpen(repoId) };
+      if (this.preferences.aiEnabled !== true) {
+        return { status: 'error', error: mockAiError('aiDisabled') };
+      }
+      const result = await this.ai.generate(
+        repoId,
+        amend,
+        repo,
+        this.preferences.ai ?? DEFAULT_AI_PREFERENCES,
+        this.preferences.claudePath ?? null,
+      );
+      if (result.call) this.logAiCall(repoId, result.call);
+      if ('error' in result) return { status: 'error', error: result.error };
+      return { status: 'ok', data: result.ok };
+    },
+    aiCancel: (repoId) => {
+      this.ai.cancel(repoId);
+      return ok(null);
+    },
     lastCommitMessage: (repoId) => {
       const graph = this.graph(repoId);
       if (!graph) return fail(this.notOpen(repoId));

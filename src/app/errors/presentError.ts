@@ -126,6 +126,13 @@ export function resolveErrorAction(
         },
       };
     }
+    case 'configureAi':
+      return {
+        label: t('error.action.configureAi'),
+        run: () => {
+          useShellStore.getState().setPreferencesOpen(true, 'ai');
+        },
+      };
     case 'configureTerminal':
       return {
         label: t('error.action.configureTerminal'),

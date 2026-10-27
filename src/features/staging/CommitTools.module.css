@@ -154,3 +154,21 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.ai {
+  color: var(--accent);
+}
+
+/* Disabled with a reason in its tooltip: `disabled` would swallow the hover. */
+.ai[aria-disabled='true'] {
+  color: var(--fg-disabled);
+  cursor: not-allowed;
+}
+
+.aiRunning {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--fg-secondary);
+  font-size: var(--text-xs);
+}

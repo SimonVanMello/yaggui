@@ -1,3 +1,4 @@
+import { DEFAULT_AI_PREFERENCES } from '../ipc/aiDefaults';
 import { applyAppearance } from './appearance';
 import {
   ipc,
@@ -52,6 +53,9 @@ export const DEFAULT_PREFERENCES: Preferences = {
   disabledConfirmations: [],
   gravatar: false,
   remoteTags: false,
+  aiEnabled: false,
+  claudePath: null,
+  ai: DEFAULT_AI_PREFERENCES,
   checkUpdates: null,
 };
 

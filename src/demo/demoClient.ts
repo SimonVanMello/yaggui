@@ -34,6 +34,10 @@ const overrides: Partial<YagguiCommands> = {
   checkForUpdate: unavailable,
   installUpdate: unavailable,
   avatar: unavailable,
+  // No provider to call from a browser demo, and no key to keep.
+  aiGenerateCommitMessage: unavailable,
+  aiTestProvider: unavailable,
+  aiSetApiKey: unavailable,
 };
 
 /** Wraps the mock backend of the demo: what cannot work in a browser says so instead of faking. */

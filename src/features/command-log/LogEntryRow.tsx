@@ -15,11 +15,11 @@ const STATUS_ICON: Record<CommandStatus, IconName> = {
 };
 
 /** Shell-like rendering, quoting arguments that need it, for display and copy. */
-export function formatCommand(args: readonly string[]): string {
+export function formatCommand(args: readonly string[], program = 'git'): string {
   const quoted = args.map((arg) =>
     /^[\w@%+=:,./-]+$/.test(arg) ? arg : `'${arg.replaceAll("'", `'\\''`)}'`,
   );
-  return ['git', ...quoted].join(' ');
+  return [program, ...quoted].join(' ');
 }
 
 interface LogEntryRowProps {
@@ -39,7 +39,7 @@ export function LogEntryRow({
 }: LogEntryRowProps) {
   const t = useT();
   const locale = useI18nStore((state) => state.locale);
-  const command = formatCommand(entry.args);
+  const command = formatCommand(entry.args, entry.program ?? 'git');
   const time = new Date(entry.startedAt * 1000).toLocaleTimeString(locale, { hour12: false });
   const output = [entry.stdout, entry.stderr].filter(Boolean).join('\n');
 

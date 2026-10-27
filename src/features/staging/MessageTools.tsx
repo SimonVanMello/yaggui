@@ -8,6 +8,7 @@ import { Menu } from '../../ui/Menu';
 import { MenuItem } from '../../ui/MenuItem';
 import { MenuLabel } from '../../ui/MenuLabel';
 import { MenuSeparator } from '../../ui/MenuSeparator';
+import { AiButton } from './AiButton';
 import styles from './CommitTools.module.css';
 import { commitToolsKeys, fillDraft } from './commitToolsOps';
 import { openCommitToolsDialog, useCommitTools } from './commitToolsStore';
@@ -21,7 +22,7 @@ function firstLine(message: string): string {
  * Message helpers above the summary (F-067, F-068): Conventional Commits fields, templates
  * (`commit.template` and the user's own) and the recent messages of the repository.
  */
-export function MessageTools({ repoId }: { repoId: number }) {
+export function MessageTools({ repoId, stagedCount }: { repoId: number; stagedCount: number }) {
   const t = useT();
   const conventional = useCommitTools((s) => s.conventional);
   const setConventional = useCommitTools((s) => s.setConventional);
@@ -56,6 +57,7 @@ export function MessageTools({ repoId }: { repoId: number }) {
         {t('commit.conventional.toggle')}
       </Button>
       <span className={styles.spacer} />
+      <AiButton repoId={repoId} stagedCount={stagedCount} />
       <Menu
         align="end"
         trigger={

@@ -21,8 +21,17 @@ describe('mock preferences file', () => {
         [],
       ),
     ) as { preferences: Record<string, unknown> };
-    expect(Object.keys(file.preferences)).toHaveLength(19);
-    for (const key of ['gitPath', 'editor', 'terminal', 'diffTool', 'mergeTool', 'checkUpdates']) {
+    expect(Object.keys(file.preferences)).toHaveLength(20);
+    for (const key of [
+      'gitPath',
+      'editor',
+      'terminal',
+      'diffTool',
+      'mergeTool',
+      'checkUpdates',
+      'aiEnabled',
+      'claudePath',
+    ]) {
       expect(file.preferences).not.toHaveProperty(key);
     }
   });
@@ -38,6 +47,27 @@ describe('mock preferences file', () => {
       'theme',
       'fontSize',
     ]);
+  });
+
+  it('merges a partial AI section over the current settings and ignores the consent', () => {
+    const parsed = parse(
+      JSON.stringify({
+        format: 'yaggui-preferences',
+        version: 1,
+        preferences: {
+          ai: { provider: 'claudeCode', claudeCode: { skill: 'commit' } },
+          aiEnabled: true,
+        },
+      }),
+    );
+    if ('code' in parsed) throw new Error(parsed.code);
+    expect(parsed.preferences.ai).toMatchObject({
+      provider: 'claudeCode',
+      claudeCode: { model: null, skill: 'commit' },
+      maxDiffBytes: 60_000,
+    });
+    expect(parsed.preferences.aiEnabled).toBe(false);
+    expect(parsed.ignored).toEqual([{ key: 'aiEnabled', reason: 'machineSpecific' }]);
   });
 
   it('lists machine-specific and unknown keys as ignored', () => {

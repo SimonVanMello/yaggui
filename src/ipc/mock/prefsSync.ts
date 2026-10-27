@@ -8,6 +8,7 @@ import type {
   ShortcutState,
   YagguiError,
 } from '../bindings';
+import { DEFAULT_AI_PREFERENCES } from '../aiDefaults';
 import { isValidShortcut } from './settings';
 
 /** `store/prefs_sync.rs` in Rust: the same file format, keys and checks. */
@@ -36,6 +37,7 @@ const PORTABLE = [
   'disabledConfirmations',
   'gravatar',
   'remoteTags',
+  'ai',
 ] as const satisfies readonly (keyof Preferences)[];
 
 const MACHINE_SPECIFIC = [
@@ -45,6 +47,8 @@ const MACHINE_SPECIFIC = [
   'diffTool',
   'mergeTool',
   'checkUpdates',
+  'aiEnabled',
+  'claudePath',
 ] as const satisfies readonly (keyof Preferences)[];
 
 type Json = Record<string, unknown>;
@@ -94,6 +98,8 @@ const SHAPES: Record<(typeof PORTABLE)[number], (v: unknown) => boolean> = {
   disabledConfirmations: listOf(oneOf('discardChanges', 'deleteTag', 'dropStash', 'forcePush')),
   gravatar: isBool,
   remoteTags: isBool,
+  // Like serde: any object is read, what it lacks keeps its default (see `merge`).
+  ai: (v) => typeof v === 'object' && v !== null && !Array.isArray(v),
 };
 
 function invalidFile(detail: string): YagguiError {
@@ -178,7 +184,8 @@ function parseKeybindings(value: unknown): KeybindingOverride[] | YagguiError {
 }
 
 /** The value as serde reads it into its Rust type: struct fields only, defaults filled in. */
-function typed(key: string, value: unknown): unknown {
+function typed(key: string, value: unknown, current: Preferences): unknown {
+  if (key === 'ai') return mergeJson(current.ai ?? DEFAULT_AI_PREFERENCES, value);
   if (key !== 'diffOptions') return value;
   const o = value as Json;
   return {
@@ -188,6 +195,14 @@ function typed(key: string, value: unknown): unknown {
     fullFile: o.fullFile,
     markdownPreview: o.markdownPreview ?? false,
   };
+}
+
+/** `merge_json` in `ai/prefs.rs`: what `overlay` lacks keeps `base`'s value, object by object. */
+function mergeJson(base: unknown, overlay: unknown): unknown {
+  if (!isObject(base) || !isObject(overlay)) return overlay;
+  const merged: Json = { ...base };
+  for (const [key, value] of Object.entries(overlay)) merged[key] = mergeJson(base[key], value);
+  return merged;
 }
 
 /** Parses and validates `text` against the current preferences; `normalize` is the mock's. */
@@ -228,7 +243,7 @@ export function parsePreferencesFile(
     } else if (!SHAPES[key as (typeof PORTABLE)[number]](value)) {
       problems.push(`${key}: invalid value`);
     } else {
-      const checked = normalize({ ...working, [key]: typed(key, value) });
+      const checked = normalize({ ...working, [key]: typed(key, value, working) });
       if ('error' in checked) problems.push(`${key}: ${checked.error.message.en}`);
       else working = checked.ok;
     }

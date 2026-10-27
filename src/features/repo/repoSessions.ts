@@ -4,6 +4,7 @@ import { showYagguiError } from '../../app/errors/presentError';
 import { forgetCompare } from '../compare/compareStore';
 import { closeInteractiveRebase } from '../rebase/rebaseStore';
 import { useStashPreview } from '../refs/stashPreview';
+import { forgetAiUi } from '../staging/aiMessage';
 import { forgetCommitUi } from '../staging/commitUi';
 import { disposeRepoTerminals } from '../terminal/terminalActions';
 import { useGraphNavigation } from './graphNavigation';
@@ -212,6 +213,7 @@ function forgetRepo(repoId: number): void {
   forgetCompare(repoId);
   useStashPreview.getState().clear(repoId);
   forgetCommitUi(repoId);
+  forgetAiUi(repoId);
   forgetLastFinished(repoId);
 }
 

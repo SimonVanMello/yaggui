@@ -599,6 +599,23 @@
           ]
         },
         {
+          "id": "git.commit.ai",
+          "title": {
+            "en": "Generate a commit message with AI",
+            "fr": "Générer un message de commit avec l'IA"
+          },
+          "mac": [
+            "⌘",
+            "⇧",
+            "M"
+          ],
+          "other": [
+            "Ctrl",
+            "Shift",
+            "M"
+          ]
+        },
+        {
           "id": "edit.redoAlt",
           "title": {
             "en": "Redo (Ctrl+Y)",

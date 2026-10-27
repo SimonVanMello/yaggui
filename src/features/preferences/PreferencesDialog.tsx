@@ -6,6 +6,7 @@ import { Button } from '../../ui/Button';
 import { Dialog } from '../../ui/Dialog';
 import { AppearanceTab } from './AppearanceTab';
 import { KeybindingsTab } from '../keybindings/KeybindingsTab';
+import { AiTab } from './AiTab';
 import { BehaviorTab } from './BehaviorTab';
 import { exportPreferencesFile, startPreferencesImport } from './prefsSync';
 import { GitConfigTab } from './GitConfigTab';
@@ -85,6 +86,9 @@ export function PreferencesDialog() {
           <Tabs.Trigger value="behavior" className={styles.trigger}>
             {t('prefs.tab.behavior')}
           </Tabs.Trigger>
+          <Tabs.Trigger value="ai" className={styles.trigger}>
+            {t('prefs.tab.ai')}
+          </Tabs.Trigger>
         </Tabs.List>
         <Tabs.Content value="appearance" className={styles.panel}>
           <AppearanceTab />
@@ -103,6 +107,9 @@ export function PreferencesDialog() {
         </Tabs.Content>
         <Tabs.Content value="behavior" className={styles.panel}>
           <BehaviorTab />
+        </Tabs.Content>
+        <Tabs.Content value="ai" className={styles.panel}>
+          <AiTab />
         </Tabs.Content>
       </Tabs.Root>
     </Dialog>

@@ -25,7 +25,9 @@ import { openInteractiveRebase } from '../rebase/rebaseStore';
 import { activeRepoId } from '../repo/repoSessions';
 import { FOCUS_REFS_FILTER_EVENT } from '../sidebar/RefsSidebar';
 import { openCommitToolsDialog, useCommitTools } from '../staging/commitToolsStore';
+import { generateCommitMessage } from '../staging/aiGenerate';
 import { COMMIT_EVENT } from '../staging/commitUi';
+import { currentPreferences } from '../../app/preferences';
 import { openInEditor } from '../terminal/openInEditor';
 import { openTerminal } from '../terminal/openTerminal';
 import { openNewTerminal, toggleTerminalFromKeyboard } from '../terminal/terminalActions';
@@ -367,6 +369,20 @@ const BUILTIN: readonly PaletteAction[] = [
     group: 'git',
     run: () => {
       openCommitToolsDialog({ kind: 'templates', repoId: activeRepoId() });
+    },
+  },
+  {
+    id: 'git.commit.ai',
+    title: 'palette.action.commit.ai',
+    group: 'git',
+    shortcut: 'Mod+Shift+M',
+    enabled: () => hasRepo() && currentPreferences().aiEnabled === true,
+    disabledReason: () => (hasRepo() ? 'palette.disabled.aiOff' : 'palette.disabled.noRepo'),
+    // The shortcut answers while the feature is off: it opens the AI preferences.
+    runWhenDisabled: true,
+    run: () => {
+      const repoId = activeRepoId();
+      if (repoId !== null) void generateCommitMessage(repoId);
     },
   },
   {

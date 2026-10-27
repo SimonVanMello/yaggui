@@ -8,16 +8,21 @@ import { toast } from '../../ui/toastStore';
  * previous preferences come back and the reason is shown.
  */
 export function savePreferenceOrToast(patch: Partial<Preferences>): void {
-  void (async () => {
-    try {
-      await updatePreferences(patch);
-    } catch (failure) {
-      const locale = useI18nStore.getState().locale;
-      toast({
-        variant: 'error',
-        title: translate(locale, 'prefs.saveFailed'),
-        description: failure instanceof YagguiIpcError ? failure.error.message[locale] : undefined,
-      });
-    }
-  })();
+  void savePreference(patch);
+}
+
+/** `savePreferenceOrToast` that says whether the backend accepted the change. */
+export async function savePreference(patch: Partial<Preferences>): Promise<boolean> {
+  try {
+    await updatePreferences(patch);
+    return true;
+  } catch (failure) {
+    const locale = useI18nStore.getState().locale;
+    toast({
+      variant: 'error',
+      title: translate(locale, 'prefs.saveFailed'),
+      description: failure instanceof YagguiIpcError ? failure.error.message[locale] : undefined,
+    });
+    return false;
+  }
 }

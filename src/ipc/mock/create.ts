@@ -16,6 +16,8 @@ import {
   FONT_SIZE_MIN,
 } from '../bindings';
 import type { IpcResult } from '../result';
+import { DEFAULT_AI_PREFERENCES } from '../aiDefaults';
+import { normalizeAi } from './ai';
 import { authFailed, hostUnreachable, remoteNotFound } from './network';
 import { invalidRefName, isValidRefName } from './refs';
 import { isToolName } from './settings';
@@ -118,6 +120,20 @@ export function normalizePreferences(
       };
     }
   }
+  const claudePath = prefs.claudePath?.trim() || null;
+  if (
+    claudePath !== null &&
+    (claudePath.length > 1024 || /\p{Cc}/u.test(claudePath) || claudePath.startsWith('-'))
+  ) {
+    return {
+      error: invalid(
+        'The Claude Code path must be a program name or a path.',
+        'Le chemin de Claude Code doit être un nom de programme ou un chemin.',
+      ),
+    };
+  }
+  const ai = normalizeAi(prefs.ai ?? DEFAULT_AI_PREFERENCES);
+  if ('error' in ai) return ai;
   const disabled = prefs.disabledConfirmations.filter(
     (kind, index, all) => kind !== 'forcePush' && all.indexOf(kind) === index,
   );
@@ -134,6 +150,9 @@ export function normalizePreferences(
       disabledConfirmations: disabled,
       gravatar: prefs.gravatar ?? false,
       remoteTags: prefs.remoteTags ?? false,
+      aiEnabled: prefs.aiEnabled ?? false,
+      claudePath,
+      ai: ai.ok,
     },
   };
 }

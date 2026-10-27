@@ -57,13 +57,11 @@ export function shouldOfferRestore(previous: MessageText, generated: MessageText
   );
 }
 
-export type AiPhase = 'idle' | 'generating';
-
 interface AiUi {
-  /** Repositories with a generation running, with the id that cancels it. */
-  generating: Record<number, { requestId: string } | undefined>;
+  /** Repositories with a generation running (the backend allows one per repository). */
+  generating: Record<number, true | undefined>;
   restore: Record<number, AiRestore | undefined>;
-  start: (repoId: number, requestId: string) => void;
+  start: (repoId: number) => void;
   finish: (repoId: number) => void;
   setRestore: (repoId: number, restore: AiRestore | null) => void;
 }
@@ -71,8 +69,8 @@ interface AiUi {
 export const useAiUi = create<AiUi>()((set) => ({
   generating: {},
   restore: {},
-  start: (repoId, requestId) => {
-    set((state) => ({ generating: { ...state.generating, [repoId]: { requestId } } }));
+  start: (repoId) => {
+    set((state) => ({ generating: { ...state.generating, [repoId]: true } }));
   },
   finish: (repoId) => {
     set((state) => ({ generating: { ...state.generating, [repoId]: undefined } }));
@@ -81,3 +79,11 @@ export const useAiUi = create<AiUi>()((set) => ({
     set((state) => ({ restore: { ...state.restore, [repoId]: restore ?? undefined } }));
   },
 }));
+
+/** A closed repository forgets its running generation and what a restore would put back. */
+export function forgetAiUi(repoId: number): void {
+  useAiUi.setState((state) => ({
+    generating: { ...state.generating, [repoId]: undefined },
+    restore: { ...state.restore, [repoId]: undefined },
+  }));
+}

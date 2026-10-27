@@ -15,6 +15,14 @@ export type {
 } from './client';
 export type * from './bindings';
 export {
+  AI_DIFF_BYTES_MAX,
+  AI_DIFF_BYTES_MIN,
+  AI_FILE_BYTES_MAX,
+  AI_FILE_BYTES_MIN,
+  AI_PROMPT_MAX,
+  AI_RECENT_SUBJECTS_MAX,
+  AI_TIMEOUT_MAX,
+  AI_TIMEOUT_MIN,
   AUTO_FETCH_MAX_MINUTES,
   AUTO_FETCH_MIN_MINUTES,
   COMPARE_MAX_COMMITS,
@@ -35,6 +43,7 @@ export {
   SIGNATURE_X509,
   WORKSPACE_NAME_MAX,
 } from './bindings';
+export { DEFAULT_AI_PREFERENCES } from './aiDefaults';
 export { YagguiIpcError, unwrap, type IpcResult } from './result';
 export { nativeWindow, type FolderDropHandlers, type NativeWindow } from './nativeWindow';
 export {
