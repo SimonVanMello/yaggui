@@ -19,11 +19,11 @@ Guiding principles, in priority order when they conflict:
 4. **Discoverable, then efficient.** Everything is visible with the mouse (context menus, drag & drop), everything is reachable from the keyboard (command palette, shortcuts).
 5. **Transparent.** Every Git command that runs can be inspected in a log. Git errors are translated into plain language with a suggested action.
 
-**100% local**: no account, no telemetry by default, no network call other than the Git operations themselves (fetch/pull/push/clone) and, opt-in, Gravatar avatars and update checks.
+**100% local**: no account, no telemetry by default, no network call other than the Git operations themselves (fetch/pull/push/clone) and, opt-in, Gravatar avatars, update checks and AI commit messages (F-072, off by default).
 
 ### Out of scope (v1)
 
-Hosting integrations (GitHub, GitLab, Azure DevOps PRs/issues), cloud sync of preferences, AI-generated commit messages, GPG/SSH key management (keys are used, not created), SCMs other than Git. These are listed in §12 as possible evolutions.
+Hosting integrations (GitHub, GitLab, Azure DevOps PRs/issues), cloud sync of preferences, GPG/SSH key management (keys are used, not created), SCMs other than Git. These are listed in §12 as possible evolutions.
 
 ---
 
@@ -137,7 +137,7 @@ The three panels are resizable and collapsible; their sizes are remembered per t
 
 ## 5. Functional requirements
 
-Priorities: **MVP** (required for daily use), **V1** (public release), **V2** (after v1), **Dropped** (decided against after v1; the ID is kept so it is not reused).
+Priorities: **MVP** (required for daily use), **V1** (public release), **V2** (after v1), **V3** (after v2: AI, opt-in), **Dropped** (decided against after v1; the ID is kept so it is not reused).
 
 ### 5.1 Projects, workspaces and tabs
 
@@ -200,6 +200,10 @@ Priorities: **MVP** (required for daily use), **V1** (public release), **V2** (a
 | F-069 | Add to `.gitignore` from an untracked file (exact file, extension, folder). | V1 |
 | F-070 | Change the repo identity (user.name/email) from the panel, with identity profiles (personal/work). | V1 |
 | F-071 | Co-authors (`Co-authored-by`) with autocompletion from history. | Dropped |
+| F-072 | **AI commit message** (opt-in, off by default): from the commit area (button), the palette and a shortcut, generate the summary and description from the staged changes (amend: the amended commit's changes too). Cancellable; the previous draft can be restored in one gesture. Never commits by itself. | V3 |
+| F-073 | AI providers behind one abstraction, Claude first: **Claude API** (API key kept in the OS keychain, or `ANTHROPIC_API_KEY`) and **Claude Code** (the user's `claude` CLI and login, run read-only in the repo, which can use an existing Claude Code skill by name). Codex or other providers can be added without touching the UI contract. | V3 |
+| F-074 | Customizable prompt: a default prompt is provided; the user can edit it and reset it. yaggui appends the context (staged diff, file list, branch, recent subjects as style examples) after the instructions. | V3 |
+| F-075 | Context limits sent to the provider: maximum diff size (truncated per file, with a file summary), excluded paths (lockfiles by default), optional recent subjects; the preferences say exactly what leaves the machine. Each generation is recorded in the command log (provider, model, duration, sizes; never the key). | V3 |
 
 ### 5.5 Diff
 
@@ -440,7 +444,7 @@ Nothing is written into the user's repos, except what Git writes itself.
 
 ## 9. Security
 
-- No secret stored by the application; full delegation to credential helpers and `ssh-agent`.
+- No Git secret stored by the application; full delegation to credential helpers and `ssh-agent`. Sole exception, opt-in: the AI provider API key (F-073) is kept in the OS keychain, never in `yaggui.db`, logs or the exported preferences.
 - The frontend has no shell access: only typed, allowlisted Tauri commands (Tauri 2 capabilities). No user argument is interpolated into a shell string: `Command` with separate arguments, `--` before paths.
 - Branch/ref names validated with `git check-ref-format`; paths normalized and confined to the worktree.
 - Repo flagged as unsafe (`safe.directory`): explicit message and an action to add it, never automatic.
@@ -482,7 +486,7 @@ Updates: Tauri updater, **opt-in** (consistent with 100% local), update signatur
 | **M2 — Daily writing** (4 wks) | File/hunk/line staging, commit/amend, checkout + auto-stash, branches, fetch/pull/push, stash, tags, translated errors. | Usable instead of the terminal for daily work (dogfooding). **= MVP** |
 | **M3 — Advanced operations** (4–5 wks) | Drag & drop merge/rebase, cherry-pick, revert, reset, operation banner, conflicts (ours/theirs then 3-way editor), visual interactive rebase. | |
 | **M4 — Comfort** (3–4 wks) | Undo/redo, workspaces, blame, file history, reflog, submodules, worktrees, LFS, full preferences, FR/EN i18n, C/D themes. | **= public V1** |
-| **V2** | Persistent undo (F-244) first, then the small items: fixup / autosquash (F-147), one file from a stash (F-185), first-parent (F-032), preferences import/export (F-326); then `log -L` (F-223), tree at a commit (F-224), assisted bisect (F-263). Possibly later: hosting integrations (read-only GitHub/GitLab PRs), opt-in AI commit messages. Dropped: multiple windows (F-010), co-authors (F-071), patches (F-264), Git Flow (F-265), system notifications (F-303). | |
+| **V2** | Persistent undo (F-244) first, then the small items: fixup / autosquash (F-147), one file from a stash (F-185), first-parent (F-032), preferences import/export (F-326); then `log -L` (F-223), tree at a commit (F-224), assisted bisect (F-263). Possibly later: hosting integrations (read-only GitHub/GitLab PRs). V3: opt-in AI commit messages (F-072 to F-075, M10). Dropped: multiple windows (F-010), co-authors (F-071), patches (F-264), Git Flow (F-265), system notifications (F-303). | |
 
 ---
 
