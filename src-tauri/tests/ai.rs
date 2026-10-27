@@ -3,17 +3,18 @@
 
 mod common;
 
+#[cfg(unix)]
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use common::{Fixture, RecordingSink};
 use serde_json::{Value, json};
+#[cfg(unix)]
+use yaggui_lib::ai::AiPreferences;
 use yaggui_lib::ai::claude_api::{HttpResponse, HttpTransport, TransportError};
 use yaggui_lib::ai::keychain::{MemorySecrets, SecretStore};
-use yaggui_lib::ai::{
-    AiCredential, AiMessageRequest, AiPreferences, AiProviderKind, AiService, ApiKeySource,
-};
+use yaggui_lib::ai::{AiCredential, AiMessageRequest, AiProviderKind, AiService, ApiKeySource};
 use yaggui_lib::events::BackendEvent;
 use yaggui_lib::git::cli::GitCli;
 use yaggui_lib::git::errors::ErrorCode;
