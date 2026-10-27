@@ -452,6 +452,7 @@ fn finishing_an_operation_raises_the_refs_changed_flag_before_op_finished() {
 }
 
 /// Cancels `token` after `delay` from another thread.
+#[cfg(unix)]
 fn cancel_after(token: yaggui_lib::git::cli::CancelToken, delay: Duration) {
     std::thread::spawn(move || {
         std::thread::sleep(delay);
