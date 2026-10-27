@@ -98,6 +98,8 @@ Under **Parent kept**, each option shows **Parent \{n\}**, its short SHA and its
 
 A reset moves the current branch to another commit ([git-reset](https://git-scm.com/docs/git-reset)).
 
+While a merge, rebase, cherry-pick, revert or bisect is in progress, no reset is possible, whatever the mode: the menu entries and the palette action are disabled, and the backend refuses the reset and its preview with "Another operation (merge, rebase, cherry-pick, revert or bisect) is in progress: continue or abort it first." Finish or abort the operation from the banner first (see [Resolve conflicts](../../history/conflicts/)). Git on its own would silently end a merge on a mixed or hard reset; yaggui never does.
+
 - Right-click a commit, open **Reset \{branch\} to here** and pick **Soft** (Keeps all changes staged), **Mixed** (Keeps changes, unstaged) or **Hard** (Discards local changes). The dialog opens with that mode selected.
 - Or run **Reset the current branch to the selected commit…** from the palette. The dialog opens on **Mixed**.
 
@@ -159,7 +161,7 @@ If local changes are in the way, the checkout dialog opens: see [Branches](../..
 | "Parent \{n\} does not exist for \{short\}."                                                                   | Choose an existing parent                                                                                                                 |
 | "There is no commit to apply them on yet."                                                                     | The repository has no commit: make a first commit                                                                                         |
 | "Your local changes would be overwritten by the cherry-pick. Commit or stash them first." (same for revert)    | Commit or [stash](../../everyday/stash/) them. **Show changes** in the toast opens them                                                   |
-| "Another operation (merge, rebase, cherry-pick, revert or bisect) is in progress: continue or abort it first." | Finish it from the banner                                                                                                                 |
+| "Another operation (merge, rebase, cherry-pick, revert or bisect) is in progress: continue or abort it first." | Finish or abort it from the banner. Also shown by a reset, in any mode, during an operation                                               |
 
 When Git stops on conflicts, the cherry-pick or revert stays in progress: resolve the files, then **Continue**, **Skip** or **Abort**. See [Resolve conflicts](../../history/conflicts/). Other messages are in [Error messages](../../reference/error-messages/).
 

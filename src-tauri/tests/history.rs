@@ -1337,13 +1337,15 @@ fn conflicted_images_are_previewed_as_data_urls() {
     );
 }
 
-/// Reset while an operation is in progress (reference for the mock, M4-8): Git refuses a
-/// soft reset in a merge, a mixed or hard reset ends the merge, and a hard reset in a
-/// cherry-pick sequence leaves the sequence in progress.
+/// Reset while an operation is in progress (reference for the mock, M9-9): every mode and
+/// the preview are refused with `operationInProgress`, the operation untouched, until it is
+/// aborted. Git on its own would refuse the soft reset, end the merge on a mixed or hard
+/// reset, and leave a cherry-pick sequence in progress after a hard reset.
 #[test]
-fn reset_during_an_operation_behaves_like_git() {
+fn reset_is_refused_during_an_operation() {
     let env = env();
     env.src_conflict();
+    let merge_head = env.rev("MERGE_HEAD");
     let head = env.rev("HEAD");
     let reset = |mode| {
         env.repos.reset(
@@ -1354,13 +1356,23 @@ fn reset_during_an_operation_behaves_like_git() {
             },
         )
     };
-    let (code, err) = fails(reset(ResetMode::Soft));
-    assert_eq!(code, ErrorCode::OperationInProgress, "{err:?}");
-    assert!(matches!(env.operation(), Some(RepoOperation::Merge { .. })));
-    reset(ResetMode::Mixed).unwrap();
+    for mode in [ResetMode::Soft, ResetMode::Mixed, ResetMode::Hard] {
+        let (code, err) = fails(reset(mode));
+        assert_eq!(code, ErrorCode::OperationInProgress, "{mode:?}: {err:?}");
+        assert!(matches!(env.operation(), Some(RepoOperation::Merge { .. })));
+        assert_eq!(env.rev("MERGE_HEAD"), merge_head);
+    }
+    let (code, _) = fails(env.repos.reset_preview(env.id, &head));
+    assert_eq!(code, ErrorCode::OperationInProgress);
+    assert!(!env.out(&["ls-files", "-u"]).is_empty(), "conflict kept");
+    env.repos.abort_operation(env.id).unwrap();
     assert_eq!(env.operation(), None);
+    env.repos.reset_preview(env.id, &head).unwrap();
+    reset(ResetMode::Hard).unwrap();
+    assert_eq!(env.rev("HEAD"), head);
 
-    env.fx.git(&["reset", "-q", "--hard", "HEAD"]);
+    // A cherry-pick sequence stopped on conflicts: the hard reset Git would accept (leaving
+    // the sequence in progress) is refused too, and the sequence is intact.
     env.fx.git(&["switch", "-q", "-c", "picks", "HEAD~1"]);
     env.commit("src.txt", "picked\n", "pick edits src");
     env.commit("q.txt", "q\n", "pick adds q");
@@ -1373,15 +1385,39 @@ fn reset_during_an_operation_behaves_like_git() {
         },
     ));
     assert_eq!(code, ErrorCode::Conflicts);
+    let todo = env
+        .read(".git/sequencer/todo")
+        .expect("a sequence in progress");
     let head = env.rev("HEAD");
-    env.repos
-        .reset(
-            env.id,
-            ResetRequest {
-                target: head,
-                mode: ResetMode::Hard,
-            },
-        )
-        .unwrap();
+    let (code, _) = fails(reset(ResetMode::Hard));
+    assert_eq!(code, ErrorCode::OperationInProgress);
     assert_eq!(env.operation(), Some(RepoOperation::CherryPick));
+    assert_eq!(
+        env.read(".git/sequencer/todo").as_deref(),
+        Some(todo.as_str())
+    );
+    assert_eq!(env.rev("HEAD"), head);
+    env.repos.abort_operation(env.id).unwrap();
+    reset(ResetMode::Hard).unwrap();
+
+    // A rebase stopped on conflicts.
+    env.fx.git(&["switch", "-q", "picks"]);
+    let (code, _) = fails(env.repos.rebase(
+        env.id,
+        RebaseRequest {
+            branch: None,
+            onto: "main".into(),
+        },
+    ));
+    assert_eq!(code, ErrorCode::Conflicts);
+    let head = env.rev("HEAD");
+    let (code, _) = fails(reset(ResetMode::Mixed));
+    assert_eq!(code, ErrorCode::OperationInProgress);
+    assert!(matches!(
+        env.operation(),
+        Some(RepoOperation::Rebase { .. })
+    ));
+    assert_eq!(env.rev("HEAD"), head);
+    env.repos.abort_operation(env.id).unwrap();
+    assert_eq!(env.operation(), None);
 }

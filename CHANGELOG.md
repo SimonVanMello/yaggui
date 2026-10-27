@@ -9,6 +9,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Changed
+
+- A reset (soft, mixed or hard) is refused while a merge, rebase, cherry-pick or revert is in
+  progress: finish or abort the operation first. Before, a mixed or hard reset silently ended the
+  merge.
+
 ### Fixed
 
 - Undo of a checkout that brought the checked-out branch up to its remote one left the whole update

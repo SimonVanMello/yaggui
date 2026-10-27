@@ -268,8 +268,6 @@ export interface MockOperation {
   stopsAgain: number;
   /** Stopped on a commit that brings nothing (`emptyCommit`): continue needs staged changes. */
   empty?: boolean;
-  /** Cherry-pick of several commits: `git reset` leaves the sequence in progress. */
-  sequence?: boolean;
 }
 
 export function operationInProgress(): YagguiError {

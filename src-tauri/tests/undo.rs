@@ -1117,16 +1117,17 @@ fn checkout_refuses_local_changes_in_the_way_of_the_fast_forward() {
     assert_eq!(e.rev("refs/heads/feat"), e.rev("origin/feat"));
 }
 
-/// A hard reset over an unresolved conflict: the undo puts the three stages of the file
-/// back in the index, not a resolved "ours" entry.
+/// A hard reset over an unresolved conflict that no operation owns (a stash pop; a reset is
+/// refused during a merge, M9-9): the undo puts the three stages of the file back in the
+/// index, not a resolved "ours" entry.
 #[test]
 fn undo_of_a_hard_reset_over_a_conflict_restores_the_stages() {
     let e = env();
-    e.fx.git(&["switch", "-q", "-c", "other"]);
-    e.commit("src.txt", "other\n", "other changes src");
-    e.fx.git(&["switch", "-q", "main"]);
+    e.write("src.txt", "stashed\n");
+    e.fx.git(&["stash", "push", "-q"]);
     e.commit("src.txt", "main\n", "main changes src");
-    e.out(&["merge", "other"]);
+    e.out(&["stash", "pop"]);
+    assert_eq!(e.repos.state(e.id).unwrap().operation, None);
     assert_eq!(
         e.out(&["diff", "--name-only", "--diff-filter=U"]),
         "src.txt"

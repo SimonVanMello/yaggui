@@ -98,6 +98,8 @@ Sous **Parent conservé**, chaque option affiche **Parent \{n\}**, son SHA court
 
 Un reset déplace la branche courante sur un autre commit ([git-reset](https://git-scm.com/docs/git-reset)).
 
+Tant qu’un merge, un rebase, un cherry-pick, un revert ou un bisect est en cours, aucun reset n’est possible, quel que soit le mode : les entrées du menu et l’action de la palette sont désactivées, et le backend refuse le reset et son aperçu avec « Une autre opération (merge, rebase, cherry-pick, revert ou bisect) est en cours : continue-la ou annule-la d'abord. » Terminez ou annulez d’abord l’opération depuis le bandeau (voir [Résoudre les conflits](../../history/conflicts/)). Git seul terminerait silencieusement un merge sur un reset mixed ou hard ; yaggui ne le fait jamais.
+
 - Faites un clic droit sur un commit, ouvrez **Reset de \{branch\} ici** et choisissez **Soft** (Garde tous les changements indexés), **Mixed** (Garde les changements, non indexés) ou **Hard** (Perd les changements locaux). La boîte de dialogue s’ouvre avec ce mode sélectionné.
 - Ou lancez **Reset de la branche courante sur le commit sélectionné…** depuis la palette. La boîte de dialogue s’ouvre sur **Mixed**.
 
@@ -159,7 +161,7 @@ Si des modifications locales gênent, la boîte de dialogue de checkout s’ouvr
 | « \{short\} n'a pas de parent \{n\}. »                                                                                                     | Choisissez un parent qui existe                                                                                                                                           |
 | « Il n'y a pas encore de commit sur lequel les appliquer. »                                                                                | Le dépôt ne contient aucun commit : faites un premier commit                                                                                                              |
 | « Tes modifications locales seraient écrasées par le cherry-pick. Commite-les ou mets-les de côté (stash) d'abord. » (idem pour le revert) | Committez-les ou mettez-les de côté ([stash](../../everyday/stash/)). **Voir les changements** dans la notification les ouvre                                             |
-| « Une autre opération (merge, rebase, cherry-pick, revert ou bisect) est en cours : continue-la ou annule-la d'abord. »                    | Terminez-la depuis le bandeau                                                                                                                                             |
+| « Une autre opération (merge, rebase, cherry-pick, revert ou bisect) est en cours : continue-la ou annule-la d'abord. »                    | Terminez-la ou annulez-la depuis le bandeau. Aussi affiché par un reset, quel que soit le mode, pendant une opération                                                     |
 
 Quand Git s’arrête sur des conflits, le cherry-pick ou le revert reste en cours : résolvez les fichiers, puis choisissez **Continuer**, **Passer** ou le bouton d’annulation. Voir [Résoudre les conflits](../../history/conflicts/). Les autres messages figurent dans [Messages d’erreur](../../reference/error-messages/).
 

@@ -171,26 +171,32 @@ describe('mock / backend parity (M4)', () => {
     });
   });
 
-  it('a reset during an operation follows Git (`history.rs`, reset_during_…)', async () => {
+  it('a reset is refused during an operation (`history.rs`, reset_is_refused_…)', async () => {
     const merge = await openWithOther('/Users/alex/dev/conflict-reset');
     await mock.merge(merge.id, { source: merge.other, mode: 'noFastForward', message: null });
     const reset = (id: number, mode: 'soft' | 'mixed' | 'hard') =>
       mock.reset(id, { target: 'HEAD', mode });
-    expect(await reset(merge.id, 'soft')).toMatchObject({
-      error: { code: 'operationInProgress' },
-    });
-    expect((await unwrap(mock.repoState(merge.id))).operation?.kind).toBe('merge');
+    const refused = { status: 'error', error: { code: 'operationInProgress' } };
+    for (const mode of ['soft', 'mixed', 'hard'] as const) {
+      expect(await reset(merge.id, mode)).toMatchObject(refused);
+      expect((await unwrap(mock.repoState(merge.id))).operation?.kind).toBe('merge');
+    }
+    expect(await mock.resetPreview(merge.id, 'HEAD')).toMatchObject(refused);
+    expect((await unwrap(mock.listConflicts(merge.id))).unresolved).toBeGreaterThan(0);
+    await unwrap(mock.abortOperation(merge.id));
+    await unwrap(mock.resetPreview(merge.id, 'HEAD'));
     await unwrap(reset(merge.id, 'mixed'));
     expect((await unwrap(mock.repoState(merge.id))).operation).toBeNull();
 
-    // A cherry-pick of several commits stays in progress after a hard reset.
+    // A cherry-pick of several commits stopped on conflicts: the hard reset Git would accept
+    // is refused too, and the sequence stays intact.
     const pick = await unwrap(mock.openRepo('/Users/alex/dev/conflict-picks'));
     const plan = await unwrap(mock.interactiveRebasePlan(pick.id, 'HEAD~3'));
     const shas = plan.commits.slice(0, 2).map((c) => c.sha);
     expect(await mock.cherryPick(pick.id, { commits: shas, mainline: null })).toMatchObject({
       error: { code: 'conflicts' },
     });
-    await unwrap(reset(pick.id, 'hard'));
+    expect(await reset(pick.id, 'hard')).toMatchObject(refused);
     expect((await unwrap(mock.repoState(pick.id))).operation).toEqual({ kind: 'cherryPick' });
   });
 
