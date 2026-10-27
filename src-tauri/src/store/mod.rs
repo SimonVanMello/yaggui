@@ -210,8 +210,15 @@ impl Store {
         if let Some(theme) = get_pref(&conn, PREF_THEME)? {
             prefs.theme = theme;
         }
-        prefs.locale = get_pref(&conn, PREF_LOCALE)?;
-        prefs.terminal = get_pref(&conn, PREF_TERMINAL)?;
+        // Optional preferences are stored as JSON `null` when unset: read as `Option<T>`,
+        // not `T` (which would log an unreadable value on every read).
+        macro_rules! load_optional {
+            ($field:ident, $key:expr) => {
+                prefs.$field = get_pref::<Option<_>>(&conn, $key)?.flatten();
+            };
+        }
+        load_optional!(locale, PREF_LOCALE);
+        load_optional!(terminal, PREF_TERMINAL);
         if let Some(mode) = get_pref(&conn, PREF_TERMINAL_MODE)? {
             prefs.terminal_mode = mode;
         }
@@ -226,24 +233,24 @@ impl Store {
             };
         }
         load!(style, PREF_STYLE);
-        prefs.editor = get_pref(&conn, PREF_EDITOR)?;
-        prefs.diff_tool = get_pref(&conn, PREF_DIFF_TOOL)?;
-        prefs.merge_tool = get_pref(&conn, PREF_MERGE_TOOL)?;
+        load_optional!(editor, PREF_EDITOR);
+        load_optional!(diff_tool, PREF_DIFF_TOOL);
+        load_optional!(merge_tool, PREF_MERGE_TOOL);
         load!(high_contrast, PREF_HIGH_CONTRAST);
         load!(density, PREF_DENSITY);
         load!(font_size, PREF_FONT_SIZE);
         load!(auto_fetch, PREF_AUTO_FETCH);
         load!(auto_fetch_minutes, PREF_AUTO_FETCH_MINUTES);
         load!(prune, PREF_PRUNE);
-        prefs.pull_strategy = get_pref(&conn, PREF_PULL_STRATEGY)?;
+        load_optional!(pull_strategy, PREF_PULL_STRATEGY);
         load!(protected_branches, PREF_PROTECTED_BRANCHES);
         load!(disabled_confirmations, PREF_DISABLED_CONFIRMATIONS);
         load!(diff_options, PREF_DIFF_OPTIONS);
         load!(gravatar, PREF_GRAVATAR);
-        prefs.check_updates = get_pref::<Option<bool>>(&conn, PREF_CHECK_UPDATES)?.flatten();
-        prefs.ui_font = get_pref(&conn, PREF_UI_FONT)?;
-        prefs.code_font = get_pref(&conn, PREF_CODE_FONT)?;
-        prefs.git_path = get_pref(&conn, PREF_GIT_PATH)?;
+        load_optional!(check_updates, PREF_CHECK_UPDATES);
+        load_optional!(ui_font, PREF_UI_FONT);
+        load_optional!(code_font, PREF_CODE_FONT);
+        load_optional!(git_path, PREF_GIT_PATH);
         // A value edited by hand or written by a newer version must not break the app.
         if !FONT_SIZE_RANGE.contains(&prefs.font_size) {
             prefs.font_size = DEFAULT_FONT_SIZE;

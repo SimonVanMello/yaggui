@@ -27,8 +27,11 @@ export const commands = {
 	repoState: (repoId: number) => typedError<RepoState, YagguiError>(__TAURI_INVOKE("repo_state", { repoId })),
 	/**  Requests cancellation of a queued or running operation. */
 	cancelOp: (opId: number) => typedError<null, YagguiError>(__TAURI_INVOKE("cancel_op", { opId })),
-	/**  Removes `.git/index.lock` if it is stale (older than 10 s). Refuses a fresh lock. */
-	removeStaleIndexLock: (repoId: number) => typedError<null, YagguiError>(__TAURI_INVOKE("remove_stale_index_lock", { repoId })),
+	/**
+	 *  Removes `.git/index.lock`, or the `.lock` file at `path` inside the git dir (the one a
+	 *  failed command named), if it is stale (older than 10 s). Refuses a fresh lock.
+	 */
+	removeStaleIndexLock: (repoId: number, path: string | null) => typedError<null, YagguiError>(__TAURI_INVOKE("remove_stale_index_lock", { repoId, path })),
 	/**  Adds `path` to the global `safe.directory` list. Only call after explicit user confirmation. */
 	addSafeDirectory: (path: string) => typedError<null, YagguiError>(__TAURI_INVOKE("add_safe_directory", { path })),
 	/**
@@ -916,7 +919,12 @@ export type BisectResult =
  *  Only skipped commits are left between the good and bad ones: the first bad commit
  *  is one of `candidates` (the bad commit and those skipped commits), newest first.
  */
-{ kind: "inconclusive"; candidates: BisectCommit[] };
+{ kind: "inconclusive"; candidates: BisectCommit[] } | 
+/**
+ *  The bad commit is an ancestor of a good one (marks taken in a terminal, where Git
+ *  records them before refusing): nothing is left to test until the marks change.
+ */
+{ kind: "inconsistentMarks" };
 
 /**
  *  The bisect in progress, read from `refs/bisect/*`, `BISECT_START` and `BISECT_TERMS`
@@ -1656,7 +1664,10 @@ export type ErrorCode =
 "notARepository" | 
 /**  Git refuses the repository because of `safe.directory` (owned by another user). */
 "unsafeRepository" | 
-/**  `.git/index.lock` exists: another Git process is running, or one crashed. */
+/**
+ *  A Git lock file (`index.lock`, a ref lock, `packed-refs.lock`…) exists: another Git
+ *  process is running, or one crashed.
+ */
 "indexLocked" | 
 /**  A path exceeds Windows' 260-character limit and `core.longpaths` is off. */
 "pathTooLong" | 

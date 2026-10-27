@@ -80,7 +80,7 @@ describe('mock aligned on the real backend', () => {
     const path = '/Users/alex/dev/yaggui/.git/index.lock';
     mockBackend.setRepoState(1, { indexLock: { path, ageSecs: 1, stale: false } });
     seen.length = 0;
-    await expect(mock.removeStaleIndexLock(1)).resolves.toMatchObject({
+    await expect(mock.removeStaleIndexLock(1, null)).resolves.toMatchObject({
       status: 'error',
       error: { code: 'indexLocked', action: { kind: 'removeIndexLock', repoId: 1, path } },
     });
@@ -88,7 +88,7 @@ describe('mock aligned on the real backend', () => {
 
     mockBackend.setRepoState(1, { indexLock: { path, ageSecs: 60, stale: true } });
     seen.length = 0;
-    await unwrap(mock.removeStaleIndexLock(1));
+    await unwrap(mock.removeStaleIndexLock(1, path));
     vi.runAllTimers();
     expect(seen).toEqual(['opStarted', 'opFinished', 'statusChanged']);
     await expect(unwrap(mock.repoState(1))).resolves.toMatchObject({ indexLock: null });

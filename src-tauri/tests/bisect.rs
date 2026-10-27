@@ -507,3 +507,29 @@ fn skip_operation_ends_inconclusive_like_a_skip_mark() {
     // The bisect stays in progress until reset, like after the last skip mark.
     assert!(env.bisecting());
 }
+
+#[test]
+fn contradictory_marks_taken_in_a_terminal_are_reported_as_such() {
+    let env = env();
+    // `git bisect good` records the mark before refusing an order it cannot bisect: the
+    // bad commit is an ancestor of the good one, nothing is left to test.
+    env.mark(Some(&env.shas[2]), BisectMark::Bad);
+    env.fx.git(&[
+        "update-ref",
+        &format!("refs/bisect/good-{}", env.shas[8]),
+        &env.shas[8],
+    ]);
+    let state = env.state().unwrap();
+    assert_eq!(state.result, Some(BisectResult::InconsistentMarks));
+    assert_eq!(state.remaining, Some(0));
+    assert!(!state.awaiting_checkout);
+    assert!(env.bisecting());
+    // A newer bad commit replaces the old one and the bisect goes on: with c9 good, c10 is
+    // the first bad commit.
+    let state = env.mark(Some(&env.shas[9]), BisectMark::Bad);
+    assert!(
+        matches!(&state.result, Some(BisectResult::Found { commit }) if commit.sha == env.shas[9]),
+        "{:?}",
+        state.result
+    );
+}

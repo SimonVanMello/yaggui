@@ -21,7 +21,8 @@ pub enum ErrorCode {
     NotARepository,
     /// Git refuses the repository because of `safe.directory` (owned by another user).
     UnsafeRepository,
-    /// `.git/index.lock` exists: another Git process is running, or one crashed.
+    /// A Git lock file (`index.lock`, a ref lock, `packed-refs.lock`…) exists: another Git
+    /// process is running, or one crashed.
     IndexLocked,
     /// A path exceeds Windows' 260-character limit and `core.longpaths` is off.
     PathTooLong,
@@ -525,6 +526,24 @@ impl YagguiError {
             ErrorCode::IndexLocked,
             "Another Git process is using this repository (index.lock). If no Git process is running, the lock is left over from a crash and can be removed.",
             "Un autre processus Git utilise ce dépôt (index.lock). Si aucun processus Git ne tourne, le verrou provient d'un crash et peut être supprimé.",
+        )
+        .with_action(ErrorAction::RemoveIndexLock {
+            repo_id,
+            path: lock_path.to_owned(),
+        })
+    }
+
+    /// Any lock file git could not create because it exists: `index.lock`, or another one
+    /// (a ref lock, `packed-refs.lock`, `config.lock`…) left by a killed or crashed process.
+    pub fn git_locked(repo_id: Option<u32>, lock_path: &str) -> Self {
+        let name = lock_path.rsplit(['/', '\\']).next().unwrap_or(lock_path);
+        if name == "index.lock" {
+            return Self::index_locked(repo_id, lock_path);
+        }
+        Self::new(
+            ErrorCode::IndexLocked,
+            format!("Another Git process is using this repository ({name}). If no Git process is running, the lock is left over from a crash and can be removed."),
+            format!("Un autre processus Git utilise ce dépôt ({name}). Si aucun processus Git ne tourne, le verrou provient d'un crash et peut être supprimé."),
         )
         .with_action(ErrorAction::RemoveIndexLock {
             repo_id,
@@ -1497,9 +1516,9 @@ pub fn classify_git_failure(
     let error = if lower.contains("detected dubious ownership") {
         let unsafe_path = extract_dubious_path(stderr).unwrap_or_else(|| path.to_owned());
         YagguiError::unsafe_repository(&unsafe_path)
-    } else if lower.contains("index.lock") && lower.contains("file exists") {
-        let lock = extract_quoted(stderr, "index.lock").unwrap_or_else(|| path.to_owned());
-        YagguiError::index_locked(repo_id, &lock)
+    } else if lower.contains(".lock") && lower.contains("file exists") {
+        let lock = extract_quoted(stderr, ".lock").unwrap_or_else(|| path.to_owned());
+        YagguiError::git_locked(repo_id, &lock)
     } else if lower.contains("cannot do a soft reset in the middle of a merge") {
         YagguiError::operation_in_progress()
     } else if lower.contains("'lfs' is not a git command") {
@@ -1803,6 +1822,7 @@ mod tests {
         let stderr = "fatal: Unable to create '/r/.git/index.lock': File exists.\n\nAnother git process seems to be running in this repository";
         let error = classify_git_failure(stderr, "", Some("/r"), Some(3));
         assert_eq!(error.code, ErrorCode::IndexLocked);
+        assert!(error.message.en.contains("(index.lock)"));
         assert_eq!(
             error.action,
             Some(ErrorAction::RemoveIndexLock {
@@ -1810,6 +1830,30 @@ mod tests {
                 path: "/r/.git/index.lock".into()
             })
         );
+    }
+
+    #[test]
+    fn classifies_other_lock_files() {
+        // Left by a killed fetch (Windows) or a crashed git: every later ref update fails.
+        let stderr = "error: cannot lock ref 'refs/remotes/origin/main': Unable to create '/r/.git/refs/remotes/origin/main.lock': File exists.\n\nAnother git process seems to be running in this repository";
+        let error = classify_git_failure(stderr, "", Some("/r"), Some(3));
+        assert_eq!(error.code, ErrorCode::IndexLocked);
+        assert!(error.message.en.contains("(main.lock)"));
+        assert!(error.message.fr.contains("(main.lock)"));
+        assert_eq!(
+            error.action,
+            Some(ErrorAction::RemoveIndexLock {
+                repo_id: Some(3),
+                path: "/r/.git/refs/remotes/origin/main.lock".into()
+            })
+        );
+        let packed = classify_git_failure(
+            "fatal: Unable to create 'C:\\r\\.git\\packed-refs.lock': File exists.",
+            "",
+            Some("C:\\r"),
+            None,
+        );
+        assert!(packed.message.en.contains("(packed-refs.lock)"));
     }
 
     #[test]

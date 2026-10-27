@@ -138,6 +138,8 @@
   "bisect.inconclusive.title": "Bisect non concluant",
   "bisect.inconclusive.text": "Il ne reste que des commits passés : le premier commit mauvais est l'un de ces {count}",
   "bisect.inconclusive.toast": "Bisect non concluant : {count} premiers commits mauvais possibles",
+  "bisect.inconsistent.title": "Les marques du bisect se contredisent",
+  "bisect.inconsistent.text": "Le commit mauvais est un ancêtre d'un commit bon : rien ne peut être testé. Marque un commit plus récent comme mauvais depuis son menu dans le graphe, ou termine le bisect.",
   "bisect.more": "+{count} autres",
   "bisect.mark.good": "Bon",
   "bisect.mark.bad": "Mauvais",

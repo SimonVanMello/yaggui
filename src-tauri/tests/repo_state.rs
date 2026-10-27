@@ -165,7 +165,7 @@ fn stale_index_lock_is_reported_and_removable() {
     );
 
     b.repos
-        .remove_stale_index_lock(info.id)
+        .remove_stale_index_lock(info.id, None)
         .unwrap()
         .wait()
         .unwrap();
@@ -182,7 +182,7 @@ fn fresh_index_lock_is_not_removed() {
     assert!(!info.state.index_lock.as_ref().unwrap().stale);
     let err = b
         .repos
-        .remove_stale_index_lock(info.id)
+        .remove_stale_index_lock(info.id, None)
         .unwrap()
         .wait()
         .unwrap_err();
@@ -313,4 +313,121 @@ fn watcher_failure_is_reported_to_the_frontend() {
 
     let ok = backend(true).repos.open(&fx.repo_str()).unwrap();
     assert_eq!(ok.watch_error, None);
+}
+
+#[test]
+fn stale_ref_locks_named_by_git_are_removable_but_nothing_else() {
+    let fx = Fixture::new("clean");
+    let b = backend(false);
+    let info = b.repos.open(&fx.repo_str()).unwrap();
+    let git_dir = fx.repo().join(".git");
+    let lock = git_dir.join("refs/heads/main.lock");
+    std::fs::write(&lock, "").unwrap();
+    let old = std::time::SystemTime::now() - std::time::Duration::from_secs(120);
+    std::fs::File::options()
+        .write(true)
+        .open(&lock)
+        .unwrap()
+        .set_modified(old)
+        .unwrap();
+
+    // A stale lock on a ref: git refuses to move it, the catalog names the lock and offers
+    // its removal, which removes that file.
+    let err = b
+        .git
+        .run(
+            &yaggui_lib::git::cli::GitCommand::new(["commit", "--allow-empty", "-m", "x"])
+                .cwd(fx.repo())
+                .repo(info.id),
+        )
+        .unwrap_err();
+    assert_eq!(err.code, ErrorCode::IndexLocked);
+    assert!(err.message.en.contains("(main.lock)"), "{}", err.message.en);
+    let Some(ErrorAction::RemoveIndexLock { path, .. }) = err.action else {
+        panic!("no removal action: {err:?}");
+    };
+    assert!(path.ends_with("main.lock"), "{path}");
+    b.repos
+        .remove_stale_index_lock(info.id, Some(path))
+        .unwrap()
+        .wait()
+        .unwrap();
+    assert!(!lock.exists());
+
+    // A fresh ref lock is refused like a fresh index.lock.
+    std::fs::write(&lock, "").unwrap();
+    let err = b
+        .repos
+        .remove_stale_index_lock(info.id, Some(lock.display().to_string()))
+        .unwrap()
+        .wait()
+        .unwrap_err();
+    assert_eq!(err.code, ErrorCode::IndexLocked);
+    assert!(lock.exists());
+
+    // Only `.lock` files inside the git dir can be removed this way.
+    let outside = fx.root.join("elsewhere.lock");
+    std::fs::write(&outside, "").unwrap();
+    for refused in [
+        outside.display().to_string(),
+        git_dir.join("HEAD").display().to_string(),
+        git_dir.join("../../elsewhere.lock").display().to_string(),
+        ".lock".to_owned(),
+    ] {
+        let err = match b
+            .repos
+            .remove_stale_index_lock(info.id, Some(refused.clone()))
+        {
+            Ok(_) => panic!("{refused} accepted"),
+            Err(err) => err,
+        };
+        assert_eq!(err.code, ErrorCode::InvalidArgument, "{refused}");
+    }
+    assert!(outside.exists() && git_dir.join("HEAD").exists());
+}
+
+#[test]
+fn upstream_pointing_at_a_missing_object_does_not_prevent_opening() {
+    let fx = Fixture::new("clean");
+    // A remote-tracking ref left pointing at a pruned object.
+    let bogus = "a".repeat(40);
+    std::fs::write(
+        fx.repo().join(".git/refs/remotes/origin/main"),
+        format!("{bogus}\n"),
+    )
+    .unwrap();
+    let b = backend(false);
+    let info = b.repos.open(&fx.repo_str()).unwrap();
+    assert_eq!(info.state.upstream, None);
+    assert!(matches!(info.state.head, HeadState::Branch { .. }));
+    assert_eq!(b.repos.state(info.id).unwrap().upstream, None);
+}
+
+#[test]
+fn a_revert_stopped_on_conflicts_during_a_bisect_is_the_current_operation() {
+    let fx = Fixture::new("clean");
+    fx.git(&["config", "user.name", "yaggui Tests"]);
+    fx.git(&["config", "user.email", "tests@yaggui.dev"]);
+    std::fs::write(fx.repo().join("src.txt"), "line 1\nline 2\n").unwrap();
+    fx.git(&["commit", "-q", "-am", "edit src"]);
+    fx.git(&["bisect", "start"]);
+    // Reverting the commit that added src.txt deletes a file modified since: a conflict.
+    let revert = std::process::Command::new("git")
+        .args(["revert", "--no-edit", "HEAD~1"])
+        .current_dir(fx.repo())
+        .env("GIT_CONFIG_NOSYSTEM", "1")
+        .env(
+            "GIT_CONFIG_GLOBAL",
+            if cfg!(windows) { "NUL" } else { "/dev/null" },
+        )
+        .output()
+        .unwrap();
+    assert!(!revert.status.success());
+    assert!(fx.repo().join(".git/REVERT_HEAD").is_file());
+    assert!(fx.repo().join(".git/BISECT_LOG").is_file());
+
+    let b = backend(false);
+    let info = b.repos.open(&fx.repo_str()).unwrap();
+    assert_eq!(info.state.operation, Some(RepoOperation::Revert));
+    assert_eq!(info.state.dirty.conflicted, 1);
 }

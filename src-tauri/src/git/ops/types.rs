@@ -564,6 +564,9 @@ pub enum BisectResult {
     /// Only skipped commits are left between the good and bad ones: the first bad commit
     /// is one of `candidates` (the bad commit and those skipped commits), newest first.
     Inconclusive { candidates: Vec<BisectCommit> },
+    /// The bad commit is an ancestor of a good one (marks taken in a terminal, where Git
+    /// records them before refusing): nothing is left to test until the marks change.
+    InconsistentMarks,
 }
 
 /// The bisect in progress, read from `refs/bisect/*`, `BISECT_START` and `BISECT_TERMS`

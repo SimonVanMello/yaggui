@@ -57,6 +57,12 @@ describe('mock bisect', () => {
     expect(bisectOutcome(commits, bisect({ bad: 5, good: [2], skipped: [3, 4] }))).toMatchObject({
       result: { kind: 'inconclusive', candidates: [5, 4, 3] },
     });
+    // The bad commit is an ancestor of the good one: nothing to test, and not a result.
+    expect(bisectOutcome(commits, bisect({ bad: 2, good: [5] }))).toMatchObject({
+      remaining: 0,
+      result: { kind: 'inconsistentMarks' },
+      next: null,
+    });
   });
 
   it('starts from a mark, steps to the result and resets to the branch', async () => {

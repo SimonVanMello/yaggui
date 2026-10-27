@@ -62,6 +62,14 @@ describe('bisect banner state', () => {
       bisectPhase(state({ bad: 'x', good: ['old'], result: { kind: 'inconclusive', candidates } })),
     ).toEqual({ kind: 'inconclusive', candidates });
   });
+
+  it('reports marks that contradict each other', () => {
+    const phase = bisectPhase(
+      state({ bad: 'old', good: ['tip'], remaining: 0, result: { kind: 'inconsistentMarks' } }),
+    );
+    expect(phase).toEqual({ kind: 'inconsistent' });
+    expect(canMarkCurrent(phase)).toBe(false);
+  });
 });
 
 describe('bisect graph marks', () => {

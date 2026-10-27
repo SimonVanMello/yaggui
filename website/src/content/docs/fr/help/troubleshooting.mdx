@@ -91,7 +91,9 @@ Une commande qui échoue à cause du verrou affiche le même message, « Un aut
 
 yaggui ne juge que d’après l’âge du fichier : il ne peut pas savoir si une commande Git lente tourne encore. Si une commande longue (un gros `git gc`, un rebase dans un terminal) est toujours en cours, ne supprimez pas le verrou. Vous pouvez aussi supprimer `.git/index.lock` à la main, une fois certain qu’aucun processus Git ne tourne.
 
-Quand vous annulez une opération dans yaggui, il supprime lui-même le verrou laissé par la commande annulée.
+Quand vous annulez une opération dans yaggui, Git est d’abord invité à s’arrêter et supprime lui-même ses verrous. S’il faut le tuer (toujours sous Windows), yaggui supprime les fichiers de verrou que la commande tuée a créés dans `.git` (`index.lock`, verrous de branches et de tags, `packed-refs.lock`…).
+
+Une commande qui échoue sur un autre fichier de verrou, par exemple « Unable to create '.git/refs/remotes/origin/main.lock': File exists » après un plantage, affiche le même message avec le nom de ce fichier, et **Supprimer le verrou…** supprime ce fichier dès qu’il a plus de 10 secondes.
 
 ## Les changements faits hors de yaggui n’apparaissent pas
 

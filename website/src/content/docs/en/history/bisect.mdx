@@ -89,6 +89,8 @@ When one commit is left, the banner reads **First bad commit found** with its sh
 
 If only skipped commits are left between the good and bad commits, Git cannot tell which one is the first bad commit. The banner reads **Bisect inconclusive** and "Only skipped commits are left: the first bad commit is one of these \{count\}", followed by their short SHAs (click one to select it).
 
+If the bad commit is an ancestor of a good one, nothing can be tested. yaggui refuses such marks, but `git bisect` in a terminal records them before refusing, so a bisect started there can be read back in that state. The banner reads **Bisect marks contradict each other** and "The bad commit is an ancestor of a good one: nothing can be tested. Mark a newer commit as bad from its menu in the graph, or end the bisect."
+
 ## End the bisect
 
 **Stop bisect** (or **End bisect** once there is a result) asks **Stop the bisect?** "HEAD goes back to where it was before the bisect started." and runs `git bisect reset`: the branch you were on is checked out again. The marks are dropped.

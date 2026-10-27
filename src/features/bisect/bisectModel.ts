@@ -37,13 +37,16 @@ export type BisectPhase =
   /** The commit under test already has a mark: the next one could not be checked out. */
   | { kind: 'awaitingCheckout' }
   | { kind: 'found'; commit: BisectCommit }
-  | { kind: 'inconclusive'; candidates: BisectCommit[] };
+  | { kind: 'inconclusive'; candidates: BisectCommit[] }
+  /** The bad commit is an ancestor of a good one: nothing can be tested until a mark changes. */
+  | { kind: 'inconsistent' };
 
 export function bisectPhase(state: BisectState): BisectPhase {
   if (state.result?.kind === 'found') return { kind: 'found', commit: state.result.commit };
   if (state.result?.kind === 'inconclusive') {
     return { kind: 'inconclusive', candidates: state.result.candidates };
   }
+  if (state.result?.kind === 'inconsistentMarks') return { kind: 'inconsistent' };
   if (state.bad === null) return { kind: 'needBad' };
   if (state.good.length === 0) return { kind: 'needGood' };
   if (state.awaitingCheckout) return { kind: 'awaitingCheckout' };

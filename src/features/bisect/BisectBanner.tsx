@@ -63,9 +63,14 @@ export function BisectBanner({ repoId }: { repoId: number }) {
   };
 
   const phase = state ? bisectPhase(state) : null;
-  const done = phase?.kind === 'found' || phase?.kind === 'inconclusive';
+  const done =
+    phase?.kind === 'found' || phase?.kind === 'inconclusive' || phase?.kind === 'inconsistent';
   const tone =
-    phase?.kind === 'found' ? 'success' : phase?.kind === 'inconclusive' ? 'warning' : 'info';
+    phase?.kind === 'found'
+      ? 'success'
+      : phase?.kind === 'inconclusive' || phase?.kind === 'inconsistent'
+        ? 'warning'
+        : 'info';
 
   let title: string = t('bisect.title');
   let body: ReactNode = null;
@@ -133,6 +138,10 @@ export function BisectBanner({ repoId }: { repoId: number }) {
       );
       break;
     }
+    case 'inconsistent':
+      title = t('bisect.inconsistent.title');
+      body = <span className={bannerStyles.muted}>{t('bisect.inconsistent.text')}</span>;
+      break;
     case undefined:
       break;
   }

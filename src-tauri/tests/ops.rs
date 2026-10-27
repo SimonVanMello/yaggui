@@ -450,3 +450,94 @@ fn finishing_an_operation_raises_the_refs_changed_flag_before_op_finished() {
     assert_eq!(*probe.seen.lock().unwrap(), Some(true));
     assert!(refs_changed.load(Ordering::SeqCst));
 }
+
+/// Cancels `token` after `delay` from another thread.
+fn cancel_after(token: yaggui_lib::git::cli::CancelToken, delay: Duration) {
+    std::thread::spawn(move || {
+        std::thread::sleep(delay);
+        token.cancel();
+    });
+}
+
+#[cfg(unix)]
+#[test]
+fn a_killed_command_has_every_lock_it_left_removed() {
+    use yaggui_lib::git::cli::CancelToken;
+
+    let fx = Fixture::new("clean");
+    let b = backend(false);
+    let git_dir = fx.repo().join(".git");
+    // Stands for a git that ignores SIGTERM mid-way through its ref updates: it took a ref
+    // lock and `packed-refs.lock`, and is killed after the grace period.
+    let token = CancelToken::new();
+    cancel_after(token.clone(), Duration::from_millis(200));
+    let err = b
+        .git
+        .run_with(
+            &GitCommand::new([
+                "-c",
+                "alias.slow=!touch .git/refs/remotes/origin/feature.lock .git/packed-refs.lock .git/index.lock; trap '' TERM; sleep 10",
+                "slow",
+            ])
+            .cwd(fx.repo())
+            .index_lock(git_dir.join("index.lock")),
+            Some(&token),
+            None,
+        )
+        .unwrap_err();
+    assert_eq!(err.code, ErrorCode::Cancelled);
+    for lock in [
+        "refs/remotes/origin/feature.lock",
+        "packed-refs.lock",
+        "index.lock",
+    ] {
+        assert!(!git_dir.join(lock).exists(), "{lock} left behind");
+    }
+    let entry = b.git.log().entries().last().unwrap().clone();
+    assert_eq!(entry.status, CommandStatus::Cancelled);
+    assert!(
+        entry
+            .stderr
+            .contains("removed the lock files left by the killed command")
+    );
+    assert!(entry.stderr.contains("feature.lock"));
+}
+
+#[cfg(unix)]
+#[test]
+fn a_command_that_stops_when_asked_leaves_other_locks_alone() {
+    use yaggui_lib::git::cli::CancelToken;
+
+    let fx = Fixture::new("clean");
+    let b = backend(false);
+    let git_dir = fx.repo().join(".git");
+    // git honours SIGTERM and removes its own locks: a lock found afterwards was taken by
+    // another process while the command ran, and must stay.
+    let token = CancelToken::new();
+    let other = git_dir.join("refs/heads/other.lock");
+    let other_index = git_dir.join("index.lock");
+    let token_for_writer = token.clone();
+    let (writer_other, writer_index) = (other.clone(), other_index.clone());
+    std::thread::spawn(move || {
+        std::thread::sleep(Duration::from_millis(100));
+        std::fs::write(&writer_other, "").unwrap();
+        std::fs::write(&writer_index, "").unwrap();
+        std::thread::sleep(Duration::from_millis(100));
+        token_for_writer.cancel();
+    });
+    let err = b
+        .git
+        .run_with(
+            &GitCommand::new(["-c", "alias.slow=!sleep 10", "slow"])
+                .cwd(fx.repo())
+                .index_lock(git_dir.join("index.lock")),
+            Some(&token),
+            None,
+        )
+        .unwrap_err();
+    assert_eq!(err.code, ErrorCode::Cancelled);
+    assert!(other.exists());
+    assert!(other_index.exists());
+    let entry = b.git.log().entries().last().unwrap().clone();
+    assert!(!entry.stderr.contains("[yaggui]"), "{}", entry.stderr);
+}

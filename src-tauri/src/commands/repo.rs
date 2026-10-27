@@ -53,14 +53,16 @@ pub async fn cancel_op(state: State<'_, AppState>, op_id: u32) -> Result<(), Yag
     state.repos.cancel_op(op_id)
 }
 
-/// Removes `.git/index.lock` if it is stale (older than 10 s). Refuses a fresh lock.
+/// Removes `.git/index.lock`, or the `.lock` file at `path` inside the git dir (the one a
+/// failed command named), if it is stale (older than 10 s). Refuses a fresh lock.
 #[tauri::command]
 #[specta::specta]
 pub async fn remove_stale_index_lock(
     state: State<'_, AppState>,
     repo_id: u32,
+    path: Option<String>,
 ) -> Result<(), YagguiError> {
-    let handle = state.repos.remove_stale_index_lock(repo_id)?;
+    let handle = state.repos.remove_stale_index_lock(repo_id, path)?;
     blocking(move || handle.wait()).await
 }
 
