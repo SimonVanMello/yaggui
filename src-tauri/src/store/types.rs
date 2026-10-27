@@ -3,6 +3,7 @@
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
+use crate::ai::AiPreferences;
 use crate::git::errors::YagguiError;
 use crate::git::ops::types::PullStrategy;
 
@@ -137,6 +138,16 @@ pub struct Preferences {
     /// one-time question: the check is opt-in, nothing is asked of GitHub before.
     #[serde(default)]
     pub check_updates: Option<bool>,
+    /// AI commit messages (F-072). Off by default: when on, the staged changes are sent to
+    /// the provider of `ai` on request. Kept per machine, like the consent it stands for.
+    #[serde(default)]
+    pub ai_enabled: bool,
+    /// AI commit message settings (F-073 to F-075).
+    #[serde(default)]
+    pub ai: AiPreferences,
+    /// Path of the `claude` program (F-073); `None` looks it up on the login shell's `PATH`.
+    #[serde(default)]
+    pub claude_path: Option<String>,
 }
 
 pub const FONT_SIZE_RANGE: std::ops::RangeInclusive<u8> = 11..=18;
@@ -179,6 +190,9 @@ impl Default for Preferences {
             gravatar: false,
             remote_tags: false,
             check_updates: None,
+            ai_enabled: false,
+            ai: AiPreferences::default(),
+            claude_path: None,
         }
     }
 }
@@ -214,6 +228,8 @@ impl Preferences {
             .take()
             .map(|p| p.trim().to_owned())
             .filter(|p| !p.is_empty());
+        prefs.claude_path = crate::ai::prefs::clean_program_path(prefs.claude_path.take())?;
+        prefs.ai = prefs.ai.normalized()?;
 
         let mut branches: Vec<String> = Vec::new();
         for pattern in &prefs.protected_branches {

@@ -362,6 +362,7 @@ impl GitCli {
         let mut entry = CommandLogEntry {
             id: 0,
             repo_id: command.repo_id,
+            program: None,
             args: command
                 .args
                 .iter()

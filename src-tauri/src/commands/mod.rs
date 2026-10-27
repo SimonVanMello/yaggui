@@ -1,5 +1,6 @@
 //! Tauri command handlers. Keep them thin: validate, call a service, map errors.
 
+pub mod ai;
 pub mod app;
 pub mod avatars;
 pub mod commit_tools;

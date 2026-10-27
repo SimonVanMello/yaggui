@@ -182,6 +182,28 @@ pub enum ErrorCode {
     PreferencesFileInvalid,
     /// A preferences file written by a newer format version than this yaggui reads.
     PreferencesFileTooNew,
+    /// An AI commit message was asked while the feature is off in the preferences.
+    AiDisabled,
+    /// The AI provider lacks what it needs: no API key, `claude` not found.
+    AiNotConfigured,
+    /// The AI provider refused the credentials (key revoked or wrong, Claude Code logged out).
+    AiAuthFailed,
+    /// The AI provider limits the requests or the spending: try again later.
+    AiRateLimited,
+    /// The AI provider could not be reached or is overloaded (offline, 5xx, 529), or the
+    /// `claude` program could not be started.
+    AiProviderUnavailable,
+    /// The AI provider did not answer within the configured time.
+    AiTimeout,
+    /// The AI provider answered without a usable message.
+    AiEmptyResponse,
+    /// The AI provider reported another failure (unknown model, refused request, the CLI
+    /// failed); its answer is in `detail`.
+    AiProviderFailed,
+    /// The OS keychain cannot be used (no Secret Service on Linux, access denied).
+    AiKeychainUnavailable,
+    /// A message is already being generated for this repository.
+    AiBusy,
 }
 
 /// A user-facing text provided in every supported language.
@@ -228,6 +250,8 @@ pub enum ErrorAction {
     PullThenPush,
     /// Push again with `setUpstream`, after confirmation.
     PushSetUpstream,
+    /// Open the AI section of the preferences (provider, key, `claude` path, model).
+    ConfigureAi,
 }
 
 /// Structured data attached to some errors, for a dedicated display.
@@ -407,6 +431,113 @@ impl YagguiError {
                 "Ce fichier utilise la version {found} du format, mais cette version de yaggui \
                  lit jusqu'à la version {supported}. Mets yaggui à jour pour l'importer."
             ),
+        )
+    }
+
+    pub fn ai_disabled() -> Self {
+        Self::new(
+            ErrorCode::AiDisabled,
+            "AI commit messages are turned off. Turn them on in the preferences (AI).",
+            "Les messages de commit par IA sont désactivés. Active-les dans les préférences (IA).",
+        )
+        .with_action(ErrorAction::ConfigureAi)
+    }
+
+    /// The messages say what is missing.
+    pub fn ai_not_configured(en: impl Into<String>, fr: impl Into<String>) -> Self {
+        Self::new(ErrorCode::AiNotConfigured, en, fr).with_action(ErrorAction::ConfigureAi)
+    }
+
+    /// `cli`: Claude Code (log in again) rather than an API key (check or replace it).
+    pub fn ai_auth_failed(cli: bool, detail: impl Into<String>) -> Self {
+        let (en, fr) = if cli {
+            (
+                "Claude Code is not logged in, or its login expired. Run claude in a terminal and log in, then try again.",
+                "Claude Code n'est pas connecté, ou sa connexion a expiré. Lance claude dans un terminal et connecte-toi, puis réessaie.",
+            )
+        } else {
+            (
+                "The API key was refused. Check it, or save a new one in the preferences (AI).",
+                "La clé d'API a été refusée. Vérifie-la, ou enregistre-en une nouvelle dans les préférences (IA).",
+            )
+        };
+        Self::new(ErrorCode::AiAuthFailed, en, fr)
+            .with_detail(detail)
+            .with_action(ErrorAction::ConfigureAi)
+    }
+
+    pub fn ai_rate_limited(detail: impl Into<String>) -> Self {
+        Self::new(
+            ErrorCode::AiRateLimited,
+            "The AI provider limits requests right now (rate or spending limit). Try again in a moment.",
+            "Le fournisseur d'IA limite les requêtes en ce moment (débit ou plafond de dépenses). Réessaie dans un instant.",
+        )
+        .with_detail(detail)
+        .with_action(ErrorAction::Retry)
+    }
+
+    pub fn ai_provider_unavailable(detail: impl Into<String>) -> Self {
+        Self::new(
+            ErrorCode::AiProviderUnavailable,
+            "The AI provider could not be reached or is overloaded. Check the connection and try again.",
+            "Le fournisseur d'IA est injoignable ou surchargé. Vérifie la connexion et réessaie.",
+        )
+        .with_detail(detail)
+        .with_action(ErrorAction::Retry)
+    }
+
+    pub fn ai_timeout(seconds: u32) -> Self {
+        Self::new(
+            ErrorCode::AiTimeout,
+            format!("The AI provider did not answer within {seconds} s. Try again, or raise the time limit in the preferences (AI)."),
+            format!("Le fournisseur d'IA n'a pas répondu en {seconds} s. Réessaie, ou augmente le délai dans les préférences (IA)."),
+        )
+        .with_action(ErrorAction::Retry)
+    }
+
+    pub fn ai_empty_response(detail: impl Into<String>) -> Self {
+        Self::new(
+            ErrorCode::AiEmptyResponse,
+            "The AI provider answered without a commit message. Try again.",
+            "Le fournisseur d'IA a répondu sans message de commit. Réessaie.",
+        )
+        .with_detail(detail)
+        .with_action(ErrorAction::Retry)
+    }
+
+    pub fn ai_provider_failed(detail: impl Into<String>) -> Self {
+        Self::new(
+            ErrorCode::AiProviderFailed,
+            "The AI provider reported an error. Its answer is in the details; check the model and the settings in the preferences (AI).",
+            "Le fournisseur d'IA a signalé une erreur. Sa réponse est dans les détails ; vérifie le modèle et les réglages dans les préférences (IA).",
+        )
+        .with_detail(detail)
+        .with_action(ErrorAction::ConfigureAi)
+    }
+
+    pub fn ai_keychain_unavailable(detail: impl Into<String>) -> Self {
+        Self::new(
+            ErrorCode::AiKeychainUnavailable,
+            "The system keychain cannot be used, so the key cannot be saved. Set the ANTHROPIC_API_KEY environment variable instead.",
+            "Le trousseau du système est inutilisable, la clé ne peut donc pas être enregistrée. Définis plutôt la variable d'environnement ANTHROPIC_API_KEY.",
+        )
+        .with_detail(detail)
+    }
+
+    pub fn ai_busy() -> Self {
+        Self::new(
+            ErrorCode::AiBusy,
+            "A commit message is already being generated for this repository.",
+            "Un message de commit est déjà en cours de génération pour ce dépôt.",
+        )
+    }
+
+    /// Generation asked with nothing staged (and not an amend).
+    pub fn ai_nothing_staged() -> Self {
+        Self::new(
+            ErrorCode::NothingToCommit,
+            "Nothing is staged: stage the changes to describe first.",
+            "Rien n'est indexé : indexe d'abord les modifications à décrire.",
         )
     }
 

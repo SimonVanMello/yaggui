@@ -50,6 +50,9 @@ const PREF_DISABLED_CONFIRMATIONS: &str = "disabled_confirmations";
 const PREF_GRAVATAR: &str = "gravatar";
 const PREF_REMOTE_TAGS: &str = "remote_tags";
 const PREF_CHECK_UPDATES: &str = "check_updates";
+const PREF_AI_ENABLED: &str = "ai_enabled";
+const PREF_AI: &str = "ai";
+const PREF_CLAUDE_PATH: &str = "claude_path";
 /// Folders remembered for the clone / init dialogs.
 const RECENT_DIRS_KEPT: i64 = 10;
 const META_LEGACY_MIGRATED: &str = "legacy_preferences_migrated";
@@ -250,6 +253,11 @@ impl Store {
         load!(gravatar, PREF_GRAVATAR);
         load!(remote_tags, PREF_REMOTE_TAGS);
         load_optional!(check_updates, PREF_CHECK_UPDATES);
+        load!(ai_enabled, PREF_AI_ENABLED);
+        if let Some(ai) = get_pref::<serde_json::Value>(&conn, PREF_AI)? {
+            prefs.ai = crate::ai::AiPreferences::from_json(ai);
+        }
+        load_optional!(claude_path, PREF_CLAUDE_PATH);
         load_optional!(ui_font, PREF_UI_FONT);
         load_optional!(code_font, PREF_CODE_FONT);
         load_optional!(git_path, PREF_GIT_PATH);
@@ -299,6 +307,9 @@ impl Store {
             set_pref(&tx, PREF_GRAVATAR, &prefs.gravatar)?;
             set_pref(&tx, PREF_REMOTE_TAGS, &prefs.remote_tags)?;
             set_pref(&tx, PREF_CHECK_UPDATES, &prefs.check_updates)?;
+            set_pref(&tx, PREF_AI_ENABLED, &prefs.ai_enabled)?;
+            set_pref(&tx, PREF_AI, &prefs.ai)?;
+            set_pref(&tx, PREF_CLAUDE_PATH, &prefs.claude_path)?;
             tx.commit()?;
         }
         self.preferences()
