@@ -146,6 +146,11 @@ export class GraphPageCache {
     return this.inflight.size;
   }
 
+  /** Pages whose last request failed (requested again after `retryDelayMs`). */
+  get failedPages(): number {
+    return this.failedAt.size;
+  }
+
   /** Forgets every page; the next `insert` sets the version. */
   reset(): void {
     this.generation += 1;

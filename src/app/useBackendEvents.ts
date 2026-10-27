@@ -99,6 +99,7 @@ export function useBackendEvents(): void {
     void queryClient.invalidateQueries({ queryKey: queryKeys.repoState(repoId) });
     invalidateOperation(repoId);
     void queryClient.invalidateQueries({ queryKey: queryKeys.repoRefs(repoId) });
+    void queryClient.invalidateQueries({ queryKey: ['commit-detail', repoId] });
     // A ref moved outside yaggui can make the next undo `diverged`.
     void queryClient.invalidateQueries({ queryKey: queryKeys.undoState(repoId) });
   });

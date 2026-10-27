@@ -424,7 +424,10 @@ export function GraphView({
           aria-multiselectable
           aria-label={t('graph.label')}
           aria-activedescendant={
-            selectedRow === null ? undefined : `graph-row-${String(selectedRow)}`
+            // The id exists only while the row is in the virtualized window.
+            selectedRow !== null && items.some((item) => item.index === selectedRow)
+              ? `graph-row-${String(selectedRow)}`
+              : undefined
           }
           aria-busy={cache.version === null}
           onScroll={onScroll}

@@ -231,3 +231,46 @@ for (const { name: theme, colorScheme } of THEMES) {
     });
   });
 }
+
+test.describe('selection and refs of the detail panel', () => {
+  test.use({ locale: 'en-US' });
+
+  test('aria-activedescendant names the selected row only while it is rendered', async ({
+    page,
+  }) => {
+    await openRepo(page, /^linux\b/);
+    const graph = page.getByRole('listbox', { name: 'Commit graph' });
+    await page.locator('[data-row="2"]').click();
+    await expect(graph).toHaveAttribute('aria-activedescendant', 'graph-row-2');
+    // Far from the selected row: its element is out of the virtualized window.
+    await graph.evaluate((el) => {
+      el.scrollTop = el.scrollHeight;
+    });
+    await expect(graph).not.toHaveAttribute('aria-activedescendant');
+    await expect(page.locator('#graph-row-2')).toHaveCount(0);
+    await graph.evaluate((el) => {
+      el.scrollTop = 0;
+    });
+    await expect(graph).toHaveAttribute('aria-activedescendant', 'graph-row-2');
+  });
+
+  test('the refs of the detail panel follow a branch created on the selected commit', async ({
+    page,
+  }) => {
+    await openRepo(page, /^yaggui\b/);
+    const row = page.locator('[data-row="3"]');
+    await row.click();
+    const details = page.getByRole('region', { name: 'Commit details' });
+    await expect(details).toBeVisible();
+    await row.click({ button: 'right' });
+    await page.getByRole('menuitem', { name: 'Create branch here…' }).click();
+    const dialog = page.getByRole('dialog');
+    await dialog.getByLabel('Branch name').fill('qa-detail-refs');
+    await dialog.getByLabel('Check it out after creating it').uncheck();
+    await dialog.getByRole('button', { name: 'Create branch' }).click();
+    await expect(dialog).toHaveCount(0);
+    await expect(page.getByRole('treeitem', { name: 'qa-detail-refs' })).toBeVisible();
+    // The commit stays selected: its panel shows the new branch too, not the pills of before.
+    await expect(details.locator('[data-ref-name="qa-detail-refs"]')).toBeVisible();
+  });
+});

@@ -1,5 +1,5 @@
 import { eventKey } from '../../ui/shortcuts';
-import type { Platform } from '../../ui/platform';
+import { platform, type Platform } from '../../ui/platform';
 
 /** User changes: a shortcut rebinds the action, `null` leaves it without one. */
 export type Overrides = Readonly<Record<string, string | null>>;
@@ -14,9 +14,15 @@ export function canonicalShortcut(shortcut: string): string {
   return [...modifiers, key.length === 1 ? key.toUpperCase() : key].join('+');
 }
 
-/** Two shortcuts that press the same keys compare equal. */
-export function shortcutKey(shortcut: string): string {
-  return canonicalShortcut(shortcut).toLowerCase();
+/**
+ * Two shortcuts that press the same keys compare equal. `Mod` is the Control key outside macOS
+ * (see `matchShortcut`), so `Ctrl+K` and `Mod+K` are one shortcut there.
+ */
+export function shortcutKey(shortcut: string, target: Platform = platform): string {
+  const parts = shortcut.split('+');
+  const key = parts.pop() ?? '';
+  const modifiers = target === 'mac' ? parts : parts.map((m) => (m === 'Ctrl' ? 'Mod' : m));
+  return canonicalShortcut([...modifiers, key].join('+')).toLowerCase();
 }
 
 export function effectiveShortcut(
@@ -69,11 +75,12 @@ export function captureShortcut(event: CaptureEvent, target: Platform): Capture 
 /** Groups of ids that share a shortcut, by canonical shortcut. Only groups of 2+ are kept. */
 export function findConflicts(
   effective: ReadonlyMap<string, string | null>,
+  target: Platform = platform,
 ): Map<string, string[]> {
   const byShortcut = new Map<string, string[]>();
   for (const [id, shortcut] of effective) {
     if (!shortcut) continue;
-    const key = shortcutKey(shortcut);
+    const key = shortcutKey(shortcut, target);
     byShortcut.set(key, [...(byShortcut.get(key) ?? []), id]);
   }
   for (const [key, ids] of byShortcut) if (ids.length < 2) byShortcut.delete(key);

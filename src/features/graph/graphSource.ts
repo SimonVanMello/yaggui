@@ -6,6 +6,7 @@ import {
   ipc,
   unwrap,
   type CommitSearch,
+  type GraphLocation,
   type GraphPage,
   type GraphProgress,
   type YagguiError,
@@ -109,6 +110,13 @@ export class GraphSource {
   private scrollId = 0;
   private pendingSelectRow: number | null = null;
   private pendingRange: { anchor: number; hit: PickedCommit; base: boolean } | null = null;
+  /** ⇧↑ / ⇧↓ whose target row was not loaded yet. */
+  private pendingExtend: { anchor: number; target: number } | null = null;
+  /** A commit located in a layout the cache does not hold yet: selected once it does. */
+  private pendingLocation: { sha: string; row: number; version: number } | null = null;
+  private refreshing = false;
+  /** A page came back since the last `onChange`: a load error may be over. */
+  private pageArrived = false;
   private searchToken: SearchToken | null = null;
   private searchTimer: ReturnType<typeof setTimeout> | undefined;
   private revealFirstMatch = false;
@@ -118,11 +126,22 @@ export class GraphSource {
 
   constructor(readonly repoId: number) {
     this.cache = new GraphPageCache(
-      async (start, limit) => unwrap(ipc.commands.graphPage(repoId, start, limit)),
+      async (start, limit) => {
+        const page = await unwrap(ipc.commands.graphPage(repoId, start, limit));
+        this.pageArrived = true;
+        return page;
+      },
       {
         onChange: () => {
+          if (this.pageArrived) {
+            this.pageArrived = false;
+            // A page that failed is requested again by the cache: the banner goes once every
+            // page is loaded again, without the Retry button.
+            if (this.cache.failedPages === 0) this.loadError = null;
+          }
           this.resolvePendingSelect();
           this.resolvePendingRange();
+          this.resolvePendingExtend();
           if (this.pendingReveal) this.applyReveal(this.pendingReveal);
           this.notify();
         },
@@ -167,15 +186,60 @@ export class GraphSource {
   }
 
   private async revealSha(sha: string): Promise<void> {
-    const row = await this.locate(sha);
-    if (row !== null) this.selectRow(row, 'center');
+    const location = await this.locate(sha);
+    if (location?.row != null) this.revealLocated(location.sha, location.row, location.version);
     else {
       // Not in the graph (e.g. unreachable): keep the selection without a row.
       explainOutsideFirstParent(this.repoId, sha);
-      this.pendingSelectRow = null;
-      this.selection = { kind: 'commit', sha, row: null };
-      this.notify();
+      this.pendingLocation = null;
+      this.selectUnlocated(sha);
     }
+  }
+
+  /**
+   * Selects a row the backend located. Its index means something only in the layout version
+   * it was computed for: with another version in the cache (a `refs-changed` whose reload is
+   * still in flight), applying it would select whatever commit sits at that index in the old
+   * pages. The commit is selected by SHA at once and its row once the graph is reloaded.
+   */
+  private revealLocated(sha: string, row: number, version: number): void {
+    if (version === this.cache.version) {
+      this.pendingLocation = null;
+      this.selectRow(row, 'center');
+      return;
+    }
+    this.pendingLocation = { sha, row, version };
+    this.selectUnlocated(sha);
+    if (!this.refreshing) void this.refresh();
+  }
+
+  /** After a reload: the located row if the layout is the one it was computed for. */
+  private resolvePendingLocation(): void {
+    const pending = this.pendingLocation;
+    if (!pending) return;
+    // Another selection was made meanwhile.
+    if (!this.isSelected(pending.sha)) {
+      this.pendingLocation = null;
+      return;
+    }
+    if (pending.version === this.cache.version) {
+      this.pendingLocation = null;
+      this.selectRow(pending.row, 'center');
+    } else {
+      // The graph moved again: locate the commit in the layout now loaded.
+      void this.revealSha(pending.sha);
+    }
+  }
+
+  /** Selects a commit whose row is unknown (the panel shows it, the graph has no row to mark). */
+  private selectUnlocated(sha: string): void {
+    this.pendingSelectRow = null;
+    this.pendingRange = null;
+    this.pendingExtend = null;
+    this.setPicks(EMPTY_SELECTION);
+    this.selection = { kind: 'commit', sha, row: null };
+    useGraphNavigation.getState().selectCommit(this.repoId, sha);
+    this.notify();
   }
 
   subscribe = (listener: () => void): (() => void) => {
@@ -236,6 +300,7 @@ export class GraphSource {
    */
   async refresh(): Promise<void> {
     const id = ++this.refreshId;
+    this.refreshing = true;
     try {
       const page: GraphPage = await unwrap(ipc.commands.graphPage(this.repoId, 0, GRAPH_PAGE_SIZE));
       if (id !== this.refreshId) return;
@@ -245,8 +310,8 @@ export class GraphSource {
       }
       const selectedSha = this.selection?.kind === 'commit' ? this.selection.sha : null;
       const [anchor, selected] = await Promise.all([
-        this.locate(this.topSha),
-        selectedSha === this.topSha ? undefined : this.locate(selectedSha),
+        this.locateRow(this.topSha),
+        selectedSha === this.topSha ? undefined : this.locateRow(selectedSha),
       ]);
       if (id !== this.refreshId) return;
       this.cache.reset();
@@ -258,7 +323,7 @@ export class GraphSource {
       }
       if (this.picks.picked.size > 1) {
         const shas = [...this.picks.picked.keys()];
-        const located = await Promise.all(shas.map((sha) => this.locate(sha)));
+        const located = await Promise.all(shas.map((sha) => this.locateRow(sha)));
         if (id !== this.refreshId) return;
         this.setPicks(
           relocate(this.picks, new Map(shas.map((sha, i) => [sha, located[i] ?? null]))),
@@ -271,21 +336,31 @@ export class GraphSource {
       if (anchor !== null) this.requestScroll(anchor, 'start');
       else if (this.scrollTop > 0) this.requestScroll(0, 'start');
       if (!isEmptySearch(this.search.query)) this.runQuery();
+      // After the scroll to the anchor: a located commit wins the viewport.
+      this.resolvePendingLocation();
       this.notify();
     } catch (error) {
       if (id !== this.refreshId) return;
       this.loadError = asYagguiError(error);
       this.notify();
+    } finally {
+      if (id === this.refreshId) this.refreshing = false;
     }
   }
 
-  private async locate(sha: string | null): Promise<number | null> {
+  /** Row of a commit in the backend's current layout, with that layout's version. */
+  private async locate(sha: string | null): Promise<GraphLocation | null> {
     if (sha === null) return null;
     try {
-      return (await unwrap(ipc.commands.graphIndexOf(this.repoId, sha))).row;
+      return await unwrap(ipc.commands.graphIndexOf(this.repoId, sha));
     } catch {
       return null;
     }
+  }
+
+  /** `locate` for the pages of the version just loaded: a row, or `null`. */
+  private async locateRow(sha: string | null): Promise<number | null> {
+    return (await this.locate(sha))?.row ?? null;
   }
 
   // --- Selection -------------------------------------------------------------------------
@@ -303,6 +378,8 @@ export class GraphSource {
   selectWip(): void {
     this.pendingSelectRow = null;
     this.pendingRange = null;
+    this.pendingExtend = null;
+    this.pendingLocation = null;
     this.setPicks(EMPTY_SELECTION);
     this.selection = { kind: 'wip' };
     useGraphNavigation.getState().selectCommit(this.repoId, null);
@@ -312,6 +389,7 @@ export class GraphSource {
   selectCommit(sha: string, row: number): void {
     this.pendingSelectRow = null;
     this.pendingRange = null;
+    this.pendingExtend = null;
     this.setPicks(singleSelection({ sha, row }));
     this.selection = { kind: 'commit', sha, row };
     useGraphNavigation.getState().selectCommit(this.repoId, sha);
@@ -322,6 +400,8 @@ export class GraphSource {
     this.selection = null;
     this.pendingSelectRow = null;
     this.pendingRange = null;
+    this.pendingExtend = null;
+    this.pendingLocation = null;
     this.setPicks(EMPTY_SELECTION);
     useGraphNavigation.getState().selectCommit(this.repoId, null);
     this.notify();
@@ -349,13 +429,26 @@ export class GraphSource {
     const data = this.cache.row(target);
     this.requestScroll(target, 'auto');
     if (!data) {
+      // The page was evicted or never loaded: the extension applies when it arrives.
+      this.pendingExtend = { anchor, target };
       this.cache.ensure(target, target);
+      this.notify();
       return;
     }
     this.applyRange(anchor, { sha: data.sha, row: target }, false);
   }
 
+  private resolvePendingExtend(): void {
+    const pending = this.pendingExtend;
+    if (!pending) return;
+    const data = this.cache.row(pending.target);
+    if (!data) return;
+    this.pendingExtend = null;
+    this.applyRange(pending.anchor, { sha: data.sha, row: pending.target }, false);
+  }
+
   private applyRange(anchor: number, hit: PickedCommit, keep: boolean): void {
+    this.pendingExtend = null;
     const result = selectRange(
       anchor,
       hit,
@@ -444,13 +537,13 @@ export class GraphSource {
       this.selectRow(headRow, 'center');
       return;
     }
-    const row = await this.locate('HEAD');
-    if (row !== null) this.selectRow(row, 'center');
+    const location = await this.locate('HEAD');
+    if (location?.row != null) this.revealLocated(location.sha, location.row, location.version);
   }
 
   async goToSha(sha: string): Promise<void> {
-    const row = await this.locate(sha);
-    if (row !== null) this.selectRow(row, 'center');
+    const location = await this.locate(sha);
+    if (location?.row != null) this.revealLocated(location.sha, location.row, location.version);
     else explainOutsideFirstParent(this.repoId, sha);
   }
 
@@ -459,14 +552,10 @@ export class GraphSource {
    * located once the graph has the new layout, which the loaded pages may not have yet.
    */
   async followSha(sha: string): Promise<void> {
-    this.pendingSelectRow = null;
-    this.pendingRange = null;
-    this.setPicks(EMPTY_SELECTION);
-    this.selection = { kind: 'commit', sha, row: null };
-    useGraphNavigation.getState().selectCommit(this.repoId, sha);
-    this.notify();
+    this.pendingLocation = null;
+    this.selectUnlocated(sha);
     await this.refresh();
-    const row = await this.locate(sha);
+    const row = await this.locateRow(sha);
     // Another selection may have been made meanwhile (TS keeps the narrowing across `await`).
     if (row === null || !this.isSelected(sha)) return;
     // Still the old layout: the refresh in flight relocates the selection by its SHA.
@@ -527,6 +616,11 @@ export class GraphSource {
       (from) => unwrap(ipc.commands.searchCommits(this.repoId, query, from)),
       (progress) => {
         if (token.cancelled) return;
+        // Rows of another layout than the loaded pages: the reload re-runs the search.
+        if (this.cache.version !== null && progress.version !== this.cache.version) {
+          if (!this.refreshing) void this.refresh();
+          return;
+        }
         let active = this.search.active;
         if (active === -1 && this.revealFirstMatch && progress.matches.length > 0) {
           // First result: the first match at or after the selection, else the first one.

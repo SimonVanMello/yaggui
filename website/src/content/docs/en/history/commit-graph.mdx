@@ -330,4 +330,4 @@ The graph reloads by itself when branches or tags change, including from a termi
 ### When the graph is empty or fails
 
 - A repository with no commit shows "No commits yet".
-- If the graph cannot be loaded, the center shows "The graph could not be loaded" with **Retry**. If it fails after the first page, an inline alert with **Retry** appears instead. Check the [command log](../../reference/command-log/) and [Troubleshooting](../../help/troubleshooting/).
+- If the graph cannot be loaded, the center shows "The graph could not be loaded" with **Retry**. If it fails after the first page, an inline alert with **Retry** appears instead; yaggui asks for the missing page again by itself after a couple of seconds, and the alert goes away as soon as it loads. Check the [command log](../../reference/command-log/) and [Troubleshooting](../../help/troubleshooting/).

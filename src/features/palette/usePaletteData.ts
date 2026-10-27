@@ -48,7 +48,12 @@ export function useCommitHits(repoId: number | null, text: string, enabled: bool
         for (const [index, page] of pages.entries()) {
           const row = rows[index];
           const sha = page.shas[0];
-          if (row === undefined || sha === undefined || page.version !== version) return;
+          if (row === undefined || sha === undefined || page.version !== version) {
+            // The graph moved under the search: its rows point at other commits. No commits
+            // rather than a spinner that never ends; the next keystroke searches again.
+            setState({ key, hits: [] });
+            return;
+          }
           hits.push({
             sha,
             row,
