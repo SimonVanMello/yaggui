@@ -35,6 +35,17 @@ export interface MenuRef {
   name: string;
 }
 
+/** The ref label (pill) a right click landed on, if any. */
+export function refOfEvent(event: { target: EventTarget }): MenuRef | null {
+  const pill =
+    event.target instanceof Element
+      ? event.target.closest<HTMLElement>('[data-ref-kind][data-ref-name]')
+      : null;
+  const kind = pill?.dataset.refKind;
+  const name = pill?.dataset.refName;
+  return kind && name && isDisplayRefKind(kind) ? { kind, name } : null;
+}
+
 /** Remote part of `origin/feat/x` matching a local branch `feat/x`. */
 function sameShortName(remote: string, local: string): boolean {
   const slash = remote.indexOf('/');

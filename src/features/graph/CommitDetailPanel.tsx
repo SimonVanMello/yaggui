@@ -27,6 +27,7 @@ import { CopyShaButton } from './CopyShaButton';
 import styles from './CommitDetailPanel.module.css';
 import type { GraphSource } from './graphSource';
 import { RefPills } from './RefPills';
+import { RefPillsMenu } from './RefPillsMenu';
 import { useRemoteTags } from './remoteTags';
 import { SignatureBadge } from './SignatureBadge';
 
@@ -240,7 +241,14 @@ export function CommitDetailPanel({
             <>
               <dt>{t('graph.detail.refs')}</dt>
               <dd>
-                <RefPills repoId={repoId} labels={commit.refs} color={0} remoteTags={remoteTags} />
+                <RefPillsMenu repoId={repoId}>
+                  <RefPills
+                    repoId={repoId}
+                    labels={commit.refs}
+                    color={0}
+                    remoteTags={remoteTags}
+                  />
+                </RefPillsMenu>
               </dd>
             </>
           )}
