@@ -62,7 +62,12 @@ fn a_killed_command_does_not_leave_its_index_lock() {
     assert_eq!(err.code, ErrorCode::Cancelled);
     assert!(!lock.exists(), "index.lock left behind");
     let entry = git.log().entries().pop().unwrap();
-    assert!(entry.stderr.contains("removed the index.lock"));
+    assert!(
+        entry
+            .stderr
+            .contains("removed the lock files left by the killed command")
+    );
+    assert!(entry.stderr.contains("index.lock"));
 }
 
 /// A lock that predates the command is another process's: never removed.
