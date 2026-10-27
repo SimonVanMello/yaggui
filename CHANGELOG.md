@@ -9,6 +9,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-10-27
+
+### Added
+
+- Tags on the remotes: an opt-in preference (Preferences → Behavior, off by default) adds a cloud
+  to the labels of the tags a remote holds, like for branches. yaggui lists the tags of each remote
+  with `git ls-remote` after every fetch, pull and push; **Learn more** under the switch explains
+  how it works (#88).
+
 ## [0.9.0] - 2026-10-27
 
 ### Changed
