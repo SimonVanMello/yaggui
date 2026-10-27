@@ -643,9 +643,9 @@ export class MockAi {
   > {
     this.generations.push({ repoId, amend, conventional });
     if (this.pending.has(repoId)) return { error: mockAiError('aiBusy') };
+    if (repo.files.length === 0 && !amend) return { error: nothingStaged() };
     const status = this.providerStatus(ai.provider, claudePath);
     if (!status.ready && status.problem) return { error: status.problem };
-    if (repo.files.length === 0 && !amend) return { error: nothingStaged() };
     const started = Date.now();
     const code = this.takeFailure();
     const done = await this.after(
