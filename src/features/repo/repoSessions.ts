@@ -1,9 +1,13 @@
 import { create } from 'zustand';
 
 import { showYagguiError } from '../../app/errors/presentError';
+import { forgetCompare } from '../compare/compareStore';
 import { closeInteractiveRebase } from '../rebase/rebaseStore';
+import { useStashPreview } from '../refs/stashPreview';
+import { forgetCommitUi } from '../staging/commitUi';
 import { disposeRepoTerminals } from '../terminal/terminalActions';
 import { useGraphNavigation } from './graphNavigation';
+import { forgetLastFinished } from './opsStore';
 import { queryClient, queryKeys } from '../../app/queryClient';
 import { loadRepoLayout } from '../../app/tabs/repoLayout';
 import { selectActiveTab, useTabsStore } from '../../app/tabs/tabsStore';
@@ -185,18 +189,49 @@ export function closeTabAndRepo(tabId: string): void {
 }
 
 /**
+ * Whether `queryKey` belongs to the repository: every per-repository key puts the id right
+ * after its name (`['repo-state', repoId]`, `['diff', repoId, …]`), except the Git config
+ * entries (`['git-config', 'repo', repoId]`).
+ */
+export function isRepoQueryKey(queryKey: readonly unknown[], repoId: number): boolean {
+  return queryKey[1] === repoId || (queryKey[0] === 'git-config' && queryKey[2] === repoId);
+}
+
+/**
+ * Forgets everything cached about the repository: a session reopened later reads it again,
+ * since the repository may have changed meanwhile (`staleTime: Infinity` queries never would).
+ */
+function forgetRepo(repoId: number): void {
+  setSession(repoId, undefined);
+  queryClient.removeQueries({ predicate: (query) => isRepoQueryKey(query.queryKey, repoId) });
+  useGraphNavigation.getState().clear(repoId);
+  closeInteractiveRebase(repoId);
+  disposeRepoTerminals(repoId);
+  // The UI state kept per repository (the graph source and the inspect view follow the
+  // session on their own).
+  forgetCompare(repoId);
+  useStashPreview.getState().clear(repoId);
+  forgetCommitUi(repoId);
+  forgetLastFinished(repoId);
+}
+
+/**
  * Drops the session of a repository that no tab shows anymore. An `openRepo` still in flight
  * is balanced when it completes (see `restoreRepoSession`).
  */
 export function releaseRepo(repoId: number): void {
   if (hasTab(repoId)) return;
-  setSession(repoId, undefined);
-  queryClient.removeQueries({ queryKey: queryKeys.repoState(repoId) });
-  queryClient.removeQueries({ queryKey: queryKeys.repoRefs(repoId) });
-  useGraphNavigation.getState().clear(repoId);
-  closeInteractiveRebase(repoId);
-  disposeRepoTerminals(repoId);
+  forgetRepo(repoId);
   if (held.delete(repoId)) closeBackendSession(repoId);
+}
+
+/**
+ * Drops a session the backend closed on its own (a relocation closes every session of the
+ * repository): there is nothing to give back, and the tab reopens it from the new folder.
+ */
+export function resetRepoSession(repoId: number): void {
+  held.delete(repoId);
+  forgetRepo(repoId);
 }
 
 /** Display name of a tab's repository, from its session or the known repos list. */

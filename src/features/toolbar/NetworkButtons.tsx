@@ -10,6 +10,8 @@ import { MenuItem } from '../../ui/MenuItem';
 import { MenuLabel } from '../../ui/MenuLabel';
 import { MenuSeparator } from '../../ui/MenuSeparator';
 import { fetchRepo, forcePushRepo, pullRepo, pushRepo } from '../network/networkOps';
+import { useRepoRefs } from '../sidebar/useRepoRefs';
+import { fetchRemotes } from './fetchRemotes';
 import styles from './Toolbar.module.css';
 import { ToolbarButton } from './ToolbarButton';
 
@@ -29,10 +31,9 @@ export function NetworkButtons({ repoId, state }: { repoId: number; state: RepoS
     queryKey: ['pullDefaultStrategy', repoId, pullStrategy],
     queryFn: () => unwrap(ipc.commands.pullDefaultStrategy(repoId)),
   });
-  const remotes = useQuery({
-    queryKey: ['remotes', repoId],
-    queryFn: () => unwrap(ipc.commands.listRemotes(repoId)),
-  });
+  // From the refs rather than `listRemotes`: they are refreshed when a remote is added,
+  // renamed or removed, so the menu never keeps a stale list.
+  const remotes = fetchRemotes(useRepoRefs(repoId).data?.remotes);
 
   return (
     <>
@@ -151,7 +152,7 @@ export function NetworkButtons({ repoId, state }: { repoId: number; state: RepoS
           >
             {t('network.fetch.all')}
           </MenuItem>
-          {(remotes.data ?? []).map((remote) => (
+          {remotes.map((remote) => (
             <MenuItem
               key={remote}
               onSelect={() => {

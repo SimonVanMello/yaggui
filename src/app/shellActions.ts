@@ -179,9 +179,13 @@ export function isShellAction(id: string): id is ShellAction {
   return id in ACTIONS;
 }
 
-/** Whether a modal dialog owns the keyboard (shortcuts and menu commands are ignored). */
+/**
+ * Whether a modal dialog owns the keyboard (shortcuts and menu commands are ignored). Only
+ * the modals carry `data-modal`: a Radix popover (branch selector, stashes) is a `dialog` too,
+ * but the shortcuts must keep working while it is open.
+ */
 export function modalOpen(): boolean {
-  return document.querySelector('[role="dialog"][data-state="open"]') !== null;
+  return document.querySelector('[role="dialog"][data-modal][data-state="open"]') !== null;
 }
 
 /** Runs a shell command unless a modal dialog is open. Returns whether it ran. */

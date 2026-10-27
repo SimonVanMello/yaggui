@@ -14,12 +14,16 @@ const tauriEvents: YagguiEvents = {
     const listen = events[name].listen as unknown as Listen<typeof name>;
     let unlisten: UnlistenFn | undefined;
     let active = true;
-    void listen((event) => {
+    listen((event) => {
       if (active) handler(event.payload);
-    }).then((fn) => {
-      if (active) unlisten = fn;
-      else fn();
-    });
+    })
+      .then((fn) => {
+        if (active) unlisten = fn;
+        else fn();
+      })
+      .catch((error: unknown) => {
+        console.warn(`Could not subscribe to the ${name} event`, error);
+      });
     return () => {
       active = false;
       unlisten?.();

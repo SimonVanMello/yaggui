@@ -87,6 +87,18 @@ export const useOpsStore = create<OpsStore>()((set) => ({
   },
 }));
 
+/** A closed repository forgets its last result: the status bar of a reopened one starts clean. */
+export function forgetLastFinished(repoId: number): void {
+  useOpsStore.setState((state) => {
+    if (!(repoId in state.lastFinished)) return state;
+    return {
+      lastFinished: Object.fromEntries(
+        Object.entries(state.lastFinished).filter(([id]) => Number(id) !== repoId),
+      ),
+    };
+  });
+}
+
 /** First running operation of a repository (operations are serialized per repo). */
 export function selectRunningOp(repoId: number | null) {
   return (state: OpsStore): RunningOp | undefined =>

@@ -40,7 +40,7 @@ export function CommandPalette() {
     <Dialog.Root open={open} onOpenChange={setOpen}>
       <Dialog.Portal>
         <Dialog.Overlay className={styles.overlay} />
-        <Dialog.Content className={styles.content} aria-describedby={undefined}>
+        <Dialog.Content className={styles.content} aria-describedby={undefined} data-modal="">
           <PaletteBody />
         </Dialog.Content>
       </Dialog.Portal>

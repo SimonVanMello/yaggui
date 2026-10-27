@@ -30,6 +30,16 @@ export const useCommitUi = create<CommitUi>()((set) => ({
   },
 }));
 
+/** A closed repository forgets its hook failure and its open identity form. */
+export function forgetCommitUi(repoId: number): void {
+  useCommitUi.setState((state) => {
+    if (!(repoId in state.hook) && !(repoId in state.identity)) return state;
+    const without = <T>(record: Record<number, T>) =>
+      Object.fromEntries(Object.entries(record).filter(([id]) => Number(id) !== repoId));
+    return { hook: without(state.hook), identity: without(state.identity) };
+  });
+}
+
 /**
  * The whole output of a failed hook as text to read or copy: nothing is dropped, and when both
  * streams have content they are labelled.

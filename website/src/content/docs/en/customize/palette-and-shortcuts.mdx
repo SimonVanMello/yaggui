@@ -174,7 +174,7 @@ The complete list is in the [keyboard shortcuts reference](../../reference/keybo
 
 ## How shortcuts behave
 
-- While a dialog is open, global shortcuts and menu commands are ignored. The palette shortcut still closes the palette.
+- While a dialog is open, global shortcuts and menu commands are ignored. The palette shortcut still closes the palette. A popover (the branch selector, the stash list) does not block them.
 - In a text field, <kbd>⌘Z</kbd> and <kbd>⌘⇧Z</kbd> (<kbd>Ctrl+Z</kbd>, <kbd>Ctrl+Shift+Z</kbd>, <kbd>Ctrl+Y</kbd>) undo and redo the typing, not the last Git operation. See [Undo and redo](../../history/undo-and-redo/).
 - When the integrated terminal has focus, it receives every key except the palette shortcut and the two terminal shortcuts (<kbd>⌃`</kbd> and <kbd>⌃⇧`</kbd>, which use Control on macOS too).
 - A shortcut for an action that cannot run does nothing. Undo and redo are the exception: they explain why nothing can be undone.

@@ -7,6 +7,7 @@ import { YagguiIpcError, type KnownRepo } from '../../ipc';
 import { Button } from '../../ui/Button';
 import { Icon, type IconName } from '../../ui/Icon';
 import { Kbd } from '../../ui/Kbd';
+import { useShortcut } from '../keybindings/registry';
 import { Spinner } from '../../ui/Spinner';
 import { useNow } from '../../ui/useNow';
 import { openRepoPath } from '../repo/repoSessions';
@@ -85,6 +86,7 @@ function ActionTile({ icon, title, description, shortcut, soon, onClick }: Actio
 /** New tab / welcome screen (F-005): recent and favorite repos, fuzzy search, open actions. */
 export function WelcomeScreen({ tabId }: { tabId: string }) {
   const t = useT();
+  const openShortcut = useShortcut('repo.open');
   const listId = useId();
   const now = useNow();
   const known = useKnownRepos();
@@ -251,7 +253,7 @@ export function WelcomeScreen({ tabId }: { tabId: string }) {
             icon="folderOpen"
             title={t('welcome.open')}
             description={t('welcome.open.description')}
-            shortcut="Mod+O"
+            shortcut={openShortcut}
             onClick={pickFolder}
           />
           <ActionTile

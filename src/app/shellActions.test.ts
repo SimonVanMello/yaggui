@@ -15,9 +15,17 @@ describe('shell actions', () => {
   });
 
   it('is ignored while a modal dialog is open', () => {
-    document.body.innerHTML = '<div role="dialog" data-state="open"></div>';
+    document.body.innerHTML = '<div role="dialog" data-modal="" data-state="open"></div>';
     expect(runShellAction('toggleLog')).toBe(false);
     expect(useShellStore.getState().logOpen).toBe(false);
+  });
+
+  it('runs while a popover (a non-modal dialog) is open', () => {
+    // What Radix renders for an open Popover.Content: the branch selector, the stash list.
+    document.body.innerHTML =
+      '<div data-radix-popper-content-wrapper><div role="dialog" data-state="open"></div></div>';
+    expect(runShellAction('toggleLog')).toBe(true);
+    expect(useShellStore.getState().logOpen).toBe(true);
   });
 
   it('binds each shortcut once', () => {

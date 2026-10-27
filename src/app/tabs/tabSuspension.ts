@@ -80,9 +80,17 @@ export function useRepoEvent(name: RepoEventName, repoId: number, onEvent: () =>
   useEffect(() => {
     handler.current = onEvent;
   });
-  const seen = useRef<number | null>(null);
+  // The version counted when the effect was torn down, for that event of that repository:
+  // a hidden view compares it on reveal, a view switched to another repository starts over.
+  const seen = useRef<{ name: RepoEventName; repoId: number; version: number } | null>(null);
   useEffect(() => {
-    if (seen.current !== null && seen.current !== repoEventVersion(name, repoId)) {
+    const last = seen.current;
+    if (
+      last !== null &&
+      last.name === name &&
+      last.repoId === repoId &&
+      last.version !== repoEventVersion(name, repoId)
+    ) {
       handler.current();
     }
     const unsubscribe = ipc.events.subscribe(name, (payload) => {
@@ -90,7 +98,7 @@ export function useRepoEvent(name: RepoEventName, repoId: number, onEvent: () =>
     });
     return () => {
       unsubscribe();
-      seen.current = repoEventVersion(name, repoId);
+      seen.current = { name, repoId, version: repoEventVersion(name, repoId) };
     };
   }, [name, repoId]);
 }

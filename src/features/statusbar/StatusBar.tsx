@@ -10,6 +10,7 @@ import { Spinner } from '../../ui/Spinner';
 import { Tooltip } from '../../ui/Tooltip';
 import { useNow } from '../../ui/useNow';
 import { useCommandLog } from '../command-log/useCommandLog';
+import { useShortcut } from '../keybindings/registry';
 import { selectRunningOp, useOpsStore } from '../repo/opsStore';
 import styles from './StatusBar.module.css';
 
@@ -109,6 +110,7 @@ export function StatusBar() {
   const repoId = useTabsStore((state) => selectActiveTab(state).repoId);
   const appInfo = useAppInfo();
   const logOpen = useShellStore((state) => state.logOpen);
+  const logShortcut = useShortcut('view.log');
   const log = useCommandLog();
   const count = log.data?.length;
 
@@ -150,7 +152,11 @@ export function StatusBar() {
           </Tooltip>
         )}
         {git}
-        <Tooltip content={logOpen ? t('log.hide') : t('log.show')} shortcut="Mod+J" side="top">
+        <Tooltip
+          content={logOpen ? t('log.hide') : t('log.show')}
+          shortcut={logShortcut}
+          side="top"
+        >
           <button
             type="button"
             className={styles.logToggle}
