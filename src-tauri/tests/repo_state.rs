@@ -318,6 +318,9 @@ fn watcher_failure_is_reported_to_the_frontend() {
 #[test]
 fn stale_ref_locks_named_by_git_are_removable_but_nothing_else() {
     let fx = Fixture::new("clean");
+    // The commit below must reach the ref update: it needs an identity on a bare runner.
+    fx.git(&["config", "user.name", "yaggui Tests"]);
+    fx.git(&["config", "user.email", "tests@yaggui.dev"]);
     let b = backend(false);
     let info = b.repos.open(&fx.repo_str()).unwrap();
     let git_dir = fx.repo().join(".git");

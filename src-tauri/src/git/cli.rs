@@ -650,24 +650,32 @@ impl ProcessTree {
     /// Asks the whole tree to stop (git removes its locks), then kills what is left. Returns
     /// when git itself had to be killed, `None` if it stopped on its own.
     fn terminate(&self, child: &mut Child) -> Option<SystemTime> {
-        let mut exited = false;
-        #[cfg(unix)]
-        {
-            self.signal(libc::SIGTERM);
-            let start = Instant::now();
-            while start.elapsed() < TERMINATE_GRACE {
-                if matches!(child.try_wait(), Ok(Some(_))) {
-                    exited = true;
-                    break;
-                }
-                thread::sleep(POLL_INTERVAL);
-            }
-        }
+        let exited = self.ask_to_stop(child);
         let killed_at = (!exited).then(SystemTime::now);
         self.kill_remaining();
         let _ = child.kill();
         let _ = child.wait();
         killed_at
+    }
+
+    /// Sends SIGTERM to the tree and waits up to `TERMINATE_GRACE` for git to exit on its
+    /// own; `true` if it did. Windows has no graceful stop: always `false`.
+    #[cfg(unix)]
+    fn ask_to_stop(&self, child: &mut Child) -> bool {
+        self.signal(libc::SIGTERM);
+        let start = Instant::now();
+        while start.elapsed() < TERMINATE_GRACE {
+            if matches!(child.try_wait(), Ok(Some(_))) {
+                return true;
+            }
+            thread::sleep(POLL_INTERVAL);
+        }
+        false
+    }
+
+    #[cfg(not(unix))]
+    fn ask_to_stop(&self, _child: &mut Child) -> bool {
+        false
     }
 
     /// Kills every process of the tree still running.
