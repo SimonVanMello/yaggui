@@ -1162,7 +1162,7 @@
   "prefs.git.notFound": "Git est introuvable. Installe Git ou saisis son chemin.",
   "prefs.git.saved": "Chemin de Git enregistré",
   "prefs.autoFetch": "Fetch automatique",
-  "prefs.autoFetch.hint": "Récupère en arrière-plan le dépôt de l'onglet visible.",
+  "prefs.autoFetch.hint": "Récupère en arrière-plan chaque dépôt ouvert, autres onglets compris.",
   "prefs.autoFetchMinutes": "Toutes les (minutes)",
   "prefs.prune": "Nettoyer au fetch",
   "prefs.prune.hint": "Supprime les branches de suivi supprimées sur le serveur.",

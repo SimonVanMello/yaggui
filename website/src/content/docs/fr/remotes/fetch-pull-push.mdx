@@ -60,7 +60,7 @@ Un fetch avec prune ne peut pas être annulé (voir [Ce qui ne peut pas être an
 
 ## Auto-fetch
 
-yaggui fait un fetch de tous les remotes du dépôt actif en arrière-plan, à intervalle régulier.
+yaggui fait un fetch de tous les remotes de chaque dépôt ouvert en arrière-plan, à intervalle régulier : le dépôt de l’onglet visible comme ceux des autres onglets.
 
 | Réglage (Préférences → Comportement) | Par défaut | Effet                                                                    |
 | ------------------------------------ | ---------- | ------------------------------------------------------------------------ |
@@ -69,10 +69,10 @@ yaggui fait un fetch de tous les remotes du dépôt actif en arrière-plan, à i
 
 Fonctionnement :
 
-- Seul l’onglet visible fait un fetch. Les onglets en arrière-plan mettent leur minuteur en pause ; quand vous revenez sur l’un d’eux, son minuteur repart pour un intervalle complet.
+- Chaque dépôt ouvert a son propre minuteur, que son onglet soit visible ou en arrière-plan. Changer d’onglet ne change rien : le minuteur tourne depuis l’ouverture du dépôt jusqu’à la fermeture de son dernier onglet.
 - Aucun fetch n’est lancé à l’ouverture d’un dépôt : le premier a lieu après un intervalle complet.
 - Un déclenchement est ignoré si une autre opération est en cours dans ce dépôt.
-- L’auto-fetch est silencieux : aucune notification en cas de succès ou d’échec. La barre d’état affiche tout de même la progression, puis **Fetch terminé** ou **Fetch a échoué**. Si un fetch échoue, ouvrez le journal des commandes pour en connaître la raison.
+- L’auto-fetch est silencieux : aucune notification en cas de succès ou d’échec. La barre d’état du dépôt affiche tout de même la progression, puis **Fetch terminé** ou **Fetch a échoué**. Si un fetch échoue, ouvrez le journal des commandes pour en connaître la raison.
 - Le pied du menu **Fetch** indique l’état actuel : **Auto-fetch toutes les 10 min** ou **L'auto-fetch est désactivé**.
 
 Pour le désactiver, décochez **Fetch automatique** dans **Préférences → Comportement**.

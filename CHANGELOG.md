@@ -9,6 +9,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Changed
+
+- Auto-fetch now runs for every open repository, the tabs in the background included, instead of
+  the visible tab only (#85).
+
 ### Fixed
 
 - Undo of a checkout that brought the checked-out branch up to its remote one left the whole update
