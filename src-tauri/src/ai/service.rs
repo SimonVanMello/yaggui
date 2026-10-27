@@ -200,7 +200,14 @@ impl AiService {
         let sent = sent_text(prefs.ai.provider, &generation).len();
         summary.sent_bytes = byte_count(sent);
         let started = Instant::now();
-        let reply = self.call(&provider, &generation, &cancel, Some(repo_id), Some(workdir), sent)?;
+        let reply = self.call(
+            &provider,
+            &generation,
+            &cancel,
+            Some(repo_id),
+            Some(workdir),
+            sent,
+        )?;
         let (summary_line, description) = parse_message(&reply.text)?;
         Ok(GeneratedCommitMessage {
             summary: summary_line,
@@ -240,7 +247,14 @@ impl AiService {
         };
         let sent = generation.prompt.bytes();
         let started = Instant::now();
-        let reply = self.call(&provider, &generation, &CancelToken::new(), None, None, sent)?;
+        let reply = self.call(
+            &provider,
+            &generation,
+            &CancelToken::new(),
+            None,
+            None,
+            sent,
+        )?;
         Ok(AiTestResult {
             provider: kind,
             model: reply.model,
