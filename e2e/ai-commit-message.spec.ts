@@ -99,14 +99,14 @@ for (const { name: theme, colorScheme } of THEMES) {
       await start(page, { enabled: true, key: true });
       const dialog = await openAiTab(page);
       const prompt = dialog.getByLabel('Instructions');
-      await expect(prompt).toHaveValue(/You write Git commit messages/);
+      await expect(prompt).toHaveValue(/You write the Git commit message for the changes/);
       await expect(dialog.getByText('Built-in prompt, kept up to date by yaggui.')).toBeVisible();
 
       await prompt.fill('Write haiku commit messages.');
       await prompt.blur();
       await expect(dialog.getByText(/Customized/)).toBeVisible();
       await dialog.getByRole('button', { name: 'Reset to default' }).click();
-      await expect(prompt).toHaveValue(/You write Git commit messages/);
+      await expect(prompt).toHaveValue(/You write the Git commit message for the changes/);
       await expect(dialog.getByText('Built-in prompt, kept up to date by yaggui.')).toBeVisible();
 
       // Typing the built-in text back is saved as "follow the default" too.

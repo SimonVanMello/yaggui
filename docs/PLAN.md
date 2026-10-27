@@ -223,7 +223,7 @@ Exit: the defects found by the full code review of 0.8.0 (backend, frontend, sec
 
 **Milestone status**: every task is merged (#76 to #82, plan and changelog in #83, follow-ups in #85 and #86); the merged tree passes `pnpm check`, `cargo clippy` / `cargo test` and the Playwright suite together. Open points noted by the fix PRs, decided by the PO: auto-fetch runs for every open repository (M9-8, #85), ⌘Q on macOS accepted as is (a panel resize in the last 300 ms before ⌘Q on macOS is not saved), a reset is refused while a merge, rebase, cherry-pick, revert or bisect is in progress, with `operationInProgress` (M9-9, #86).
 
-## M10 — AI commit messages · in progress
+## M10 — AI commit messages · PR open
 
 Exit: with the feature turned on in the preferences, a click (or the palette, or a shortcut) fills the commit message from the staged changes through Claude, either with an API key or with the user's Claude Code (and one of its skills). Off by default; nothing leaves the machine until the user turns it on.
 
@@ -237,9 +237,9 @@ Design:
 
 | ID | Task | Depends on | Requirements |
 |---|---|---|---|
-| M10-1 🟦 | Backend: `ai/` module, provider trait, Claude API and Claude Code providers, keychain, skill discovery, context builder, commands (`ai_generate_commit_message`, `ai_cancel`, `ai_test_provider`, `ai_set_api_key`, `ai_clear_api_key`, `ai_status`, `ai_list_skills`, `ai_default_prompt`), AI preferences, command log entries, tests; contract pushed first | — | F-072 to F-075 |
-| M10-2 🟦 | Front: AI preferences tab, commit area button / cancel / restore, palette action and shortcut, mock client parity, i18n FR / EN, Vitest and Playwright captures in both themes | M10-1 (contract) | F-072 to F-075 |
-| M10-3 🟦 | Docs EN / FR (new page, preferences and commit pages), changelog, shortcuts data | M10-1, M10-2 | — |
+| M10-1 🟨 | Backend: `ai/` module, provider trait, Claude API and Claude Code providers, keychain, skill discovery, context builder, commands (`ai_generate_commit_message`, `ai_cancel`, `ai_test_provider`, `ai_set_api_key`, `ai_clear_api_key`, `ai_status`, `ai_list_skills`, `ai_default_prompt`), AI preferences, command log entries, tests; contract pushed first | — | F-072 to F-075 |
+| M10-2 🟨 | Front: AI preferences tab, commit area button / cancel / restore, palette action and shortcut, mock client parity, i18n FR / EN, Vitest and Playwright captures in both themes | M10-1 (contract) | F-072 to F-075 |
+| M10-3 🟨 | Docs EN / FR (new page, preferences and commit pages), changelog, shortcuts data | M10-1, M10-2 | — |
 
 Order: M10-1 pushes its contract first; M10-2 starts on the mock as soon as it is pushed; M10-3 at the end. One PR for the milestone.
 

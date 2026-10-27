@@ -27,11 +27,15 @@ import {
 
 import { DEFAULT_AI_PREFERENCES } from '../aiDefaults';
 
-const MOCK_DEFAULT_PROMPT = `You write Git commit messages.
+// Same text as `DEFAULT_PROMPT` in src-tauri/src/ai/prompt.rs, so the mock and the docs
+// screenshots show what the app really uses.
+const MOCK_DEFAULT_PROMPT = `You write the Git commit message for the changes described below.
 
-Write a short summary line in the imperative mood (50 characters or fewer when you can, 72 at most), then, only when the change deserves it, a blank line and a description that explains what changed and why.
-
-Follow the style of the recent subjects when they are given. Answer with the message alone: no quotes, no code fence, no comment.`;
+- First line: a summary in the imperative mood ("Add", "Fix", "Remove"), at most 72 characters, without a final period.
+- Then, only when the change needs explaining, a blank line and a body wrapped at 72 characters that says what changed and why, not how. Use short paragraphs or "- " bullets.
+- Describe the intent of the change as a whole; do not list every file.
+- Never invent what the changes do not show (issue numbers, motivations, test results).
+- Follow the style of the recent subjects when they are given (prefixes, capitalization, scopes).`;
 
 export function mockDefaultPrompt(): string {
   return MOCK_DEFAULT_PROMPT;
