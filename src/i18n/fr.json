@@ -1998,6 +1998,7 @@
   "commit.ai.generatedModel": "{provider} · {model} · {seconds} s",
   "commit.ai.reduced": "{count} fichiers ont été coupés ou envoyés par leur nom seulement.",
   "commit.ai.restore": "Rétablir le message précédent",
+  "commit.ai.restoreStale": "Le message a été modifié depuis : rien à rétablir",
   "commit.ai.restored": "Message précédent rétabli",
   "commit.ai.failed": "Impossible de générer un message",
   "commit.templates.button": "Modèle",

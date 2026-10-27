@@ -11,11 +11,12 @@ export const aiKeys = {
 };
 
 /** Providers with what they need and what the backend found; refetched after a change. */
-export function useAiStatus() {
+export function useAiStatus(enabled = true) {
   return useQuery({
     queryKey: aiKeys.status(),
     queryFn: () => unwrap(ipc.commands.aiStatus()),
     staleTime: 10_000,
+    enabled,
   });
 }
 
@@ -41,6 +42,7 @@ export interface AiAvailability {
 export function useAiAvailability(): AiAvailability {
   const enabled = usePreferences().aiEnabled === true;
   const settings = useAiSettings();
-  const status = useAiStatus();
+  // Nothing is asked of the backend while the feature is off.
+  const status = useAiStatus(enabled);
   return { enabled, ready: selectedProvider(status.data, settings)?.ready === true };
 }

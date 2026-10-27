@@ -1,4 +1,4 @@
-import { useId, useState } from 'react';
+import { useId, useState, type ReactNode } from 'react';
 
 import { selectActiveTab, useTabsStore } from '../../app/tabs/tabsStore';
 import { usePreferences } from '../../app/usePreferences';
@@ -179,7 +179,7 @@ export function AiTab() {
   );
 }
 
-function Group({ title, children }: { title: string; children: React.ReactNode }) {
+function Group({ title, children }: { title: string; children: ReactNode }) {
   return (
     <fieldset className={styles.group}>
       <legend className={styles.legend}>{title}</legend>

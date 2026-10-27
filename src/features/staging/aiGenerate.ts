@@ -38,7 +38,10 @@ export function restoreAiMessage(repoId: number): void {
   const drafts = useCommitDrafts.getState();
   const draft = drafts.drafts[repoId] ?? EMPTY_DRAFT;
   const restore = ui.restore[repoId];
-  if (!canRestore(draft, restore)) return;
+  if (!canRestore(draft, restore)) {
+    toast({ variant: 'info', title: t('commit.ai.restoreStale'), duration: 3000 });
+    return;
+  }
   const next = withRestored(draft, restore);
   if (!next) return;
   drafts.set(repoId, next);

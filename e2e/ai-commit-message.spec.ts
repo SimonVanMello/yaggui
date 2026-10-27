@@ -183,10 +183,18 @@ for (const { name: theme, colorScheme } of THEMES) {
       await summary(page).fill('wip: my draft');
       await sparkle(page).click();
       await expect(summary(page)).toHaveValue(/: .+/);
-      const restore = page.getByRole('button', { name: 'Restore previous message' }).last();
+      // The button of the commit area, not the one of the toast.
+      const restore = page.locator('button[aria-label="Restore previous message"]:not(ol *)');
       await expect(restore).toBeVisible();
       await summary(page).fill('feat: edited by hand');
-      await expect(page.getByRole('button', { name: 'Restore previous message' })).toHaveCount(0);
+      await expect(restore).toHaveCount(0);
+      // The toast's button no longer overwrites what was typed since.
+      await page
+        .locator('ol > li')
+        .getByRole('button', { name: 'Restore previous message' })
+        .click();
+      await expect(summary(page)).toHaveValue('feat: edited by hand');
+      await expect(toastWith(page, 'edited since')).toBeVisible();
     });
 
     test('a typed error offers its action, and the shortcut runs the generation', async ({

@@ -1998,6 +1998,7 @@
   "commit.ai.generatedModel": "{provider} · {model} · {seconds} s",
   "commit.ai.reduced": "{count} files were cut or sent by name only.",
   "commit.ai.restore": "Restore previous message",
+  "commit.ai.restoreStale": "The message was edited since: nothing to restore",
   "commit.ai.restored": "Previous message restored",
   "commit.ai.failed": "Could not generate a message",
   "commit.templates.button": "Template",
