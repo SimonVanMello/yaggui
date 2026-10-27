@@ -15,6 +15,7 @@ mod modules;
 mod network;
 pub mod op_queue;
 mod ref_ops;
+mod remote_tags;
 mod remotes;
 pub mod scan;
 mod stash_file;
@@ -23,7 +24,7 @@ pub mod watcher;
 pub mod workspace;
 mod write;
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::path::{Component, Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{
@@ -41,6 +42,7 @@ use crate::git::ops::commit_graph;
 use crate::git::read::diff::types::{ChangedFiles, DiffTarget};
 use crate::git::read::diff::{self, WorktreeStatus};
 use crate::git::read::refs::{self, RepoRefs};
+use crate::git::read::remote_tags::TagTargets;
 use crate::git::read::state::{self, DirtyState, RepoState};
 use crate::graph::{
     self, GraphCache,
@@ -150,6 +152,9 @@ pub struct RepoSession {
     refs_changed: Arc<AtomicBool>,
     /// Ahead/behind counts and peeled tags, kept across refs listings.
     refs_cache: Mutex<refs::RefsCache>,
+    /// Tags of each remote, by remote name, from `ls-remote` (`None`: never listed in this
+    /// session). Memory only: listed again after the next fetch.
+    remote_tags: Mutex<Option<BTreeMap<String, TagTargets>>>,
     watch_error: Option<YagguiError>,
     /// Operations of this session, for undo / redo.
     journal: Mutex<journal::OpJournal>,
@@ -446,6 +451,7 @@ impl RepoManager {
             ref_targets: Mutex::default(),
             refs_changed,
             refs_cache: Mutex::default(),
+            remote_tags: Mutex::default(),
             watch_error,
             journal: Mutex::new(journal::OpJournal::load(&self.store, id)),
             _watcher: watcher,

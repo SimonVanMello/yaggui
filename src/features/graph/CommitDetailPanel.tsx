@@ -27,6 +27,7 @@ import { CopyShaButton } from './CopyShaButton';
 import styles from './CommitDetailPanel.module.css';
 import type { GraphSource } from './graphSource';
 import { RefPills } from './RefPills';
+import { useRemoteTags } from './remoteTags';
 import { SignatureBadge } from './SignatureBadge';
 
 function Person({ signature }: { signature: Signature }) {
@@ -139,6 +140,7 @@ export function CommitDetailPanel({
     queryFn: () => unwrap(ipc.commands.commitDetail(source.repoId, sha)),
     staleTime: Infinity,
   });
+  const remoteTags = useRemoteTags(repoId);
 
   if (detail.isPending) {
     return (
@@ -238,7 +240,7 @@ export function CommitDetailPanel({
             <>
               <dt>{t('graph.detail.refs')}</dt>
               <dd>
-                <RefPills repoId={repoId} labels={commit.refs} color={0} />
+                <RefPills repoId={repoId} labels={commit.refs} color={0} remoteTags={remoteTags} />
               </dd>
             </>
           )}

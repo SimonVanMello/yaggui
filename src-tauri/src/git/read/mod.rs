@@ -11,6 +11,7 @@ pub mod line_history;
 pub mod operation;
 pub mod reflog;
 pub mod refs;
+pub mod remote_tags;
 pub mod state;
 pub mod submodules;
 pub mod tree;

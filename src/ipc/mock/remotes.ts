@@ -1,4 +1,10 @@
-import type { YagguiError, RemoteRemovalPreview, RemovedRemote, TagPushResult } from '../bindings';
+import type {
+  YagguiError,
+  RemoteRemovalPreview,
+  RemovedRemote,
+  RemoteTag,
+  TagPushResult,
+} from '../bindings';
 import type { MockHistory } from '../mockGraph';
 import { isValidRefName } from './refs';
 
@@ -208,4 +214,21 @@ export function pushTags(
   }
   if (rejected.length > 0) return { error: tagRejected(rejected.sort()) };
   return { ok: { pushed: pushed.sort(), upToDate } };
+}
+
+/** Local tags a mock remote holds at the same commit, like `remote_tags` (sorted by name). */
+export function matchRemoteTags(
+  tags: readonly { name: string; commit: number }[],
+  remotes: MockRemoteTags,
+): RemoteTag[] {
+  return tags
+    .map((tag) => ({
+      name: tag.name,
+      remotes: [...remotes]
+        .filter(([, held]) => held.get(tag.name) === tag.commit)
+        .map(([remote]) => remote)
+        .sort(),
+    }))
+    .filter((tag) => tag.remotes.length > 0)
+    .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
 }

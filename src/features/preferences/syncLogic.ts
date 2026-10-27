@@ -21,6 +21,7 @@ const PREF_LABELS: Record<string, MessageKey> = {
   protectedBranches: 'prefs.sync.key.protectedBranches',
   disabledConfirmations: 'prefs.sync.key.disabledConfirmations',
   gravatar: 'prefs.sync.key.gravatar',
+  remoteTags: 'prefs.sync.key.remoteTags',
 };
 
 /** The label of a setting, or `null` for a key this version does not know. */

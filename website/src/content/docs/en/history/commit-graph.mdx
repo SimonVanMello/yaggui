@@ -13,6 +13,8 @@ sources:
   - src-tauri/src/repo/graph_tools.rs
   - src-tauri/src/store/graph_filters.rs
   - src-tauri/src/system/avatars.rs
+  - src-tauri/src/repo/remote_tags.rs
+  - src-tauri/src/git/read/remote_tags.rs
   - src-tauri/src/git/ops/commit_graph.rs
 requirements:
   [
@@ -95,6 +97,16 @@ Labels in the message column show which refs point at a commit:
 | Detached HEAD      | Dot                                                                                                                                                                         |
 
 A local branch and a remote branch on the same commit share one label when the remote branch is the local branch's upstream, or has the same short name (`origin/feat/x` and `feat/x`). The label then carries an extra cloud icon named after the remote.
+
+#### Tags on the remotes
+
+Git keeps no local record of the tags of a remote: a tag received by a fetch looks exactly like one you created. To see which tags are published, turn on **Show tags on the remotes** in **Preferences → Behavior** (off by default). A tag label then carries a cloud when a remote holds this tag on the same commit, in the graph and in the commit details; hover the label to read `v1.2.0 — on origin`.
+
+- **When yaggui asks**: it lists the tags of every remote with `git ls-remote --tags` when you turn the preference on, when a repository opens, and after each fetch (automatic ones included), pull and push. The answer is kept in memory for the session only. Off, yaggui never runs it.
+- **Cost**: one request per remote each time, with the same credentials as a fetch. It only lists names, downloads nothing, and appears in the [command log](../../reference/command-log/).
+- **Same name, another commit**: a remote tag with the name of a local tag but on another commit gives no cloud. Pushing the local tag would be refused, see [Tags](../../history/tags/).
+- **Offline**: when a remote cannot be reached, its last answer is kept, without an error.
+- **Changes made elsewhere**: a tag pushed or deleted outside yaggui is seen after the next fetch. A tag you create or delete locally updates at once, with no request.
 
 Labels are ordered HEAD, local branches (current first), remote branches, tags, stashes. Long names are shortened in the middle. When labels do not fit, a `+N` chip shows the number of hidden refs; hover it to list them.
 

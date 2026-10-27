@@ -6,6 +6,7 @@ import { BisectMarkPill } from '../bisect/BisectMarkPill';
 import type { BisectRowMark } from '../bisect/bisectModel';
 import { Avatar } from './Avatar';
 import type { GraphRow } from './pageCache';
+import type { RemoteTagMap } from './remoteTags';
 import { RefPills } from './RefPills';
 import { SignedMark } from './SignedMark';
 import type { PillMetrics } from './usePillMetrics';
@@ -31,6 +32,8 @@ interface Props {
   /** Width of the message column, px: the ref pills share it with the summary. */
   messageWidth: number;
   pillMetrics: PillMetrics;
+  /** Tags on a remote (opt-in), `null` when not shown. */
+  remoteTags: RemoteTagMap | null;
   now: number;
   locale: Locale;
   /** Bisect mark of the commit, when a bisect is in progress (F-263). */
@@ -62,6 +65,7 @@ export const GraphRowView = memo(function GraphRowView({
   columns,
   messageWidth,
   pillMetrics,
+  remoteTags,
   now,
   locale,
   bisect,
@@ -113,6 +117,7 @@ export const GraphRowView = memo(function GraphRowView({
             signed: data.signature !== null,
             summary: data.summary,
             metrics: pillMetrics,
+            remoteTags,
           }}
         />
         {data.signature && <SignedMark kind={data.signature} locale={locale} />}

@@ -21,7 +21,7 @@ describe('mock preferences file', () => {
         [],
       ),
     ) as { preferences: Record<string, unknown> };
-    expect(Object.keys(file.preferences)).toHaveLength(18);
+    expect(Object.keys(file.preferences)).toHaveLength(19);
     for (const key of ['gitPath', 'editor', 'terminal', 'diffTool', 'mergeTool', 'checkUpdates']) {
       expect(file.preferences).not.toHaveProperty(key);
     }

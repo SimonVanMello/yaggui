@@ -29,7 +29,7 @@ const MAX_FILE_BYTES: u64 = 1024 * 1024;
 const MAX_KEYBINDINGS: usize = 1000;
 
 /// Settings that travel between machines.
-const PORTABLE: [&str; 18] = [
+const PORTABLE: [&str; 19] = [
     "theme",
     "style",
     "locale",
@@ -48,6 +48,7 @@ const PORTABLE: [&str; 18] = [
     "protectedBranches",
     "disabledConfirmations",
     "gravatar",
+    "remoteTags",
 ];
 
 /// Settings that only mean something on the machine they were set on: programs and paths

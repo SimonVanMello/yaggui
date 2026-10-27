@@ -133,6 +133,7 @@ export function normalizePreferences(
       protectedBranches: branches,
       disabledConfirmations: disabled,
       gravatar: prefs.gravatar ?? false,
+      remoteTags: prefs.remoteTags ?? false,
     },
   };
 }

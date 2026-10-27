@@ -644,6 +644,13 @@ export const commands = {
 	/**  `git fetch --tags` of one remote or all. */
 	fetchTags: (repoId: number, target: FetchTarget) => typedError<null, YagguiError>(__TAURI_INVOKE("fetch_tags", { repoId, target })),
 	/**
+	 *  Local tags found, at the same object, on the remotes (`remoteTags` preference, which the
+	 *  frontend honors: it only asks while it is on). `refresh` lists the remote tags again with
+	 *  `git ls-remote`; otherwise the session's last listing is reused. Never fails for the
+	 *  network: an unreachable remote keeps its previous listing. Not queued.
+	 */
+	remoteTags: (repoId: number, refresh: boolean) => typedError<RemoteTag[], YagguiError>(__TAURI_INVOKE("remote_tags", { repoId, refresh })),
+	/**
 	 *  Undoes the latest journaled operation not undone yet, and returns it. Errors:
 	 *  `nothingToUndo`, `undoBlocked` (push, fetch with prune, pull), `undoDiverged` (refs or
 	 *  files changed since), `undoWouldOverwrite` (local changes in the way),
@@ -2829,6 +2836,11 @@ export type Preferences = {
 	 */
 	gravatar?: boolean,
 	/**
+	 *  Cloud on the tag labels of the graph for the tags the remotes hold. Off by default:
+	 *  when on, `git ls-remote --tags` asks every remote after each fetch, pull and push.
+	 */
+	remoteTags?: boolean,
+	/**
 	 *  Look for a newer version at startup (SPEC §10). `None` until the user answered the
 	 *  one-time question: the check is opt-in, nothing is asked of GitHub before.
 	 */
@@ -3077,6 +3089,14 @@ export type RemoteRemovalPreview = {
 	tracking: string[],
 	/**  Local branches whose upstream is on this remote: they lose their upstream. */
 	upstreamOf: string[],
+};
+
+/**  A local tag found, at the same object, on at least one remote. */
+export type RemoteTag = {
+	/**  Short name: `v1.2.0`. */
+	name: string,
+	/**  Remotes holding it, sorted. */
+	remotes: string[],
 };
 
 /**  A removed remote, with what is needed to add it back (undo). */
