@@ -199,9 +199,11 @@ impl GitCommand {
         self
     }
 
-    /// The `index.lock` the command may take. If the command is cancelled, git is killed
-    /// with its process tree (on Windows always abruptly, on Unix when it ignores SIGTERM)
-    /// and cannot remove the lock: one created while it ran is removed then.
+    /// The `index.lock` the command may take, in the git dir of the repository it writes.
+    /// If the command is cancelled, git is killed with its process tree (on Windows always
+    /// abruptly, on Unix when it ignores SIGTERM) and cannot remove its locks: the `.lock`
+    /// files created in that git dir while it ran (`index.lock`, ref locks, `packed-refs.lock`,
+    /// `config.lock`…) are removed then.
     pub fn index_lock(mut self, path: impl Into<PathBuf>) -> Self {
         self.index_lock = Some(path.into());
         self
@@ -417,7 +419,7 @@ impl GitCli {
         let stderr_reader = spawn_stderr_reader(child.stderr.take(), line_tx, limit);
 
         let wait = wait_child(&mut child, &tree, cancel, &line_rx, &mut on_progress);
-        let cancelled = matches!(wait, Ok(WaitOutcome::Cancelled));
+        let cancelled = matches!(wait, Ok(WaitOutcome::Cancelled { .. }));
         // Processes left by the command (a hook's background job) may keep the pipes open.
         // Git has exited: its status stands (a commit that went through is never reported
         // as cancelled); the wait for the pipes is only bounded, and a cancellation kills
@@ -451,11 +453,22 @@ impl GitCli {
 
         let (stdout, stdout_truncated) = bounded_output(stdout_logged.as_bytes());
         let (mut stderr, stderr_truncated) = bounded_output(&stderr_bytes);
-        if cancelled
+        // Only a killed git leaves locks behind: one that stopped on SIGTERM removed its own,
+        // and a lock found then belongs to another process.
+        if let Ok(WaitOutcome::Cancelled {
+            killed_at: Some(killed_at),
+        }) = &wait
             && let Some(lock) = &command.index_lock
-            && remove_lock_left_by_kill(lock, spawned_at)
         {
-            stderr.push_str("\n[yaggui] removed the index.lock left by the cancelled command\n");
+            let removed = remove_locks_left_by_kill(lock, spawned_at, *killed_at);
+            if !removed.is_empty() {
+                stderr.push_str("\n[yaggui] removed the lock files left by the killed command:");
+                for lock in &removed {
+                    stderr.push(' ');
+                    stderr.push_str(&lock.display().to_string());
+                }
+                stderr.push('\n');
+            }
         }
         entry.stdout = stdout;
         entry.stderr = stderr;
@@ -471,7 +484,7 @@ impl GitCli {
                 entry.status = CommandStatus::Cancelled;
                 Err(YagguiError::cancelled())
             }
-            Ok(WaitOutcome::Cancelled) => unreachable_cancel(),
+            Ok(WaitOutcome::Cancelled { .. }) => unreachable_cancel(),
             Ok(WaitOutcome::Exited(status)) => {
                 entry.exit_code = status.code();
                 entry.status = if status.success() {
@@ -573,7 +586,11 @@ impl GitCli {
 
 enum WaitOutcome {
     Exited(ExitStatus),
-    Cancelled,
+    /// `killed_at` is when the process tree was killed abruptly; `None` when git stopped on
+    /// its own after being asked to (it removed its locks then).
+    Cancelled {
+        killed_at: Option<SystemTime>,
+    },
 }
 
 fn wait_child(
@@ -588,8 +605,8 @@ fn wait_child(
     }
     loop {
         if cancel.is_some_and(CancelToken::is_cancelled) {
-            tree.terminate(child);
-            return Ok(WaitOutcome::Cancelled);
+            let killed_at = tree.terminate(child);
+            return Ok(WaitOutcome::Cancelled { killed_at });
         }
         // Waiting on the progress channel doubles as the poll delay.
         match lines.recv_timeout(POLL_INTERVAL) {
@@ -665,22 +682,35 @@ impl ProcessTree {
         Self {}
     }
 
-    /// Asks the whole tree to stop (git removes its locks), then kills what is left.
-    fn terminate(&self, child: &mut Child) {
-        #[cfg(unix)]
-        {
-            self.signal(libc::SIGTERM);
-            let start = Instant::now();
-            while start.elapsed() < TERMINATE_GRACE {
-                if matches!(child.try_wait(), Ok(Some(_))) {
-                    break;
-                }
-                thread::sleep(POLL_INTERVAL);
-            }
-        }
+    /// Asks the whole tree to stop (git removes its locks), then kills what is left. Returns
+    /// when git itself had to be killed, `None` if it stopped on its own.
+    fn terminate(&self, child: &mut Child) -> Option<SystemTime> {
+        let exited = self.ask_to_stop(child);
+        let killed_at = (!exited).then(SystemTime::now);
         self.kill_remaining();
         let _ = child.kill();
         let _ = child.wait();
+        killed_at
+    }
+
+    /// Sends SIGTERM to the tree and waits up to `TERMINATE_GRACE` for git to exit on its
+    /// own; `true` if it did. Windows has no graceful stop: always `false`.
+    #[cfg(unix)]
+    fn ask_to_stop(&self, child: &mut Child) -> bool {
+        self.signal(libc::SIGTERM);
+        let start = Instant::now();
+        while start.elapsed() < TERMINATE_GRACE {
+            if matches!(child.try_wait(), Ok(Some(_))) {
+                return true;
+            }
+            thread::sleep(POLL_INTERVAL);
+        }
+        false
+    }
+
+    #[cfg(not(unix))]
+    fn ask_to_stop(&self, _child: &mut Child) -> bool {
+        false
     }
 
     /// Kills every process of the tree still running.
@@ -769,32 +799,77 @@ fn forward_progress(line: &str, on_progress: &mut Option<&mut dyn FnMut(GitProgr
     }
 }
 
-/// Timestamps may be coarse (FAT: 2 s): a lock written right after the spawn can look older.
+/// Timestamps may be coarse (FAT: 2 s): a lock written right after the spawn can look older,
+/// one written right before the kill can look newer.
 const LOCK_CLOCK_SLACK: Duration = Duration::from_secs(2);
 
-/// Removes `lock` if it was created while the killed command ran: git takes its locks
-/// exclusively, so no other process could create it in that time. A lock older than the
-/// command belongs to someone else (and made the command fail, not hang): it is kept.
-fn remove_lock_left_by_kill(lock: &std::path::Path, spawned_at: SystemTime) -> bool {
-    let Ok(modified) = std::fs::metadata(lock).and_then(|m| m.modified()) else {
-        return false;
+/// Folders of a git dir never swept for locks: object stores are large and hold no lock
+/// git leaves behind; submodule and worktree git dirs belong to other commands.
+const UNSWEPT_DIRS: &[&str] = &["objects", "modules", "worktrees", "lfs"];
+
+/// Removes the `.lock` files of the git dir holding `index_lock` (and of its common dir, for
+/// a linked worktree) created while the killed command ran: git takes its locks exclusively,
+/// so no other process could create them in that time. A lock older than the command belongs
+/// to someone else (and made the command fail, not hang), one newer than the kill was taken
+/// after it: both are kept. Returns the removed paths.
+fn remove_locks_left_by_kill(
+    index_lock: &Path,
+    spawned_at: SystemTime,
+    killed_at: SystemTime,
+) -> Vec<PathBuf> {
+    let Some(git_dir) = index_lock.parent() else {
+        return Vec::new();
     };
     let since = spawned_at
         .checked_sub(LOCK_CLOCK_SLACK)
         .unwrap_or(spawned_at);
-    if modified < since || modified > SystemTime::now() {
-        return false;
-    }
-    match std::fs::remove_file(lock) {
-        Ok(()) => {
-            tracing::warn!(lock = %lock.display(), "removed the lock left by a cancelled command");
-            true
-        }
-        Err(err) => {
-            tracing::warn!(lock = %lock.display(), error = %err, "cannot remove the lock left by a cancelled command");
-            false
+    let until = killed_at.checked_add(LOCK_CLOCK_SLACK).unwrap_or(killed_at);
+    let mut roots = vec![git_dir.to_path_buf()];
+    if let Ok(common) = std::fs::read_to_string(git_dir.join("commondir")) {
+        let common = git_dir.join(common.trim());
+        if common.is_dir() && !roots.iter().any(|r| r == &common) {
+            roots.push(common);
         }
     }
+    let mut removed = Vec::new();
+    while let Some(dir) = roots.pop() {
+        let Ok(entries) = std::fs::read_dir(&dir) else {
+            continue;
+        };
+        for entry in entries.flatten() {
+            let path = entry.path();
+            let Ok(kind) = entry.file_type() else {
+                continue;
+            };
+            if kind.is_dir() {
+                let name = entry.file_name();
+                if !UNSWEPT_DIRS.iter().any(|skip| name == *skip) {
+                    roots.push(path);
+                }
+                continue;
+            }
+            if !kind.is_file() || path.extension().is_none_or(|ext| ext != "lock") {
+                continue;
+            }
+            let Ok(modified) = entry.metadata().and_then(|m| m.modified()) else {
+                continue;
+            };
+            if modified < since || modified > until {
+                continue;
+            }
+            match std::fs::remove_file(&path) {
+                Ok(()) => {
+                    tracing::warn!(lock = %path.display(), "removed a lock left by a killed command");
+                    removed.push(path);
+                }
+                Err(err) => {
+                    tracing::warn!(lock = %path.display(), error = %err, "cannot remove a lock left by a killed command");
+                }
+            }
+        }
+    }
+    removed.sort();
+    removed
 }
 
 /// Joins a reader thread. After a cancellation, gives up after `CANCEL_GRACE` and leaves
@@ -1149,6 +1224,69 @@ mod tests {
         assert_eq!(entry.status, CommandStatus::Failed);
         assert_eq!(entry.exit_code, Some(128));
         assert!(entry.stderr.contains("not a git repository"));
+    }
+
+    #[test]
+    fn sweeps_the_locks_a_killed_command_left_in_its_git_dir() {
+        let root = tempfile::tempdir().unwrap();
+        let git_dir = root.path().join(".git");
+        let spawned_at = SystemTime::now() - Duration::from_secs(60);
+        let killed_at = spawned_at + Duration::from_secs(10);
+        let touch = |relative: &str, at: SystemTime| {
+            let path = git_dir.join(relative);
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            std::fs::write(&path, b"").unwrap();
+            std::fs::File::options()
+                .write(true)
+                .open(&path)
+                .unwrap()
+                .set_modified(at)
+                .unwrap();
+            path
+        };
+        let during = spawned_at + Duration::from_secs(5);
+        let index = touch("index.lock", during);
+        let remote_ref = touch("refs/remotes/origin/feature.lock", during);
+        let packed = touch("packed-refs.lock", during);
+        let head = touch("HEAD.lock", killed_at + Duration::from_secs(1));
+        let older = touch("config.lock", spawned_at - Duration::from_secs(30));
+        let newer = touch("refs/heads/other.lock", killed_at + Duration::from_secs(30));
+        let pack = touch("objects/pack/pack-1.lock", during);
+        let submodule = touch("modules/sub/index.lock", during);
+        let not_a_lock = touch("refs/heads/main", during);
+        let dir_named_lock = git_dir.join("refs/heads/dir.lock");
+        std::fs::create_dir_all(&dir_named_lock).unwrap();
+        // A linked worktree's git dir: its own locks and those of the common dir.
+        let worktree_dir = git_dir.join("worktrees/wt");
+        std::fs::create_dir_all(&worktree_dir).unwrap();
+        std::fs::write(worktree_dir.join("commondir"), "../..\n").unwrap();
+        let worktree_index = touch("worktrees/wt/index.lock", during);
+
+        let removed = remove_locks_left_by_kill(&index, spawned_at, killed_at);
+        let mut expected = vec![
+            index.clone(),
+            remote_ref.clone(),
+            packed.clone(),
+            head.clone(),
+        ];
+        expected.sort();
+        assert_eq!(removed, expected);
+        for kept in [
+            &older,
+            &newer,
+            &pack,
+            &submodule,
+            &not_a_lock,
+            &worktree_index,
+        ] {
+            assert!(kept.exists(), "{} should be kept", kept.display());
+        }
+        assert!(dir_named_lock.is_dir());
+
+        let removed = remove_locks_left_by_kill(&worktree_index, spawned_at, killed_at);
+        assert_eq!(removed, vec![worktree_index.clone()]);
+        assert!(!worktree_index.exists());
+        assert!(newer.exists() && older.exists());
     }
 
     #[test]

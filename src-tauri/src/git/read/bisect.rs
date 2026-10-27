@@ -206,7 +206,10 @@ pub fn read_bisect(repo: &gix::Repository) -> Result<Option<BisectState>, Yaggui
             .copied()
             .filter(|id| *id != bad && !skipped.contains(id))
             .collect();
-        if untested.is_empty() && range.contains(&bad) {
+        if !range.contains(&bad) {
+            // Hidden by a good commit it is an ancestor of: an empty range is not a result.
+            result = Some(BisectResult::InconsistentMarks);
+        } else if untested.is_empty() {
             result = if range.len() == 1 {
                 bisect_commit(repo, bad).map(|commit| BisectResult::Found { commit })
             } else {

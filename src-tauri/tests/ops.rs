@@ -315,3 +315,230 @@ fn background_operations_yield_to_user_operations() {
         ["user", "background start", "background end", "user 2"]
     );
 }
+
+#[test]
+fn a_non_cancellable_operation_survives_cancel_and_shutdown() {
+    let fx = Fixture::new("clean");
+    let b = backend(false);
+    let id = b.repos.open(&fx.repo_str()).unwrap().id;
+    let session = b.repos.session(id).unwrap();
+    let queue = session.queue();
+
+    // Cancel is refused: the token is never raised and the job finishes normally.
+    let interrupted = Arc::new(Mutex::new(false));
+    let seen = interrupted.clone();
+    let handle = queue
+        .enqueue(OpKind::Commit, false, move |ctx| {
+            let started = Instant::now();
+            while started.elapsed() < Duration::from_millis(300) {
+                if ctx.cancel.is_cancelled() {
+                    *seen.lock().unwrap() = true;
+                    return Err(yaggui_lib::git::errors::YagguiError::cancelled());
+                }
+                std::thread::sleep(Duration::from_millis(5));
+            }
+            Ok(())
+        })
+        .unwrap();
+    let op_id = handle.op_id;
+    assert!(b.sink.wait_for(
+        Duration::from_secs(2),
+        |e| matches!(e, BackendEvent::OpStarted(s) if s.op_id == op_id && !s.cancellable)
+    ));
+    assert!(!queue.cancel(op_id));
+    assert_eq!(
+        b.repos.cancel_op(op_id).unwrap_err().code,
+        ErrorCode::OpNotFound
+    );
+    handle.wait().unwrap();
+    assert!(!*interrupted.lock().unwrap());
+
+    // Closing the repository (the queue is shut down) lets the running non-cancellable
+    // operation finish, while queued ones are dropped.
+    let interrupted = Arc::new(Mutex::new(false));
+    let seen = interrupted.clone();
+    let running = queue
+        .enqueue(OpKind::Push, false, move |ctx| {
+            let started = Instant::now();
+            while started.elapsed() < Duration::from_millis(300) {
+                if ctx.cancel.is_cancelled() {
+                    *seen.lock().unwrap() = true;
+                    return Err(yaggui_lib::git::errors::YagguiError::cancelled());
+                }
+                std::thread::sleep(Duration::from_millis(5));
+            }
+            Ok(())
+        })
+        .unwrap();
+    let running_id = running.op_id;
+    let queued = queue.enqueue(OpKind::Fetch, true, |_| Ok(())).unwrap();
+    assert!(b.sink.wait_for(
+        Duration::from_secs(2),
+        |e| matches!(e, BackendEvent::OpStarted(s) if s.op_id == running_id)
+    ));
+    queue.shutdown();
+    running.wait().unwrap();
+    assert!(!*interrupted.lock().unwrap());
+    assert!(queued.wait().is_err());
+    assert!(b.sink.events().iter().any(|e| matches!(
+        e,
+        BackendEvent::OpFinished(f) if f.op_id == running_id && matches!(f.outcome, OpOutcome::Success { .. })
+    )));
+}
+
+#[test]
+fn shutdown_interrupts_a_cancellable_operation() {
+    let fx = Fixture::new("clean");
+    let b = backend(false);
+    let id = b.repos.open(&fx.repo_str()).unwrap().id;
+    let session = b.repos.session(id).unwrap();
+    let queue = session.queue();
+    let handle = queue
+        .enqueue(OpKind::Fetch, true, move |ctx| {
+            let started = Instant::now();
+            while started.elapsed() < Duration::from_secs(5) {
+                if ctx.cancel.is_cancelled() {
+                    return Err(yaggui_lib::git::errors::YagguiError::cancelled());
+                }
+                std::thread::sleep(Duration::from_millis(5));
+            }
+            Ok(())
+        })
+        .unwrap();
+    let op_id = handle.op_id;
+    assert!(b.sink.wait_for(
+        Duration::from_secs(2),
+        |e| matches!(e, BackendEvent::OpStarted(s) if s.op_id == op_id)
+    ));
+    let start = Instant::now();
+    queue.shutdown();
+    assert_eq!(handle.wait().unwrap_err().code, ErrorCode::Cancelled);
+    assert!(start.elapsed() < Duration::from_secs(2));
+}
+
+#[test]
+fn finishing_an_operation_raises_the_refs_changed_flag_before_op_finished() {
+    use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+    use yaggui_lib::events::EventSink;
+    use yaggui_lib::repo::op_queue::OpQueue;
+
+    /// Records the flag the moment `op-finished` is emitted.
+    struct Probe {
+        flag: Arc<AtomicBool>,
+        seen: Mutex<Option<bool>>,
+    }
+    impl EventSink for Probe {
+        fn emit(&self, event: BackendEvent) {
+            if matches!(event, BackendEvent::OpFinished(_)) {
+                *self.seen.lock().unwrap() = Some(self.flag.load(Ordering::SeqCst));
+            }
+        }
+    }
+    let refs_changed = Arc::new(AtomicBool::new(false));
+    let probe = Arc::new(Probe {
+        flag: refs_changed.clone(),
+        seen: Mutex::new(None),
+    });
+    let queue = OpQueue::new(7, probe.clone(), Arc::new(AtomicU64::new(0)))
+        .unwrap()
+        .with_refs_changed(refs_changed.clone());
+    queue
+        .enqueue(OpKind::Fetch, true, |_| Ok(()))
+        .unwrap()
+        .wait()
+        .unwrap();
+    assert_eq!(*probe.seen.lock().unwrap(), Some(true));
+    assert!(refs_changed.load(Ordering::SeqCst));
+}
+
+/// Cancels `token` after `delay` from another thread.
+#[cfg(unix)]
+fn cancel_after(token: yaggui_lib::git::cli::CancelToken, delay: Duration) {
+    std::thread::spawn(move || {
+        std::thread::sleep(delay);
+        token.cancel();
+    });
+}
+
+#[cfg(unix)]
+#[test]
+fn a_killed_command_has_every_lock_it_left_removed() {
+    use yaggui_lib::git::cli::CancelToken;
+
+    let fx = Fixture::new("clean");
+    let b = backend(false);
+    let git_dir = fx.repo().join(".git");
+    // Stands for a git that ignores SIGTERM mid-way through its ref updates: it took a ref
+    // lock and `packed-refs.lock`, and is killed after the grace period.
+    let token = CancelToken::new();
+    cancel_after(token.clone(), Duration::from_millis(200));
+    let err = b
+        .git
+        .run_with(
+            &GitCommand::new([
+                "-c",
+                "alias.slow=!touch .git/refs/remotes/origin/feature.lock .git/packed-refs.lock .git/index.lock; trap '' TERM; sleep 10",
+                "slow",
+            ])
+            .cwd(fx.repo())
+            .index_lock(git_dir.join("index.lock")),
+            Some(&token),
+            None,
+        )
+        .unwrap_err();
+    assert_eq!(err.code, ErrorCode::Cancelled);
+    for lock in [
+        "refs/remotes/origin/feature.lock",
+        "packed-refs.lock",
+        "index.lock",
+    ] {
+        assert!(!git_dir.join(lock).exists(), "{lock} left behind");
+    }
+    let entry = b.git.log().entries().last().unwrap().clone();
+    assert_eq!(entry.status, CommandStatus::Cancelled);
+    assert!(
+        entry
+            .stderr
+            .contains("removed the lock files left by the killed command")
+    );
+    assert!(entry.stderr.contains("feature.lock"));
+}
+
+#[cfg(unix)]
+#[test]
+fn a_command_that_stops_when_asked_leaves_other_locks_alone() {
+    use yaggui_lib::git::cli::CancelToken;
+
+    let fx = Fixture::new("clean");
+    let b = backend(false);
+    let git_dir = fx.repo().join(".git");
+    // git honours SIGTERM and removes its own locks: a lock found afterwards was taken by
+    // another process while the command ran, and must stay.
+    let token = CancelToken::new();
+    let other = git_dir.join("refs/heads/other.lock");
+    let other_index = git_dir.join("index.lock");
+    let token_for_writer = token.clone();
+    let (writer_other, writer_index) = (other.clone(), other_index.clone());
+    std::thread::spawn(move || {
+        std::thread::sleep(Duration::from_millis(100));
+        std::fs::write(&writer_other, "").unwrap();
+        std::fs::write(&writer_index, "").unwrap();
+        std::thread::sleep(Duration::from_millis(100));
+        token_for_writer.cancel();
+    });
+    let err = b
+        .git
+        .run_with(
+            &GitCommand::new(["-c", "alias.slow=!sleep 10", "slow"])
+                .cwd(fx.repo())
+                .index_lock(git_dir.join("index.lock")),
+            Some(&token),
+            None,
+        )
+        .unwrap_err();
+    assert_eq!(err.code, ErrorCode::Cancelled);
+    assert!(other.exists());
+    assert!(other_index.exists());
+    let entry = b.git.log().entries().last().unwrap().clone();
+    assert!(!entry.stderr.contains("[yaggui]"), "{}", entry.stderr);
+}

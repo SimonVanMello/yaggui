@@ -91,7 +91,9 @@ A command that fails because of the lock shows the same message, "Another Git pr
 
 yaggui judges only by the age of the file: it cannot tell whether a slow Git command is still running. If a long command (a large `git gc`, a rebase in a terminal) is still working, do not remove the lock. You can also delete `.git/index.lock` by hand once you are sure no Git process runs.
 
-When you cancel an operation in yaggui, it removes the lock left by the cancelled command itself.
+When you cancel an operation in yaggui, Git is first asked to stop and removes its own locks. If it has to be killed instead (always on Windows), yaggui removes the lock files the killed command created in `.git` (`index.lock`, branch and tag locks, `packed-refs.lock`…).
+
+A command that fails on another lock file, for example "Unable to create '.git/refs/remotes/origin/main.lock': File exists" after a crash, shows the same message with that file's name, and **Remove the lock…** removes that file once it is older than 10 seconds.
 
 ## Changes made outside yaggui don't show
 

@@ -108,8 +108,11 @@ pub fn conflict_hint_paths(git_dir: &Path) -> Vec<String> {
     };
     let mut lines = message.lines();
     let mut paths = Vec::new();
+    // The message of the picked or reverted commit comes first: its lines may start with any
+    // character, so skip the comment character by char, never by byte.
     for line in lines.by_ref() {
-        if line.len() > 1 && line[1..].trim() == "Conflicts:" {
+        let after_comment_char = line.char_indices().nth(1).map(|(i, _)| &line[i..]);
+        if after_comment_char.is_some_and(|rest| rest.trim() == "Conflicts:") {
             break;
         }
     }
@@ -476,6 +479,21 @@ mod tests {
         )
         .unwrap();
         assert_eq!(conflict_hint_paths(dir.path()), ["a b.txt", "src/c.rs"]);
+    }
+
+    #[test]
+    fn conflicts_hint_survives_multi_byte_message_lines() {
+        // A cherry-pick keeps the picked commit's message in MERGE_MSG: lines starting with a
+        // multi-byte character must not be sliced at byte 1.
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(
+            dir.path().join("MERGE_MSG"),
+            "Évite un crash\n\n« détail » — suite 🚀\n😀\n\n# Conflicts:\n#\tsrc/é.rs\n",
+        )
+        .unwrap();
+        assert_eq!(conflict_hint_paths(dir.path()), ["src/é.rs"]);
+        std::fs::write(dir.path().join("MERGE_MSG"), "É\n—\n").unwrap();
+        assert!(conflict_hint_paths(dir.path()).is_empty());
     }
 
     #[test]

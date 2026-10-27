@@ -139,6 +139,8 @@
   "bisect.inconclusive.title": "Bisect inconclusive",
   "bisect.inconclusive.text": "Only skipped commits are left: the first bad commit is one of these {count}",
   "bisect.inconclusive.toast": "Bisect inconclusive: {count} possible first bad commits",
+  "bisect.inconsistent.title": "Bisect marks contradict each other",
+  "bisect.inconsistent.text": "The bad commit is an ancestor of a good one: nothing can be tested. Mark a newer commit as bad from its menu in the graph, or end the bisect.",
   "bisect.more": "+{count} more",
   "bisect.mark.good": "Good",
   "bisect.mark.bad": "Bad",

@@ -181,19 +181,32 @@ fn read_upstream(repo: &gix::Repository) -> Result<Option<UpstreamState>, Yaggui
             gone: true,
         }));
     };
-    let upstream_id = upstream_ref
-        .peel_to_id()
-        .map_err(gix("peel upstream"))?
-        .detach();
+    let upstream_id = match upstream_ref.target() {
+        gix::refs::TargetRef::Object(id) => id.to_owned(),
+        gix::refs::TargetRef::Symbolic(_) => upstream_ref
+            .peel_to_id()
+            .map_err(gix("peel upstream"))?
+            .detach(),
+    };
     let local_id = repo.head_id().map_err(gix("read HEAD"))?.detach();
     let counted =
         super::ahead_behind::Counter::new(repo).and_then(|mut c| c.count(local_id, upstream_id));
     let (ahead, behind) = match counted {
         Some(counts) => counts,
-        None => (
-            count_exclusive(repo, local_id, upstream_id)?,
-            count_exclusive(repo, upstream_id, local_id)?,
-        ),
+        None => {
+            let counts = count_exclusive(repo, local_id, upstream_id)
+                .and_then(|ahead| Ok((ahead, count_exclusive(repo, upstream_id, local_id)?)));
+            match counts {
+                Ok(counts) => counts,
+                Err(err) => {
+                    // An unreadable commit behind the upstream (a remote-tracking ref left
+                    // pointing at a pruned object, a partial clone): the repository opens
+                    // without an upstream state rather than not at all, like the refs list.
+                    tracing::warn!(upstream = %name, error = %err, "upstream state unavailable");
+                    return Ok(None);
+                }
+            }
+        }
     };
     Ok(Some(UpstreamState {
         name,
@@ -246,6 +259,9 @@ pub fn read_operation(repo: &gix::Repository) -> Option<RepoOperation> {
     };
     Some(match state {
         InProgress::ApplyMailbox => RepoOperation::ApplyMailbox,
+        // gix looks at `BISECT_LOG` before `REVERT_HEAD`: a revert stopped on conflicts
+        // while bisecting is the operation to finish first (`git status` says so too).
+        InProgress::Bisect if git_dir.join("REVERT_HEAD").is_file() => RepoOperation::Revert,
         InProgress::Bisect => RepoOperation::Bisect,
         InProgress::CherryPick | InProgress::CherryPickSequence => RepoOperation::CherryPick,
         InProgress::Merge => RepoOperation::Merge { squash: false },

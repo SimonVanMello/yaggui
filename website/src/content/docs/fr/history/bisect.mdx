@@ -89,6 +89,8 @@ Quand il ne reste qu’un commit, la bannière indique **Premier commit mauvais 
 
 S’il ne reste que des commits passés entre les commits bons et le mauvais, Git ne peut pas dire lequel est le premier mauvais. La bannière indique **Bisect non concluant** et « Il ne reste que des commits passés : le premier commit mauvais est l'un de ces \{count\} », suivi de leurs SHA courts (cliquez sur l’un d’eux pour le sélectionner).
 
+Si le commit mauvais est un ancêtre d’un commit bon, rien ne peut être testé. yaggui refuse de telles marques, mais `git bisect` dans un terminal les enregistre avant de refuser : un bisect démarré là peut être relu dans cet état. La bannière indique **Les marques du bisect se contredisent** et « Le commit mauvais est un ancêtre d'un commit bon : rien ne peut être testé. Marque un commit plus récent comme mauvais depuis son menu dans le graphe, ou termine le bisect. »
+
 ## Terminer le bisect
 
 **Arrêter le bisect** (ou **Terminer le bisect** une fois le résultat connu) demande **Arrêter le bisect ?** « HEAD revient où il était avant le début du bisect. » et lance `git bisect reset` : la branche sur laquelle vous étiez est de nouveau extraite. Les marquages sont supprimés.

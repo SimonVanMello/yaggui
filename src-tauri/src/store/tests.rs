@@ -230,6 +230,49 @@ fn migrates_legacy_preferences_once() {
 }
 
 #[test]
+fn unset_optional_preferences_round_trip_without_warnings() {
+    use std::sync::{Arc, Mutex};
+
+    struct Buffer(Arc<Mutex<Vec<u8>>>);
+    impl std::io::Write for Buffer {
+        fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+            self.0.lock().unwrap().extend_from_slice(bytes);
+            Ok(bytes.len())
+        }
+        fn flush(&mut self) -> std::io::Result<()> {
+            Ok(())
+        }
+    }
+    let log = Arc::new(Mutex::new(Vec::new()));
+    let sink = Arc::clone(&log);
+    let subscriber = tracing_subscriber::fmt()
+        .with_writer(move || Buffer(Arc::clone(&sink)))
+        .with_ansi(false)
+        .finish();
+    tracing::subscriber::with_default(subscriber, || {
+        let store = store();
+        // Every optional preference unset: stored as JSON `null`, read back as `None`.
+        let prefs = Preferences::default();
+        assert_eq!(store.set_preferences(&prefs).unwrap(), prefs);
+        assert_eq!(store.preferences().unwrap(), prefs);
+        let some = Preferences {
+            locale: Some(Locale::Fr),
+            pull_strategy: Some(PullStrategy::Rebase),
+            check_updates: Some(false),
+            git_path: Some("/opt/git/bin/git".into()),
+            ..Preferences::default()
+        };
+        store.set_preferences(&some).unwrap();
+        assert_eq!(store.preferences().unwrap(), some);
+    });
+    let output = String::from_utf8(log.lock().unwrap().clone()).unwrap();
+    assert!(
+        !output.contains("ignoring unreadable preference"),
+        "{output}"
+    );
+}
+
+#[test]
 fn ignores_unreadable_preference_values() {
     let store = store();
     store

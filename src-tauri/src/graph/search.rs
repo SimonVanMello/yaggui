@@ -209,18 +209,23 @@ fn entry_at(
         for entry in tree.iter() {
             let entry = entry.map_err(|err| BackendError::gix("decode a tree", err))?;
             if entry.filename() == name.as_bytes() {
-                found = Some((entry.oid().to_owned(), entry.mode().value()));
+                found = Some((entry.oid().to_owned(), entry.mode()));
                 break;
             }
             if found.is_none() && same_name_ignoring_case(entry.filename(), name) {
-                found = Some((entry.oid().to_owned(), entry.mode().value()));
+                found = Some((entry.oid().to_owned(), entry.mode()));
             }
         }
         let Some((oid, mode)) = found else {
             return Ok(None);
         };
         if components.peek().is_none() {
-            return Ok(Some((oid, mode)));
+            return Ok(Some((oid, mode.value())));
+        }
+        // A file, symlink or submodule where the path expects a folder: nothing below it in
+        // this commit (reading a blob or a submodule commit as a tree would fail instead).
+        if !mode.is_tree() {
+            return Ok(None);
         }
         current = oid;
     }

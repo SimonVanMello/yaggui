@@ -116,7 +116,7 @@ export function resolveErrorAction(
             });
             if (!confirmed) return;
             try {
-              await unwrap(ipc.commands.removeStaleIndexLock(repoId));
+              await unwrap(ipc.commands.removeStaleIndexLock(repoId, action.path));
               toast({ variant: 'success', title: t('error.indexLock.removed') });
               retry?.();
             } catch (err) {

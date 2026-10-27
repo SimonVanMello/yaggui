@@ -24,7 +24,7 @@ pub mod workspace;
 mod write;
 
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{
     Arc, Mutex, MutexGuard, PoisonError, RwLock, RwLockReadGuard, RwLockWriteGuard, Weak,
@@ -145,7 +145,8 @@ pub struct RepoSession {
     /// Hash of the ref targets, reused while the watcher reports no refs change (`None`:
     /// to compute). Only used when the repository is watched.
     ref_targets: Mutex<Option<u64>>,
-    /// Raised by the watcher when refs changed on disk.
+    /// Raised by the watcher when refs changed on disk, and by the queue after each
+    /// operation (its refs are read again before `op-finished` reaches the front).
     refs_changed: Arc<AtomicBool>,
     /// Ahead/behind counts and peeled tags, kept across refs listings.
     refs_cache: Mutex<refs::RefsCache>,
@@ -423,7 +424,8 @@ impl RepoManager {
             index_stamp: Mutex::new(IndexStamp::read(&git_dir.join("index"))),
             status_cache: Mutex::default(),
             git_dir,
-            queue: OpQueue::new(id, Arc::clone(&self.sink), Arc::clone(&status_generation))?,
+            queue: OpQueue::new(id, Arc::clone(&self.sink), Arc::clone(&status_generation))?
+                .with_refs_changed(Arc::clone(&refs_changed)),
             status_generation,
             graph: {
                 let graph = GraphCache::default();
@@ -534,23 +536,58 @@ impl RepoManager {
         }
     }
 
-    /// Queues the removal of a stale `index.lock`. A fresh lock is refused: a Git
-    /// process is probably still running.
-    pub fn remove_stale_index_lock(&self, repo_id: u32) -> Result<OpHandle, YagguiError> {
+    /// Queues the removal of a stale lock file: `index.lock` by default, or the `.lock`
+    /// file at `path` inside the repository's git dir (a ref lock, `packed-refs.lock`…
+    /// named by a failed command). A fresh lock is refused: a Git process is probably still
+    /// running.
+    pub fn remove_stale_index_lock(
+        &self,
+        repo_id: u32,
+        path: Option<String>,
+    ) -> Result<OpHandle, YagguiError> {
         let session = self.session(repo_id)?;
         let git_dir = session.git_dir().to_path_buf();
+        let common_dir = session.repo()?.to_thread_local().common_dir().to_path_buf();
+        let lock = match path {
+            Some(path) if !path.ends_with("index.lock") => Some(lock_file_in(
+                &session.workdir,
+                &[&git_dir, &common_dir],
+                &path,
+            )?),
+            _ => None,
+        };
         session
             .queue
             .enqueue(OpKind::Maintenance, false, move |_ctx| {
-                let Some(lock) = state::read_index_lock(&git_dir) else {
-                    return Ok(());
+                let (path, stale) = match &lock {
+                    None => match state::read_index_lock(&git_dir) {
+                        Some(lock) => (lock.path, lock.stale),
+                        None => return Ok(()),
+                    },
+                    Some(lock) => match std::fs::metadata(lock).and_then(|m| m.modified()) {
+                        Ok(modified) => {
+                            let age = modified.elapsed().unwrap_or_default().as_secs();
+                            (
+                                lock.display().to_string(),
+                                age > u64::from(state::STALE_LOCK_SECS),
+                            )
+                        }
+                        Err(err) if err.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+                        Err(err) => {
+                            return Err(BackendError::io(
+                                format!("cannot read {}", lock.display()),
+                                err,
+                            )
+                            .into());
+                        }
+                    },
                 };
-                if !lock.stale {
-                    return Err(YagguiError::index_locked(Some(repo_id), &lock.path));
+                if !stale {
+                    return Err(YagguiError::git_locked(Some(repo_id), &path));
                 }
-                std::fs::remove_file(&lock.path)
-                    .map_err(|err| BackendError::io(format!("cannot remove {}", lock.path), err))?;
-                tracing::info!(repo_id, path = %lock.path, "removed stale index.lock");
+                std::fs::remove_file(&path)
+                    .map_err(|err| BackendError::io(format!("cannot remove {path}"), err))?;
+                tracing::info!(repo_id, path = %path, "removed a stale lock file");
                 Ok(())
             })
     }
@@ -589,6 +626,38 @@ impl RepoManager {
             _ => Ok(()),
         }
     }
+}
+
+/// `path` (as a Git error names it, absolute or relative to the worktree) as a `.lock` file
+/// inside one of `git_dirs`; anything else is refused, so the removal cannot reach a file
+/// outside the repository's git dir.
+fn lock_file_in(workdir: &Path, git_dirs: &[&PathBuf], path: &str) -> Result<PathBuf, YagguiError> {
+    let refused = || {
+        YagguiError::invalid_argument(
+            format!("\"{path}\" is not a lock file of this repository."),
+            format!("« {path} » n'est pas un fichier de verrou de ce dépôt."),
+        )
+    };
+    let given = Path::new(path);
+    let full = if given.is_absolute() {
+        given.to_path_buf()
+    } else {
+        workdir.join(given)
+    };
+    let is_lock = full
+        .file_name()
+        .and_then(|name| name.to_str())
+        .is_some_and(|name| name.ends_with(".lock") && name != ".lock");
+    let normal = full.components().all(|c| {
+        matches!(
+            c,
+            Component::Normal(_) | Component::RootDir | Component::Prefix(_)
+        )
+    });
+    if !is_lock || !normal || !git_dirs.iter().any(|dir| full.starts_with(dir)) {
+        return Err(refused());
+    }
+    Ok(full)
 }
 
 /// Clears `commit_graph_queued` when dropped while still holding the session.

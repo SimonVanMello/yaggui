@@ -17,7 +17,7 @@ use gix::ObjectId;
 use crate::events::{OpKind, OpNote};
 use crate::git::cli::GitRun;
 use crate::git::errors::{BackendError, YagguiError};
-use crate::git::ops::types::{BisectMark, BisectState};
+use crate::git::ops::types::{BisectMark, BisectResult, BisectState};
 use crate::git::read::bisect::{Terms, read_bisect, terms};
 use crate::git::read::state::{RepoOperation, count_exclusive, read_operation};
 use crate::graph::resolve_commit;
@@ -174,7 +174,13 @@ fn finish(ctx: &WriteContext<'_>, run: &GitRun) -> Result<BisectState, YagguiErr
         ))
     })?;
     // Git exits with an error when only skipped commits are left: that is a result.
-    if run.success || state.result.is_some() {
+    // Contradictory marks are reported as the error Git gave, not as a state.
+    if run.success
+        || state
+            .result
+            .as_ref()
+            .is_some_and(|result| !matches!(result, BisectResult::InconsistentMarks))
+    {
         return Ok(state);
     }
     if let Some(paths) = overwritten_paths(&run.stderr) {

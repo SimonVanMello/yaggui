@@ -129,7 +129,11 @@ function middle(
 export interface BisectOutcome {
   remaining: number | null;
   steps: number | null;
-  result: { kind: 'found'; commit: number } | { kind: 'inconclusive'; candidates: number[] } | null;
+  result:
+    | { kind: 'found'; commit: number }
+    | { kind: 'inconclusive'; candidates: number[] }
+    | { kind: 'inconsistentMarks' }
+    | null;
   /** Commit to check out next; `null` when there is none (result, or a mark missing). */
   next: number | null;
 }
@@ -144,7 +148,10 @@ export function bisectOutcome(commits: readonly MockCommit[], b: MockBisect): Bi
   const skipped = new Set(b.skipped);
   const untested = range.filter((c) => c !== bad && !skipped.has(c));
   let result: BisectOutcome['result'] = null;
-  if (untested.length === 0 && range.includes(bad)) {
+  if (!range.includes(bad)) {
+    // Hidden by a good commit it is an ancestor of (marks taken in a terminal).
+    result = { kind: 'inconsistentMarks' };
+  } else if (untested.length === 0) {
     result =
       range.length === 1
         ? { kind: 'found', commit: bad }
@@ -195,11 +202,13 @@ export function mockBisectState(
   if (outcome.result?.kind === 'found') {
     const commit = bisectCommit(commits, outcome.result.commit);
     result = commit ? { kind: 'found', commit } : null;
-  } else if (outcome.result) {
+  } else if (outcome.result?.kind === 'inconclusive') {
     result = {
       kind: 'inconclusive',
       candidates: outcome.result.candidates.flatMap((c) => bisectCommit(commits, c) ?? []),
     };
+  } else if (outcome.result) {
+    result = outcome.result;
   }
   const marked =
     head !== null && (b.bad === head || b.good.includes(head) || b.skipped.includes(head));
