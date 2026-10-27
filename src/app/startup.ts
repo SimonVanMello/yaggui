@@ -2,6 +2,7 @@ import { isDemo } from '../demo/isDemo';
 import { openSampleRepo } from '../demo/startDemo';
 import { useKeybindings } from '../features/keybindings/keybindingsStore';
 import { checkForUpdatesAtStartup } from '../features/updates/updates';
+import { startAutoFetch } from '../features/network/autoFetch';
 import { openRepoPath, restoreRepoSession } from '../features/repo/repoSessions';
 import { ipc, nativeWindow, unwrap } from '../ipc';
 import { installAppMenu } from './menu/appMenu';
@@ -150,6 +151,9 @@ export function startup(): Promise<void> {
     persistTabs();
     persistRepoLayouts(SAVE_DELAY_MS);
     flushOnClose();
+    // After the restore: the restored repositories get their timer here, the ones opened
+    // later get theirs when their session opens.
+    startAutoFetch();
     await openLaunchPath();
     if (isDemo) {
       await openSampleRepo().catch((error: unknown) => {

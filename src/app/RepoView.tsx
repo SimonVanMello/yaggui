@@ -19,7 +19,6 @@ import { StashPreviewPanel } from '../features/refs/StashPreviewPanel';
 import { useStashPreview } from '../features/refs/stashPreview';
 import { useRepoRefs } from '../features/sidebar/useRepoRefs';
 import { useSelectedSha } from '../features/repo/graphNavigation';
-import { useAutoFetch } from '../features/network/useAutoFetch';
 import { RepoBanners } from '../features/repo/RepoBanners';
 import {
   restoreRepoSession,
@@ -84,7 +83,6 @@ function OpenRepoLayout({ tab, repo }: { tab: ShellTab; repo: RepoInfo }) {
   const refs = useRepoRefs(repo.id).data;
   const compare = useCompare(repo.id);
   const terminalOpen = useRepoTerminals(repo.id).open;
-  useAutoFetch(repo.id);
   // The preview follows the stash that is still in the list (a pop or drop elsewhere ends it).
   const stash = stashSelected ? refs?.stashes.find((s) => s.sha === stashSelected.sha) : undefined;
   // Selecting any other commit leaves the stash preview.
