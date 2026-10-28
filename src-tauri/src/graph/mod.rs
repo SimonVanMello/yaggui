@@ -603,7 +603,9 @@ pub fn filter_refs(refs: GraphRefs, filter: &GraphFilter) -> GraphRefs {
         .filter(|(_, l)| match l.kind {
             RefKind::Stash => !filter.hide_stashes,
             RefKind::Head => solo.is_none(),
-            _ => !filter.hides(&l.full_name),
+            // A hidden folder can hold the checked-out branch: its commits stay, so does its
+            // label.
+            _ => l.is_head || !filter.hides(&l.full_name),
         })
         .collect();
     GraphRefs { tips, labels, head }

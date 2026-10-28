@@ -4,13 +4,13 @@ import { Icon, type IconName } from '../../ui/Icon';
 import { shortOid } from '../repo/repoStatus';
 import type { MessageKey } from '../../i18n/i18n';
 import { startPress } from '../history/dnd/pointerDrag';
-import type { RefRow, RefTarget, SidebarRow } from './sidebarRows';
+import type { FolderRow, RefRow, RefTarget, SidebarRow } from './sidebarRows';
 import {
   BranchWorktreeMark,
   SubmoduleDetails,
   WorktreeDetails,
 } from '../worktrees/ModuleRefDetails';
-import { isHidden, useGraphFilter } from '../graph/graphFilter';
+import { folderFilterName, isHidden, useGraphFilter } from '../graph/graphFilter';
 import styles from './RefTree.module.css';
 
 const SECTION_ICONS: Record<SidebarRow['section'], IconName> = {
@@ -153,12 +153,31 @@ function FilterMark({ repoId, target }: { repoId: number; target: RefTarget }) {
       </span>
     );
   }
-  if (!isHidden(filter, name)) return null;
+  // The checked-out branch stays in the graph even inside a hidden folder.
+  const isHead = target.kind === 'local' && target.branch.isHead;
+  if (isHead || !isHidden(filter, name)) return null;
   return (
     <span
       className={styles.filterMark}
       title={t('sidebar.hidden')}
       aria-label={t('sidebar.hidden')}
+    >
+      <Icon name="eyeOff" />
+    </span>
+  );
+}
+
+/** Eye-off on a folder of branches hidden from the graph (F-028). */
+function FolderFilterMark({ repoId, row }: { repoId: number; row: FolderRow }) {
+  const t = useT();
+  const filter = useGraphFilter(repoId);
+  if (row.section !== 'local' && row.section !== 'remote') return null;
+  if (!isHidden(filter, folderFilterName(row.section, row.path))) return null;
+  return (
+    <span
+      className={styles.filterMark}
+      title={t('sidebar.hiddenFolder')}
+      aria-label={t('sidebar.hiddenFolder')}
     >
       <Icon name="eyeOff" />
     </span>
@@ -238,6 +257,7 @@ export function RefTreeRow({
         <span className={styles.label}>
           <Highlight text={row.label} indices={row.highlight} />
         </span>
+        <FolderFilterMark repoId={repoId} row={row} />
         <span className={styles.count}>{row.count}</span>
       </div>
     );

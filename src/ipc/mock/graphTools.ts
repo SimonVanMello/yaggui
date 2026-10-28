@@ -42,6 +42,11 @@ export function isFilterEmpty(filter: GraphFilter): boolean {
 
 const REF_PREFIXES = ['refs/heads/', 'refs/remotes/', 'refs/tags/'];
 
+/** A folder (`refs/heads/backup/`) is valid when the name without its slash is. */
+function validEntry(name: string): boolean {
+  return validRef(name.endsWith('/') ? name.slice(0, -1) : name);
+}
+
 function validRef(name: string): boolean {
   const rest = REF_PREFIXES.find((prefix) => name.startsWith(prefix));
   if (rest === undefined) return false;
@@ -66,7 +71,7 @@ export function normalizeFilter(filter: GraphFilter): Result<GraphFilter> {
   const hidden: string[] = [];
   for (const raw of filter.hidden) {
     const name = raw.trim();
-    if (!validRef(name)) return { error: invalidRef(name) };
+    if (!validEntry(name)) return { error: invalidRef(name) };
     if (!hidden.includes(name)) hidden.push(name);
   }
   if (hidden.length > GRAPH_FILTER_MAX) {

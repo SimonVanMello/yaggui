@@ -132,6 +132,37 @@ fn hidden_branches_leave_the_graph_and_the_filter_persists() {
 }
 
 #[test]
+fn a_hidden_folder_hides_every_branch_under_it_even_later_ones() {
+    let e = env();
+    // `gone` was branched from `feat/wip`: hidden too, or it keeps the wip commits.
+    let stored = e
+        .repos
+        .set_graph_filter(e.id, hide(&["refs/heads/feat/", "refs/heads/gone"]))
+        .unwrap();
+    assert_eq!(stored.hidden, ["refs/heads/feat/", "refs/heads/gone"]);
+    let rows = e.rows();
+    assert!(!rows.iter().any(|s| s.starts_with("wip")), "{rows:?}");
+    assert!(!e.labels().contains(&"feat/wip".to_owned()));
+    assert!(e.labels().contains(&"release/1".to_owned()));
+
+    // A branch created in the folder afterwards is hidden too, outside the folder it is not.
+    e.out(&["branch", "feat/later", "feat/wip"]);
+    e.out(&["branch", "feature", "feat/wip"]);
+    let labels = e.labels();
+    assert!(!labels.contains(&"feat/later".to_owned()), "{labels:?}");
+    assert!(labels.contains(&"feature".to_owned()), "{labels:?}");
+}
+
+#[test]
+fn the_checked_out_branch_keeps_its_label_when_hidden() {
+    let e = env();
+    e.repos
+        .set_graph_filter(e.id, hide(&["refs/heads/main"]))
+        .unwrap();
+    assert!(e.labels().contains(&"main".to_owned()));
+}
+
+#[test]
 fn solo_shows_one_branch_history_only() {
     let e = env();
     e.repos
@@ -197,7 +228,16 @@ fn remotes_and_stashes_can_be_hidden() {
 #[test]
 fn a_filter_names_branches_or_tags_only() {
     let e = env();
-    for bad in ["HEAD", "main", "refs/stash", "refs/heads/../x", "-x"] {
+    for bad in [
+        "HEAD",
+        "main",
+        "refs/stash",
+        "refs/heads/../x",
+        "-x",
+        "refs/heads/",
+        "refs/heads//",
+        "refs/heads/a//",
+    ] {
         let err = e.repos.set_graph_filter(e.id, hide(&[bad])).unwrap_err();
         assert_eq!(err.code, ErrorCode::InvalidArgument, "{bad}");
     }

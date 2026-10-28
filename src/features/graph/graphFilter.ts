@@ -77,12 +77,31 @@ export async function updateGraphFilter(
   void queryClient.invalidateQueries({ queryKey: queryKeys.repoRefs(repoId) });
 }
 
-/** Hides `fullName`, or shows it again. Hiding the soloed ref leaves solo mode. */
+/**
+ * Name a graph filter uses for a folder of the refs tree (`backup` of local branches →
+ * `refs/heads/backup/`): it hides every branch under it, including those created later.
+ */
+export function folderFilterName(section: 'local' | 'remote', path: string): string {
+  return `${section === 'local' ? 'refs/heads/' : 'refs/remotes/'}${path}/`;
+}
+
+function covers(entry: string, fullName: string): boolean {
+  return entry === fullName || (entry.endsWith('/') && fullName.startsWith(entry));
+}
+
+/**
+ * Hides `fullName` (a ref or a folder), or shows it again. Hiding a folder drops the entries it
+ * now covers; hiding the soloed ref, or its folder, leaves solo mode.
+ */
 export function toggleHidden(filter: GraphFilter, fullName: string): GraphFilter {
-  const hidden = filter.hidden.includes(fullName)
-    ? filter.hidden.filter((name) => name !== fullName)
-    : [...filter.hidden, fullName];
-  return { ...filter, hidden, solo: filter.solo === fullName ? null : filter.solo };
+  if (filter.hidden.includes(fullName)) {
+    return { ...filter, hidden: filter.hidden.filter((name) => name !== fullName) };
+  }
+  return {
+    ...filter,
+    hidden: [...filter.hidden.filter((name) => !covers(fullName, name)), fullName],
+    solo: filter.solo !== null && covers(fullName, filter.solo) ? null : filter.solo,
+  };
 }
 
 /** Solo on `fullName`, or back to every branch when it already is. */
@@ -94,11 +113,21 @@ export function toggleSolo(filter: GraphFilter, fullName: string): GraphFilter {
   };
 }
 
-/** Whether `fullName` is left out of the graph by `filter` (solo aside). */
+/** Whether `fullName` (a ref or a folder) is left out of the graph by `filter` (solo aside). */
 export function isHidden(filter: GraphFilter, fullName: string): boolean {
   return (
-    filter.hidden.includes(fullName) || (filter.hideRemotes && fullName.startsWith('refs/remotes/'))
+    filter.hidden.some((entry) => covers(entry, fullName)) ||
+    (filter.hideRemotes && fullName.startsWith('refs/remotes/'))
   );
+}
+
+/**
+ * The hidden folder that hides `fullName` while `fullName` itself is not in the list: showing
+ * it again means showing that folder. `null` otherwise.
+ */
+export function hiddenByFolder(filter: GraphFilter, fullName: string): string | null {
+  if (filter.hidden.includes(fullName)) return null;
+  return filter.hidden.find((entry) => entry !== fullName && covers(entry, fullName)) ?? null;
 }
 
 /** Turns first-parent mode on or off (`on` omitted: toggles it). */
@@ -138,7 +167,7 @@ export function showAll(repoId: number): Promise<void> {
   return updateGraphFilter(repoId, () => EMPTY_FILTER);
 }
 
-/** Short names for the indicator: `refs/heads/x` → `x`. */
+/** Short names for the indicator: `refs/heads/x` → `x`, `refs/heads/backup/` → `backup/`. */
 export function shortName(fullName: string): string {
   for (const prefix of ['refs/heads/', 'refs/remotes/', 'refs/tags/']) {
     if (fullName.startsWith(prefix)) return fullName.slice(prefix.length);
