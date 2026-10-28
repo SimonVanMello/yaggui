@@ -5,6 +5,7 @@ import { ContextMenuSub } from '../../ui/ContextMenuSub';
 import { fetchRepo, fetchTags, pushAllTags } from '../network/networkOps';
 import { openRemoteDialog } from '../remotes/remoteDialogsStore';
 import { removeRemote } from '../remotes/remoteOps';
+import { FolderHideItem } from './FolderHideItem';
 import { copyText } from './refActions';
 import { useRepoRefs } from './useRepoRefs';
 
@@ -12,7 +13,10 @@ import { useRepoRefs } from './useRepoRefs';
 export type GroupMenuTarget =
   { kind: 'remote'; name: string } | { kind: 'section'; section: 'remote' | 'tags' };
 
-/** Context menu of a remote folder, or of the Remote and Tags section headers (F-124, F-125). */
+/**
+ * Context menu of a remote folder, or of the Remote and Tags section headers (F-124, F-125,
+ * F-028).
+ */
 export function RemoteContextMenu({ repoId, target }: { repoId: number; target: GroupMenuTarget }) {
   const t = useT();
   const remotes = useRepoRefs(repoId).data?.remotes ?? [];
@@ -69,6 +73,8 @@ export function RemoteContextMenu({ repoId, target }: { repoId: number; target: 
         >
           {t('sidebar.menu.remoteRemove')}
         </ContextMenuItem>
+        <ContextMenuSeparator />
+        <FolderHideItem repoId={repoId} section="remote" path={name} />
         <ContextMenuSeparator />
         <ContextMenuItem
           icon="copy"

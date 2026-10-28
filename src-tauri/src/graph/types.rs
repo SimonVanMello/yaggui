@@ -260,7 +260,8 @@ pub const GRAPH_FILTER_MAX: u32 = 1_000;
 pub struct GraphFilter {
     /// Full names of hidden branches and tags (`refs/heads/x`, `refs/remotes/origin/x`):
     /// neither their tip nor their label is shown. Their commits stay when another ref
-    /// reaches them.
+    /// reaches them. A name ending with `/` is a folder (`refs/heads/backup/`): it hides
+    /// every ref under it, including those created later.
     pub hidden: Vec<String>,
     /// Full name of the only ref whose history is shown. Ignored when that ref no longer
     /// exists.
@@ -290,7 +291,10 @@ impl GraphFilter {
     /// Whether the tip and label of `full_name` are left out (solo aside).
     pub fn hides(&self, full_name: &str) -> bool {
         (self.hide_remotes && full_name.starts_with("refs/remotes/"))
-            || self.hidden.iter().any(|h| h == full_name)
+            || self
+                .hidden
+                .iter()
+                .any(|h| h == full_name || (h.ends_with('/') && full_name.starts_with(h.as_str())))
     }
 }
 

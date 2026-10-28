@@ -57,9 +57,33 @@ describe('mock graph filter', () => {
     expect((await allRows(id)).shas).toEqual(all.shas);
   });
 
+  it('hides every branch of a folder', async () => {
+    const id = await openYaggui();
+    const refs = await unwrap(mock.listRefs(id));
+    const inFolder = refs.local.filter((b) => !b.isHead && b.name.includes('/'));
+    const folder = inFolder[0]?.name.split('/')[0];
+    expect(folder).toBeDefined();
+    if (folder === undefined) return;
+    const under = refs.local.filter((b) => b.name.startsWith(`${folder}/`));
+    await unwrap(mock.setGraphFilter(id, { ...EMPTY, hidden: [`refs/heads/${folder}/`] }));
+    const { labels } = await allRows(id);
+    for (const branch of under) {
+      if (branch.isHead) expect(labels).toContain(branch.name);
+      else expect(labels).not.toContain(branch.name);
+    }
+    expect(labels).toContain('main');
+  });
+
   it('refuses names that are not branches or tags', async () => {
     const id = await openYaggui();
-    for (const bad of ['HEAD', 'main', 'refs/stash', 'refs/heads/../x']) {
+    for (const bad of [
+      'HEAD',
+      'main',
+      'refs/stash',
+      'refs/heads/../x',
+      'refs/heads/',
+      'refs/heads//',
+    ]) {
       const result = await mock.setGraphFilter(id, { ...EMPTY, hidden: [bad] });
       expect(result).toMatchObject({ status: 'error', error: { code: 'invalidArgument' } });
     }

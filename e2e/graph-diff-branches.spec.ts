@@ -70,6 +70,37 @@ for (const { name: theme, colorScheme } of THEMES) {
       await expect(filterBar(page)).toHaveCount(0);
     });
 
+    test('hide a folder of branches, then show it again', async ({ page }) => {
+      await openRepo(page);
+      await expect(graphRow(page, 0)).toBeVisible();
+      const folder = tree(page)
+        .getByRole('treeitem', { name: /^feat\b/ })
+        .first();
+      await folder.click({ button: 'right' });
+      await page.getByRole('menuitem', { name: 'Hide the folder from the graph' }).click();
+      await expect(filterBar(page)).toContainText('1 ref hidden: feat/');
+      await expect(folder.getByLabel('Folder hidden from the graph')).toBeVisible();
+      const palette = tree(page)
+        .getByRole('treeitem', { name: /^palette-31\b/ })
+        .first();
+      await expect(palette.getByLabel('Hidden from the graph')).toBeVisible();
+      // The checked-out branch stays.
+      const current = tree(page)
+        .getByRole('treeitem', { name: /^graph-lanes\b/ })
+        .first();
+      await expect(current.getByLabel('Hidden from the graph')).toHaveCount(0);
+
+      // A branch of the folder is shown again from the folder only.
+      await palette.click({ button: 'right' });
+      await expect(page.getByRole('menuitem', { name: 'Show in the graph' })).toBeDisabled();
+      await capture(page, theme, 'graph-hidden-folder');
+      await page.keyboard.press('Escape');
+
+      await folder.click({ button: 'right' });
+      await page.getByRole('menuitem', { name: 'Show the folder in the graph' }).click();
+      await expect(filterBar(page)).toHaveCount(0);
+    });
+
     test('compare two commits, their changes and an image diff', async ({ page }) => {
       await openRepo(page);
       await graphRow(page, 1).click();

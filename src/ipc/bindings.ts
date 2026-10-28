@@ -2070,7 +2070,8 @@ export type GraphFilter = {
 	/**
 	 *  Full names of hidden branches and tags (`refs/heads/x`, `refs/remotes/origin/x`):
 	 *  neither their tip nor their label is shown. Their commits stay when another ref
-	 *  reaches them.
+	 *  reaches them. A name ending with `/` is a folder (`refs/heads/backup/`): it hides
+	 *  every ref under it, including those created later.
 	 */
 	hidden: string[],
 	/**

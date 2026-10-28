@@ -194,12 +194,14 @@ impl RepoManager {
 }
 
 fn normalized_filter(filter: GraphFilter) -> Result<GraphFilter, YagguiError> {
-    let valid = |name: &str| {
+    let valid_ref = |name: &str| {
         (name.starts_with("refs/heads/")
             || name.starts_with("refs/remotes/")
             || name.starts_with("refs/tags/"))
             && gix::refs::FullName::try_from(name).is_ok()
     };
+    // A folder (`refs/heads/backup/`) is valid when the name without its slash is.
+    let valid = |name: &str| valid_ref(name.strip_suffix('/').unwrap_or(name));
     let mut seen = BTreeSet::new();
     let mut hidden = Vec::new();
     for name in filter.hidden {
@@ -218,7 +220,7 @@ fn normalized_filter(filter: GraphFilter) -> Result<GraphFilter, YagguiError> {
         ));
     }
     let solo = match filter.solo.map(|s| s.trim().to_owned()) {
-        Some(solo) if !valid(&solo) => return Err(invalid_ref(&solo)),
+        Some(solo) if !valid_ref(&solo) => return Err(invalid_ref(&solo)),
         solo => solo,
     };
     Ok(GraphFilter {

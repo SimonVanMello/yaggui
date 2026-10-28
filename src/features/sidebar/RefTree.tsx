@@ -9,6 +9,7 @@ import { useRowHeight } from '../graph/useRowHeight';
 import { checkoutRef } from '../refs/refCommands';
 import { useStashPreview } from '../refs/stashPreview';
 import { copyText, revealRef } from './refActions';
+import { FolderHideItem } from './FolderHideItem';
 import { RefContextMenu } from './RefContextMenu';
 import { RemoteContextMenu, type GroupMenuTarget } from './RemoteContextMenu';
 import styles from './RefTree.module.css';
@@ -70,7 +71,10 @@ export function RefTree({
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const rowHeight = useRowHeight();
   const [menuTarget, setMenuTarget] = useState<
-    { kind: 'ref'; target: RefTarget } | { kind: 'group'; target: GroupMenuTarget } | null
+    | { kind: 'ref'; target: RefTarget }
+    | { kind: 'group'; target: GroupMenuTarget }
+    | { kind: 'folder'; section: 'local' | 'remote'; path: string }
+    | null
   >(null);
 
   const setRefs = useCallback(
@@ -251,6 +255,11 @@ export function RefTree({
       setMenuTarget({ kind: 'group', target: group });
       return;
     }
+    if (row?.type === 'folder' && (row.section === 'local' || row.section === 'remote')) {
+      setActiveKey(row.key);
+      setMenuTarget({ kind: 'folder', section: row.section, path: row.path });
+      return;
+    }
     if (!row || row.type !== 'ref') {
       // Radix skips its own handler on a prevented event: no menu outside these rows.
       event.preventDefault();
@@ -271,6 +280,8 @@ export function RefTree({
             <RefContextMenu repoId={repoId} target={menuTarget.target} current={current} />
           ) : menuTarget?.kind === 'group' ? (
             <RemoteContextMenu repoId={repoId} target={menuTarget.target} />
+          ) : menuTarget?.kind === 'folder' ? (
+            <FolderHideItem repoId={repoId} section={menuTarget.section} path={menuTarget.path} />
           ) : null
         }
       >

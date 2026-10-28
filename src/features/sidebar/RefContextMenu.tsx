@@ -34,6 +34,7 @@ import {
 import { openBranchTools } from '../compare/branchToolsStore';
 import { openCompare } from '../compare/compareStore';
 import {
+  hiddenByFolder,
   isHidden,
   toggleHidden,
   toggleSolo,
@@ -130,19 +131,22 @@ function graphActions(
   current: string | null,
   filter: GraphFilter,
 ): Planned[] {
-  const hidden = isHidden(filter, fullName);
+  // The checked-out branch stays in the graph even inside a hidden folder.
+  const hidden = !isHead && isHidden(filter, fullName);
+  const byFolder = hidden && hiddenByFolder(filter, fullName) !== null;
   return [
     {
       key: hidden ? 'sidebar.menu.show' : 'sidebar.menu.hide',
       icon: hidden ? 'eye' : 'eyeOff',
-      why: 'sidebar.why.hideCurrent',
+      why: byFolder ? 'sidebar.why.hiddenFolder' : 'sidebar.why.hideCurrent',
       // HEAD's commits always stay in the graph: hiding the checked-out branch would only drop
       // its label.
-      run: isHead
-        ? undefined
-        : () => {
-            void updateGraphFilter(repoId, (f) => toggleHidden(f, fullName));
-          },
+      run:
+        isHead || byFolder
+          ? undefined
+          : () => {
+              void updateGraphFilter(repoId, (f) => toggleHidden(f, fullName));
+            },
     },
     {
       key: filter.solo === fullName ? 'sidebar.menu.unsolo' : 'sidebar.menu.solo',

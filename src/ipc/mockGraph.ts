@@ -595,7 +595,8 @@ export function topoOrder(
 /** Whether `filter` hides the tip and label of `fullName` (solo aside). */
 export function hidesRef(filter: GraphFilter, fullName: string): boolean {
   return (
-    (filter.hideRemotes && fullName.startsWith('refs/remotes/')) || filter.hidden.includes(fullName)
+    (filter.hideRemotes && fullName.startsWith('refs/remotes/')) ||
+    filter.hidden.some((h) => h === fullName || (h.endsWith('/') && fullName.startsWith(h)))
   );
 }
 
@@ -691,7 +692,7 @@ export class MockGraph {
             ? !filter.hideStashes
             : l.kind === 'head'
               ? solo === null
-              : !hidesRef(filter, l.fullName),
+              : l.isHead || !hidesRef(filter, l.fullName),
         );
         if (kept.length > 0) this.labels.set(commit, kept);
         else this.labels.delete(commit);
