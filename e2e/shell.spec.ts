@@ -380,12 +380,15 @@ test.describe('behavior', () => {
 
   test('the theme is applied before the first paint after a reload', async ({ page }) => {
     await page.getByRole('button', { name: 'Preferences' }).click();
-    await page
-      .getByRole('dialog', { name: 'Preferences' })
-      .getByRole('radio', { name: 'Light' })
+    const prefs = page.getByRole('dialog', { name: 'Preferences' });
+    await prefs
+      .getByRole('navigation', { name: 'Preference sections' })
+      .getByRole('button', { name: 'Appearance', exact: true })
       .click();
+    // A theme of the catalogue, not only the default pair.
+    await prefs.locator('[data-theme-id="latte"]').click();
     await page.keyboard.press('Escape');
-    await expect(page.locator('html')).toHaveAttribute('data-theme', 'paper');
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'latte');
     // Record data-theme as soon as the document exists, before any app script runs.
     await page.addInitScript(() => {
       document.addEventListener('readystatechange', () => {
@@ -395,7 +398,7 @@ test.describe('behavior', () => {
       });
     });
     await page.reload();
-    expect(await page.evaluate(() => (window as { firstTheme?: string }).firstTheme)).toBe('paper');
+    expect(await page.evaluate(() => (window as { firstTheme?: string }).firstTheme)).toBe('latte');
   });
 });
 
