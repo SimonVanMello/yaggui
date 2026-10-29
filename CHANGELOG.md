@@ -14,6 +14,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Closing a diff could bring the commit graph back to a commit it had scrolled to earlier (for
   example the bottom after <kbd>End</kbd>) instead of where you left it (#94).
 
+## [0.11.0] - 2026-10-29
+
+### Added
+
+- Hide a whole folder of branches from the graph: right-click a folder in the sidebar (such as
+  `backup`, or a remote) for **Hide the folder from the graph**. Branches created in it later are
+  hidden too; the checked-out branch keeps its label (#92).
+- Right-clicking a branch or tag label in the **Refs** row of the commit details opens the same ref
+  menu as in the graph (#90).
+
 ## [0.10.0] - 2026-10-27
 
 ### Added
