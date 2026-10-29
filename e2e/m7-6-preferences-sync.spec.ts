@@ -43,8 +43,16 @@ for (const { name: theme, colorScheme } of THEMES) {
       const prefs = await openPrefs(page);
       // The file sets the dark theme: it is applied at once, no restart needed.
       await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
-      const themeChoice = prefs.getByRole('radiogroup', { name: 'Theme' });
-      await expect(themeChoice.getByRole('radio', { name: 'System' })).toBeChecked();
+      const follow = prefs.getByRole('switch', { name: /Follow the system theme/ });
+      await prefs
+        .getByRole('navigation', { name: 'Preference sections' })
+        .getByRole('button', { name: 'Appearance', exact: true })
+        .click();
+      await expect(follow).toBeChecked();
+      await prefs
+        .getByRole('navigation', { name: 'Preference sections' })
+        .getByRole('button', { name: 'General', exact: true })
+        .click();
       await prefs.getByRole('button', { name: 'Import…' }).click();
 
       const review = dialog(page, 'Import preferences');
@@ -59,12 +67,23 @@ for (const { name: theme, colorScheme } of THEMES) {
       await expect(review).toBeHidden();
       await expect(page.getByText('Preferences and shortcuts imported').first()).toBeVisible();
       await expect(page.locator('html')).toHaveAttribute('data-theme', 'graphite');
-      await expect(themeChoice.getByRole('radio', { name: 'Dark' })).toBeChecked();
-      // Fields already on screen show the imported values.
+      await prefs
+        .getByRole('navigation', { name: 'Preference sections' })
+        .getByRole('button', { name: 'Appearance', exact: true })
+        .click();
+      await expect(follow).not.toBeChecked();
+      await prefs
+        .getByRole('navigation', { name: 'Preference sections' })
+        .getByRole('button', { name: 'Display', exact: true })
+        .click();
       await expect(prefs.getByLabel('Text size')).toHaveValue('15');
       await capture(page, theme, 'import-applied');
 
       // Applied: the same file now changes nothing.
+      await prefs
+        .getByRole('navigation', { name: 'Preference sections' })
+        .getByRole('button', { name: 'General', exact: true })
+        .click();
       await prefs.getByRole('button', { name: 'Import…' }).click();
       await expect(review.getByText('This file changes nothing')).toBeVisible();
       await expect(review.getByRole('button', { name: 'Import', exact: true })).toBeDisabled();
