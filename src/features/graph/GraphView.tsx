@@ -65,7 +65,6 @@ export function GraphView({
   const [size, setSize] = useState({ width: 0, height: 0 });
   const [menuTarget, setMenuTarget] = useState<GraphRow | null>(null);
   const [menuRef, setMenuRef] = useState<MenuRef | null>(null);
-  const handledScroll = useRef(0);
 
   const { cache } = source;
   const totalRows = cache.totalRows;
@@ -166,10 +165,9 @@ export function GraphView({
   };
 
   useEffect(() => {
-    const request = source.scrollRequest;
-    if (!request || request.id === handledScroll.current || totalRows === 0) return;
-    handledScroll.current = request.id;
-    scrollToRow(request.row, request.align);
+    if (totalRows === 0) return;
+    const request = source.takeScrollRequest();
+    if (request) scrollToRow(request.row, request.align);
   });
 
   const onScroll = useCallback(() => {

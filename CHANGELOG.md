@@ -9,6 +9,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Fixed
+
+- Closing a diff could bring the commit graph back to a commit it had scrolled to earlier (for
+  example the bottom after pressing End) instead of where you left it (#94).
+
 ## [0.11.0] - 2026-10-29
 
 ### Added

@@ -55,8 +55,6 @@ export interface SearchState {
 export interface ScrollRequest {
   row: number;
   align: 'start' | 'center' | 'auto';
-  /** Distinguishes two requests for the same row. */
-  id: number;
 }
 
 const SEARCH_DEBOUNCE_MS = 180;
@@ -100,6 +98,7 @@ export class GraphSource {
   scrollTop = 0;
   /** Commit at the top of the viewport: the anchor kept across a graph reload. */
   topSha: string | null = null;
+  /** Pending until the view takes it: it outlives the view, which is unmounted under a diff. */
   scrollRequest: ScrollRequest | null = null;
   /** Bumped on each change; the snapshot of `useSyncExternalStore`. */
   version = 0;
@@ -107,7 +106,6 @@ export class GraphSource {
   private listeners = new Set<() => void>();
   private stale = false;
   private refreshId = 0;
-  private scrollId = 0;
   private pendingSelectRow: number | null = null;
   private pendingRange: { anchor: number; hit: PickedCommit; base: boolean } | null = null;
   /** ⇧↑ / ⇧↓ whose target row was not loaded yet. */
@@ -366,8 +364,14 @@ export class GraphSource {
   // --- Selection -------------------------------------------------------------------------
 
   private requestScroll(row: number, align: ScrollRequest['align']): void {
-    this.scrollId += 1;
-    this.scrollRequest = { row, align, id: this.scrollId };
+    this.scrollRequest = { row, align };
+  }
+
+  /** The pending scroll, once: a view mounted later must not replay it. */
+  takeScrollRequest(): ScrollRequest | null {
+    const request = this.scrollRequest;
+    this.scrollRequest = null;
+    return request;
   }
 
   private setPicks(picks: RowSelectionState): void {
