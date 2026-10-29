@@ -37,6 +37,14 @@ afterEach(() => {
 });
 
 describe('GraphSource', () => {
+  it('hands a scroll request over once, so a remounted view does not replay it', async () => {
+    const source = await openSource(YAGGUI);
+    source.selectRow(8);
+    expect(source.takeScrollRequest()).toEqual({ row: 8, align: 'auto' });
+    // The graph comes back after a diff: nothing left to scroll to.
+    expect(source.takeScrollRequest()).toBeNull();
+  });
+
   it('selects a commit located in a newer layout once that layout is loaded, never by row', async () => {
     const source = await openSource(YAGGUI);
     const target = source.cache.row(5)?.sha ?? '';
