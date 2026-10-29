@@ -12,7 +12,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ### Fixed
 
 - Closing a diff could bring the commit graph back to a commit it had scrolled to earlier (for
-  example the bottom after <kbd>End</kbd>) instead of where you left it.
+  example the bottom after <kbd>End</kbd>) instead of where you left it (#94).
 
 ## [0.10.0] - 2026-10-27
 
