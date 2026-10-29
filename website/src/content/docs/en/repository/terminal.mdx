@@ -6,7 +6,7 @@ sidebar:
 sources:
   - src/features/terminal/**
   - src/features/toolbar/Toolbar.tsx
-  - src/features/preferences/ToolsTab.tsx
+  - src/features/preferences/ToolsSection.tsx
   - src/app/RepoView.tsx
   - src-tauri/src/system/pty.rs
   - src-tauri/src/system/terminal.rs
@@ -52,7 +52,7 @@ The first time you show the panel, it starts a terminal.
 
 While a terminal has focus, every key goes to the shell, <kbd>Ctrl+C</kbd> included, except the command palette (<kbd>⌘K</kbd>, <kbd>Ctrl+K</kbd> on Windows and Linux) and the two terminal shortcuts. To copy a selection, press <kbd>⌘C</kbd> (<kbd>Ctrl+Shift+C</kbd> on Windows and Linux); to paste, <kbd>⌘V</kbd> (<kbd>Ctrl+Shift+V</kbd> on Windows and Linux).
 
-The terminal follows the app theme, the code font and the font size of Preferences. The **Terminal** style of Appearance gives it a near-black background. See [Appearance](../../customize/appearance/).
+The terminal follows the color theme of the app, the code font and the text size of Preferences. The **Terminal** color theme gives it a near-black background. See [Appearance](../../customize/appearance/).
 
 ## Which shell runs
 
@@ -86,7 +86,7 @@ In External mode, the **Terminal** button, <kbd>Ctrl+&#96;</kbd> and <kbd>Ctrl+S
 <Screenshot
   dark={terminalPrefsToolsDark}
   light={terminalPrefsToolsLight}
-  alt="The Tools tab of Preferences with the Terminal setting set to Integrated and the External terminal row"
+  alt="The Tools section of Preferences with the Terminal setting set to Integrated and the External terminal row"
 />
 
 ### Terminal setting dialog

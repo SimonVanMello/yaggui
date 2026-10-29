@@ -100,7 +100,7 @@ A local branch and a remote branch on the same commit share one label when the r
 
 #### Tags on the remotes
 
-Git keeps no local record of the tags of a remote: a tag received by a fetch looks exactly like one you created. To see which tags are published, turn on **Show tags on the remotes** in **Preferences → Behavior** (off by default). A tag label then carries a cloud when a remote holds this tag on the same commit, in the graph and in the commit details; hover the label to read `v1.2.0 — on origin`.
+Git keeps no local record of the tags of a remote: a tag received by a fetch looks exactly like one you created. To see which tags are published, turn on **Show tags on the remotes** in **Preferences → Fetch and pull** (off by default). A tag label then carries a cloud when a remote holds this tag on the same commit, in the graph and in the commit details; hover the label to read `v1.2.0 — on origin`.
 
 - **When yaggui asks**: it lists the tags of every remote with `git ls-remote --tags` when you turn the preference on, when a repository opens, and after each fetch (automatic ones included), pull and push. The answer is kept in memory for the session only. Off, yaggui never runs it.
 - **Cost**: one request per remote each time, with the same credentials as a fetch. It only lists names, downloads nothing, and appears in the [command log](../../reference/command-log/).
@@ -122,7 +122,7 @@ A lock icon before the summary marks a signed commit (GPG, SSH or X.509). The gr
 
 By default, the **Author** column shows the author's initials ("Alex Martin" gives "AM") on a color derived from the e-mail address, so each author always gets the same color. No network request is made.
 
-To show Gravatar pictures, turn on **Gravatar avatars** in Preferences > Appearance. yaggui then sends a hash of each author's e-mail to gravatar.com and caches the pictures on disk for 7 days. **Clear the avatar cache** in the same section deletes the downloaded pictures. If a picture cannot be loaded, the initials stay. See [Appearance](../../customize/appearance/).
+To show Gravatar pictures, turn on **Gravatar avatars** in Preferences > Display. yaggui then sends a hash of each author's e-mail to gravatar.com and caches the pictures on disk for 7 days. **Clear the avatar cache** in the same section deletes the downloaded pictures. If a picture cannot be loaded, the initials stay. See [Appearance](../../customize/appearance/).
 
 ## Select commits
 

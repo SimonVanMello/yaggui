@@ -1,10 +1,11 @@
 ---
 title: Préférences
-description: Toutes les préférences de yaggui, onglet par onglet, avec leur libellé exact, leurs valeurs, leur valeur par défaut et leur effet, et l’endroit où elles sont stockées.
+description: Toutes les préférences de yaggui, section par section, avec leur libellé exact, leurs valeurs, leur valeur par défaut et leur effet, et l’endroit où elles sont stockées.
 sidebar:
   order: 2
 sources:
   - src/features/preferences/**
+  - src/theme/catalog.ts
   - src/features/keybindings/KeybindingsTab.tsx
   - src/app/preferences.ts
   - src/app/appearance.ts
@@ -19,7 +20,11 @@ sources:
 requirements: [F-320, F-321, F-322, F-323, F-324, F-325, F-033, F-266, F-267, F-281, F-326]
 ---
 
-Cette page recense tous les réglages de la boîte de dialogue **Préférences**, onglet par onglet. Chaque ligne renvoie vers la page qui explique la fonctionnalité.
+import Screenshot from '~/components/Screenshot.astro';
+import prefsSearchDark from '../../../../assets/screens/prefs-search-fr-dark.png';
+import prefsSearchLight from '../../../../assets/screens/prefs-search-fr-light.png';
+
+Cette page recense tous les réglages de la boîte de dialogue **Préférences**, section par section, dans l’ordre de sa barre latérale. Chaque ligne renvoie vers la page qui explique la fonctionnalité.
 
 ## Ouvrir les préférences
 
@@ -27,30 +32,68 @@ Cette page recense tous les réglages de la boîte de dialogue **Préférences**
 - <kbd>⌘,</kbd> (<kbd>Ctrl+,</kbd> sous Windows et Linux), reconfigurable.
 - **Ouvrir les préférences** dans la [palette de commandes](../../customize/palette-and-shortcuts/).
 - Sous macOS, **yaggui › Préférences…**.
-- **Modifier les raccourcis…** dans la feuille des raccourcis clavier l’ouvre sur l’onglet **Raccourcis**.
+- **Modifier les raccourcis…** dans la feuille des raccourcis clavier l’ouvre sur la section **Raccourcis**.
 
-Les changements s’appliquent immédiatement : il n’y a pas de bouton Enregistrer ni Annuler, seulement **Fermer**. Les champs de texte sont enregistrés quand vous appuyez sur <kbd>Enter</kbd> ou quand vous quittez le champ. Si yaggui refuse une valeur, le réglage reprend sa valeur précédente et un toast « Impossible d'enregistrer la préférence » en donne la raison. <kbd>Esc</kbd> ferme la boîte de dialogue, sauf pendant la saisie d’un raccourci, où cette touche annule seulement la saisie.
+La boîte de dialogue s’ouvre sur **Général**. La barre latérale, à gauche, liste huit sections réparties en deux groupes :
+
+| Groupe          | Sections                                                              |
+| --------------- | --------------------------------------------------------------------- |
+| **Application** | **Général**, **Apparence**, **Affichage**, **Raccourcis**, **Outils** |
+| **Git**         | **Fetch et pull**, **Sécurité**, **Configuration Git**                |
+
+Les changements s’appliquent immédiatement : il n’y a pas de bouton Enregistrer ni Annuler. Les champs de texte sont enregistrés quand vous appuyez sur <kbd>Enter</kbd> ou quand vous quittez le champ. Si yaggui refuse une valeur, le réglage reprend sa valeur précédente et un toast « Impossible d'enregistrer la préférence » en donne la raison. Fermez la boîte de dialogue avec le **×** de son en-tête ou <kbd>Esc</kbd>. <kbd>Esc</kbd> annule d’abord la saisie d’un raccourci, termine l’aperçu d’un thème, ou vide la recherche quand le champ de recherche a le focus.
+
+## Rechercher un réglage
+
+Le champ **Rechercher un réglage** (« Rechercher… »), en haut de la barre latérale, cherche dans toutes les sections à la fois. <kbd>⌘F</kbd> (<kbd>Ctrl+F</kbd> sous Windows et Linux) y place le focus, et <kbd>Esc</kbd> dans le champ le vide.
+
+- La recherche porte sur les libellés et les aides des réglages, en anglais et en français, sans tenir compte des accents ni de la casse, ainsi que sur des mots-clés et des clés Git comme `pull.rebase` ou `user.email`. Chaque mot saisi doit correspondre.
+- Elle trouve aussi les thèmes de couleurs par leur nom et les commandes par leur titre : la section concernée affiche alors la galerie des thèmes ou la liste des raccourcis déjà filtrée.
+- Le panneau affiche **Résultats** et un décompte (« 4 réglages pour « pull » ») : les réglages correspondants de toutes les sections, chaque groupe sous le chemin de sa section (par exemple « Git › Fetch et pull »), avec un bouton **Ouvrir la section** qui ouvre cette section sur le premier résultat.
+- Dans la barre latérale, chaque section affiche son nombre de résultats, et les sections sans résultat sont grisées.
+- Quand rien ne correspond : « Aucun réglage ne correspond à « _recherche_ ». Essaie un mot anglais ou une clé Git comme pull.rebase. »
+
+<Screenshot
+  dark={prefsSearchDark}
+  light={prefsSearchLight}
+  alt="La boîte de dialogue Préférences qui recherche pull : les Résultats montrent la liste des raccourcis filtrée sur pull, puis des réglages de Fetch et pull et de Configuration Git, chacun sous son chemin, avec le nombre de résultats dans la barre latérale"
+/>
+
+## Général
+
+| Libellé                                    | Valeurs                                | Par défaut                   | Effet                                                                                                                                                             |
+| ------------------------------------------ | -------------------------------------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Langue**                                 | **Système**, **English**, **Français** | **Système**                  | Langue de l’interface, appliquée sans redémarrage. Système utilise la langue de l’OS si elle est prise en charge, sinon l’anglais                                 |
+| **Vérifier les mises à jour au démarrage** | Activé, désactivé                      | Demandé au premier lancement | Sous **Mises à jour**. Consulte la dernière release sur github.com à chaque lancement. Désactivé : aucune requête. Voir [Mises à jour](../../start-here/updates/) |
+| **Vérifier maintenant**                    | Bouton                                 |                              | Sous **Mises à jour**. Recherche immédiatement une mise à jour                                                                                                    |
+| **Version**                                | Bouton **Nouveautés**                  |                              | Sous **Mises à jour**. Affiche la version en cours d’exécution et ouvre le journal des modifications                                                              |
+| **Importer ou exporter les préférences**   | Boutons **Importer…** et **Exporter…** |                              | Sous **Sauvegarde**. Un fichier JSON de vos préférences et de vos raccourcis. Voir [Import et export](#import-et-export)                                          |
 
 ## Apparence
 
 Voir [Apparence](../../customize/appearance/).
 
-| Libellé                        | Valeurs                                | Par défaut            | Effet                                                                                                                                   |
-| ------------------------------ | -------------------------------------- | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| **Thème**                      | **Système**, **Clair**, **Sombre**     | **Système**           | Clair correspond à Paper, sombre à Graphite. Système suit celui de l’OS en direct. Sans effet avec le style Terminal                    |
-| **Style**                      | **Graphite / Paper**, **Terminal**     | **Graphite / Paper**  | Terminal est un style dense, en police à chasse fixe, toujours sombre                                                                   |
-| **Contraste élevé**            | Activé, désactivé                      | Désactivé             | Texte et bordures plus marqués, quel que soit le style                                                                                  |
-| **Avatars Gravatar**           | Activé, désactivé                      | Désactivé             | Affiche les photos Gravatar des auteurs. Envoie à gravatar.com le hash SHA-256 de l’e-mail de chaque auteur. Désactivé : aucune requête |
-| **Vider le cache des avatars** | Bouton                                 |                       | Supprime les photos téléchargées (« Cache des avatars vidé »)                                                                           |
-| **Densité**                    | **Confortable**, **Compacte**          | **Confortable**       | Hauteur de ligne de 28 px ou de 22 px                                                                                                   |
-| **Langue**                     | **Système**, **English**, **Français** | **Système**           | Langue de l’interface, appliquée sans redémarrage. Système utilise la langue de l’OS si elle est prise en charge, sinon l’anglais       |
-| **Police de l'interface**      | Nom d’une police installée             | Vide (Inter)          | Police de l’interface                                                                                                                   |
-| **Police du code**             | Nom d’une police installée             | Vide (JetBrains Mono) | Police des diffs, du code, des SHA et du terminal                                                                                       |
-| **Taille du texte**            | 11 à 18 px                             | 13 px                 | Met à l’échelle tout le texte                                                                                                           |
+| Libellé                        | Valeurs                          | Par défaut                                         | Effet                                                                               |
+| ------------------------------ | -------------------------------- | -------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| **Suivre le thème du système** | Activé, désactivé                | Activé                                             | Un thème pour le mode clair, un pour le mode sombre : yaggui bascule avec l’OS      |
+| **Thème**                      | Galerie de 25 thèmes de couleurs | **Paper** (mode clair), **Graphite** (mode sombre) | Le thème de couleurs de chaque mode                                                 |
+| **Style d'interface**          | **Standard**, **Terminal**       | **Standard**                                       | Terminal : monospace, angles droits, lignes denses. Se combine avec tous les thèmes |
+| **Contraste élevé**            | Activé, désactivé                | Désactivé                                          | Texte et bordures plus marqués, sur tous les thèmes                                 |
+
+## Affichage
+
+| Libellé                        | Valeurs                       | Par défaut            | Effet                                                                                                                                                     |
+| ------------------------------ | ----------------------------- | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Police de l'interface**      | Nom d’une police installée    | Vide (Inter)          | Sous **Texte**. Police de l’interface                                                                                                                     |
+| **Police du code**             | Nom d’une police installée    | Vide (JetBrains Mono) | Sous **Texte**. Police des diffs, du code, des SHA et du terminal                                                                                         |
+| **Taille du texte**            | 11 à 18 px                    | 13 px                 | Sous **Texte**. Met à l’échelle tout le texte                                                                                                             |
+| **Densité**                    | **Confortable**, **Compacte** | **Confortable**       | Sous **Texte**. Hauteur de ligne de 28 px ou de 22 px                                                                                                     |
+| **Avatars Gravatar**           | Activé, désactivé             | Désactivé             | Sous **Avatars**. Affiche les photos Gravatar des auteurs. Envoie à gravatar.com le hash SHA-256 de l’e-mail de chaque auteur. Désactivé : aucune requête |
+| **Vider le cache des avatars** | Bouton                        |                       | Sous **Avatars**. Supprime les photos téléchargées (« Cache des avatars vidé »)                                                                           |
 
 ## Raccourcis
 
-Voir [Palette de commandes et raccourcis](../../customize/palette-and-shortcuts/#modifier-un-raccourci). Cet onglet modifie `keybindings.json`, pas la base de données des préférences.
+Voir [Palette de commandes et raccourcis](../../customize/palette-and-shortcuts/#modifier-un-raccourci). Cette section modifie `keybindings.json`, pas la base de données des préférences.
 
 | Contrôle                                    | Effet                                                                           |
 | ------------------------------------------- | ------------------------------------------------------------------------------- |
@@ -63,54 +106,41 @@ Voir [Palette de commandes et raccourcis](../../customize/palette-and-shortcuts/
 
 ## Outils
 
-Voir [Outils externes](../../customize/external-tools/). Chaque ligne, sauf **Terminal**, a un bouton **Tester**.
+Les programmes de cet ordinateur qu’utilise yaggui ; aucun n’est jamais inclus dans un export. Voir [Outils externes](../../customize/external-tools/) et [Binaire Git et configuration](../../customize/git-configuration/#choisir-le-binaire-git). Chaque ligne d’outil, sauf **Terminal**, a un bouton **Tester**.
 
-| Libellé              | Valeurs                                                 | Par défaut                               | Effet                                                                                                                                         |
-| -------------------- | ------------------------------------------------------- | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Éditeur**          | Nom d’un programme ou d’une application, ou chemin      | Vide (application par défaut du système) | Ouvre le dépôt ou un fichier                                                                                                                  |
-| **Terminal**         | **Intégré**, **Externe**                                | **Intégré**                              | Ce qu’ouvre le bouton **Terminal** de la barre d’outils : le panneau du [terminal intégré](../../repository/terminal/) ou le terminal externe |
-| **Terminal externe** | **Configurer…** ouvre la boîte de dialogue **Terminal** | Terminal par défaut du système           | Application ou programme utilisé pour les terminaux externes                                                                                  |
-| **Outil de diff**    | Un nom d’outil connu de Git                             | Vide (`diff.tool`, puis `diff.guitool`)  | Outil lancé par `git difftool`                                                                                                                |
-| **Outil de merge**   | Un nom d’outil connu de Git                             | Vide (`merge.tool`)                      | Outil lancé par `git mergetool`                                                                                                               |
+| Libellé              | Valeurs                                                   | Par défaut                                           | Effet                                                                                                                                                                                 |
+| -------------------- | --------------------------------------------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Binaire Git**      | Chemin d’un exécutable Git, enregistré avec **Appliquer** | Vide (« Détecté automatiquement » : `git` du `PATH`) | Le Git que yaggui exécute. **Détection automatique** le vide. Une version antérieure à 2.30 est acceptée avec un avertissement ; un chemin qui n’est pas un Git utilisable est refusé |
+| **Éditeur**          | Nom d’un programme ou d’une application, ou chemin        | Vide (application par défaut du système)             | Ouvre le dépôt ou un fichier                                                                                                                                                          |
+| **Terminal**         | **Intégré**, **Externe**                                  | **Intégré**                                          | Sous **Terminal**. Ce qu’ouvre le bouton **Terminal** de la barre d’outils : le panneau du [terminal intégré](../../repository/terminal/) ou le terminal externe                      |
+| **Terminal externe** | **Configurer…** ouvre la boîte de dialogue **Terminal**   | Terminal par défaut du système                       | Sous **Terminal**. Application ou programme utilisé pour les terminaux externes                                                                                                       |
+| **Outil de diff**    | Un nom d’outil connu de Git                               | Vide (`diff.tool`, puis `diff.guitool`)              | Sous **Diff et merge**. Outil lancé par `git difftool`                                                                                                                                |
+| **Outil de merge**   | Un nom d’outil connu de Git                               | Vide (`merge.tool`)                                  | Sous **Diff et merge**. Outil lancé par `git mergetool`                                                                                                                               |
 
-## Git
+## Fetch et pull
 
-Voir [Binaire Git et configuration](../../customize/git-configuration/#choisir-le-binaire-git).
+Voir [Fetch, pull et push](../../remotes/fetch-pull-push/).
 
-| Libellé         | Valeurs                                                   | Par défaut                                           | Effet                                                                                                                                                                                 |
-| --------------- | --------------------------------------------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Binaire Git** | Chemin d’un exécutable Git, enregistré avec **Appliquer** | Vide (« Détecté automatiquement » : `git` du `PATH`) | Le Git que yaggui exécute. **Détection automatique** le vide. Une version antérieure à 2.30 est acceptée avec un avertissement ; un chemin qui n’est pas un Git utilisable est refusé |
+| Libellé                                        | Valeurs                                                      | Par défaut     | Effet                                                                                                                                                                                                                                                                                                                                                                                |
+| ---------------------------------------------- | ------------------------------------------------------------ | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Fetch automatique**                          | Activé, désactivé                                            | Activé         | Fait un fetch de tous les remotes de chaque dépôt ouvert, en arrière-plan, dépôts des autres onglets compris. Ignoré pendant qu’une opération s’exécute dans ce dépôt, et silencieux : aucun toast                                                                                                                                                                                   |
+| **Toutes les (minutes)**                       | 1 à 240                                                      | 10             | Intervalle du fetch automatique. Désactivé quand le fetch automatique est désactivé. Les valeurs hors limites sont ramenées dans la plage                                                                                                                                                                                                                                            |
+| **Nettoyer au fetch**                          | Activé, désactivé                                            | Activé         | Ajoute `--prune` à chaque fetch : les branches de suivi supprimées sur le remote sont supprimées                                                                                                                                                                                                                                                                                     |
+| **Afficher les tags présents sur les remotes** | Activé, désactivé                                            | Désactivé      | Ajoute un nuage aux étiquettes des tags qu’un remote possède sur le même commit. Liste les tags de chaque remote avec `git ls-remote --tags` à l’activation, à l’ouverture d’un dépôt et après chaque fetch, pull et push. **En savoir plus**, sous l’interrupteur, explique le fonctionnement. Voir [Graphe des commits](../../history/commit-graph/#tags-présents-sur-les-remotes) |
+| **Stratégie de pull par défaut**               | **Config Git**, **Fast-forward seul**, **Merge**, **Rebase** | **Config Git** | Utilisée quand vous faites un pull sans choisir. **Config Git** suit `branch.<name>.rebase`, `pull.rebase` et `pull.ff`, et se rabat sur fast-forward seul                                                                                                                                                                                                                           |
 
-## Configuration
+## Sécurité
 
-Ce ne sont pas des préférences de yaggui : cet onglet modifie les fichiers de configuration propres à Git avec `git config`. Voir [Binaire Git et configuration](../../customize/git-configuration/#modifier-la-configuration-git).
-
-| Contrôle                     | Valeurs                                                                                                                                                                                                                                                                                  | Par défaut                                 |
-| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
-| **Fichier de configuration** | **Global** (`~/.gitconfig`), **Ce dépôt** (`.git/config`, uniquement depuis l’onglet d’un dépôt)                                                                                                                                                                                         | **Global**, à chaque ouverture de l’onglet |
-| **Réglages courants**        | **Nom (user.name)**, **E-mail (user.email)**, **Stratégie de pull (pull.rebase)**, **Fins de ligne (core.autocrlf)**, **Branche par défaut (init.defaultBranch)**, **Signer les commits (commit.gpgsign)**, **Format de signature (gpg.format)**, **Clé de signature (user.signingkey)** | Ce que contient le fichier                 |
-| **Toutes les entrées**       | Toutes les clés du fichier : ajout, modification, suppression                                                                                                                                                                                                                            |                                            |
-
-## Comportement
-
-| Libellé                                        | Valeurs                                                      | Par défaut                               | Effet                                                                                                                                                                                                                                                                                                                                                                                |
-| ---------------------------------------------- | ------------------------------------------------------------ | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Fetch automatique**                          | Activé, désactivé                                            | Activé                                   | Fait un fetch de tous les remotes de chaque dépôt ouvert, en arrière-plan, dépôts des autres onglets compris. Ignoré pendant qu’une opération s’exécute dans ce dépôt, et silencieux : aucun toast. Voir [Fetch, pull et push](../../remotes/fetch-pull-push/)                                                                                                                       |
-| **Toutes les (minutes)**                       | 1 à 240                                                      | 10                                       | Intervalle du fetch automatique. Désactivé quand le fetch automatique est désactivé. Les valeurs hors limites sont ramenées dans la plage                                                                                                                                                                                                                                            |
-| **Nettoyer au fetch**                          | Activé, désactivé                                            | Activé                                   | Ajoute `--prune` à chaque fetch : les branches de suivi supprimées sur le remote sont supprimées                                                                                                                                                                                                                                                                                     |
-| **Afficher les tags présents sur les remotes** | Activé, désactivé                                            | Désactivé                                | Ajoute un nuage aux étiquettes des tags qu’un remote possède sur le même commit. Liste les tags de chaque remote avec `git ls-remote --tags` à l’activation, à l’ouverture d’un dépôt et après chaque fetch, pull et push. **En savoir plus**, sous l’interrupteur, explique le fonctionnement. Voir [Graphe des commits](../../history/commit-graph/#tags-présents-sur-les-remotes) |
-| **Stratégie de pull par défaut**               | **Config Git**, **Fast-forward seul**, **Merge**, **Rebase** | **Config Git**                           | Utilisée quand vous faites un pull sans choisir. **Config Git** suit `branch.<name>.rebase`, `pull.rebase` et `pull.ff`, et se rabat sur fast-forward seul                                                                                                                                                                                                                           |
-| **Branches protégées**                         | Noms de branches ou motifs comme `release/*`                 | `main`, `master`, `develop`, `release/*` | Le force push vers ces branches et leur suppression sur le remote sont refusés, et le nettoyage des branches ne les propose jamais. **Rétablir les valeurs par défaut** restaure la liste par défaut. Une liste vide ne protège rien. Voir [Branches](../../history/branches/)                                                                                                       |
-| **Confirmations**                              | Un interrupteur par confirmation                             | Tous activés                             | Voir [ci-dessous](#confirmations-que-vous-pouvez-désactiver)                                                                                                                                                                                                                                                                                                                         |
-| **Vérifier les mises à jour au démarrage**     | Activé, désactivé                                            | Demandé au premier lancement             | Consulte la dernière release sur github.com à chaque lancement. Désactivé : aucune requête. Voir [Mises à jour](../../start-here/updates/)                                                                                                                                                                                                                                           |
-| **Vérifier maintenant**                        | Bouton                                                       |                                          | Recherche immédiatement une mise à jour                                                                                                                                                                                                                                                                                                                                              |
-| **Version**                                    | Bouton **Nouveautés**                                        |                                          | Affiche la version en cours d’exécution et ouvre le journal des modifications                                                                                                                                                                                                                                                                                                        |
+| Libellé                | Valeurs                                      | Par défaut                               | Effet                                                                                                                                                                                                                                                                          |
+| ---------------------- | -------------------------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Branches protégées** | Noms de branches ou motifs comme `release/*` | `main`, `master`, `develop`, `release/*` | Le force push vers ces branches et leur suppression sur le remote sont refusés, et le nettoyage des branches ne les propose jamais. **Rétablir les valeurs par défaut** restaure la liste par défaut. Une liste vide ne protège rien. Voir [Branches](../../history/branches/) |
+| **Confirmations**      | Un interrupteur par confirmation             | Tous activés                             | Voir [ci-dessous](#confirmations-que-vous-pouvez-désactiver)                                                                                                                                                                                                                   |
 
 Seul un `/*` final est un joker : `release/*` correspond à `release/1.0` et à `release/a/b`, mais pas à `release` lui-même. Toute autre entrée doit correspondre exactement au nom de la branche. Les entrées ne peuvent pas contenir d’espaces, et 100 au plus sont autorisées.
 
-## Confirmations que vous pouvez désactiver
+### Confirmations que vous pouvez désactiver
 
-Le groupe **Confirmations** de l’onglet **Comportement** (« Demander avant ces actions. Le dialogue montre toujours ce qui va se passer. ») comporte quatre interrupteurs :
+Le groupe **Confirmations** de la section **Sécurité** (« Demander avant ces actions. Le dialogue montre toujours ce qui va se passer. ») comporte quatre interrupteurs :
 
 | Interrupteur                     | Confirmation qu’il commande                                                                             | Peut être désactivée                                               |
 | -------------------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
@@ -121,6 +151,18 @@ Le groupe **Confirmations** de l’onglet **Comportement** (« Demander avant c
 
 Une confirmation désactivée exécute l’action immédiatement. Les autres confirmations sont toujours affichées et n’ont pas d’interrupteur, par exemple : le rebase (« Rebaser _branche_ sur _cible_ ? »), la réécriture de commits dans un rebase interactif, l’abandon d’une opération, la suppression d’une branche ou d’un tag distant, la suppression d’un remote, la publication d’une branche, la suppression d’un workspace, l’annulation quand des modifications locales gênent, la confiance accordée à un dossier (`safe.directory`) et la suppression d’un verrou d’index. Le reset et la suppression de branche ont leurs propres boîtes de dialogue.
 
+## Configuration Git
+
+Ce ne sont pas des préférences de yaggui : cette section modifie les fichiers de configuration propres à Git avec `git config`. Voir [Binaire Git et configuration](../../customize/git-configuration/#modifier-la-configuration-git).
+
+| Contrôle                     | Valeurs                                                                                                               | Par défaut                                   |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| **Fichier de configuration** | **Global** (`~/.gitconfig`), **Ce dépôt** (`.git/config`, uniquement depuis l’onglet d’un dépôt)                      | **Global**, à chaque ouverture de la section |
+| **Identité**                 | **Nom (user.name)**, **E-mail (user.email)**                                                                          | Ce que contient le fichier                   |
+| **Signature**                | **Signer les commits (commit.gpgsign)**, **Format de signature (gpg.format)**, **Clé de signature (user.signingkey)** | Ce que contient le fichier                   |
+| **Comportement**             | **Stratégie de pull (pull.rebase)**, **Fins de ligne (core.autocrlf)**, **Branche par défaut (init.defaultBranch)**   | Ce que contient le fichier                   |
+| **Toutes les entrées**       | Toutes les clés du fichier : ajout, modification, suppression                                                         |                                              |
+
 ## Préférences hors de la boîte de dialogue
 
 | Réglage                                                                                                       | Où le modifier                                                                                              | Par défaut                        |
@@ -128,7 +170,7 @@ Une confirmation désactivée exécute l’action immédiatement. Les autres con
 | Diff côte à côte ou unifié                                                                                    | La barre d’outils de la [vue diff](../../everyday/diff/), ou <kbd>⌘D</kbd> (<kbd>Ctrl+D</kbd>) dans un diff | Côte à côte                       |
 | Options du diff (retour à la ligne, ignorer les espaces, lignes de contexte, fichier entier, aperçu Markdown) | La barre d’outils de la vue diff                                                                            | Désactivées, 3 lignes de contexte |
 
-Les commandes de palette **Thème : suivre le système**, **Thème : clair** et **Thème : sombre** modifient le même réglage **Thème** que la boîte de dialogue.
+Les commandes de palette **Thème : suivre le système**, **Thème : clair** et **Thème : sombre** modifient le même mode clair / sombre que l’interrupteur **Suivre le thème du système**. **Thème : choisir un thème de couleurs…** liste les thèmes de couleurs dans la palette (<kbd>↑</kbd> <kbd>↓</kbd> pour l’aperçu) et applique celui que vous choisissez, comme la galerie de la section **Apparence**.
 
 ## Où sont stockées les préférences
 
@@ -149,7 +191,7 @@ La variable d’environnement `YAGGUI_CONFIG_DIR` remplace ce dossier.
 
 ## Import et export
 
-Pour emporter vos préférences et vos raccourcis sur une autre machine à la main, utilisez **Exporter…** et **Importer…**, en bas à gauche de la boîte de dialogue Préférences. Les deux mêmes commandes sont dans la palette de commandes : **Exporter les préférences et les raccourcis…** et **Importer des préférences et des raccourcis…**.
+Pour emporter vos préférences et vos raccourcis sur une autre machine à la main, utilisez **Exporter…** et **Importer…** dans **Préférences › Général**, sous **Sauvegarde** (ligne **Importer ou exporter les préférences**). Les deux mêmes commandes sont dans la palette de commandes : **Exporter les préférences et les raccourcis…** et **Importer des préférences et des raccourcis…**.
 
 **Exporter…** demande où enregistrer un fichier (`yaggui-preferences.json` par défaut) et y écrit vos préférences actuelles et vos raccourcis personnalisés. La notification « Préférences et raccourcis exportés » affiche le chemin.
 
@@ -166,7 +208,7 @@ Pour emporter vos préférences et vos raccourcis sur une autre machine à la ma
 }
 ```
 
-- **Préférences exportées :** thème, style, langue, ce qu’ouvre le bouton Terminal, disposition et options du diff, contraste élevé, densité, polices de l’interface et du code, taille du texte, fetch automatique et son intervalle, nettoyage au fetch, stratégie de pull par défaut, branches protégées, confirmations désactivées, avatars Gravatar et tags sur les remotes.
+- **Préférences exportées :** mode clair / sombre, thème clair, thème sombre, style d’interface, langue, ce qu’ouvre le bouton Terminal, disposition et options du diff, contraste élevé, densité, polices de l’interface et du code, taille du texte, fetch automatique et son intervalle, nettoyage au fetch, stratégie de pull par défaut, branches protégées, confirmations désactivées, avatars Gravatar et tags sur les remotes.
 - **Jamais exportés (propres à une machine) :** le chemin du binaire Git, l’éditeur, le terminal externe, les outils de diff et de merge, et la réponse à la question sur la vérification des mises à jour. Leurs chemins et leurs programmes diffèrent d’une installation à l’autre, et la vérification des mises à jour est un choix que vous faites sur chaque machine. Si un fichier les contient malgré tout, ils sont ignorés et listés sous **Laissé de côté**, et les valeurs de cette machine restent telles quelles.
 - **Raccourcis :** la liste `keybindings` est l’ensemble de vos raccourcis personnalisés. L’importer **remplace** les raccourcis personnalisés de cette machine : une commande que le fichier ne liste pas retrouve son raccourci par défaut. L’aperçu montre chaque changement.
 - **Les préférences absentes du fichier** gardent leur valeur sur cette machine. **Les clés inconnues** (un réglage ajouté par une version plus récente de yaggui, ou une faute de frappe) sont ignorées et listées.

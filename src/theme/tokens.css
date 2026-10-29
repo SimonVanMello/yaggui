@@ -53,6 +53,11 @@
   --menu-min-width: 220px;
   --dialog-width: 440px;
   --dialog-width-wide: 720px;
+  /* Preferences (F-320…F-326): a fixed size, so changing section never resizes the dialog. */
+  --settings-width: 1080px;
+  --settings-height: 760px;
+  --settings-nav-width: 228px;
+  --settings-content-width: 720px;
   --palette-width: 600px;
   --palette-list-max-height: 50vh;
   --toast-width: 360px;
@@ -121,6 +126,22 @@
 }
 
 :root[data-density='compact'] {
+  --row-height: 22px;
+}
+
+/* Terminal interface style (style D): monospace everywhere, square corners, dense rows; it goes
+   with any color theme. A font chosen in the preferences still wins: it is set inline on <html>. */
+:root[data-style='terminal'] {
+  --font-ui: var(--font-code);
+  --radius-sm: 2px;
+  --radius-md: 2px;
+  --radius-lg: 2px;
+  --radius-xl: 2px;
+  --radius-full: 2px;
+  --row-height: 26px;
+}
+
+:root[data-style='terminal'][data-density='compact'] {
   --row-height: 22px;
 }
 

@@ -75,7 +75,7 @@ An action that has a shortcut shows it on the right of its row, with your curren
 
 ## See every shortcut
 
-Press <kbd>⌘/</kbd> (<kbd>Ctrl+/</kbd> on Windows and Linux) or run **Show keyboard shortcuts** to open the **Keyboard shortcuts** sheet. It lists every bound command with your current shortcut, grouped as Repository, Tabs, View, Application, Git and Graph. **Edit shortcuts…** opens the preferences on the **Shortcuts** tab.
+Press <kbd>⌘/</kbd> (<kbd>Ctrl+/</kbd> on Windows and Linux) or run **Show keyboard shortcuts** to open the **Keyboard shortcuts** sheet. It lists every bound command with your current shortcut, grouped as Repository, Tabs, View, Application, Git and Graph. **Edit shortcuts…** opens the preferences on the **Shortcuts** section.
 
 On macOS, shortcuts use the symbols ⌘ ⌃ ⌥ ⇧ ↵; on Windows and Linux they read `Ctrl`, `Alt`, `Shift`, `Enter`.
 
@@ -88,7 +88,7 @@ The complete list of default shortcuts is in the [keyboard shortcuts reference](
 ## Rebind a shortcut
 
 1. Open **Preferences › Shortcuts** (or click **Edit shortcuts…** in the cheat sheet).
-2. Find the command. **Filter commands or shortcuts** matches the label, the action id or the shortcut text.
+2. Find the command. **Filter commands or shortcuts** matches the label, the action id or the shortcut text. You can also type the command's name in **Search settings**, at the top of the preferences: the Shortcuts section shows up in the results, already filtered.
 3. Click **Edit** on its row. The button reads "Press the shortcut… (Esc to cancel)".
 4. Press the new combination. Pressing only modifiers keeps waiting; <kbd>Esc</kbd> or clicking elsewhere cancels.
 
@@ -97,7 +97,7 @@ The shortcut is saved at once and applies everywhere: palette hints, the cheat s
 <Screenshot
   dark={keybindingsDark}
   light={keybindingsLight}
-  alt="The Shortcuts tab of the preferences, with commands grouped by section and Edit, Remove and Default buttons on each row"
+  alt="The Shortcuts section of the preferences, with commands grouped by section and Edit, Remove and Default buttons on each row"
 />
 
 ### Rules for a shortcut
@@ -131,7 +131,7 @@ Conflicts that come from a hand-edited file show on each affected row as "Same s
 
 ## Edit keybindings.json
 
-Your changes are stored in `keybindings.json`, in yaggui's configuration folder (see [Data and privacy](../../reference/data-and-privacy/)). The full path is shown under **Stored in** at the bottom of the Shortcuts tab. The file only holds what differs from the defaults:
+Your changes are stored in `keybindings.json`, in yaggui's configuration folder (see [Data and privacy](../../reference/data-and-privacy/)). The full path is shown under **Stored in** at the bottom of the Shortcuts section. The file only holds what differs from the defaults:
 
 ```json
 {
@@ -141,19 +141,19 @@ Your changes are stored in `keybindings.json`, in yaggui's configuration folder 
 }
 ```
 
-- Keys are action ids. The Shortcuts tab shows them when you filter, and the [reference](../../reference/keyboard-shortcuts/) lists them all.
+- Keys are action ids. The Shortcuts section shows them when you filter, and the [reference](../../reference/keyboard-shortcuts/) lists them all.
 - A string sets the shortcut; `null` removes it; a missing id keeps the default.
 - Shortcut syntax: modifiers among `Mod`, `Ctrl`, `Alt` and `Shift`, each at most once, then one key, joined by `+`. `Mod` is ⌘ on macOS and Ctrl on Windows and Linux; `Ctrl` is the physical Control key everywhere. Keys: `A` to `Z`, digits, `F1` to `F12`, `Space`, `Enter`, `Escape`, `Tab`, `ArrowLeft`, `ArrowRight`, `ArrowUp`, `ArrowDown`, `` ` ``, and punctuation such as `,` and `/`.
 
-yaggui reads the file at startup and again each time you open the Shortcuts tab, so hand edits take effect there without a restart. When yaggui saves a change, it rewrites the whole file (sorted, pretty-printed).
+yaggui reads the file at startup and again each time you open the Shortcuts section, so hand edits take effect there without a restart. When yaggui saves a change, it rewrites the whole file (sorted, pretty-printed).
 
-If the file cannot be read or is not valid JSON, yaggui uses the default shortcuts and the Shortcuts tab shows a banner "keybindings.json has a problem: _detail_". If only some entries are wrong, the others apply and the banner reads "Ignored entries: _ids_". yaggui does not touch the file until you change a shortcut in the tab; at that point it is rewritten with the shortcuts the tab shows, which drops the invalid content.
+If the file cannot be read or is not valid JSON, yaggui uses the default shortcuts and the Shortcuts section shows a banner "keybindings.json has a problem: _detail_". If only some entries are wrong, the others apply and the banner reads "Ignored entries: _ids_". yaggui does not touch the file until you change a shortcut in the section; at that point it is rewritten with the shortcuts the section shows, which drops the invalid content.
 
 :::caution
-If the banner reports a parse error, fix the file by hand before changing a shortcut in the tab, or the overrides yaggui could not read are lost.
+If the banner reports a parse error, fix the file by hand before changing a shortcut in the section, or the overrides yaggui could not read are lost.
 :::
 
-To copy your custom shortcuts to another machine, use **Export…** and **Import…** in the Preferences dialog instead of copying this file: the export also carries your other preferences and the import shows what changes first. See [Import and export](../../reference/preferences/#import-and-export).
+To copy your custom shortcuts to another machine, use **Import…** and **Export…** in **Preferences › General** (under **Backup**) instead of copying this file: the export also carries your other preferences and the import shows what changes first. See [Import and export](../../reference/preferences/#import-and-export).
 
 ## Keys that cannot be rebound
 

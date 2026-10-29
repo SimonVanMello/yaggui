@@ -27,23 +27,33 @@ export function pushRecentKey(recents: readonly string[], key: string): string[]
   return [key, ...recents.filter((existing) => existing !== key)].slice(0, MAX_RECENTS);
 }
 
+/** What the palette lists: every command, or the color themes (VS Code's theme picker). */
+export type PaletteView = 'commands' | 'themes';
+
 interface PaletteStore {
   open: boolean;
+  view: PaletteView;
   /** Item keys (`action:tab.new`, `ref:main`…), most recent first. */
   recents: string[];
   setOpen: (open: boolean) => void;
+  /** Opens the palette on `view`, or switches an open palette to it. */
+  openView: (view: PaletteView) => void;
   toggle: () => void;
   remember: (key: string) => void;
 }
 
 export const usePaletteStore = create<PaletteStore>()((set) => ({
   open: false,
+  view: 'commands',
   recents: loadRecents(),
   setOpen: (open) => {
-    set({ open });
+    set({ open, view: 'commands' });
+  },
+  openView: (view) => {
+    set({ open: true, view });
   },
   toggle: () => {
-    set((state) => ({ open: !state.open }));
+    set((state) => ({ open: !state.open, view: 'commands' }));
   },
   remember: (key) => {
     set((state) => {

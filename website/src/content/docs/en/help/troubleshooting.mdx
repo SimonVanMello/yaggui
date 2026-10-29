@@ -17,7 +17,7 @@ sources:
   - src-tauri/src/main.rs
   - src/app/ErrorBoundary.tsx
   - src/features/repo/RepoBanners.tsx
-  - src/features/preferences/GitTab.tsx
+  - src/features/preferences/GitPathField.tsx
   - src/features/staging/HookFailurePanel.tsx
 requirements: [F-009, F-065, F-301, F-302, F-322]
 ---
@@ -39,8 +39,8 @@ yaggui does not include Git: it runs the `git` installed on your system, and nee
 
 By default yaggui runs the first `git` found on your `PATH`. To use another one:
 
-1. Open **Preferences** (<kbd>⌘,</kbd>, <kbd>Ctrl+,</kbd> on Windows and Linux) and select the **Git** tab.
-2. Enter the full path in **Git binary**, for example `/opt/homebrew/bin/git` or `C:\Program Files\Git\cmd\git.exe`.
+1. Open **Preferences** (<kbd>⌘,</kbd>, <kbd>Ctrl+,</kbd> on Windows and Linux) and select the **Tools** section.
+2. Enter the full path in **Git binary**, the first setting of the section, for example `/opt/homebrew/bin/git` or `C:\Program Files\Git\cmd\git.exe`.
 3. Click **Apply**. yaggui runs `<path> --version` and shows "Git \{version\} · \{path\}". A path that is not a working Git is refused and nothing is saved.
 
 **Auto-detect** clears the saved path and goes back to `git` on the `PATH`. If a saved path stops working later (Git uninstalled or moved), yaggui falls back to `git` on the `PATH` at the next launch.

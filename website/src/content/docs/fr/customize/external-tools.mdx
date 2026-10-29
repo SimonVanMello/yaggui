@@ -4,7 +4,7 @@ description: Définissez l’éditeur, le terminal, l’outil de diff et l’out
 sidebar:
   order: 3
 sources:
-  - src/features/preferences/ToolsTab.tsx
+  - src/features/preferences/ToolsSection.tsx
   - src/features/terminal/TerminalDialog.tsx
   - src/features/terminal/openInEditor.ts
   - src/features/diff/ExternalDiffButtons.tsx
@@ -22,12 +22,12 @@ import Screenshot from '~/components/Screenshot.astro';
 import prefsToolsDark from '../../../../assets/screens/prefs-tools-fr-dark.png';
 import prefsToolsLight from '../../../../assets/screens/prefs-tools-fr-light.png';
 
-yaggui peut confier un dépôt ou un fichier à d’autres programmes : votre éditeur, un terminal, un outil de diff, un outil de merge et le gestionnaire de fichiers du système. Vous les choisissez dans **Préférences › Outils**. Chaque ligne a un bouton **Tester** qui essaie l’outil avant que vous comptiez dessus.
+yaggui peut confier un dépôt ou un fichier à d’autres programmes : votre éditeur, un terminal, un outil de diff, un outil de merge et le gestionnaire de fichiers du système. Vous les choisissez dans **Préférences › Outils**, sous le **Binaire Git** (voir [Binaire Git et configuration](../../customize/git-configuration/#choisir-le-binaire-git)). Chaque ligne d’outil a un bouton **Tester** qui essaie l’outil avant que vous comptiez dessus.
 
 <Screenshot
   dark={prefsToolsDark}
   light={prefsToolsLight}
-  alt="L’onglet Outils des préférences, avec les lignes Éditeur, Terminal, Terminal externe, Outil de diff et Outil de merge et leurs boutons Tester"
+  alt="La section Outils des préférences, avec les lignes Binaire Git, Éditeur, Terminal, Terminal externe, Outil de diff et Outil de merge et leurs boutons Tester"
 />
 
 yaggui ne passe jamais par un shell pour démarrer ces programmes : le programme et le fichier ou le dossier sont transmis comme arguments séparés.

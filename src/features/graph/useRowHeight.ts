@@ -30,7 +30,7 @@ function subscribe(listener: () => void): () => void {
     });
     observer.observe(document.documentElement, {
       attributes: true,
-      attributeFilter: ['data-density', 'data-theme'],
+      attributeFilter: ['data-density', 'data-theme', 'data-style'],
     });
   }
   return () => {

@@ -19,12 +19,6 @@
   font-size: var(--text-sm);
 }
 
-.fields {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-}
-
 .heading {
   margin: 0;
   color: var(--fg-secondary);

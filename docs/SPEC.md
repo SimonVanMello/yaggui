@@ -358,7 +358,7 @@ Default shortcuts (macOS; `⌘`→`Ctrl` elsewhere):
 
 | ID | Requirement | Prio |
 |---|---|---|
-| F-320 | Theme (light / dark / system / high contrast), style (see §7), density (compact / comfortable), UI font and code font, size. | MVP |
+| F-320 | Color theme from a catalogue of well-known themes (yaggui's Graphite, Paper and Terminal, Catppuccin, VS Code, JetBrains, GitHub, classics), previewed live on the whole app before it is applied (gallery in the preferences, theme picker in the palette); one theme for the light mode and one for the dark mode, following the OS or not; high contrast on every theme; interface style Standard / Terminal (shape only, see §7); density (compact / comfortable), UI font and code font, size. | MVP |
 | F-321 | Language: French, English. i18n architecture ready for more. | V1 |
 | F-322 | Path to the Git binary (auto-detected), version shown, warning below 2.30. | MVP |
 | F-323 | External editor, terminal, external diff/merge tools. | V1 |
@@ -394,6 +394,8 @@ The interactive mockups are in [`docs/ui/styles.html`](ui/styles.html); open the
 | **D — Terminal** (dense dark) | Monospace everywhere, maximum density, sharp contrasts, green accent. Inspired by lazygit / Sublime Merge. | "Power user" option | More information on screen, consistent with keyboard-first use. | Off-putting for beginners, against the accessibility goal if used as the default. |
 
 **Recommendation**: ship **A (dark) + B (light)** as the default pair, built on the same tokens; keep **C** and **D** as optional themes (they cost almost nothing once the tokens exist). Density (compact/comfortable) is a setting orthogonal to the theme.
+
+**Shipped (M10-1)**: A, B and the colors of D are color themes of a catalogue that also holds well-known editor themes (Catppuccin, VS Code, JetBrains, GitHub, One Dark, Dracula, Nord, Tokyo Night, Gruvbox, Solarized, Rosé Pine), generated from their palettes with the contrast moved to WCAG AA. The shape of D (monospace, square corners, dense rows) is the separate "Terminal" interface style, which goes with any color theme. C is covered by the Catppuccin and Nord themes.
 
 ### 7.1 Design tokens (shared base)
 

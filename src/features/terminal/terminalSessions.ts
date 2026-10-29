@@ -128,7 +128,7 @@ function watchAppearance(): void {
   themeObserver = new MutationObserver(applyAppearance);
   themeObserver.observe(document.documentElement, {
     attributes: true,
-    attributeFilter: ['data-theme', 'data-contrast', 'data-density', 'style'],
+    attributeFilter: ['data-theme', 'data-style', 'data-contrast', 'data-density', 'style'],
   });
   subscribePreferences(applyAppearance);
 }

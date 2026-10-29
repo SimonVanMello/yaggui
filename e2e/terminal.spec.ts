@@ -53,7 +53,10 @@ async function openPrefs(page: Page, tab: string) {
   await page.keyboard.press('Control+,');
   const prefs = page.getByRole('dialog', { name: 'Preferences' });
   await expect(prefs).toBeVisible();
-  await prefs.getByRole('tab', { name: tab, exact: true }).click();
+  await prefs
+    .getByRole('navigation', { name: 'Preference sections' })
+    .getByRole('button', { name: tab, exact: true })
+    .click();
   return prefs;
 }
 
@@ -160,7 +163,9 @@ for (const { name: theme, colorScheme } of THEMES) {
       await start(page);
       await openRepo(page, 'yaggui');
       const prefs = await openPrefs(page, 'Appearance');
+      // Style D: the Terminal shape and the Terminal colors.
       await prefs.getByRole('radio', { name: 'Terminal' }).click();
+      await prefs.locator('[data-theme-id="terminal"]').click();
       await page.keyboard.press('Escape');
       await page.keyboard.press('Control+`');
       await expect(screen(page)).toContainText('yaggui $');
@@ -171,7 +176,7 @@ for (const { name: theme, colorScheme } of THEMES) {
         panel(page)
           .locator('.xterm-scrollable-element')
           .evaluate((element) => getComputedStyle(element).backgroundColor);
-      // --term-bg is --bg-app of the Terminal style.
+      // --term-bg is --bg-app of the Terminal theme.
       await expect.poll(background).toBe('rgb(10, 10, 10)');
       await capture(page, theme, 'style-terminal');
 

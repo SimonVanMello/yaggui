@@ -29,8 +29,10 @@ const MAX_FILE_BYTES: u64 = 1024 * 1024;
 const MAX_KEYBINDINGS: usize = 1000;
 
 /// Settings that travel between machines.
-const PORTABLE: [&str; 19] = [
+const PORTABLE: [&str; 21] = [
     "theme",
+    "lightTheme",
+    "darkTheme",
     "style",
     "locale",
     "terminalMode",
@@ -250,11 +252,18 @@ fn parse(text: &str, current: &Preferences) -> Result<Parsed, YagguiError> {
     if version > VERSION {
         return Err(YagguiError::preferences_file_too_new(version, VERSION));
     }
-    let incoming = match root.get("preferences") {
+    let mut incoming = match root.get("preferences") {
         None => Map::new(),
         Some(Value::Object(map)) => map.clone(),
         Some(_) => return Err(invalid("\"preferences\" must be an object")),
     };
+    // Exported before the color themes: the Terminal style brought its own dark colors.
+    if incoming.get("style").and_then(Value::as_str) == Some("terminal")
+        && !incoming.contains_key("darkTheme")
+    {
+        incoming.insert("darkTheme".to_owned(), json!(super::TERMINAL_THEME));
+        incoming.insert("theme".to_owned(), json!("dark"));
+    }
     let keybindings = parse_keybindings(root.get("keybindings"))?;
 
     let mut working = current.clone();

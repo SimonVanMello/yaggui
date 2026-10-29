@@ -19,6 +19,7 @@
     "test": "vitest run",
     "docs:impact": "node scripts/docs-impact.mjs",
     "docs:shortcuts": "node scripts/docs-shortcuts.mjs",
+    "themes": "vitest run src/theme/themeCss.test.ts --update",
     "check": "node scripts/check-case.mjs && pnpm lint && pnpm format:check && pnpm typecheck && pnpm test",
     "test:ui": "playwright test",
     "test:demo": "playwright test --config playwright.demo.config.ts",

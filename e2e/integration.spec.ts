@@ -32,7 +32,10 @@ async function openYaggui(page: Page) {
 async function useExternalTerminal(page: Page) {
   await page.keyboard.press('Control+,');
   const prefs = page.getByRole('dialog', { name: 'Preferences' });
-  await prefs.getByRole('tab', { name: 'Tools', exact: true }).click();
+  await prefs
+    .getByRole('navigation', { name: 'Preference sections' })
+    .getByRole('button', { name: 'Tools', exact: true })
+    .click();
   await prefs.getByRole('radio', { name: 'External' }).click();
   await page.keyboard.press('Escape');
   await expect(prefs).toHaveCount(0);
@@ -129,7 +132,8 @@ test.describe('behavior', () => {
     await page.getByRole('button', { name: 'Preferences' }).click();
     await page
       .getByRole('dialog', { name: 'Preferences' })
-      .getByRole('tab', { name: 'Tools', exact: true })
+      .getByRole('navigation', { name: 'Preference sections' })
+      .getByRole('button', { name: 'Tools', exact: true })
       .click();
     await page
       .getByRole('dialog', { name: 'Preferences' })
@@ -154,7 +158,8 @@ test.describe('behavior', () => {
     await page.getByRole('button', { name: 'Preferences' }).click();
     await page
       .getByRole('dialog', { name: 'Preferences' })
-      .getByRole('tab', { name: 'Tools', exact: true })
+      .getByRole('navigation', { name: 'Preference sections' })
+      .getByRole('button', { name: 'Tools', exact: true })
       .click();
     await page
       .getByRole('dialog', { name: 'Preferences' })

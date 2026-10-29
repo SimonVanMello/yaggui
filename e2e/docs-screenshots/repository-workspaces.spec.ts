@@ -203,7 +203,10 @@ test('terminal-prefs-tools', async ({ page }, testInfo) => {
   await openRepo(page);
   await page.keyboard.press('Control+,');
   const prefs = page.getByRole('dialog', { name: 'Preferences' });
-  await prefs.getByRole('tab', { name: 'Tools', exact: true }).click();
+  await prefs
+    .getByRole('navigation', { name: 'Preference sections' })
+    .getByRole('button', { name: 'Tools', exact: true })
+    .click();
   await expect(prefs.getByRole('radio', { name: 'Integrated' })).toBeChecked();
   await capture(page, testInfo, 'terminal-prefs-tools', prefs);
 });

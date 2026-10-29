@@ -12,12 +12,12 @@ import { TextInput } from '../../ui/TextInput';
 import { toast } from '../../ui/toastStore';
 import { gitStatus, type GitStatus } from './prefsLogic';
 import { useDraft } from './useDraft';
-import styles from './GitTab.module.css';
+import styles from './GitPathField.module.css';
 
 const PROBE_DELAY_MS = 300;
 
 /** Path of the Git binary (F-322): detected, editable, with its version and a warning if old. */
-export function GitTab() {
+export function GitPathField() {
   const t = useT();
   const inputId = useId();
   const stored = usePreferences().gitPath;

@@ -2783,8 +2783,13 @@ export type PreferenceChange = {
 };
 
 export type Preferences = {
+	/**  Light / dark mode: `System` follows the OS and switches between the two themes below. */
 	theme: ThemePreference,
-	/**  Visual style (F-320). */
+	/**  Color theme of the light mode: an id of the frontend catalogue (`paper`, `latte`…). */
+	lightTheme?: string,
+	/**  Color theme of the dark mode (`graphite`, `mocha`…). */
+	darkTheme?: string,
+	/**  Interface style (F-320). */
 	style: ThemeStyle,
 	/**  `None` follows the OS language. */
 	locale: Locale | null,
@@ -3538,8 +3543,9 @@ export type TextEncoding = "utf8" |
 export type ThemePreference = "light" | "dark" | "system";
 
 /**
- *  Visual style (spec §7): `Terminal` is the dense monospace dark style (D), which ignores
- *  the light / dark choice.
+ *  Interface style (spec §7): `Terminal` is monospace with square corners and dense rows. It
+ *  is the shape of style D only: its colors are the `terminal` color theme, and the style goes
+ *  with any color theme.
  */
 export type ThemeStyle = "standard" | "terminal";
 

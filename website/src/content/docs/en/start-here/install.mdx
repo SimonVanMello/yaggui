@@ -33,7 +33,7 @@ yaggui does not include Git: it runs the `git` command of your system. Install i
 - **Windows**: [Git for Windows](https://git-scm.com/download/win), or `winget install Git.Git`.
 - **Linux**: your package manager, for example `sudo apt install git`. The `.deb`, `.rpm` and AUR packages install Git for you as a dependency.
 
-yaggui uses the first `git` on your `PATH`, or, if there is none, the first one in the usual install folders (`/usr/bin`, `/usr/local/bin`, `/opt/homebrew/bin`, `C:\Program Files\Git\cmd`). The status bar shows the version it found: a warning icon appears when it is older than 2.30, and **git not found** when there is none. To use another Git, set its path in **Preferences** > **Git** > **Git binary**; see [Preferences](../../reference/preferences/).
+yaggui uses the first `git` on your `PATH`, or, if there is none, the first one in the usual install folders (`/usr/bin`, `/usr/local/bin`, `/opt/homebrew/bin`, `C:\Program Files\Git\cmd`). The status bar shows the version it found: a warning icon appears when it is older than 2.30, and **git not found** when there is none. To use another Git, set its path in **Preferences** > **Tools** > **Git binary**; see [Preferences](../../reference/preferences/).
 
 :::tip
 On macOS, an app started from the Dock or Finder does not see the `PATH` of your shell, so it uses `/usr/bin/git` rather than Homebrew's Git. To use Homebrew's, set **Git binary** to `/opt/homebrew/bin/git` (Apple Silicon) or `/usr/local/bin/git` (Intel).

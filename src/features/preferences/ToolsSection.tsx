@@ -18,10 +18,13 @@ import { Icon } from '../../ui/Icon';
 import { SegmentedControl } from '../../ui/SegmentedControl';
 import { TextInput } from '../../ui/TextInput';
 import { activeRepoId } from '../repo/repoSessions';
+import { GitPathField } from './GitPathField';
 import { Row } from './Row';
 import { savePreferenceOrToast } from './savePreference';
+import { Setting } from './Setting';
+import { SettingGroup } from './SettingGroup';
 import { useDraft } from './useDraft';
-import styles from './ToolsTab.module.css';
+import styles from './ToolsSection.module.css';
 
 /** Tools `git difftool` / `git mergetool` know; any other name is a custom tool. */
 const GIT_TOOLS = [
@@ -44,77 +47,95 @@ type TestState =
   | { kind: 'failed'; error: YagguiError };
 
 /**
- * External editor, terminal, diff and merge tools (F-323), each with a launch test, and the
- * choice between the integrated terminal (F-267) and the external one.
+ * The programs of this computer: Git (F-322), the external editor, terminal, diff and merge
+ * tools (F-323), each with a launch test, and the choice between the integrated terminal
+ * (F-267) and the external one.
  */
-export function ToolsTab() {
+export function ToolsSection() {
   const t = useT();
   const prefs = usePreferences();
   return (
     <>
-      <ToolRow
-        kind="editor"
-        label={t('tools.editor')}
-        hint={t('tools.editor.hint')}
-        placeholder={t('tools.editor.placeholder')}
-        value={prefs.editor}
-        field="editor"
-      />
-      <Row
-        label={t('prefs.terminalMode')}
-        hint={t(
-          prefs.terminalMode === 'integrated'
-            ? 'prefs.terminalMode.integratedHint'
-            : 'prefs.terminalMode.externalHint',
-        )}
-      >
-        <SegmentedControl<TerminalMode>
-          label={t('prefs.terminalMode')}
-          value={prefs.terminalMode}
-          options={[
-            { value: 'integrated', label: t('prefs.terminalMode.integrated') },
-            { value: 'external', label: t('prefs.terminalMode.external') },
-          ]}
-          onChange={(terminalMode) => {
-            savePreferenceOrToast({ terminalMode });
-          }}
+      <Setting id="gitPath">
+        <GitPathField />
+      </Setting>
+      <Setting id="editor">
+        <ToolRow
+          kind="editor"
+          label={t('tools.editor')}
+          hint={t('tools.editor.hint')}
+          placeholder={t('tools.editor.placeholder')}
+          value={prefs.editor}
+          field="editor"
         />
-      </Row>
-      <Row
-        label={t('prefs.terminal.external')}
-        hint={
-          prefs.terminal
-            ? t('prefs.terminal.current', { name: prefs.terminal })
-            : t('prefs.terminal.default')
-        }
-      >
-        <Button
-          onClick={() => {
-            useShellStore.getState().setTerminalDialogOpen(true);
-          }}
-        >
-          {t('prefs.terminal.configure')}
-        </Button>
-        <TestButton kind="terminal" name={prefs.terminal} />
-      </Row>
-      <ToolRow
-        kind="diffTool"
-        label={t('tools.diff')}
-        hint={t('tools.diff.hint')}
-        placeholder={t('tools.tool.placeholder')}
-        value={prefs.diffTool}
-        field="diffTool"
-        suggestions={GIT_TOOLS}
-      />
-      <ToolRow
-        kind="mergeTool"
-        label={t('tools.merge')}
-        hint={t('tools.merge.hint')}
-        placeholder={t('tools.tool.placeholder')}
-        value={prefs.mergeTool}
-        field="mergeTool"
-        suggestions={GIT_TOOLS}
-      />
+      </Setting>
+      <SettingGroup title={t('prefs.subsection.terminal')} ids={['terminalMode', 'terminal']}>
+        <Setting id="terminalMode">
+          <Row
+            label={t('prefs.terminalMode')}
+            hint={t(
+              prefs.terminalMode === 'integrated'
+                ? 'prefs.terminalMode.integratedHint'
+                : 'prefs.terminalMode.externalHint',
+            )}
+          >
+            <SegmentedControl<TerminalMode>
+              label={t('prefs.terminalMode')}
+              value={prefs.terminalMode}
+              options={[
+                { value: 'integrated', label: t('prefs.terminalMode.integrated') },
+                { value: 'external', label: t('prefs.terminalMode.external') },
+              ]}
+              onChange={(terminalMode) => {
+                savePreferenceOrToast({ terminalMode });
+              }}
+            />
+          </Row>
+        </Setting>
+        <Setting id="terminal">
+          <Row
+            label={t('prefs.terminal.external')}
+            hint={
+              prefs.terminal
+                ? t('prefs.terminal.current', { name: prefs.terminal })
+                : t('prefs.terminal.default')
+            }
+          >
+            <Button
+              onClick={() => {
+                useShellStore.getState().setTerminalDialogOpen(true);
+              }}
+            >
+              {t('prefs.terminal.configure')}
+            </Button>
+            <TestButton kind="terminal" name={prefs.terminal} />
+          </Row>
+        </Setting>
+      </SettingGroup>
+      <SettingGroup title={t('prefs.subsection.difftools')} ids={['diffTool', 'mergeTool']}>
+        <Setting id="diffTool">
+          <ToolRow
+            kind="diffTool"
+            label={t('tools.diff')}
+            hint={t('tools.diff.hint')}
+            placeholder={t('tools.tool.placeholder')}
+            value={prefs.diffTool}
+            field="diffTool"
+            suggestions={GIT_TOOLS}
+          />
+        </Setting>
+        <Setting id="mergeTool">
+          <ToolRow
+            kind="mergeTool"
+            label={t('tools.merge')}
+            hint={t('tools.merge.hint')}
+            placeholder={t('tools.tool.placeholder')}
+            value={prefs.mergeTool}
+            field="mergeTool"
+            suggestions={GIT_TOOLS}
+          />
+        </Setting>
+      </SettingGroup>
     </>
   );
 }

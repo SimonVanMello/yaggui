@@ -83,7 +83,10 @@ test.describe('entry points', () => {
     await start(page);
     await page.keyboard.press('ControlOrMeta+,');
     const prefs = page.getByRole('dialog', { name: 'Preferences' });
-    await prefs.getByRole('tab', { name: 'Behavior' }).click();
+    await prefs
+      .getByRole('navigation', { name: 'Preference sections' })
+      .getByRole('button', { name: 'General', exact: true })
+      .click();
     await expect(prefs).toContainText('yaggui 0.3.0');
     await prefs.getByRole('button', { name: "What's new" }).click();
     await expect(prefs).toBeHidden();

@@ -17,7 +17,7 @@ sources:
   - src-tauri/src/main.rs
   - src/app/ErrorBoundary.tsx
   - src/features/repo/RepoBanners.tsx
-  - src/features/preferences/GitTab.tsx
+  - src/features/preferences/GitPathField.tsx
   - src/features/staging/HookFailurePanel.tsx
 requirements: [F-009, F-065, F-301, F-302, F-322]
 ---
@@ -39,8 +39,8 @@ yaggui n’embarque pas Git : il exécute le `git` installé sur votre système
 
 Par défaut, yaggui exécute le premier `git` trouvé dans votre `PATH`. Pour en utiliser un autre :
 
-1. Ouvrez les **Préférences** (<kbd>⌘,</kbd>, <kbd>Ctrl+,</kbd> sous Windows et Linux) et sélectionnez l’onglet **Git**.
-2. Saisissez le chemin complet dans **Binaire Git**, par exemple `/opt/homebrew/bin/git` ou `C:\Program Files\Git\cmd\git.exe`.
+1. Ouvrez les **Préférences** (<kbd>⌘,</kbd>, <kbd>Ctrl+,</kbd> sous Windows et Linux) et sélectionnez la section **Outils**.
+2. Saisissez le chemin complet dans **Binaire Git**, le premier réglage de la section, par exemple `/opt/homebrew/bin/git` ou `C:\Program Files\Git\cmd\git.exe`.
 3. Cliquez sur **Appliquer**. yaggui exécute `<chemin> --version` et affiche « Git \{version\} · \{path\} ». Un chemin qui n’est pas un Git utilisable est refusé et rien n’est enregistré.
 
 **Détection automatique** vide le chemin enregistré et revient au `git` du `PATH`. Si un chemin enregistré cesse de fonctionner plus tard (Git désinstallé ou déplacé), yaggui se rabat sur le `git` du `PATH` au lancement suivant.

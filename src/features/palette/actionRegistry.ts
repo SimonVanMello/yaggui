@@ -28,6 +28,10 @@ export interface PaletteAction {
    */
   disabledReason?: () => MessageKey;
   run: () => void;
+  /** The action replaces the list of the palette (a picker) instead of closing it. */
+  keepsPaletteOpen?: boolean;
+  /** Extra score when the query matches: the entry point of a family of actions comes first. */
+  boost?: number;
   /**
    * The keyboard shortcut runs the action even while it is disabled: it answers (undo explains
    * why it cannot) instead of doing nothing. The palette still lists it greyed out.

@@ -5,6 +5,8 @@ import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it } from 'vitest';
 
+import { THEMES } from './catalog';
+
 const THEME_DIR = dirname(fileURLToPath(import.meta.url));
 
 type Tokens = Record<string, string>;
@@ -20,12 +22,13 @@ function block(css: string, selector: string): Tokens {
   );
 }
 
+const CSS = ['graphite.css', 'paper.css', 'terminal.css', 'themes.generated.css']
+  .map((file) => readFileSync(join(THEME_DIR, file), 'utf8'))
+  .join('\n');
+
 function themeTokens(name: string, high: boolean): Tokens {
-  const css = readFileSync(join(THEME_DIR, `${name}.css`), 'utf8');
-  const base = block(css, `:root[data-theme='${name}']`);
-  return high
-    ? { ...base, ...block(css, `:root[data-theme='${name}'][data-contrast='high']`) }
-    : base;
+  const base = block(CSS, `[data-theme='${name}']`);
+  return high ? { ...base, ...block(CSS, `[data-theme='${name}'][data-contrast='high']`) } : base;
 }
 
 function channel(value: number): number {
@@ -49,7 +52,7 @@ export function contrast(a: string, b: string): number {
 const SURFACES = ['--bg-app', '--bg-panel', '--bg-elevated', '--bg-hover', '--bg-selected'];
 const TEXT = ['--fg-primary', '--fg-secondary', '--fg-muted'];
 const STATUS = ['--accent', '--success', '--warning', '--danger', '--info'];
-const NAMES = ['graphite', 'paper', 'terminal'];
+const NAMES = THEMES.map((theme) => theme.id);
 
 describe('WCAG AA contrast of the themes', () => {
   for (const name of NAMES) {

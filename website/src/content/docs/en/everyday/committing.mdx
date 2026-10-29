@@ -138,7 +138,7 @@ The **Identity profiles** dialog (also from the palette: **Manage identity profi
 
 ## Signing
 
-yaggui signs commits only if your Git config asks for it (`commit.gpgsign = true`); it never passes `-S` and never asks for a passphrase. When signing is on, a chip next to the identity shows **Signed · GPG**, **Signed · SSH** or **Signed · X.509** (from `gpg.format`), with the key from `user.signingkey` in its tooltip. You can change these settings in **Preferences › Configuration** (see [Git configuration](../../customize/git-configuration/)). For how Git signs, see [Signing your work](https://git-scm.com/book/en/v2/Git-Tools-Signing-Your-Work).
+yaggui signs commits only if your Git config asks for it (`commit.gpgsign = true`); it never passes `-S` and never asks for a passphrase. When signing is on, a chip next to the identity shows **Signed · GPG**, **Signed · SSH** or **Signed · X.509** (from `gpg.format`), with the key from `user.signingkey` in its tooltip. You can change these settings in **Preferences › Git configuration** (see [Git configuration](../../customize/git-configuration/)). For how Git signs, see [Signing your work](https://git-scm.com/book/en/v2/Git-Tools-Signing-Your-Work).
 
 The key must be usable without a prompt, through `gpg-agent` or `ssh-agent`. Signature badges on existing commits are shown in the [commit details](../../history/commit-graph/).
 

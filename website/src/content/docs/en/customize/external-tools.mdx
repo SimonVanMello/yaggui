@@ -4,7 +4,7 @@ description: Set the external editor, terminal, diff tool and merge tool yaggui 
 sidebar:
   order: 3
 sources:
-  - src/features/preferences/ToolsTab.tsx
+  - src/features/preferences/ToolsSection.tsx
   - src/features/terminal/TerminalDialog.tsx
   - src/features/terminal/openInEditor.ts
   - src/features/diff/ExternalDiffButtons.tsx
@@ -22,12 +22,12 @@ import Screenshot from '~/components/Screenshot.astro';
 import prefsToolsDark from '../../../../assets/screens/prefs-tools-dark.png';
 import prefsToolsLight from '../../../../assets/screens/prefs-tools-light.png';
 
-yaggui can hand a repository or a file over to other programs: your editor, a terminal, a diff tool, a merge tool and the system file manager. You choose them in **Preferences › Tools**. Each row has a **Test** button that tries the tool before you rely on it.
+yaggui can hand a repository or a file over to other programs: your editor, a terminal, a diff tool, a merge tool and the system file manager. You choose them in **Preferences › Tools**, below the **Git binary** (see [Git binary and configuration](../../customize/git-configuration/#choose-the-git-binary)). Each tool row has a **Test** button that tries the tool before you rely on it.
 
 <Screenshot
   dark={prefsToolsDark}
   light={prefsToolsLight}
-  alt="The Tools tab of the preferences with the Editor, Terminal, External terminal, Diff tool and Merge tool rows and their Test buttons"
+  alt="The Tools section of the preferences with the Git binary, Editor, Terminal, External terminal, Diff tool and Merge tool rows and their Test buttons"
 />
 
 yaggui never goes through a shell to start these programs: the program and the file or folder are passed as separate arguments.

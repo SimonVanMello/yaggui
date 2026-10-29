@@ -60,6 +60,19 @@ export function normalizePreferences(
       ),
     };
   }
+  const themes: string[] = [];
+  for (const id of [prefs.lightTheme ?? 'paper', prefs.darkTheme ?? 'graphite']) {
+    const trimmed = id.trim();
+    if (!/^[a-z0-9][a-z0-9-]{0,63}$/.test(trimmed)) {
+      return {
+        error: invalid(
+          `"${trimmed}" is not a valid theme id.`,
+          `« ${trimmed} » n'est pas un identifiant de thème valide.`,
+        ),
+      };
+    }
+    themes.push(trimmed);
+  }
   const fonts: (string | null)[] = [];
   for (const font of [prefs.uiFont, prefs.codeFont]) {
     const trimmed = font?.trim() ?? '';
@@ -124,6 +137,8 @@ export function normalizePreferences(
   return {
     ok: {
       ...prefs,
+      lightTheme: themes[0] ?? 'paper',
+      darkTheme: themes[1] ?? 'graphite',
       uiFont: fonts[0] ?? null,
       codeFont: fonts[1] ?? null,
       gitPath: prefs.gitPath?.trim() || null,

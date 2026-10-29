@@ -2,6 +2,7 @@
 @import './graphite.css';
 @import './paper.css';
 @import './terminal.css';
+@import './themes.generated.css';
 
 *,
 *::before,

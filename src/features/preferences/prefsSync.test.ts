@@ -14,7 +14,7 @@ beforeEach(async () => {
   mockBackend.reset();
   localStorage.clear();
   await loadPreferences();
-  initTheme('light', 'standard');
+  initTheme({ theme: 'light', style: 'standard' });
   initI18n('en');
 });
 
@@ -34,7 +34,9 @@ describe('applyPreferencesImport', () => {
       style: 'terminal',
       theme: 'terminal',
     });
+    // A file from before the color themes: the Terminal style keeps its colors.
     expect(document.documentElement.dataset.theme).toBe('terminal');
+    expect(document.documentElement.dataset.style).toBe('terminal');
     expect(localStorage.getItem(THEME_CACHE_KEY)).toBe('dark');
     expect(localStorage.getItem(STYLE_CACHE_KEY)).toBe('terminal');
     expect(useI18nStore.getState()).toMatchObject({ locale: 'fr', preference: 'fr' });

@@ -4,6 +4,8 @@ import type { IgnoredKey, PreferencesImportPreview } from '../../ipc';
 /** Label of each setting that can be in a preferences file (`PORTABLE` in `prefs_sync.rs`). */
 const PREF_LABELS: Record<string, MessageKey> = {
   theme: 'prefs.sync.key.theme',
+  lightTheme: 'prefs.sync.key.lightTheme',
+  darkTheme: 'prefs.sync.key.darkTheme',
   style: 'prefs.sync.key.style',
   locale: 'prefs.sync.key.locale',
   terminalMode: 'prefs.sync.key.terminalMode',

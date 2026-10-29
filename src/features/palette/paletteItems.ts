@@ -19,6 +19,8 @@ export interface PaletteItem {
   disabledReason?: MessageKey;
   /** Performs the item's effect; called once the palette has closed. */
   activate: () => void;
+  /** `activate` runs with the palette still open: it shows another list in it. */
+  keepsPaletteOpen?: boolean;
   /** Extra weight in ties: the active tab, the current branch. */
   boost?: number;
 }

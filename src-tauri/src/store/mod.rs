@@ -27,6 +27,8 @@ pub use workspaces::{MAX_WORKSPACE_NAME, Workspace};
 
 const PREF_THEME: &str = "theme";
 const PREF_STYLE: &str = "style";
+const PREF_LIGHT_THEME: &str = "light_theme";
+const PREF_DARK_THEME: &str = "dark_theme";
 const PREF_EDITOR: &str = "editor";
 const PREF_DIFF_TOOL: &str = "diff_tool";
 const PREF_MERGE_TOOL: &str = "merge_tool";
@@ -234,6 +236,17 @@ impl Store {
             };
         }
         load!(style, PREF_STYLE);
+        load!(light_theme, PREF_LIGHT_THEME);
+        match get_pref::<String>(&conn, PREF_DARK_THEME)? {
+            Some(id) => prefs.dark_theme = id,
+            // Stored before the color themes: the Terminal style was dark only and brought its
+            // own colors. Same look with the split settings.
+            None if prefs.style == ThemeStyle::Terminal => {
+                TERMINAL_THEME.clone_into(&mut prefs.dark_theme);
+                prefs.theme = ThemePreference::Dark;
+            }
+            None => {}
+        }
         load_optional!(editor, PREF_EDITOR);
         load_optional!(diff_tool, PREF_DIFF_TOOL);
         load_optional!(merge_tool, PREF_MERGE_TOOL);
@@ -254,6 +267,12 @@ impl Store {
         load_optional!(code_font, PREF_CODE_FONT);
         load_optional!(git_path, PREF_GIT_PATH);
         // A value edited by hand or written by a newer version must not break the app.
+        if !is_theme_id(&prefs.light_theme) {
+            prefs.light_theme = DEFAULT_LIGHT_THEME.to_owned();
+        }
+        if !is_theme_id(&prefs.dark_theme) {
+            prefs.dark_theme = DEFAULT_DARK_THEME.to_owned();
+        }
         if !FONT_SIZE_RANGE.contains(&prefs.font_size) {
             prefs.font_size = DEFAULT_FONT_SIZE;
         }
@@ -277,6 +296,8 @@ impl Store {
             set_pref(&tx, PREF_DIFF_VIEW, &prefs.diff_view)?;
             set_pref(&tx, PREF_DIFF_OPTIONS, &prefs.diff_options)?;
             set_pref(&tx, PREF_STYLE, &prefs.style)?;
+            set_pref(&tx, PREF_LIGHT_THEME, &prefs.light_theme)?;
+            set_pref(&tx, PREF_DARK_THEME, &prefs.dark_theme)?;
             set_pref(&tx, PREF_EDITOR, &prefs.editor)?;
             set_pref(&tx, PREF_DIFF_TOOL, &prefs.diff_tool)?;
             set_pref(&tx, PREF_MERGE_TOOL, &prefs.merge_tool)?;

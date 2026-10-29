@@ -34,7 +34,10 @@ async function openPrefs(page: Page, tab: string) {
   await page.keyboard.press('Control+,');
   const prefs = dialog(page, 'Preferences');
   await expect(prefs).toBeVisible();
-  await prefs.getByRole('tab', { name: tab, exact: true }).click();
+  await prefs
+    .getByRole('navigation', { name: 'Preference sections' })
+    .getByRole('button', { name: tab, exact: true })
+    .click();
   return prefs;
 }
 
@@ -187,7 +190,7 @@ for (const { name: theme, colorScheme } of THEMES) {
     test('Git configuration: common keys, scopes and the raw editor', async ({ page }) => {
       await start(page);
       await openRepo(page);
-      const prefs = await openPrefs(page, 'Configuration');
+      const prefs = await openPrefs(page, 'Git configuration');
       await expect(prefs.getByLabel('Name (user.name)')).toHaveValue('Alex Martin');
       await capture(page, theme, 'gitconfig-global');
 
@@ -233,7 +236,7 @@ for (const { name: theme, colorScheme } of THEMES) {
 
     test('Git configuration: only the global file without a repository', async ({ page }) => {
       await start(page);
-      const prefs = await openPrefs(page, 'Configuration');
+      const prefs = await openPrefs(page, 'Git configuration');
       await expect(prefs.getByRole('radio', { name: 'This repository' })).toHaveCount(0);
       await expect(prefs.getByLabel('Email (user.email)')).toHaveValue('alex@example.com');
     });
@@ -243,8 +246,10 @@ for (const { name: theme, colorScheme } of THEMES) {
       await openRepo(page);
       const prefs = await openPrefs(page, 'Appearance');
       await prefs.getByRole('radio', { name: 'Terminal' }).click();
-      await expect(page.locator('html')).toHaveAttribute('data-theme', 'terminal');
-      await expect(prefs).toContainText('the light / dark choice does not apply');
+      // The shape only: the color theme stays.
+      await expect(page.locator('html')).toHaveAttribute('data-style', 'terminal');
+      await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+      await expect(prefs).toContainText('Works with every theme');
       await capture(page, theme, 'style-terminal-prefs');
       await prefs.getByRole('switch', { name: /High contrast/ }).click();
       await expect(page.locator('html')).toHaveAttribute('data-contrast', 'high');
@@ -253,14 +258,12 @@ for (const { name: theme, colorScheme } of THEMES) {
 
       // First paint on the next launch already uses the style.
       await page.reload();
-      await expect(page.locator('html')).toHaveAttribute('data-theme', 'terminal');
+      await expect(page.locator('html')).toHaveAttribute('data-style', 'terminal');
       await expect(page.getByRole('tab').first()).toBeVisible();
       const reopened = await openPrefs(page, 'Appearance');
-      await reopened.getByRole('radio', { name: 'Graphite / Paper' }).click();
-      await expect(page.locator('html')).toHaveAttribute(
-        'data-theme',
-        theme === 'graphite' ? 'graphite' : 'paper',
-      );
+      await reopened.getByRole('radio', { name: 'Standard' }).click();
+      await expect(page.locator('html')).not.toHaveAttribute('data-style', 'terminal');
+      await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
       await capture(page, theme, 'style-standard-contrast');
     });
 
