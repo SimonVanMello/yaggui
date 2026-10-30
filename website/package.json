@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "astro dev",
     "build:demo": "pnpm --dir .. build:demo",
-    "build": "pnpm build:demo && astro build && node scripts/check-links.ts",
+    "build": "pnpm build:demo && astro build && node scripts/check-links.ts && node scripts/check-theme.ts",
     "preview": "astro preview",
     "check": "astro check && prettier --check .",
     "format": "prettier --write ."
