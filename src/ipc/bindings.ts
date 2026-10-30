@@ -151,8 +151,8 @@ export const commands = {
 	channel: InstallChannel,
 } | null, YagguiError>(__TAURI_INVOKE("check_for_update")),
 	/**
-	 *  Downloads and installs the newest version, then restarts the app (only returns on
-	 *  failure). Progress comes as `update-progress` events.
+	 *  Downloads and installs the newest version, then restarts the app (returns on failure, and
+	 *  on macOS while the app exits). Progress comes as `update-progress` events.
 	 */
 	installUpdate: () => typedError<null, YagguiError>(__TAURI_INVOKE("install_update")),
 	/**  Opens the page of the newest release, for the installs that are upgraded by hand. */
