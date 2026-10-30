@@ -8,6 +8,7 @@ sources:
   - src-tauri/src/git/log.rs
   - src-tauri/src/git/cli.rs
   - src-tauri/src/commands/log.rs
+  - src-tauri/src/system/diagnostics.rs
   - src/app/useBackendEvents.ts
   - src/features/statusbar/StatusBar.tsx
 requirements: [F-300]
@@ -93,7 +94,7 @@ Click **Clear the log** (the trash icon in the panel header). It empties the log
 
 ## Limits
 
-- The log lives in memory only. It is never written to disk and is empty each time yaggui starts.
+- The log lives in memory only and is empty each time yaggui starts. The [session log file](../../help/troubleshooting/#logs-and-crash-reports) keeps a shorter trace of each command (arguments, exit code, duration, and the error output of a failed command, masked the same way), never its standard output.
 - yaggui keeps the last 500 commands. Older ones are dropped. During a long session, the panel can show more (up to 2000) until you close yaggui.
 
 ## Privacy

@@ -7,6 +7,7 @@ import { Button } from '../../ui/Button';
 import { SegmentedControl } from '../../ui/SegmentedControl';
 import { Switch } from '../../ui/Switch';
 import { checkForUpdatesNow } from '../updates/updates';
+import { copyBugReport, openLogsFolder, reportBug } from '../diagnostics/diagnostics';
 import { exportPreferencesFile, startPreferencesImport } from './prefsSync';
 import { Row } from './Row';
 import { savePreferenceOrToast } from './savePreference';
@@ -15,7 +16,10 @@ import { SettingGroup } from './SettingGroup';
 
 const SYSTEM = 'system';
 
-/** Language (F-321), update check and version, import / export of the preferences (F-326). */
+/**
+ * Language (F-321), update check and version, import / export of the preferences (F-326),
+ * logs and bug report.
+ */
 export function GeneralSection() {
   const t = useT();
   const prefs = usePreferences();
@@ -86,6 +90,15 @@ export function GeneralSection() {
             >
               {t('prefs.sync.export')}
             </Button>
+          </Row>
+        </Setting>
+      </SettingGroup>
+      <SettingGroup title={t('prefs.subsection.troubleshooting')} ids={['diagnostics']}>
+        <Setting id="diagnostics">
+          <Row label={t('prefs.diagnostics')} hint={t('prefs.diagnostics.hint')}>
+            <Button onClick={() => void reportBug()}>{t('prefs.diagnostics.report')}</Button>
+            <Button onClick={() => void copyBugReport()}>{t('prefs.diagnostics.copy')}</Button>
+            <Button onClick={() => void openLogsFolder()}>{t('prefs.diagnostics.logs')}</Button>
           </Row>
         </Setting>
       </SettingGroup>

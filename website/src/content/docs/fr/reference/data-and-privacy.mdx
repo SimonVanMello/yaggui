@@ -11,10 +11,11 @@ sources:
   - src-tauri/src/repo/backups.rs
   - src-tauri/src/system/avatars.rs
   - src-tauri/src/system/updates.rs
+  - src-tauri/src/system/diagnostics.rs
   - src-tauri/src/repo/journal.rs
   - src-tauri/src/git/ops/commit_graph.rs
   - src-tauri/tauri.conf.json
-requirements: [F-033]
+requirements: [F-033, F-304]
 ---
 
 yaggui n’a ni compte, ni télémétrie, ni serveur à lui. Cette page recense toutes les requêtes réseau qu’il peut effectuer, tous les fichiers qu’il conserve sur votre ordinateur, et ce qu’il écrit dans vos dépôts.
@@ -32,7 +33,7 @@ yaggui n’effectue que ces requêtes :
 | Téléchargement de mise à jour | Uniquement quand vous cliquez sur **Mettre à jour et redémarrer** ou **Mettre à jour** dans une notification de mise à jour.                                                                                                                                                  | `github.com` (fichiers de la release)                          | Ne cliquez pas dessus. Voir [Mises à jour](../../start-here/updates/).                               |
 | Photos Gravatar               | Uniquement si vous activez **Avatars Gravatar**. yaggui envoie un hash SHA-256 de l’adresse e-mail de chaque auteur, en HTTPS, jamais l’adresse elle-même.                                                                                                                    | `www.gravatar.com`                                             | **Préférences → Affichage → Avatars Gravatar** (désactivé par défaut).                               |
 
-Rien d’autre ne quitte votre ordinateur : pas de statistiques d’usage, pas de rapports de plantage, pas d’analyse. L’ouverture de liens comme la page d’une release est confiée à votre navigateur web.
+Rien d’autre ne quitte votre ordinateur : pas de statistiques d’usage, pas de rapports de plantage, pas d’analyse. Les rapports de plantage et les journaux restent dans le [dossier des journaux](#dossier-des-journaux) ; **Signaler un bug…** copie un rapport dans votre presse-papiers et ouvre le formulaire de bug dans votre navigateur, et vous décidez de ce que vous publiez. L’ouverture de liens comme la page d’une release est confiée à votre navigateur web.
 
 ## Identifiants
 
@@ -42,7 +43,7 @@ Un point à garder en tête : une URL saisie avec un jeton à l’intérieur (`
 
 ## Où yaggui stocke ses données
 
-yaggui utilise deux dossiers : un dossier de configuration pour ce qui doit être conservé, et un dossier de cache pour ce qui peut être reconstruit.
+yaggui utilise trois dossiers : un dossier de configuration pour ce qui doit être conservé, un dossier de cache pour ce qui peut être reconstruit, et un [dossier des journaux](#dossier-des-journaux).
 
 | OS      | Dossier de configuration                                                  | Dossier de cache                      |
 | ------- | ------------------------------------------------------------------------- | ------------------------------------- |
@@ -84,10 +85,26 @@ Si `yaggui.db` ne peut pas être ouvert (fichier corrompu, pas de droit d’écr
 
 Tout ce qui se trouve dans le dossier de cache peut être supprimé à tout moment : yaggui le télécharge de nouveau quand il en a besoin. Sous Linux, la vue web du système y conserve aussi son propre cache.
 
+### Dossier des journaux
+
+| OS      | Dossier des journaux                     |
+| ------- | ---------------------------------------- |
+| macOS   | `~/Library/Logs/dev.tropico.yaggui`      |
+| Windows | `%LOCALAPPDATA%\dev.tropico.yaggui\logs` |
+| Linux   | `~/.local/share/dev.tropico.yaggui/logs` |
+
+| Élément                   | Contenu                                                                                                                                                                             |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `yaggui.log`              | Le journal de la session en cours : dépôts ouverts, commandes Git (arguments, code de sortie, durée, sortie d’erreur de celles en échec), avertissements et erreurs. 10 Mo au plus. |
+| `yaggui.1.log` à `.4.log` | Les journaux des quatre sessions précédentes.                                                                                                                                       |
+| `crash-*.txt`             | Un rapport pour chaque erreur interne : version, OS, message, emplacement et pile d’appels. Les 10 derniers sont gardés.                                                            |
+| `crashes-seen`            | Le nom du dernier rapport de plantage que yaggui vous a signalé, pour que la notification ne revienne pas.                                                                          |
+
+Voir [Journaux et rapports de plantage](../../help/troubleshooting/#journaux-et-rapports-de-plantage). Tout ce qui se trouve dans ce dossier peut être supprimé à tout moment.
+
 ### Ce qui n’est pas stocké
 
-- Le [journal des commandes](../../reference/command-log/) : en mémoire uniquement, vide à chaque lancement.
-- yaggui n’écrit aucun fichier de journal. Les messages de diagnostic vont dans le terminal depuis lequel yaggui a été lancé (voir `RUST_LOG` plus bas).
+- Le [journal des commandes](../../reference/command-log/) : en mémoire uniquement, vide à chaque lancement. Le journal de la session garde une trace plus courte de chaque commande, sans sa sortie standard.
 
 ## Ce que yaggui écrit dans vos dépôts
 
@@ -110,7 +127,8 @@ Votre **configuration Git globale** (`~/.gitconfig`) ne change que sur demande d
 | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `YAGGUI_CONFIG_DIR`              | Utilise ce dossier à la place du dossier de configuration (base de données, `keybindings.json`, `backups/`). Utile pour une session de test propre : `YAGGUI_CONFIG_DIR=/tmp/yaggui-test yaggui`. |
 | `YAGGUI_CACHE_DIR`               | Utilise ce dossier à la place du dossier de cache.                                                                                                                                                |
-| `RUST_LOG`                       | Niveau des messages de diagnostic que yaggui écrit sur la sortie d’erreur : `RUST_LOG=debug yaggui`. `info` par défaut.                                                                           |
+| `YAGGUI_LOG_DIR`                 | Utilise ce dossier à la place du dossier des journaux.                                                                                                                                            |
+| `RUST_LOG`                       | Niveau des messages de diagnostic que yaggui écrit dans le journal de la session et sur la sortie d’erreur : `RUST_LOG=debug yaggui`. `info` par défaut.                                          |
 | `WEBKIT_DISABLE_DMABUF_RENDERER` | Linux uniquement. yaggui la définit à `1` sous Wayland pour éviter un plantage du rendu ; une valeur que vous définissez vous-même l’emporte.                                                     |
 
 yaggui retire aussi de l’environnement des commandes qu’il exécute les variables Git comme `GIT_DIR`, `GIT_WORK_TREE` et `GIT_CONFIG_*`, de sorte que le lancer depuis un hook Git ou un rebase ne le perturbe pas.
@@ -125,5 +143,6 @@ Quittez d’abord yaggui, puis supprimez dans le dossier de configuration ce que
 | Raccourcis                                                                                      | `keybindings.json`, ou utilisez **Tout remettre par défaut** dans **Préférences → Raccourcis** |
 | Sauvegardes d’annulation                                                                        | les sous-dossiers de `backups/`                                                                |
 | Avatars et mises à jour téléchargées                                                            | le dossier de cache                                                                            |
+| Journaux et rapports de plantage                                                                | le dossier des journaux                                                                        |
 
-Supprimer ces fichiers ne touche jamais à vos dépôts. Avec Homebrew sous macOS, `brew uninstall --zap --cask yaggui` supprime l’application avec ses réglages et ses caches.
+Supprimer ces fichiers ne touche jamais à vos dépôts. Avec Homebrew sous macOS, `brew uninstall --zap --cask yaggui` supprime l’application avec ses réglages, ses caches et ses journaux.

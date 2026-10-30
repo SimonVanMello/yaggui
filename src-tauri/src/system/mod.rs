@@ -2,6 +2,7 @@
 
 pub mod avatars;
 pub mod changelog;
+pub mod diagnostics;
 pub mod editor;
 pub mod git_binary;
 pub mod keyboard;

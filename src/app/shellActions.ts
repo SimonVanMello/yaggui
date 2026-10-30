@@ -5,6 +5,7 @@ import { useKeybindings } from '../features/keybindings/keybindingsStore';
 import { effectiveShortcut } from '../features/keybindings/resolve';
 import { activeRepoId, closeTabAndRepo } from '../features/repo/repoSessions';
 import { pickAndOpenRepo } from '../features/welcome/openRepository';
+import { openLogsFolder, reportBug } from '../features/diagnostics/diagnostics';
 import { usePaletteStore } from '../features/palette/paletteStore';
 import { useShellStore } from './shellStore';
 import { openNewTab, selectActiveTab, useTabsStore } from './tabs/tabsStore';
@@ -46,6 +47,8 @@ export type ShellAction =
   | 'preferences'
   | 'shortcuts'
   | 'changelog'
+  | 'reportBug'
+  | 'openLogs'
   | 'cloneRepo'
   | 'initRepo'
   | 'commandPalette'
@@ -96,6 +99,8 @@ const ACTIONS: Record<ShellAction, () => void> = {
   changelog: () => {
     useShellStore.getState().setChangelogOpen(true);
   },
+  reportBug: () => void reportBug(),
+  openLogs: () => void openLogsFolder(),
   cloneRepo: () => {
     useShellStore.getState().showCloneDialog(welcomeTabId());
   },
@@ -238,6 +243,8 @@ const BINDING_IDS: Record<ShellAction, string> = {
   preferences: 'app.preferences',
   shortcuts: 'app.shortcuts',
   changelog: 'app.changelog',
+  reportBug: 'app.reportBug',
+  openLogs: 'app.openLogs',
   undo: 'edit.undo',
   redo: 'edit.redo',
   opHistory: 'edit.history',

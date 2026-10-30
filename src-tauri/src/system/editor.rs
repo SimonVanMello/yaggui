@@ -184,6 +184,40 @@ fn open_folder_with(os: Os, dir: &Path) -> Result<(), YagguiError> {
     Ok(())
 }
 
+/// The command that opens a web page of yaggui in the default browser. Only for `https://`
+/// addresses written in yaggui: the generic opener runs whatever it is given.
+pub fn url_command(os: Os, url: &str) -> (OsString, Vec<OsString>) {
+    match os {
+        Os::Mac => ("open".into(), vec![url.into()]),
+        Os::Windows => ("explorer.exe".into(), vec![url.into()]),
+        Os::Linux => ("xdg-open".into(), vec![url.into()]),
+    }
+}
+
+/// Opens `url` (an `https://` page of yaggui) in the default browser without waiting for it.
+pub fn open_url(url: &str) -> Result<(), YagguiError> {
+    if !url.starts_with("https://") {
+        return Err(YagguiError::internal(format!("not a web page: {url}")));
+    }
+    let os = Os::current();
+    let (mut program, args) = url_command(os, url);
+    if os == Os::Windows
+        && let Some(resolved) = super::terminal::windows_program(&program)
+    {
+        program = resolved.into_os_string();
+    }
+    let name = program.to_string_lossy().into_owned();
+    let child = Command::new(&program)
+        .args(&args)
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+        .map_err(|err| YagguiError::browser_failed().with_detail(format!("{name}: {err}")))?;
+    reap(child, &name, "yaggui-browser");
+    Ok(())
+}
+
 /// The command that shows `target` in the system file manager (F-087): selected in Finder
 /// or Explorer, its folder opened elsewhere (no common way to select a file on Linux).
 pub fn reveal_command(os: Os, target: &Path) -> (OsString, Vec<OsString>) {
@@ -241,6 +275,24 @@ mod tests {
         args.iter()
             .map(|a| a.to_string_lossy().into_owned())
             .collect()
+    }
+
+    #[test]
+    fn web_pages_open_in_the_browser_not_an_editor() {
+        let url = "https://example.com/a?b=c";
+        for (os, program) in [
+            (Os::Mac, "open"),
+            (Os::Windows, "explorer.exe"),
+            (Os::Linux, "xdg-open"),
+        ] {
+            let (found, args) = url_command(os, url);
+            assert_eq!(found, program);
+            assert_eq!(strings(&args), [url]);
+        }
+        assert_eq!(
+            open_url("file:///etc/passwd").map_err(|err| err.code),
+            Err(crate::git::errors::ErrorCode::Internal)
+        );
     }
 
     #[test]

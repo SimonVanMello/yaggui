@@ -48,6 +48,8 @@ pub enum ErrorCode {
     EditorNotFound,
     /// The system file manager could not open the repository folder.
     FileManagerFailed,
+    /// The default browser could not be started on a yaggui web page.
+    BrowserFailed,
     /// The integrated terminal could not start a shell (no PTY, shell missing).
     ShellFailed,
     /// The integrated terminal session does not exist any more (shell exited, closed).
@@ -679,6 +681,22 @@ impl YagguiError {
             ErrorCode::FileManagerFailed,
             "The file manager could not open the repository folder.",
             "Le gestionnaire de fichiers n'a pas pu ouvrir le dossier du dépôt.",
+        )
+    }
+
+    pub fn logs_folder_failed() -> Self {
+        Self::new(
+            ErrorCode::FileManagerFailed,
+            "The file manager could not open the logs folder.",
+            "Le gestionnaire de fichiers n'a pas pu ouvrir le dossier des journaux.",
+        )
+    }
+
+    pub fn browser_failed() -> Self {
+        Self::new(
+            ErrorCode::BrowserFailed,
+            "The browser could not be opened.",
+            "Le navigateur n'a pas pu être ouvert.",
         )
     }
 

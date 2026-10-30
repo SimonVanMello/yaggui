@@ -8,6 +8,7 @@ sources:
   - src-tauri/src/git/log.rs
   - src-tauri/src/git/cli.rs
   - src-tauri/src/commands/log.rs
+  - src-tauri/src/system/diagnostics.rs
   - src/app/useBackendEvents.ts
   - src/features/statusbar/StatusBar.tsx
 requirements: [F-300]
@@ -93,7 +94,7 @@ Cliquez sur **Vider le journal** (l’icône de corbeille dans l’en-tête du p
 
 ## Limites
 
-- Le journal n’existe qu’en mémoire. Il n’est jamais écrit sur le disque et il est vide à chaque démarrage de yaggui.
+- Le journal n’existe qu’en mémoire et il est vide à chaque démarrage de yaggui. Le [fichier journal de la session](../../help/troubleshooting/#journaux-et-rapports-de-plantage) garde une trace plus courte de chaque commande (arguments, code de sortie, durée, et la sortie d’erreur d’une commande en échec, masquée de la même façon), jamais sa sortie standard.
 - yaggui conserve les 500 dernières commandes. Les plus anciennes sont supprimées. Pendant une longue session, le panneau peut en afficher davantage (jusqu’à 2 000) jusqu’à ce que vous fermiez yaggui.
 
 ## Confidentialité

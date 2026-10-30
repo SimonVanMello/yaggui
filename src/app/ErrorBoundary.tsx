@@ -2,6 +2,7 @@ import { Component, type ErrorInfo, type ReactNode } from 'react';
 
 import { translate, useI18nStore } from '../i18n/i18n';
 import { nativeWindow } from '../ipc';
+import { forwardFrontendError } from '../features/diagnostics/diagnostics';
 import { Button } from '../ui/Button';
 import { Icon } from '../ui/Icon';
 import styles from './ErrorBoundary.module.css';
@@ -23,6 +24,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, ErrorBound
 
   override componentDidCatch(error: Error, info: ErrorInfo): void {
     console.error('yaggui crashed while rendering', error, info.componentStack);
+    forwardFrontendError('render', error, info.componentStack ?? undefined);
     void nativeWindow.show().catch(() => undefined);
   }
 

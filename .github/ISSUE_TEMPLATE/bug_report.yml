@@ -1,0 +1,37 @@
+name: Bug report
+description: Something in yaggui does not work as it should.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a problem. **Report a bug…** in yaggui (Preferences › General › Troubleshooting, or the command palette) copies a diagnostic report to your clipboard: paste it below.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead. Screenshots help.
+      placeholder: |
+        1. Opened a repository with submodules
+        2. Clicked Fetch
+        3. The spinner never stopped
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostic-report
+    attributes:
+      label: Diagnostic report
+      description: |
+        Paste the report copied by **Report a bug…** or **Copy diagnostic report**. If yaggui does not start, attach the files of its logs folder instead (`~/Library/Logs/dev.tropico.yaggui` on macOS, `%LOCALAPPDATA%\dev.tropico.yaggui\logs` on Windows, `~/.local/share/dev.tropico.yaggui/logs` on Linux).
+        Read it before posting: it holds folder paths, branch names and Git command lines.
+      placeholder: '### Environment …'
+    validations:
+      required: false
+  - type: textarea
+    id: repository
+    attributes:
+      label: Repository details
+      description: For a problem tied to a repository, the output of `git status` and `git log --oneline --graph --all -10` in it, if you can share them.
+      render: text
+    validations:
+      required: false

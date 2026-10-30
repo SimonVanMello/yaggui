@@ -131,7 +131,8 @@ for (const { name: theme, colorScheme } of THEMES) {
 
     test('filtered on actions', async ({ page }) => {
       await openPalette(page);
-      await page.keyboard.type('>log');
+      // "log" alone also matches "Open logs folder", which ranks first.
+      await page.keyboard.type('>command log');
       await expect(options(page).first()).toContainText('command log');
       await capture(page, theme, 'actions');
     });

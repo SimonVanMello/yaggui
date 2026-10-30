@@ -11,7 +11,6 @@ use std::sync::Arc;
 
 use tauri::Manager;
 use tauri_specta::{Builder, collect_commands, collect_events};
-use tracing_subscriber::EnvFilter;
 
 use crate::state::AppState;
 
@@ -26,6 +25,12 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             commands::app::app_info,
             commands::app::launch_path,
             commands::app::changelog,
+            commands::diagnostics::pending_crash_reports,
+            commands::diagnostics::acknowledge_crash_reports,
+            commands::diagnostics::open_logs_folder,
+            commands::diagnostics::bug_report,
+            commands::diagnostics::open_issue_tracker,
+            commands::diagnostics::log_frontend_error,
             commands::repo::open_repo,
             commands::repo::close_repo,
             commands::repo::repo_state,
@@ -334,11 +339,8 @@ fn leave_start_dir() {
 
 pub fn run() {
     let started = std::time::Instant::now();
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")),
-        )
-        .init();
+    system::diagnostics::init_logging();
+    system::diagnostics::install_panic_hook();
 
     // Read before leaving the start folder: `yaggui .` names a repository relative to it.
     commands::app::capture_launch_path();
@@ -361,6 +363,9 @@ pub fn run() {
         .invoke_handler(builder.invoke_handler())
         .setup(move |app| {
             builder.mount_events(app);
+            system::diagnostics::attach_log_dir(&system::diagnostics::log_dir(
+                app.path().app_log_dir()?,
+            ));
             let config_dir = state::config_dir(app.path().app_config_dir()?);
             tracing::info!(path = %config_dir.display(), "config folder");
             let cache_dir = state::cache_dir(app.path().app_cache_dir()?);

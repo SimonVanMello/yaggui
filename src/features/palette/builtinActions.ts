@@ -32,6 +32,7 @@ import { openNewTerminal, toggleTerminalFromKeyboard } from '../terminal/termina
 import { openRepoFolder } from '../toolbar/openRepoFolder';
 import { canRun } from '../undo/undoState';
 import { checkForUpdatesNow } from '../updates/updates';
+import { copyBugReport } from '../diagnostics/diagnostics';
 import { registerActions, type PaletteAction } from './actionRegistry';
 import { usePaletteStore } from './paletteStore';
 
@@ -203,6 +204,14 @@ const BUILTIN: readonly PaletteAction[] = [
     group: 'app',
     run: () => void checkForUpdatesNow(),
   },
+  shell('app.reportBug', 'reportBug', 'palette.action.app.reportBug', 'app'),
+  {
+    id: 'app.copyBugReport',
+    title: 'palette.action.app.copyBugReport',
+    group: 'app',
+    run: () => void copyBugReport(),
+  },
+  shell('app.openLogs', 'openLogs', 'palette.action.app.openLogs', 'app'),
   shell('git.fetch', 'fetch', 'palette.action.git.fetch', 'git', hasRepo),
   shell('git.pull', 'pull', 'palette.action.git.pull', 'git', hasRepo),
   shell('git.push', 'push', 'palette.action.git.push', 'git', hasRepo),

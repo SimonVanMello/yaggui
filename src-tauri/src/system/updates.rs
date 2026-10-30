@@ -14,6 +14,7 @@
 use std::fs::File;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
+#[cfg(target_os = "macos")]
 use std::process::{Command, Stdio};
 use std::time::Duration;
 
@@ -25,7 +26,6 @@ use tauri::utils::platform::bundle_type;
 
 use crate::git::errors::YagguiError;
 use crate::system::editor;
-use crate::system::terminal::Os;
 
 /// Manifest of the newest published release. Drafts and pre-releases are never `latest`.
 pub const MANIFEST_URL: &str =
@@ -540,17 +540,7 @@ pub fn prepare_upgrade(
 
 /// Opens the release page in the default browser.
 pub fn open_release_page() -> Result<(), YagguiError> {
-    let (program, args) = editor::command(Os::current(), Path::new(RELEASE_PAGE_URL), None);
-    let name = program.to_string_lossy().into_owned();
-    let child = Command::new(&program)
-        .args(&args)
-        .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn()
-        .map_err(|err| YagguiError::update_check_failed(format!("{name}: {err}")))?;
-    editor::reap(child, &name, "yaggui-release-page");
-    Ok(())
+    editor::open_url(RELEASE_PAGE_URL)
 }
 
 #[cfg(test)]

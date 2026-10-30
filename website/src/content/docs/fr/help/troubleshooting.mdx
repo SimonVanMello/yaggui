@@ -16,10 +16,13 @@ sources:
   - src-tauri/src/state.rs
   - src-tauri/src/main.rs
   - src/app/ErrorBoundary.tsx
+  - src-tauri/src/system/diagnostics.rs
+  - src-tauri/src/commands/diagnostics.rs
+  - src/features/diagnostics/**
   - src/features/repo/RepoBanners.tsx
   - src/features/preferences/GitPathField.tsx
   - src/features/staging/HookFailurePanel.tsx
-requirements: [F-009, F-065, F-301, F-302, F-322]
+requirements: [F-009, F-065, F-301, F-302, F-304, F-322]
 ---
 
 import Screenshot from '~/components/Screenshot.astro';
@@ -180,7 +183,13 @@ Si la fenêtre reste vide ou plante malgré tout, essayez de le lancer via XWayl
 Cet écran apparaît quand l’interface elle-même a rencontré un bug : « La fenêtre n'a pas pu s'afficher. Tes dépôts ne sont pas touchés. Recharge pour repartir. »
 
 1. Cliquez sur **Recharger**. yaggui recharge sa fenêtre et rouvre vos onglets.
-2. Si cela se reproduit, développez **Détails**, copiez le texte et [signalez-le](#signaler-un-bug) en précisant ce que vous faisiez.
+2. Si cela se reproduit, [signalez-le](#signaler-un-bug) en précisant ce que vous faisiez. L’erreur et ses **Détails** sont déjà dans le [journal de la session](#journaux-et-rapports-de-plantage) : le rapport de diagnostic les inclut.
+
+## « yaggui a rencontré une erreur interne lors d’une session précédente »
+
+Cette notification apparaît au démarrage quand yaggui a rencontré une erreur interne (un bug de sa partie Rust) lors d’une session précédente et a écrit un [rapport de plantage](#journaux-et-rapports-de-plantage). Une telle erreur ne ferme pas toujours l’application : une action peut simplement avoir cessé de répondre.
+
+La notification affiche la première ligne de l’erreur. Cliquez sur **Le signaler** pour [signaler le bug](#signaler-un-bug) : le rapport de diagnostic inclut le rapport de plantage. La notification apparaît une fois par rapport de plantage ; fermez-la pour l’ignorer.
 
 ## Préférences, récents ou onglets disparus
 
@@ -202,22 +211,47 @@ Sur un grand dépôt sans fichier commit-graph à jour, yaggui en écrit ensuite
 
 Vous pouvez aussi l’écrire vous-même dans un terminal : `git commit-graph write --reachable --changed-paths`.
 
+## Journaux et rapports de plantage
+
+yaggui garde un fichier journal par session sur votre ordinateur. Rien n’est envoyé nulle part : les fichiers restent dans le dossier des journaux jusqu’à ce que vous les partagiez vous-même.
+
+| OS      | Dossier des journaux                     |
+| ------- | ---------------------------------------- |
+| macOS   | `~/Library/Logs/dev.tropico.yaggui`      |
+| Windows | `%LOCALAPPDATA%\dev.tropico.yaggui\logs` |
+| Linux   | `~/.local/share/dev.tropico.yaggui/logs` |
+
+- `yaggui.log` est le journal de la session en cours, `yaggui.1.log` celui de la précédente, jusqu’à `yaggui.4.log` : yaggui garde les cinq dernières sessions. Une session cesse d’écrire à 10 Mo.
+- Chaque ligne porte une heure UTC, un niveau et un message : dépôts ouverts, chaque commande Git avec ses arguments, son code de sortie et sa durée (plus la sortie d’erreur d’une commande en échec), avertissements, et erreurs de l’interface elle-même.
+- `crash-<heure>-<processus>.txt` est écrit quand yaggui rencontre une erreur interne : version, OS, message d’erreur, endroit où elle s’est produite et pile d’appels. yaggui garde les 10 derniers.
+
+Pour ouvrir le dossier, utilisez **Ouvrir le dossier des journaux** dans **Préférences → Général**, sous **Dépannage**, ou la commande **Ouvrir le dossier des journaux** de la palette (sous macOS aussi **Aide → Ouvrir le dossier des journaux**).
+
+Le journal contient des chemins de dossiers, des noms de branches et des lignes de commande Git, comme le [journal des commandes](../../reference/command-log/), avec les identifiants dans les URL masqués de la même façon. Il ne contient jamais le contenu des fichiers ni la sortie des commandes Git. `RUST_LOG` règle son niveau, `YAGGUI_LOG_DIR` son dossier : voir [Variables d’environnement](../../reference/data-and-privacy/#variables-denvironnement).
+
 ## Signaler un bug
 
-Ouvrez un ticket sur [GitHub](https://github.com/SimonVanMello/yaggui/issues) en précisant :
+1. Cliquez sur **Signaler un bug…** dans **Préférences → Général**, sous **Dépannage** (c’est aussi une commande de la palette, et **Aide → Signaler un bug…** sous macOS). yaggui copie un rapport de diagnostic dans le presse-papiers et ouvre le formulaire de bug sur [GitHub](https://github.com/SimonVanMello/yaggui/issues) dans votre navigateur.
+2. Collez le rapport dans le champ **Diagnostic report** du formulaire, et décrivez ce que vous avez fait, ce que vous attendiez et ce qui s’est passé. Une capture d’écran aide.
+3. Relisez le rapport avant de l’envoyer. Il contient :
+   - les versions de yaggui, de l’OS, de la vue web du système et de Git, et la façon dont yaggui a été installé ;
+   - le [rapport de plantage](#journaux-et-rapports-de-plantage) le plus récent des 7 derniers jours, s’il y en a un ;
+   - les 150 dernières lignes du journal de cette session et les 100 dernières de la session précédente.
 
-1. **Les versions** : la version de yaggui et celle de Git, toutes deux affichées à droite de la barre d’état, ainsi que votre OS.
-2. **Ce que vous avez fait**, ce que vous attendiez et ce qui s’est passé. Une capture d’écran aide.
-3. **Pour une erreur** : le message, le contenu de **Détails**, et l’entrée correspondante du journal des commandes (<kbd>⌘J</kbd>, développez l’entrée, **Copier la commande** et **Copier la sortie**).
-4. **Pour un plantage ou un problème au démarrage** : la sortie de yaggui lancé depuis un terminal avec des journaux détaillés :
+   Retirez ce que vous ne voulez pas rendre public (chemins de dossiers, noms de branches, messages de commit).
 
-   ```bash
-   # macOS
-   RUST_LOG=debug /Applications/yaggui.app/Contents/MacOS/yaggui
-   # Linux
-   RUST_LOG=debug yaggui
-   ```
+**Copier le rapport de diagnostic** dans la palette, ou **Copier le rapport** dans les préférences, copie seulement le rapport, pour l’envoyer autrement.
 
-5. **Pour un problème de dépôt** : la sortie de `git status` et de `git log --oneline --graph --all -10` dans ce dépôt.
+Utile aussi :
 
-Retirez tout ce qui est privé (chemins, URL contenant des jetons, messages de commit) avant de publier.
+- **Pour une erreur** : le message et l’entrée correspondante du journal des commandes (<kbd>⌘J</kbd>, développez l’entrée, **Copier la commande** et **Copier la sortie**). Le fichier journal ne garde pas la sortie standard des commandes Git.
+- **Pour un problème au démarrage**, quand la fenêtre ne s’ouvre pas : les fichiers du [dossier des journaux](#journaux-et-rapports-de-plantage). Lancé depuis un terminal avec `RUST_LOG=debug`, yaggui y écrit aussi des messages détaillés, et dans le terminal :
+
+  ```bash
+  # macOS
+  RUST_LOG=debug /Applications/yaggui.app/Contents/MacOS/yaggui
+  # Linux
+  RUST_LOG=debug yaggui
+  ```
+
+- **Pour un problème de dépôt** : la sortie de `git status` et de `git log --oneline --graph --all -10` dans ce dépôt.

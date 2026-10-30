@@ -163,3 +163,34 @@ export function createMockLog(): CommandLogEntry[] {
     ),
   ];
 }
+
+/** Same layout as the backend's bug report (`system/diagnostics.rs`), from the mock command log. */
+export function mockBugReport(log: readonly CommandLogEntry[]): string {
+  const lines = log
+    .slice(-20)
+    .map(
+      (entry) =>
+        `${new Date(entry.startedAt * 1000).toISOString()}  INFO yaggui_lib::git::cli: git command args=${JSON.stringify(entry.args)} status=${entry.status} duration_ms=${String(entry.durationMs)}`,
+    )
+    .join('\n');
+  return [
+    '### Environment',
+    '',
+    '| | |',
+    '|---|---|',
+    `| yaggui | ${mockAppInfo.appVersion} (Manual) |`,
+    '| OS | Mock OS (browser) |',
+    `| WebView | ${navigator.userAgent} |`,
+    `| Git | ${mockAppInfo.gitVersion ?? 'not found'} (\`/usr/bin/git\`) |`,
+    '',
+    '<details>',
+    '<summary>Log of this session (last 150 lines)</summary>',
+    '',
+    '```text',
+    lines,
+    '```',
+    '',
+    '</details>',
+    '',
+  ].join('\n');
+}

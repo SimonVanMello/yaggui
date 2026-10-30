@@ -82,6 +82,7 @@ ${autoUpdates}${dependsOn}
     "~/Library/Application Support/${identifier}",
     "~/Library/Caches/${identifier}",
     "~/Library/HTTPStorages/${identifier}",
+    "~/Library/Logs/${identifier}",
     "~/Library/Preferences/${identifier}.plist",
     "~/Library/Saved Application State/${identifier}.savedState",
     "~/Library/WebKit/${identifier}",

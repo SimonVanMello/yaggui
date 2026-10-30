@@ -2,6 +2,7 @@ import { isDemo } from '../demo/isDemo';
 import { openSampleRepo } from '../demo/startDemo';
 import { useKeybindings } from '../features/keybindings/keybindingsStore';
 import { checkForUpdatesAtStartup } from '../features/updates/updates';
+import { notifyPendingCrashes } from '../features/diagnostics/diagnostics';
 import { startAutoFetch } from '../features/network/autoFetch';
 import { openRepoPath, restoreRepoSession } from '../features/repo/repoSessions';
 import { ipc, nativeWindow, unwrap } from '../ipc';
@@ -159,7 +160,10 @@ export function startup(): Promise<void> {
       await openSampleRepo().catch((error: unknown) => {
         console.warn('Could not open the sample repository', error);
       });
-    } else checkForUpdatesAtStartup();
+    } else {
+      void notifyPendingCrashes();
+      checkForUpdatesAtStartup();
+    }
   })();
   return started;
 }
