@@ -85,7 +85,8 @@ const tauriWindow: NativeWindow = {
     let unlisten: (() => void) | undefined;
     let active = true;
     // With a listener, Tauri leaves the close to it: the window is destroyed once the handler
-    // returns (unless it prevents the close, which this one never does).
+    // returns (unless it prevents the close, which this one never does). That destroy is a call
+    // from the webview: without `core:window:allow-destroy` it is refused and the window stays.
     getCurrentWindow()
       .onCloseRequested(() => (active ? handler() : Promise.resolve()))
       .then((fn) => {
