@@ -229,7 +229,7 @@ Exit: yaggui offers well-known color themes previewed before they are applied, a
 
 | ID | Task | Depends on | Requirements |
 |---|---|---|---|
-| M10-1 | Color themes and Preferences redesign: catalogue of 25 color themes generated from their published palettes (`pnpm themes`, contrast moved to WCAG AA and checked by the theme tests), one theme per light / dark mode stored in the backend (`lightTheme`, `darkTheme`, portable in import / export, migration of the former Terminal style), Terminal interface style split from the colors; Preferences dialog with a sidebar of 8 sections in two groups (Application, Git), settings reorganized, search over every setting in both languages (labels, hints, Git keys, theme names, commands), gallery with live preview on the whole app; theme picker in the command palette (VS Code style) | M9 | F-320, F-321, F-322, F-323, F-324, F-325, F-326 |
+| M10-1 ✅ | Color themes and Preferences redesign (#95): catalogue of 25 color themes generated from their published palettes (`pnpm themes`, contrast moved to WCAG AA and checked by the theme tests), one theme per light / dark mode stored in the backend (`lightTheme`, `darkTheme`, portable in import / export, migration of the former Terminal style), Terminal interface style split from the colors; Preferences dialog with a sidebar of 8 sections in two groups (Application, Git), settings reorganized, search over every setting in both languages (labels, hints, Git keys, theme names, commands), gallery with live preview on the whole app; theme picker in the command palette (VS Code style) | M9 | F-320, F-321, F-322, F-323, F-324, F-325, F-326 |
 
 ## W — Website and documentation
 
