@@ -73,6 +73,8 @@ jobs:
           HOMEBREW_GITHUB_API_TOKEN: ${{ github.token }}
         run: |
           brew tap-new --no-git yaggui/ci
+          # Recent Homebrew refuses to load casks of a tap nobody trusted; older ones lack the command.
+          if brew commands --quiet | grep -qx trust; then brew trust yaggui/ci; fi
           TAP_DIR="$(brew --repository yaggui/ci)"
           mkdir -p "$TAP_DIR/Casks"
           cp tap/Casks/yaggui.rb "$TAP_DIR/Casks/"
