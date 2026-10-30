@@ -30,18 +30,20 @@ import {
   refItemsFor,
 } from './paletteSources';
 import { usePaletteStore } from './paletteStore';
+import { ThemePicker } from './ThemePicker';
 import { useCommitHits, useFileSources } from './usePaletteData';
 
 /** Command palette (F-280): fuzzy search over actions, refs, commits, files and tabs. */
 export function CommandPalette() {
   const open = usePaletteStore((state) => state.open);
+  const view = usePaletteStore((state) => state.view);
   const setOpen = usePaletteStore((state) => state.setOpen);
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
       <Dialog.Portal>
         <Dialog.Overlay className={styles.overlay} />
         <Dialog.Content className={styles.content} aria-describedby={undefined} data-modal="">
-          <PaletteBody />
+          {view === 'themes' ? <ThemePicker /> : <PaletteBody />}
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
@@ -133,6 +135,10 @@ function PaletteBody() {
   const choose = (item: PaletteItem) => {
     if (item.disabled) return;
     usePaletteStore.getState().remember(item.key);
+    if (item.keepsPaletteOpen) {
+      item.activate();
+      return;
+    }
     usePaletteStore.getState().setOpen(false);
     // After the dialog unmounts, so focus restoration cannot undo what the item focuses.
     setTimeout(item.activate, 0);

@@ -1,5 +1,6 @@
-/* D · Terminal: dense monospace dark style, accent green. Values from docs/ui/styles.html. */
-:root[data-theme='terminal'] {
+/* D · Terminal: the colors of style D, accent green. Values from docs/ui/styles.html. The shape
+   of the style (monospace, square corners) is `data-style='terminal'` in tokens.css. */
+[data-theme='terminal'] {
   color-scheme: dark;
 
   /* Surfaces */
@@ -84,24 +85,10 @@
 
   /* Elevation */
   --shadow-popover: 0 0 0 1px #333333, 0 12px 32px rgb(0 0 0 / 0.6);
-
-  /* Monospace everywhere, square corners, dense rows. A font chosen in the preferences still
-     wins: it is set inline on <html>. */
-  --font-ui: var(--font-code);
-  --radius-sm: 2px;
-  --radius-md: 2px;
-  --radius-lg: 2px;
-  --radius-xl: 2px;
-  --radius-full: 2px;
-  --row-height: 26px;
-}
-
-:root[data-theme='terminal'][data-density='compact'] {
-  --row-height: 22px;
 }
 
 /* High contrast (F-320): stronger text and borders on the same surfaces. */
-:root[data-theme='terminal'][data-contrast='high'] {
+[data-theme='terminal'][data-contrast='high'] {
   --fg-primary: #ffffff;
   --fg-secondary: #e6e6e6;
   --fg-muted: #bdbdbd;

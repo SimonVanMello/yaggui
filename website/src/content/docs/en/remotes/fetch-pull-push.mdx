@@ -7,7 +7,8 @@ sources:
   - src/features/network/**
   - src/features/toolbar/NetworkButtons.tsx
   - src/features/statusbar/StatusBar.tsx
-  - src/features/preferences/BehaviorTab.tsx
+  - src/features/preferences/SyncSection.tsx
+  - src/features/preferences/SafetySection.tsx
   - src/features/preferences/ProtectedBranchesField.tsx
   - src/features/sidebar/RefContextMenu.tsx
   - src/features/sidebar/RemoteContextMenu.tsx
@@ -54,7 +55,7 @@ When it finishes, a **Fetch complete** toast appears, with the repository's name
 
 ### Prune on fetch
 
-With **Prune on fetch** on (the default), every fetch adds `--prune`: remote-tracking branches deleted on the server disappear from the sidebar and the graph. Your local branches are never deleted. The setting is in **Preferences → Behavior** and applies to every fetch, including auto-fetch. See [Preferences](../../reference/preferences/).
+With **Prune on fetch** on (the default), every fetch adds `--prune`: remote-tracking branches deleted on the server disappear from the sidebar and the graph. Your local branches are never deleted. The setting is in **Preferences → Fetch and pull** and applies to every fetch, including auto-fetch. See [Preferences](../../reference/preferences/).
 
 A fetch with prune cannot be undone (see [What cannot be undone](#what-cannot-be-undone)).
 
@@ -62,10 +63,10 @@ A fetch with prune cannot be undone (see [What cannot be undone](#what-cannot-be
 
 yaggui fetches all remotes of every open repository in the background, at a fixed interval: the repository of the visible tab and the repositories of the other tabs alike.
 
-| Setting (Preferences → Behavior) | Default | Effect                                                           |
-| -------------------------------- | ------- | ---------------------------------------------------------------- |
-| **Fetch automatically**          | On      | Turns auto-fetch on or off                                       |
-| **Every (minutes)**              | 10      | Interval, from 1 to 240 minutes. Disabled when auto-fetch is off |
+| Setting (Preferences → Fetch and pull) | Default | Effect                                                           |
+| -------------------------------------- | ------- | ---------------------------------------------------------------- |
+| **Fetch automatically**                | On      | Turns auto-fetch on or off                                       |
+| **Every (minutes)**                    | 10      | Interval, from 1 to 240 minutes. Disabled when auto-fetch is off |
 
 How it behaves:
 
@@ -75,7 +76,7 @@ How it behaves:
 - Auto-fetch is silent: no toast on success or failure. The status bar of the repository still shows the progress and **Fetch completed** or **Fetch failed**. If a fetch fails, open the command log to see why.
 - The footer of the **Fetch** menu shows the current state: **Auto-fetch every 10 min** or **Auto-fetch is off**.
 
-To turn it off, uncheck **Fetch automatically** in **Preferences → Behavior**.
+To turn it off, uncheck **Fetch automatically** in **Preferences → Fetch and pull**.
 
 ## Pull
 
@@ -107,7 +108,7 @@ The **Pull with…** menu marks the default strategy with **default**. The three
 
 The strategy used by the **Pull** button and <kbd>⌘⇧L</kbd> is resolved in this order:
 
-1. **Default pull strategy** in **Preferences → Behavior**, if set to **Fast-forward only**, **Merge** or **Rebase**. The default value, **Git configuration**, goes to the next steps.
+1. **Default pull strategy** in **Preferences → Fetch and pull**, if set to **Fast-forward only**, **Merge** or **Rebase**. The default value, **Git configuration**, goes to the next steps.
 2. `branch.<name>.rebase`, else `pull.rebase`: a true value (`true`, `merges`, `interactive`…) means **Rebase**.
 3. `pull.ff=only` means **Fast-forward only**; any other `pull.ff` value means **Merge**.
 4. `pull.rebase=false` with no `pull.ff` means **Merge**.
@@ -194,7 +195,7 @@ Force push to a protected branch is always refused, with no override: "\"main\" 
 
 Deleting a protected branch on the remote is refused the same way, from the remote branch menu (**Delete on the remote…**) or with **Also delete the remote branch** in the delete dialog of a local branch: "\"main\" is a protected branch: it is never deleted on the remote. Remove it from the protected branches first if you really mean to." The local branch alone can still be deleted. See [Branches](../../history/branches/#delete-a-branch).
 
-The list is in **Preferences → Behavior → Protected branches**. Defaults: `main`, `master`, `develop`, `release/*`.
+The list is in **Preferences → Safety → Protected branches**. Defaults: `main`, `master`, `develop`, `release/*`.
 
 - An entry is an exact name, or a pattern `prefix/*` that matches any branch under `prefix/` (at any depth), but not `prefix` itself.
 - Type a name in **Add a branch or pattern** and click **Add**. Remove one with its chip's remove button. **Restore defaults** puts the default list back.

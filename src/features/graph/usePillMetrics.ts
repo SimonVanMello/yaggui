@@ -128,7 +128,7 @@ function subscribe(listener: () => void): () => void {
     // For the app's lifetime: fonts, text size, density and theme are set on the root.
     new MutationObserver(invalidate).observe(document.documentElement, {
       attributes: true,
-      attributeFilter: ['style', 'data-density', 'data-theme', 'data-contrast'],
+      attributeFilter: ['style', 'data-density', 'data-theme', 'data-style', 'data-contrast'],
     });
     // Widths measured with a fallback font before Inter is loaded would be wrong.
     document.fonts.addEventListener('loadingdone', invalidate);

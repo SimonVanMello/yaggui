@@ -1,5 +1,6 @@
 pnpm-lock.yaml
 src/ipc/bindings.ts
+src/theme/themes.generated.css
 src-tauri/target
 src-tauri/gen
 src-tauri/icons

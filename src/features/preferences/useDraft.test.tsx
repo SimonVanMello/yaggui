@@ -6,10 +6,10 @@ import { currentPreferences, loadPreferences, updatePreferences } from '../../ap
 import { queryClient } from '../../app/queryClient';
 import { ipc } from '../../ipc';
 import { mockBackend } from '../../ipc/mockClient';
-import { AppearanceTab } from './AppearanceTab';
-import { BehaviorTab } from './BehaviorTab';
-import { GitTab } from './GitTab';
-import { ToolsTab } from './ToolsTab';
+import { DisplaySection } from './DisplaySection';
+import { GitPathField } from './GitPathField';
+import { SyncSection } from './SyncSection';
+import { ToolsSection } from './ToolsSection';
 import { useDraft } from './useDraft';
 
 beforeEach(async () => {
@@ -42,8 +42,8 @@ describe('useDraft', () => {
 });
 
 describe('text fields follow an import while the dialog is open', () => {
-  it('Behavior: the minutes field shows the imported value and a blur keeps it', async () => {
-    withQueries(<BehaviorTab />);
+  it('Fetch and pull: the minutes field shows the imported value and a blur keeps it', async () => {
+    withQueries(<SyncSection />);
     const minutes = screen.getByLabelText('Every (minutes)');
     expect(minutes).toHaveValue('10');
 
@@ -58,8 +58,8 @@ describe('text fields follow an import while the dialog is open', () => {
     });
   });
 
-  it('Appearance: the font fields and the text size follow the stored value', async () => {
-    withQueries(<AppearanceTab />);
+  it('Display: the font fields and the text size follow the stored value', async () => {
+    withQueries(<DisplaySection />);
     await act(() =>
       updatePreferences({ uiFont: 'Fira Sans', codeFont: 'Fira Code', fontSize: 15 }),
     );
@@ -71,7 +71,7 @@ describe('text fields follow an import while the dialog is open', () => {
   });
 
   it('Tools: the editor field follows the stored value', async () => {
-    withQueries(<ToolsTab />);
+    withQueries(<ToolsSection />);
     await act(() => updatePreferences({ editor: 'code' }));
     expect(screen.getByLabelText('Editor')).toHaveValue('code');
     fireEvent.blur(screen.getByLabelText('Editor'));
@@ -79,7 +79,7 @@ describe('text fields follow an import while the dialog is open', () => {
   });
 
   it('Git: the path field follows the stored value', async () => {
-    withQueries(<GitTab />);
+    withQueries(<GitPathField />);
     await act(() => updatePreferences({ gitPath: '/opt/homebrew/bin/git' }));
     expect(screen.getByLabelText('Git binary')).toHaveValue('/opt/homebrew/bin/git');
   });
@@ -89,7 +89,7 @@ describe('text size slider', () => {
   it('saves once after a drag, with the last value', async () => {
     vi.useFakeTimers();
     const spy = vi.spyOn(ipc.commands, 'setPreferences');
-    withQueries(<AppearanceTab />);
+    withQueries(<DisplaySection />);
     const slider = screen.getByLabelText('Text size');
     fireEvent.change(slider, { target: { value: '14' } });
     fireEvent.change(slider, { target: { value: '15' } });

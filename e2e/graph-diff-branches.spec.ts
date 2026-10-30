@@ -223,7 +223,10 @@ for (const { name: theme, colorScheme } of THEMES) {
 
       await page.keyboard.press('Control+,');
       const prefs = page.getByRole('dialog', { name: 'Preferences' });
-      await prefs.getByRole('tab', { name: 'Appearance', exact: true }).click();
+      await prefs
+        .getByRole('navigation', { name: 'Preference sections' })
+        .getByRole('button', { name: 'Display', exact: true })
+        .click();
       await expect(prefs.getByRole('switch', { name: /Gravatar avatars/ })).not.toBeChecked();
       await capture(page, theme, 'prefs-gravatar');
       await prefs.getByRole('switch', { name: /Gravatar avatars/ }).click();
@@ -253,7 +256,10 @@ test.describe('terminal style, high contrast', () => {
     await openRepo(page);
     await page.keyboard.press('Control+,');
     const prefs = page.getByRole('dialog', { name: 'Preferences' });
-    await prefs.getByRole('tab', { name: 'Appearance', exact: true }).click();
+    await prefs
+      .getByRole('navigation', { name: 'Preference sections' })
+      .getByRole('button', { name: 'Appearance', exact: true })
+      .click();
     await prefs.getByRole('radio', { name: 'Terminal' }).click();
     await prefs.getByRole('switch', { name: /High contrast/ }).click();
     await page.keyboard.press('Escape');
@@ -294,7 +300,10 @@ test.describe('virtualized lists in compact density', () => {
     await openRepo(page);
     await page.keyboard.press('Control+,');
     const prefs = page.getByRole('dialog', { name: 'Preferences' });
-    await prefs.getByRole('tab', { name: 'Appearance', exact: true }).click();
+    await prefs
+      .getByRole('navigation', { name: 'Preference sections' })
+      .getByRole('button', { name: 'Display', exact: true })
+      .click();
     await prefs.getByRole('radio', { name: 'Compact' }).click();
     await expect(page.locator('html')).toHaveAttribute('data-density', 'compact');
     await page.keyboard.press('Escape');

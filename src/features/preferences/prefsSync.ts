@@ -73,7 +73,7 @@ export async function applyPreferencesImport(): Promise<void> {
     const [prefs] = await Promise.all([loadPreferences(), useKeybindings.getState().load()]);
     // The theme and language stores read the preferences only at startup (`main.tsx`): an
     // imported theme, style or language must reach them, and the theme cache, now.
-    initTheme(prefs.theme, prefs.style);
+    initTheme(prefs);
     initI18n(prefs.locale);
     usePrefsSync.setState({ preview: null, applying: false });
     toast({ variant: 'success', title: t('prefs.sync.applied') });

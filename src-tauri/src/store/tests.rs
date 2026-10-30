@@ -120,6 +120,8 @@ fn stores_preferences() {
     assert_eq!(store.preferences().unwrap(), Preferences::default());
     let prefs = Preferences {
         theme: ThemePreference::Dark,
+        light_theme: "latte".into(),
+        dark_theme: "mocha".into(),
         style: ThemeStyle::Terminal,
         locale: Some(Locale::Fr),
         terminal: Some("kitty".into()),
@@ -270,6 +272,57 @@ fn unset_optional_preferences_round_trip_without_warnings() {
     assert!(
         !output.contains("ignoring unreadable preference"),
         "{output}"
+    );
+}
+
+#[test]
+fn the_former_terminal_style_keeps_its_colors() {
+    let store = store();
+    store
+        .conn()
+        .execute_batch(
+            "INSERT INTO preferences (key, value) VALUES ('theme', '\"light\"');
+             INSERT INTO preferences (key, value) VALUES ('style', '\"terminal\"');",
+        )
+        .unwrap();
+    let prefs = store.preferences().unwrap();
+    assert_eq!(prefs.dark_theme, TERMINAL_THEME);
+    assert_eq!(prefs.theme, ThemePreference::Dark);
+    assert_eq!(prefs.light_theme, DEFAULT_LIGHT_THEME);
+    assert_eq!(prefs.style, ThemeStyle::Terminal);
+    // Once a dark theme is stored, it wins: the style is only the shape.
+    let saved = store
+        .set_preferences(&Preferences {
+            dark_theme: "nord".into(),
+            theme: ThemePreference::System,
+            ..prefs
+        })
+        .unwrap();
+    assert_eq!(saved.dark_theme, "nord");
+    assert_eq!(saved.theme, ThemePreference::System);
+    assert_eq!(saved.style, ThemeStyle::Terminal);
+}
+
+#[test]
+fn theme_ids_are_checked() {
+    let store = store();
+    for id in ["", "Mocha", "a b", "-x", "x;y"] {
+        let prefs = Preferences {
+            dark_theme: id.into(),
+            ..Preferences::default()
+        };
+        assert!(store.set_preferences(&prefs).is_err(), "{id:?}");
+    }
+    store
+        .conn()
+        .execute(
+            "INSERT INTO preferences (key, value) VALUES ('light_theme', '\"Not An Id\"')",
+            [],
+        )
+        .unwrap();
+    assert_eq!(
+        store.preferences().unwrap().light_theme,
+        DEFAULT_LIGHT_THEME
     );
 }
 

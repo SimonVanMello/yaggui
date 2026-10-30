@@ -100,7 +100,7 @@ Une branche locale et une branche distante situées sur le même commit partagen
 
 #### Tags présents sur les remotes
 
-Git ne garde aucune trace locale des tags d’un remote : un tag reçu par un fetch ressemble en tout point à un tag que vous avez créé. Pour voir quels tags sont publiés, activez **Afficher les tags présents sur les remotes** dans **Préférences → Comportement** (désactivé par défaut). L’étiquette d’un tag porte alors un nuage quand un remote possède ce tag sur le même commit, dans le graphe et dans le détail d’un commit ; survolez l’étiquette pour lire `v1.2.0 — sur origin`.
+Git ne garde aucune trace locale des tags d’un remote : un tag reçu par un fetch ressemble en tout point à un tag que vous avez créé. Pour voir quels tags sont publiés, activez **Afficher les tags présents sur les remotes** dans **Préférences → Fetch et pull** (désactivé par défaut). L’étiquette d’un tag porte alors un nuage quand un remote possède ce tag sur le même commit, dans le graphe et dans le détail d’un commit ; survolez l’étiquette pour lire `v1.2.0 — sur origin`.
 
 - **Quand yaggui interroge** : il liste les tags de chaque remote avec `git ls-remote --tags` quand vous activez la préférence, à l’ouverture d’un dépôt, et après chaque fetch (automatique compris), pull et push. La réponse est gardée en mémoire, pour la session seulement. Désactivée, yaggui ne la lance jamais.
 - **Coût** : une requête par remote à chaque fois, avec les mêmes identifiants qu’un fetch. Elle ne liste que des noms, ne télécharge rien et apparaît dans le [journal des commandes](../../reference/command-log/).
@@ -122,7 +122,7 @@ Un cadenas avant le début du message signale un commit signé (GPG, SSH ou X.50
 
 Par défaut, la colonne **Auteur** affiche les initiales de l’auteur (« Alex Martin » donne « AM ») sur une couleur dérivée de l’adresse e-mail, si bien que chaque auteur a toujours la même couleur. Aucune requête réseau n’est faite.
 
-Pour afficher les photos Gravatar, activez **Avatars Gravatar** dans Préférences > Apparence. yaggui envoie alors à gravatar.com un hash de l’e-mail de chaque auteur et met les photos en cache sur le disque pendant 7 jours. **Vider le cache des avatars**, dans la même section, supprime les photos téléchargées. Si une photo ne peut pas être chargée, les initiales restent affichées. Voir [Apparence](../../customize/appearance/).
+Pour afficher les photos Gravatar, activez **Avatars Gravatar** dans Préférences > Affichage. yaggui envoie alors à gravatar.com un hash de l’e-mail de chaque auteur et met les photos en cache sur le disque pendant 7 jours. **Vider le cache des avatars**, dans la même section, supprime les photos téléchargées. Si une photo ne peut pas être chargée, les initiales restent affichées. Voir [Apparence](../../customize/appearance/).
 
 ## Sélectionner des commits
 

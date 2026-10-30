@@ -10,7 +10,10 @@ async function openPrefs(page: Page, tab: string) {
   await page.keyboard.press('Control+,');
   const prefs = prefsDialog(page);
   await expect(prefs).toBeVisible();
-  await prefs.getByRole('tab', { name: tab, exact: true }).click();
+  await prefs
+    .getByRole('navigation', { name: 'Preference sections' })
+    .getByRole('button', { name: tab, exact: true })
+    .click();
   return prefs;
 }
 
@@ -25,8 +28,38 @@ test.describe('customize', () => {
   test('prefs-appearance', async ({ page }, testInfo) => {
     await welcome(page);
     const prefs = await openPrefs(page, 'Appearance');
-    await expect(prefs.getByLabel('Code font')).toBeVisible();
+    await expect(prefs.locator('[data-theme-id="mocha"]')).toBeVisible();
+    await page.mouse.move(0, 0);
     await capture(page, testInfo, 'prefs-appearance', prefs);
+  });
+
+  test('prefs-display', async ({ page }, testInfo) => {
+    await welcome(page);
+    const prefs = await openPrefs(page, 'Display');
+    await expect(prefs.getByLabel('Code font')).toBeVisible();
+    await capture(page, testInfo, 'prefs-display', prefs);
+  });
+
+  test('prefs-search', async ({ page }, testInfo) => {
+    await welcome(page);
+    await page.keyboard.press('Control+,');
+    const prefs = prefsDialog(page);
+    await prefs.getByRole('searchbox').fill('pull');
+    await expect(prefs.getByRole('heading', { name: 'Results' })).toBeVisible();
+    await capture(page, testInfo, 'prefs-search', prefs);
+  });
+
+  test('theme-picker', async ({ page }, testInfo) => {
+    await welcome(page);
+    await openRepo(page);
+    await page.keyboard.press('Control+K');
+    await page.getByRole('combobox').fill('theme');
+    await page.keyboard.press('Enter');
+    await page.getByRole('combobox').fill('cat');
+    await page.keyboard.press('ArrowDown');
+    await expect(page.locator('html')).toHaveAttribute('data-theme', /macchiato|frappe/);
+    await page.mouse.move(0, 0);
+    await capture(page, testInfo, 'theme-picker');
   });
 
   test('style-terminal', async ({ page }, testInfo) => {
@@ -34,9 +67,11 @@ test.describe('customize', () => {
     await openRepo(page);
     const prefs = await openPrefs(page, 'Appearance');
     await prefs.getByRole('radio', { name: 'Terminal' }).click();
+    await prefs.locator('[data-theme-id="terminal"]').click();
     await page.keyboard.press('Escape');
     await expect(prefs).toBeHidden();
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'terminal');
+    await expect(page.locator('html')).toHaveAttribute('data-style', 'terminal');
     await page.mouse.move(0, 0);
     await capture(page, testInfo, 'style-terminal');
   });
@@ -89,7 +124,7 @@ test.describe('customize', () => {
 
   test('prefs-git', async ({ page }, testInfo) => {
     await welcome(page);
-    const prefs = await openPrefs(page, 'Git');
+    const prefs = await openPrefs(page, 'Tools');
     await expect(prefs).toContainText('Git 2.47.1 · /usr/bin/git');
     await capture(page, testInfo, 'prefs-git', prefs);
   });
@@ -97,7 +132,7 @@ test.describe('customize', () => {
   test('gitconfig-global', async ({ page }, testInfo) => {
     await welcome(page);
     await openRepo(page);
-    const prefs = await openPrefs(page, 'Configuration');
+    const prefs = await openPrefs(page, 'Git configuration');
     await expect(prefs.getByLabel('Name (user.name)')).toHaveValue('Alex Martin');
     await capture(page, testInfo, 'gitconfig-global', prefs);
   });

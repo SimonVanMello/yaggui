@@ -18,6 +18,8 @@ const MAX_KEYBINDINGS = 1000;
 
 const PORTABLE = [
   'theme',
+  'lightTheme',
+  'darkTheme',
   'style',
   'locale',
   'terminalMode',
@@ -63,6 +65,8 @@ const listOf = (check: (v: unknown) => boolean) => (v: unknown) =>
 /** What serde accepts for each portable setting (type and enum variants, not ranges). */
 const SHAPES: Record<(typeof PORTABLE)[number], (v: unknown) => boolean> = {
   theme: oneOf('light', 'dark', 'system'),
+  lightTheme: isString,
+  darkTheme: isString,
   style: oneOf('standard', 'terminal'),
   locale: orNull(oneOf('en', 'fr')),
   terminalMode: oneOf('integrated', 'external'),
@@ -216,7 +220,12 @@ export function parsePreferencesFile(
   const keybindings = parseKeybindings(root.keybindings);
   if ('code' in keybindings) return keybindings;
 
-  const incoming: Json = isObject(root.preferences) ? root.preferences : {};
+  const incoming: Json = isObject(root.preferences) ? { ...root.preferences } : {};
+  // Exported before the color themes: the Terminal style brought its own dark colors.
+  if (incoming.style === 'terminal' && !('darkTheme' in incoming)) {
+    incoming.darkTheme = 'terminal';
+    incoming.theme = 'dark';
+  }
   let working = current;
   const ignored: IgnoredKey[] = [];
   const problems: string[] = [];

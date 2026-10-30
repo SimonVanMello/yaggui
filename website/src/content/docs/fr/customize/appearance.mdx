@@ -1,10 +1,15 @@
 ---
 title: Apparence
-description: Choisissez le thème, le style, le contraste, la densité, les polices, la taille du texte, la langue et les avatars des auteurs dans yaggui.
+description: Choisissez le thème de couleurs parmi 25, prévisualisez-le sur toute l’application, suivez le mode clair ou sombre de l’OS, et réglez le style d’interface, le contraste, la densité, les polices, la taille du texte, la langue et les avatars des auteurs.
 sidebar:
   order: 1
 sources:
-  - src/features/preferences/AppearanceTab.tsx
+  - src/features/preferences/AppearanceSection.tsx
+  - src/features/preferences/DisplaySection.tsx
+  - src/features/preferences/GeneralSection.tsx
+  - src/features/preferences/FontInput.tsx
+  - src/features/preferences/theme/**
+  - src/features/palette/ThemePicker.tsx
   - src/app/appearance.ts
   - src/app/preferences.ts
   - src/theme/**
@@ -15,57 +20,107 @@ sources:
   - src-tauri/src/system/avatars.rs
   - src-tauri/src/commands/avatars.rs
   - src-tauri/src/store/types.rs
+  - src-tauri/src/store/mod.rs
 requirements: [F-320, F-321, F-033]
 ---
 
 import Screenshot from '~/components/Screenshot.astro';
 import prefsAppearanceDark from '../../../../assets/screens/prefs-appearance-fr-dark.png';
 import prefsAppearanceLight from '../../../../assets/screens/prefs-appearance-fr-light.png';
+import prefsDisplayDark from '../../../../assets/screens/prefs-display-fr-dark.png';
+import prefsDisplayLight from '../../../../assets/screens/prefs-display-fr-light.png';
+import themePickerDark from '../../../../assets/screens/theme-picker-fr-dark.png';
+import themePickerLight from '../../../../assets/screens/theme-picker-fr-light.png';
 import styleTerminalDark from '../../../../assets/screens/style-terminal-fr-dark.png';
 import styleTerminalLight from '../../../../assets/screens/style-terminal-fr-light.png';
 
-Tout ce qui figure sur cette page se règle dans **Préférences › Apparence**. Les changements s’appliquent dès que vous les faites : il n’y a pas de bouton d’enregistrement.
+Le thème de couleurs, le style d’interface et le contraste se règlent dans **Préférences › Apparence** ; les polices, la taille du texte, la densité et les avatars dans **Préférences › Affichage** ; la langue dans **Préférences › Général**. Les changements s’appliquent dès que vous les faites : il n’y a pas de bouton d’enregistrement.
 
-Pour ouvrir les préférences, cliquez sur le bouton en forme d’engrenage (**Préférences**) dans la barre de titre, appuyez sur <kbd>⌘,</kbd> (<kbd>Ctrl+,</kbd> sous Windows et Linux), ou lancez **Ouvrir les préférences** depuis la [palette de commandes](../../customize/palette-and-shortcuts/). Sous macOS, l’entrée de menu **yaggui › Préférences…** les ouvre aussi. L’onglet s’ouvre sur **Apparence**.
+Pour ouvrir les préférences, cliquez sur le bouton en forme d’engrenage (**Préférences**) dans la barre de titre, appuyez sur <kbd>⌘,</kbd> (<kbd>Ctrl+,</kbd> sous Windows et Linux), ou lancez **Ouvrir les préférences** depuis la [palette de commandes](../../customize/palette-and-shortcuts/). Sous macOS, l’entrée de menu **yaggui › Préférences…** les ouvre aussi. La fenêtre s’ouvre sur **Général** : choisissez une section dans la barre latérale, ou tapez dans **Rechercher…** en haut de celle-ci (<kbd>⌘F</kbd>, <kbd>Ctrl+F</kbd> sous Windows et Linux) pour trouver un réglage par son nom, en français ou en anglais. La recherche est décrite dans la [référence des préférences](../../reference/preferences/).
 
 <Screenshot
   dark={prefsAppearanceDark}
   light={prefsAppearanceLight}
-  alt="L’onglet Apparence de la fenêtre des préférences, avec Thème, Style, Contraste élevé, Avatars Gravatar, Densité, Langue, les polices et la Taille du texte"
+  alt="La section Apparence de la fenêtre des préférences : l’interrupteur Suivre le thème du système, puis la galerie des thèmes de couleurs groupés par famille"
 />
 
-## Choisir le thème et le style
+## Choisir un thème de couleurs
 
-yaggui propose trois apparences :
+La galerie **Thème** montre chaque thème de couleurs sous forme de carte dessinée avec ses propres couleurs (barre de titre, barre latérale, graphe, diff). Il y en a 25, groupés par famille :
 
-| Apparence                               | Comment l’obtenir                                                                                   |
-| --------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| **Graphite** (sombre)                   | **Style** : **Graphite / Paper**, **Thème** : **Sombre** (ou **Système** avec un OS en mode sombre) |
-| **Paper** (clair)                       | **Style** : **Graphite / Paper**, **Thème** : **Clair** (ou **Système** avec un OS en mode clair)   |
-| **Terminal** (dense, monospace, sombre) | **Style** : **Terminal**                                                                            |
+| Famille        | Thèmes                                                                                                                            |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| **yaggui**     | Graphite (sombre, par défaut), Paper (clair, par défaut), Terminal (sombre)                                                       |
+| **Catppuccin** | Catppuccin Mocha, Catppuccin Macchiato, Catppuccin Frappé (sombres), Catppuccin Latte (clair)                                     |
+| **VS Code**    | Dark Modern, Dark+ (sombres), Light Modern, Light+ (clairs)                                                                       |
+| **JetBrains**  | Darcula, JetBrains Dark (sombres), JetBrains Light (clair)                                                                        |
+| **GitHub**     | GitHub Dark (sombre), GitHub Light (clair)                                                                                        |
+| **Classiques** | One Dark, Dracula, Nord, Tokyo Night, Gruvbox Dark, Solarized Dark, Rosé Pine (sombres), Solarized Light, Rosé Pine Dawn (clairs) |
 
-- **Thème** accepte **Système**, **Clair** ou **Sombre**. La valeur par défaut, **Système**, suit le réglage clair ou sombre de votre OS et bascule en direct quand celui-ci change.
-- **Style** accepte **Graphite / Paper** (par défaut) ou **Terminal**. Le style Terminal est toujours sombre : le réglage **Thème** n’a donc aucun effet tant qu’il est sélectionné. L’onglet vous le rappelle : « Dense, monospace et sombre : le choix clair / sombre ne s'applique pas. »
+- **Filtrer les thèmes** garde les thèmes dont le nom ou la famille contient ce que vous tapez ; **Tous**, **Sombres** et **Clairs** gardent un seul type. Le compteur à côté indique combien sont affichés.
+- **Aperçu** : survolez une carte, ou atteignez-la avec <kbd>Tab</kbd> et les flèches. Après un court délai, toute la fenêtre prend le thème, et une barre indique « Aperçu : _thème_ · clic pour appliquer · Échap pour revenir à _thème actuel_ ». Sortir de la galerie, ou <kbd>Échap</kbd>, revient au thème actuel sans fermer la fenêtre. Un aperçu n’est jamais enregistré.
+- **Appliquer** : cliquez sur la carte, ou appuyez sur <kbd>Entrée</kbd> dessus. La carte du thème utilisé est entourée et marquée **Actif** (quand le thème suit l’OS : les deux thèmes utilisés, marqués **Mode clair** et **Mode sombre**).
 
-Vous pouvez aussi changer de thème depuis la palette de commandes avec **Thème : suivre le système**, **Thème : clair** et **Thème : sombre**. L’entrée correspondant au thème actuel est grisée.
+Les thèmes reprennent les palettes publiées par leurs auteurs. Les couleurs de texte, d’accent et d’état qui seraient difficiles à lire sont un peu éclaircies (sur un thème sombre) ou assombries (sur un thème clair), pour que chaque thème garde le contraste exigé par yaggui (WCAG AA) ; le terminal intégré et la coloration syntaxique gardent les valeurs du thème.
 
 yaggui applique le dernier thème utilisé avant le premier affichage de la fenêtre : une configuration sombre ne produit donc jamais d’éclair blanc au démarrage.
+
+## Suivre le mode clair ou sombre de l’OS
+
+yaggui garde un thème pour le mode clair et un pour le mode sombre. **Suivre le thème du système** (activé par défaut) affiche celui du mode dans lequel est votre OS, et bascule en direct quand l’OS change. Tant qu’il est activé, deux cadres au-dessus de la galerie montrent **Mode clair** et **Mode sombre** avec leur thème, celui utilisé étant marqué **actif**.
+
+- Choisir un thème du mode dans lequel est l’OS remplace le thème de ce mode : yaggui continue de suivre l’OS.
+- Choisir un thème de l’autre mode l’affiche et arrête de suivre l’OS (l’interrupteur se désactive), car il ne serait pas visible autrement. Réactivez l’interrupteur pour basculer de nouveau entre vos deux thèmes avec l’OS.
+- Désactiver l’interrupteur garde le thème affiché.
+
+Par exemple, pour Catppuccin Latte le jour et Catppuccin Mocha la nuit : choisissez **Catppuccin Latte**, puis **Catppuccin Mocha**, puis activez **Suivre le thème du système**.
+
+## Choisir un thème depuis la palette de commandes
+
+Sans ouvrir les préférences :
+
+1. Appuyez sur <kbd>⌘K</kbd> (<kbd>Ctrl+K</kbd>), tapez `thème` et appuyez sur <kbd>Entrée</kbd> sur **Thème : choisir un thème de couleurs…**.
+2. La palette liste les **Thèmes sombres** puis les **Thèmes clairs**, en partant du thème actuel (marqué **actuel**). Tapez pour filtrer par nom ou par famille.
+3. Déplacez-vous avec <kbd>↑</kbd> <kbd>↓</kbd> : chaque thème atteint est prévisualisé sur toute la fenêtre.
+4. Appuyez sur <kbd>Entrée</kbd> pour l’appliquer, ou sur <kbd>Échap</kbd> pour revenir au thème actuel.
+
+La même règle que dans la galerie s’applique quand le thème suit l’OS. La palette propose aussi **Thème : suivre le système**, **Thème : clair** et **Thème : sombre**, qui changent de mode en gardant le thème de chaque mode ; l’entrée du mode actuel est grisée.
+
+<Screenshot
+  dark={themePickerDark}
+  light={themePickerLight}
+  alt="La liste des thèmes de la palette de commandes, avec un thème Catppuccin prévisualisé sur la fenêtre derrière"
+/>
+
+## Choisir le style d’interface
+
+**Style d’interface** accepte **Standard** (par défaut) ou **Terminal** : « Terminal : monospace, angles droits, lignes denses. Se combine avec tous les thèmes. » Il ne change que la forme de l’interface, pas ses couleurs. Pour retrouver tout l’aspect de l’ancien style Terminal, choisissez **Terminal** ici et le thème de couleurs **Terminal**.
+
+Si vous utilisiez le style Terminal dans une version précédente, yaggui garde son aspect : le thème Terminal devient votre thème sombre et le mode passe en sombre. Un fichier de préférences exporté par une version précédente est traité de la même façon à l’import.
 
 <Screenshot
   dark={styleTerminalDark}
   light={styleTerminalLight}
-  alt="yaggui avec le style Terminal : des lignes denses en police monospace sur un fond presque noir"
+  alt="yaggui avec le style d’interface Terminal et le thème Terminal : des lignes denses en police monospace sur un fond presque noir"
 />
 
 ## Activer le contraste élevé
 
-**Contraste élevé** (désactivé par défaut) renforce le texte et les bordures. C’est un interrupteur, pas un thème à part : il fonctionne avec Graphite, Paper et Terminal. Dans le [terminal intégré](../../repository/terminal/), il impose aussi un rapport de contraste minimal aux couleurs du shell.
+**Contraste élevé** (désactivé par défaut, dans **Apparence**) renforce le texte et les bordures. C’est un interrupteur, pas un thème à part : il fonctionne avec tous les thèmes de couleurs. Dans le [terminal intégré](../../repository/terminal/), il impose aussi un rapport de contraste minimal aux couleurs du shell.
 
 ## Changer la densité
 
-**Densité** accepte **Confortable** (par défaut) ou **Compacte**. Le mode compact réduit la hauteur des lignes (graphe, listes, journal des commandes, palette et autres) de 28 px à 22 px, pour en afficher davantage à l’écran.
+Dans **Préférences › Affichage**, **Densité** accepte **Confortable** (par défaut) ou **Compacte**. Le mode compact réduit la hauteur des lignes (graphe, listes, journal des commandes, palette et autres) de 28 px à 22 px, pour en afficher davantage à l’écran.
 
 ## Changer les polices et la taille du texte
+
+Ces réglages se trouvent dans **Préférences › Affichage**, sous **Texte**.
+
+<Screenshot
+  dark={prefsDisplayDark}
+  light={prefsDisplayLight}
+  alt="La section Affichage de la fenêtre des préférences : Police de l’interface, Police du code, Taille du texte, Densité, puis Avatars Gravatar"
+/>
 
 | Réglage                   | Valeur par défaut                       | Effet                                                                                       |
 | ------------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------- |
@@ -82,7 +137,7 @@ Un champ vide rétablit la police fournie. Si la police n’est pas installée, 
 
 ## Changer la langue
 
-**Langue** accepte **Système** (par défaut), **English** ou **Français**. **Système** utilise la première langue de votre OS que yaggui prend en charge, et l’anglais à défaut. Le changement s’applique immédiatement, sans redémarrage ; sous macOS, la barre de menus est reconstruite dans la nouvelle langue.
+Dans **Préférences › Général**, **Langue** accepte **Système** (par défaut), **English** ou **Français**. **Système** utilise la première langue de votre OS que yaggui prend en charge, et l’anglais à défaut. Le changement s’applique immédiatement, sans redémarrage ; sous macOS, la barre de menus est reconstruite dans la nouvelle langue.
 
 La langue concerne toute l’interface, y compris les messages d’erreur de yaggui. La sortie brute de Git affichée dans le [journal des commandes](../../reference/command-log/) reste en anglais.
 
@@ -90,7 +145,7 @@ La langue concerne toute l’interface, y compris les messages d’erreur de yag
 
 Par défaut, yaggui affiche les initiales de chaque auteur dans le graphe, le détail d’un commit et le panneau de comparaison. Il n’envoie aucune requête réseau pour les avatars.
 
-Activez **Avatars Gravatar** pour afficher à la place les photos [Gravatar](https://gravatar.com) des auteurs :
+Activez **Avatars Gravatar** (**Préférences › Affichage**, sous **Avatars**) pour afficher à la place les photos [Gravatar](https://gravatar.com) des auteurs :
 
 - **Ce qui est envoyé** : pour chaque auteur, yaggui calcule sur votre machine le hash SHA-256 de l’adresse e-mail, puis demande `https://www.gravatar.com/avatar/<hash>?s=40&d=404` en HTTPS, sans référent. L’adresse e-mail elle-même ne quitte jamais votre machine.
 - **Pas de photo** : quand une adresse n’a pas de Gravatar, les initiales restent affichées. yaggui s’en souvient pendant 2 jours pour ne pas redemander à chaque réaffichage.

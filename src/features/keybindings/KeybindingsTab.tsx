@@ -17,11 +17,16 @@ type Editing =
   | { id: string; kind: 'conflict'; shortcut: string; others: string[] }
   | { id: string; kind: 'invalid' };
 
+interface KeybindingsTabProps {
+  /** Filter to start with: the search of the Preferences dialog, when it names commands. */
+  initialFilter?: string;
+}
+
 /** Shortcut editor (F-281): press the keys, conflicts are shown, defaults come back. */
-export function KeybindingsTab() {
+export function KeybindingsTab({ initialFilter = '' }: KeybindingsTabProps) {
   const t = useT();
   const { overrides, path, problem } = useKeybindings();
-  const [filter, setFilter] = useState('');
+  const [filter, setFilter] = useState(initialFilter);
   const [editing, setEditing] = useState<Editing | null>(null);
 
   // The file can be edited by hand: read it again each time the editor opens.

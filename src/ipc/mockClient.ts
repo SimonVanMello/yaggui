@@ -321,6 +321,8 @@ const MAX_REPO_UI_STATE = 64 * 1024;
 
 const DEFAULT_MOCK_PREFERENCES: Preferences = {
   theme: 'system',
+  lightTheme: 'paper',
+  darkTheme: 'graphite',
   style: 'standard',
   locale: null,
   terminal: null,
@@ -561,6 +563,10 @@ export class MockBackend {
     this.reset();
     if (persisted) {
       this.preferences = { ...DEFAULT_MOCK_PREFERENCES, ...persisted.preferences };
+      // Same reading of the former Terminal style as the Rust store.
+      if (persisted.preferences.style === 'terminal' && !persisted.preferences.darkTheme) {
+        this.preferences = { ...this.preferences, darkTheme: 'terminal', theme: 'dark' };
+      }
       this.tabs = persisted.tabs;
       if (persisted.repos) this.repos = persisted.repos;
       if (persisted.workspaces) this.workspaces = persisted.workspaces;

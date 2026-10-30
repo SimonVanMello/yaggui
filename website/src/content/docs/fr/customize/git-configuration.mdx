@@ -4,8 +4,9 @@ description: Choisissez le Git que yaggui exécute, et modifiez votre configurat
 sidebar:
   order: 4
 sources:
-  - src/features/preferences/GitTab.tsx
-  - src/features/preferences/GitConfigTab.tsx
+  - src/features/preferences/GitPathField.tsx
+  - src/features/preferences/ToolsSection.tsx
+  - src/features/preferences/GitConfigSection.tsx
   - src/features/preferences/ConfigFieldRow.tsx
   - src/features/preferences/RawConfigEditor.tsx
   - src/features/preferences/gitConfigLogic.ts
@@ -24,16 +25,16 @@ import prefsGitLight from '../../../../assets/screens/prefs-git-fr-light.png';
 import gitconfigGlobalDark from '../../../../assets/screens/gitconfig-global-fr-dark.png';
 import gitconfigGlobalLight from '../../../../assets/screens/gitconfig-global-fr-light.png';
 
-yaggui exécute le programme `git` installé sur votre ordinateur pour chaque écriture. **Préférences › Git** choisit quel Git utiliser ; **Préférences › Configuration** modifie les réglages propres à Git (`~/.gitconfig` ou le fichier `.git/config` d’un dépôt) sans quitter l’application.
+yaggui exécute le programme `git` installé sur votre ordinateur pour chaque écriture. **Préférences › Outils** choisit quel Git utiliser ; **Préférences › Configuration Git** modifie les réglages propres à Git (`~/.gitconfig` ou le fichier `.git/config` d’un dépôt) sans quitter l’application.
 
 ## Choisir le binaire Git
 
-Par défaut, yaggui exécute le `git` de votre `PATH`. Le champ **Binaire Git** de l’onglet **Git** est vide (« Détecté automatiquement ») et la ligne située dessous indique ce que yaggui a trouvé, par exemple « Git 2.47.1 · /usr/bin/git ».
+Par défaut, yaggui exécute le `git` de votre `PATH`. Le champ **Binaire Git**, premier réglage de la section **Outils**, est vide (« Détecté automatiquement ») et la ligne située dessous indique ce que yaggui a trouvé, par exemple « Git 2.47.1 · /usr/bin/git ».
 
 <Screenshot
   dark={prefsGitDark}
   light={prefsGitLight}
-  alt="L’onglet Git des préférences, avec le champ Binaire Git, les boutons Appliquer et Détection automatique et la version de Git détectée"
+  alt="La section Outils des préférences, avec le champ Binaire Git, les boutons Appliquer et Détection automatique et la version de Git détectée"
 />
 
 Pour utiliser un autre Git :
@@ -67,42 +68,44 @@ Sous macOS, une application lancée depuis le Dock ou le Finder ne voit pas le `
 
 La barre d’état d’un dépôt affiche la version de Git utilisée (`git 2.47.1`). Son info-bulle avertit quand la version est antérieure à 2.30 (« Git 2.30 ou plus récent est recommandé »), et elle affiche « git introuvable » quand aucun Git ne peut être lancé.
 
-Si un chemin enregistré cesse de fonctionner (Git désinstallé ou déplacé), yaggui se rabat sur le `git` du `PATH` au démarrage suivant pour que l’application s’ouvre quand même. Corrigez ou videz le chemin dans l’onglet **Git**.
+Si un chemin enregistré cesse de fonctionner (Git désinstallé ou déplacé), yaggui se rabat sur le `git` du `PATH` au démarrage suivant pour que l’application s’ouvre quand même. Corrigez ou videz le chemin dans **Préférences › Outils**.
 
 ## Modifier la configuration Git
 
-L’onglet **Configuration** lit et écrit les fichiers de configuration de Git avec `git config`. Choisissez le fichier avec **Fichier de configuration** :
+La section **Configuration Git** lit et écrit les fichiers de configuration de Git avec `git config`. Choisissez le fichier avec **Fichier de configuration** :
 
 - **Global** : « Ton ~/.gitconfig : s'applique à tous les dépôts. »
 - **Ce dépôt** : « .git/config de _dépôt_ : prend le pas sur la configuration globale. » Ce choix n’existe que si les préférences ont été ouvertes depuis un onglet de dépôt.
 
-L’onglet s’ouvre toujours sur **Global**. Un `~/.gitconfig` absent est simplement affiché comme vide ; il est créé lors de la première modification.
+La section s’ouvre toujours sur **Global**. Un `~/.gitconfig` absent est simplement affiché comme vide ; il est créé lors de la première modification.
 
 <Screenshot
   dark={gitconfigGlobalDark}
   light={gitconfigGlobalLight}
-  alt="L’onglet Configuration, avec les champs de Réglages courants et le tableau Toutes les entrées de la configuration Git globale"
+  alt="La section Configuration Git, avec les champs Identité, Signature et Comportement et le tableau Toutes les entrées de la configuration Git globale"
 />
 
 ### Réglages courants
+
+Les clés courantes sont regroupées sous trois intertitres : **Identité** (`user.name`, `user.email`), **Signature** (`commit.gpgsign`, `gpg.format`, `user.signingkey`) et **Comportement** (`pull.rebase`, `core.autocrlf`, `init.defaultBranch`), suivis de **Toutes les entrées**.
 
 | Champ                                       | Valeurs                                              | Remarques                                                                               |
 | ------------------------------------------- | ---------------------------------------------------- | --------------------------------------------------------------------------------------- |
 | **Nom (user.name)**                         | Texte libre                                          | Nom d’auteur de vos commits                                                             |
 | **E-mail (user.email)**                     | Texte libre                                          | Adresse e-mail d’auteur de vos commits                                                  |
-| **Stratégie de pull (pull.rebase)**         | Non défini, `false`, `true`, `merges`, `interactive` | « true rebase les commits locaux au pull, false fait un merge. »                        |
-| **Fins de ligne (core.autocrlf)**           | Non défini, `false`, `true`, `input`                 | « true : CRLF dans le dossier de travail, LF dans les commits. input : LF uniquement. » |
-| **Branche par défaut (init.defaultBranch)** | Texte libre                                          | « Nom de la première branche des nouveaux dépôts. »                                     |
 | **Signer les commits (commit.gpgsign)**     | Non défini, `true`, `false`                          | « Demande une clé de signature. »                                                       |
 | **Format de signature (gpg.format)**        | Non défini, `openpgp`, `ssh`, `x509`                 |                                                                                         |
 | **Clé de signature (user.signingkey)**      | Texte libre                                          | « Un identifiant de clé GPG, ou le chemin d'une clé SSH. »                              |
+| **Stratégie de pull (pull.rebase)**         | Non défini, `false`, `true`, `merges`, `interactive` | « true rebase les commits locaux au pull, false fait un merge. »                        |
+| **Fins de ligne (core.autocrlf)**           | Non défini, `false`, `true`, `input`                 | « true : CRLF dans le dossier de travail, LF dans les commits. input : LF uniquement. » |
+| **Branche par défaut (init.defaultBranch)** | Texte libre                                          | « Nom de la première branche des nouveaux dépôts. »                                     |
 
 - Les champs de texte s’enregistrent quand vous appuyez sur <kbd>Enter</kbd> ou quittez le champ. Vider un champ supprime la clé.
 - Choisir **Non défini** dans une liste supprime la clé.
 - Dans **Ce dépôt**, un champ non défini affiche la valeur globale héritée : comme texte indicatif d’un champ de texte, ou sous la forme « Non défini (global : _valeur_) » dans une liste.
 - Une clé définie plusieurs fois dans le fichier est en lecture seule ici ; utilisez **Toutes les entrées** ou modifiez le fichier.
 
-La **Stratégie de pull** de cet onglet correspond au `pull.rebase` de Git. yaggui a aussi sa propre **Stratégie de pull par défaut** dans **Préférences › Comportement**, qui l’emporte lorsqu’elle est définie ; voir [Fetch, pull et push](../../remotes/fetch-pull-push/).
+La **Stratégie de pull** de cette section correspond au `pull.rebase` de Git. yaggui a aussi sa propre **Stratégie de pull par défaut** dans **Préférences › Fetch et pull**, qui l’emporte lorsqu’elle est définie ; voir [Fetch, pull et push](../../remotes/fetch-pull-push/).
 
 ### Toutes les entrées
 

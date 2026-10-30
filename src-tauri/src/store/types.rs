@@ -49,8 +49,9 @@ pub enum ThemePreference {
     System,
 }
 
-/// Visual style (spec §7): `Terminal` is the dense monospace dark style (D), which ignores
-/// the light / dark choice.
+/// Interface style (spec §7): `Terminal` is monospace with square corners and dense rows. It
+/// is the shape of style D only: its colors are the `terminal` color theme, and the style goes
+/// with any color theme.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub enum ThemeStyle {
@@ -80,8 +81,15 @@ pub enum Locale {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct Preferences {
+    /// Light / dark mode: `System` follows the OS and switches between the two themes below.
     pub theme: ThemePreference,
-    /// Visual style (F-320).
+    /// Color theme of the light mode: an id of the frontend catalogue (`paper`, `latte`…).
+    #[serde(default = "default_light_theme")]
+    pub light_theme: String,
+    /// Color theme of the dark mode (`graphite`, `mocha`…).
+    #[serde(default = "default_dark_theme")]
+    pub dark_theme: String,
+    /// Interface style (F-320).
     pub style: ThemeStyle,
     /// `None` follows the OS language.
     pub locale: Option<Locale>,
@@ -147,11 +155,38 @@ pub const DEFAULT_PROTECTED_BRANCHES: [&str; 4] = ["main", "master", "develop", 
 /// Longest accepted font family or protected branch pattern.
 pub const MAX_PREF_TEXT: usize = 200;
 pub const MAX_PROTECTED_BRANCHES: usize = 100;
+pub const DEFAULT_LIGHT_THEME: &str = "paper";
+pub const DEFAULT_DARK_THEME: &str = "graphite";
+/// The color theme that the former Terminal style (one style for shape and colors) maps to.
+pub const TERMINAL_THEME: &str = "terminal";
+const MAX_THEME_ID: usize = 64;
+
+fn default_light_theme() -> String {
+    DEFAULT_LIGHT_THEME.to_owned()
+}
+
+fn default_dark_theme() -> String {
+    DEFAULT_DARK_THEME.to_owned()
+}
+
+/// A theme id ends up in a `data-theme` attribute and a CSS selector: lowercase words only.
+/// The backend does not know the catalogue: an unknown id falls back to the default theme of
+/// its mode in the frontend.
+pub fn is_theme_id(id: &str) -> bool {
+    !id.is_empty()
+        && id.len() <= MAX_THEME_ID
+        && !id.starts_with('-')
+        && id
+            .chars()
+            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-')
+}
 
 impl Default for Preferences {
     fn default() -> Self {
         Self {
             theme: ThemePreference::default(),
+            light_theme: default_light_theme(),
+            dark_theme: default_dark_theme(),
             style: ThemeStyle::default(),
             locale: None,
             terminal: None,
@@ -203,6 +238,15 @@ impl Preferences {
                 *AUTO_FETCH_RANGE.start(),
                 *AUTO_FETCH_RANGE.end(),
             ));
+        }
+        for id in [&mut prefs.light_theme, &mut prefs.dark_theme] {
+            *id = id.trim().to_owned();
+            if !is_theme_id(id) {
+                return Err(YagguiError::invalid_argument(
+                    format!("\"{id}\" is not a valid theme id."),
+                    format!("« {id} » n'est pas un identifiant de thème valide."),
+                ));
+            }
         }
         prefs.editor = clean_command(prefs.editor.take())?;
         prefs.diff_tool = clean_tool_name(prefs.diff_tool.take())?;

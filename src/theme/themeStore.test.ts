@@ -1,77 +1,123 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { DARK_THEME_CACHE_KEY, LIGHT_THEME_CACHE_KEY } from '../app/preferences';
 import { mockBackend } from '../ipc/mockClient';
 import { initTheme, resolveTheme, useThemeStore } from './themeStore';
 
+const selection = { lightTheme: 'latte', darkTheme: 'mocha' };
+
 describe('resolveTheme', () => {
-  it('maps explicit preferences', () => {
-    expect(resolveTheme('dark', false)).toBe('graphite');
-    expect(resolveTheme('light', true)).toBe('paper');
+  it('shows the theme of the explicit mode', () => {
+    expect(resolveTheme({ preference: 'dark', ...selection }, false)).toBe('mocha');
+    expect(resolveTheme({ preference: 'light', ...selection }, true)).toBe('latte');
   });
 
   it('follows the OS for the system preference', () => {
-    expect(resolveTheme('system', true)).toBe('graphite');
-    expect(resolveTheme('system', false)).toBe('paper');
+    expect(resolveTheme({ preference: 'system', ...selection }, true)).toBe('mocha');
+    expect(resolveTheme({ preference: 'system', ...selection }, false)).toBe('latte');
+  });
+
+  it('falls back to the default of the mode for an unknown or mismatched id', () => {
+    const odd = { lightTheme: 'removed-theme', darkTheme: 'latte' };
+    expect(resolveTheme({ preference: 'light', ...odd }, false)).toBe('paper');
+    expect(resolveTheme({ preference: 'dark', ...odd }, false)).toBe('graphite');
   });
 });
 
 describe('useThemeStore', () => {
   beforeEach(() => {
     mockBackend.reset();
+    localStorage.clear();
+    initTheme({ theme: 'light', style: 'standard' });
   });
 
-  it('applies the stored preference at startup', () => {
-    initTheme('dark');
-    expect(useThemeStore.getState().preference).toBe('dark');
-    expect(document.documentElement.dataset.theme).toBe('graphite');
+  it('applies the stored selection at startup', () => {
+    initTheme({ theme: 'dark', darkTheme: 'nord', style: 'standard' });
+    expect(useThemeStore.getState()).toMatchObject({ preference: 'dark', theme: 'nord' });
+    expect(document.documentElement.dataset.theme).toBe('nord');
   });
 
-  it('applies and persists the chosen preference', async () => {
+  it('applies and persists the chosen mode', async () => {
     useThemeStore.getState().setPreference('dark');
     expect(document.documentElement.dataset.theme).toBe('graphite');
     await expect(mockBackend.commands.getPreferences()).resolves.toMatchObject({
       data: { theme: 'dark' },
     });
     expect(localStorage.getItem('yaggui.theme')).toBeNull();
-
     useThemeStore.getState().setPreference('light');
+    expect(useThemeStore.getState().theme).toBe('paper');
+  });
+
+  it('puts a chosen theme in the slot of its mode and switches to that mode', async () => {
+    useThemeStore.getState().chooseTheme('mocha');
+    expect(useThemeStore.getState()).toMatchObject({
+      preference: 'dark',
+      darkTheme: 'mocha',
+      lightTheme: 'paper',
+      theme: 'mocha',
+    });
+    await expect(mockBackend.commands.getPreferences()).resolves.toMatchObject({
+      data: { theme: 'dark', darkTheme: 'mocha', lightTheme: 'paper' },
+    });
+    expect(localStorage.getItem(DARK_THEME_CACHE_KEY)).toBe('mocha');
+  });
+
+  it('keeps following the OS for a theme of the mode the OS is in', () => {
+    // The test environment's OS is in light mode.
+    useThemeStore.getState().setPreference('system');
+    useThemeStore.getState().chooseTheme('latte');
+    expect(useThemeStore.getState()).toMatchObject({
+      preference: 'system',
+      lightTheme: 'latte',
+      theme: 'latte',
+    });
+    expect(localStorage.getItem(LIGHT_THEME_CACHE_KEY)).toBe('latte');
+  });
+
+  it('shows a theme of the other mode, which stops following the OS', () => {
+    useThemeStore.getState().setPreference('system');
+    useThemeStore.getState().chooseTheme('nord');
+    expect(useThemeStore.getState()).toMatchObject({
+      preference: 'dark',
+      darkTheme: 'nord',
+      lightTheme: 'paper',
+      theme: 'nord',
+    });
+  });
+
+  it('previews a theme without saving it, then restores', async () => {
+    useThemeStore.getState().setPreview('dracula');
+    expect(document.documentElement.dataset.theme).toBe('dracula');
+    expect(useThemeStore.getState()).toMatchObject({ theme: 'dracula', resolved: 'paper' });
+    await expect(mockBackend.commands.getPreferences()).resolves.toMatchObject({
+      data: { lightTheme: 'paper', darkTheme: 'graphite' },
+    });
+    useThemeStore.getState().setPreview(null);
     expect(document.documentElement.dataset.theme).toBe('paper');
+  });
+
+  it('ignores an unknown theme', () => {
+    useThemeStore.getState().chooseTheme('nope');
+    useThemeStore.getState().setPreview('nope');
     expect(useThemeStore.getState().theme).toBe('paper');
   });
 });
 
-describe('first-paint theme cache', () => {
-  it('caches every applied preference for public/boot-theme.js', async () => {
-    const { THEME_CACHE_KEY } = await import('../app/preferences');
-    initTheme('light');
-    expect(localStorage.getItem(THEME_CACHE_KEY)).toBe('light');
-    useThemeStore.getState().setPreference('dark');
-    expect(localStorage.getItem(THEME_CACHE_KEY)).toBe('dark');
-    // Never the M0-1 key, which the migration treats as legacy data and deletes.
-    expect(localStorage.getItem('yaggui.theme')).toBeNull();
-  });
-});
-
-describe('Terminal style (F-320)', () => {
+describe('Terminal interface style (F-320)', () => {
   beforeEach(() => {
     mockBackend.reset();
+    initTheme({ theme: 'light', style: 'standard' });
   });
 
-  it('wins over the light / dark preference', () => {
-    expect(resolveTheme('light', false, 'terminal')).toBe('terminal');
-    expect(resolveTheme('system', true, 'terminal')).toBe('terminal');
-    expect(resolveTheme('light', false, 'standard')).toBe('paper');
-  });
-
-  it('applies, caches and persists the style', async () => {
-    initTheme('light', 'standard');
+  it('only changes the shape: the color theme stays', async () => {
     useThemeStore.getState().setStyle('terminal');
-    expect(document.documentElement.dataset.theme).toBe('terminal');
+    expect(document.documentElement.dataset.style).toBe('terminal');
+    expect(document.documentElement.dataset.theme).toBe('paper');
     expect(localStorage.getItem('yaggui.styleCache')).toBe('terminal');
     await expect(mockBackend.commands.getPreferences()).resolves.toMatchObject({
       data: { style: 'terminal' },
     });
     useThemeStore.getState().setStyle('standard');
-    expect(document.documentElement.dataset.theme).toBe('paper');
+    expect(document.documentElement.dataset.style).toBeUndefined();
   });
 });

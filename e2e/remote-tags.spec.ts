@@ -61,7 +61,10 @@ for (const { name: theme, colorScheme } of THEMES) {
 
       await page.keyboard.press('Control+,');
       await expect(prefsDialog(page)).toBeVisible();
-      await prefsDialog(page).getByRole('tab', { name: 'Behavior', exact: true }).click();
+      await prefsDialog(page)
+        .getByRole('navigation', { name: 'Preference sections' })
+        .getByRole('button', { name: 'Fetch and pull', exact: true })
+        .click();
       const toggle = prefsDialog(page).getByRole('switch', { name: /Show tags on the remotes/ });
       await expect(toggle).not.toBeChecked();
       await prefsDialog(page).getByText('Learn more').click();

@@ -1,5 +1,5 @@
 /* A · Graphite: default dark theme. Values from docs/ui/styles.html. */
-:root[data-theme='graphite'] {
+[data-theme='graphite'] {
   color-scheme: dark;
 
   /* Surfaces */
@@ -87,7 +87,7 @@
 }
 
 /* High contrast (F-320): stronger text and borders on the same surfaces. */
-:root[data-theme='graphite'][data-contrast='high'] {
+[data-theme='graphite'][data-contrast='high'] {
   --fg-primary: #f2f4f8;
   --fg-secondary: #c4c9d4;
   --fg-muted: #b2b6bd;

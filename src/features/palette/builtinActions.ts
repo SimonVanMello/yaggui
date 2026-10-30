@@ -33,6 +33,7 @@ import { openRepoFolder } from '../toolbar/openRepoFolder';
 import { canRun } from '../undo/undoState';
 import { checkForUpdatesNow } from '../updates/updates';
 import { registerActions, type PaletteAction } from './actionRegistry';
+import { usePaletteStore } from './paletteStore';
 
 const hasRepo = () => activeRepoId() !== null;
 const inOperation = () => {
@@ -166,6 +167,17 @@ const BUILTIN: readonly PaletteAction[] = [
   shell('view.sidebar', 'toggleSidebar', 'palette.action.view.sidebar', 'view', hasRepo),
   shell('view.details', 'toggleDetails', 'palette.action.view.details', 'view', hasRepo),
   shell('view.log', 'toggleLog', 'palette.action.view.log', 'view'),
+  {
+    id: 'view.theme.pick',
+    title: 'palette.action.view.theme.pick',
+    group: 'view',
+    keepsPaletteOpen: true,
+    // "theme" + Enter opens the picker, as in VS Code, rather than one of the modes below.
+    boost: 4,
+    run: () => {
+      usePaletteStore.getState().openView('themes');
+    },
+  },
   theme('system', 'palette.action.view.theme.system'),
   theme('light', 'palette.action.view.theme.light'),
   theme('dark', 'palette.action.view.theme.dark'),

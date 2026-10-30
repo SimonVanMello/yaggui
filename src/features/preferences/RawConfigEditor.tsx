@@ -6,7 +6,7 @@ import type { ConfigEntry, ConfigScope } from '../../ipc';
 import { Button } from '../../ui/Button';
 import { TextInput } from '../../ui/TextInput';
 import { filterEntries, normalizeConfigKey } from './gitConfigLogic';
-import styles from './GitConfigTab.module.css';
+import styles from './GitConfigSection.module.css';
 
 interface RawConfigEditorProps {
   entries: readonly ConfigEntry[];

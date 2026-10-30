@@ -177,12 +177,20 @@ for (const { name: theme, colorScheme } of THEMES) {
       // Only the selected section is on screen.
       await expect(prefs.getByLabel('Git binary')).toBeHidden();
       await expect(prefs.getByLabel('Every (minutes)')).toBeHidden();
-      await capture(page, theme, 'prefs-appearance');
+      await capture(page, theme, 'prefs-general');
 
-      await prefs.getByRole('radio', { name: 'Compact' }).click();
-      await expect(page.locator('html')).toHaveAttribute('data-density', 'compact');
+      await prefs
+        .getByRole('navigation', { name: 'Preference sections' })
+        .getByRole('button', { name: 'Appearance', exact: true })
+        .click();
       await prefs.getByRole('switch', { name: /High contrast/ }).click();
       await expect(page.locator('html')).toHaveAttribute('data-contrast', 'high');
+      await prefs
+        .getByRole('navigation', { name: 'Preference sections' })
+        .getByRole('button', { name: 'Display', exact: true })
+        .click();
+      await prefs.getByRole('radio', { name: 'Compact' }).click();
+      await expect(page.locator('html')).toHaveAttribute('data-density', 'compact');
       await prefs.getByLabel('Code font').fill('Fira Code');
       await prefs.getByLabel('Code font').blur();
       await expect
@@ -201,6 +209,10 @@ for (const { name: theme, colorScheme } of THEMES) {
       await expect(page.locator('html')).toHaveAttribute('data-density', 'compact');
       await expect(page.locator('html')).toHaveAttribute('data-contrast', 'high');
       await page.getByRole('button', { name: 'Preferences' }).click();
+      await dialog(page, 'Preferences')
+        .getByRole('navigation', { name: 'Preference sections' })
+        .getByRole('button', { name: 'Display', exact: true })
+        .click();
       await expect(dialog(page, 'Preferences').getByLabel('Code font')).toHaveValue('Fira Code');
     });
 
@@ -210,7 +222,10 @@ for (const { name: theme, colorScheme } of THEMES) {
       await openWelcome(page);
       await page.getByRole('button', { name: 'Preferences' }).click();
       const prefs = dialog(page, 'Preferences');
-      await prefs.getByRole('tab', { name: 'Git' }).click();
+      await prefs
+        .getByRole('navigation', { name: 'Preference sections' })
+        .getByRole('button', { name: 'Tools', exact: true })
+        .click();
       const path = prefs.getByLabel('Git binary');
       await expect(prefs).toContainText('Git 2.47.1 · /usr/bin/git');
       await capture(page, theme, 'prefs-git');
@@ -229,7 +244,10 @@ for (const { name: theme, colorScheme } of THEMES) {
       await expect(page.getByText('Git path saved', { exact: true })).toBeVisible();
       await page.reload();
       await page.getByRole('button', { name: 'Preferences' }).click();
-      await dialog(page, 'Preferences').getByRole('tab', { name: 'Git' }).click();
+      await dialog(page, 'Preferences')
+        .getByRole('navigation', { name: 'Preference sections' })
+        .getByRole('button', { name: 'Tools', exact: true })
+        .click();
       await expect(dialog(page, 'Preferences').getByLabel('Git binary')).toHaveValue(
         '/opt/custom/git',
       );
@@ -243,15 +261,23 @@ for (const { name: theme, colorScheme } of THEMES) {
       await openWelcome(page);
       await page.getByRole('button', { name: 'Preferences' }).click();
       const prefs = dialog(page, 'Preferences');
-      await prefs.getByRole('tab', { name: 'Behavior' }).click();
-      await expect(prefs.getByRole('listitem').filter({ hasText: 'release/*' })).toBeVisible();
-      await capture(page, theme, 'prefs-behavior');
-
+      await prefs
+        .getByRole('navigation', { name: 'Preference sections' })
+        .getByRole('button', { name: 'Fetch and pull', exact: true })
+        .click();
+      await capture(page, theme, 'prefs-sync');
       await prefs.getByLabel('Every (minutes)').fill('30');
       await prefs.getByLabel('Every (minutes)').blur();
       // Pruning is on by default (as in M2-5): turning it off is the change.
       await prefs.getByRole('switch', { name: /Prune on fetch/ }).click();
       await prefs.getByRole('radio', { name: 'Rebase' }).click();
+
+      await prefs
+        .getByRole('navigation', { name: 'Preference sections' })
+        .getByRole('button', { name: 'Safety', exact: true })
+        .click();
+      await expect(prefs.getByRole('listitem').filter({ hasText: 'release/*' })).toBeVisible();
+      await capture(page, theme, 'prefs-safety');
       await prefs.getByLabel('Protected branches').fill('hotfix/*');
       await prefs.getByRole('button', { name: 'Add', exact: true }).click();
       await prefs.getByRole('button', { name: 'Remove master' }).click();
@@ -263,10 +289,17 @@ for (const { name: theme, colorScheme } of THEMES) {
       await page.reload();
       await page.getByRole('button', { name: 'Preferences' }).click();
       const again = dialog(page, 'Preferences');
-      await again.getByRole('tab', { name: 'Behavior' }).click();
+      await again
+        .getByRole('navigation', { name: 'Preference sections' })
+        .getByRole('button', { name: 'Fetch and pull', exact: true })
+        .click();
       await expect(again.getByLabel('Every (minutes)')).toHaveValue('30');
       await expect(again.getByRole('switch', { name: /Prune on fetch/ })).not.toBeChecked();
       await expect(again.getByRole('radio', { name: 'Rebase' })).toBeChecked();
+      await again
+        .getByRole('navigation', { name: 'Preference sections' })
+        .getByRole('button', { name: 'Safety', exact: true })
+        .click();
       await expect(again.getByRole('listitem').filter({ hasText: 'hotfix/*' })).toBeVisible();
       await expect(again.getByRole('listitem').filter({ hasText: 'master' })).toHaveCount(0);
       await expect(again.getByRole('switch', { name: /Drop a stash/ })).not.toBeChecked();

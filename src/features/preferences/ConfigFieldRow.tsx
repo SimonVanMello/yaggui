@@ -4,7 +4,7 @@ import { useT } from '../../i18n/useT';
 import { TextInput } from '../../ui/TextInput';
 import type { ConfigField } from './gitConfigLogic';
 import { Row } from './Row';
-import styles from './GitConfigTab.module.css';
+import styles from './GitConfigSection.module.css';
 
 interface ConfigFieldRowProps {
   field: ConfigField;

@@ -223,6 +223,14 @@ Exit: the defects found by the full code review of 0.8.0 (backend, frontend, sec
 
 **Milestone status**: every task is merged (#76 to #82, plan and changelog in #83, follow-ups in #85 and #86); the merged tree passes `pnpm check`, `cargo clippy` / `cargo test` and the Playwright suite together. Open points noted by the fix PRs, decided by the PO: auto-fetch runs for every open repository (M9-8, #85), ⌘Q on macOS accepted as is (a panel resize in the last 300 ms before ⌘Q on macOS is not saved), a reset is refused while a merge, rebase, cherry-pick, revert or bisect is in progress, with `operationInProgress` (M9-9, #86).
 
+## M10 — Personalization
+
+Exit: yaggui offers well-known color themes previewed before they are applied, and a Preferences dialog that scales with the number of settings.
+
+| ID | Task | Depends on | Requirements |
+|---|---|---|---|
+| M10-1 | Color themes and Preferences redesign: catalogue of 25 color themes generated from their published palettes (`pnpm themes`, contrast moved to WCAG AA and checked by the theme tests), one theme per light / dark mode stored in the backend (`lightTheme`, `darkTheme`, portable in import / export, migration of the former Terminal style), Terminal interface style split from the colors; Preferences dialog with a sidebar of 8 sections in two groups (Application, Git), settings reorganized, search over every setting in both languages (labels, hints, Git keys, theme names, commands), gallery with live preview on the whole app; theme picker in the command palette (VS Code style) | M9 | F-320, F-321, F-322, F-323, F-324, F-325, F-326 |
+
 ## W — Website and documentation
 
 Exit: `https://yaggui.tropico.dev` serves the landing page, the versioned docs (latest release by default, older versions selectable, `next` for `master`) and the live demo, in English and French, deployed by CI. Agents keep the docs current with each change. See [`docs/WEBSITE.md`](WEBSITE.md) and the mockup [`docs/ui/website.html`](ui/website.html).

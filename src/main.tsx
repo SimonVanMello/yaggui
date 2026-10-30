@@ -19,7 +19,7 @@ async function bootstrap() {
   if (isDemo) prepareDemo();
   // Preferences are applied before the first render to avoid a theme or language flash.
   const preferences = await loadPreferences();
-  initTheme(preferences.theme, preferences.style);
+  initTheme(preferences);
   initI18n(preferences.locale);
 
   createRoot(root).render(

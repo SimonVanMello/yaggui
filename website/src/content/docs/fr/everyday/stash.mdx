@@ -166,7 +166,7 @@ Utilisez le bouton **Pop** de la barre d’outils, <kbd>⌘⇧⌥S</kbd> (<kbd>C
 
 ### Supprimer un stash
 
-**Supprimer…** demande une confirmation : **Supprimer ce stash ?**, « Le stash quitte la liste et ses modifications ne sont plus applicables depuis yaggui. », le message du stash et `stash@{n}`, la commande `git stash drop stash@{n}`, et **Supprimer le stash**. Vous pouvez désactiver cette confirmation dans **Préférences › Comportement › Confirmations** (**Supprimer un stash**).
+**Supprimer…** demande une confirmation : **Supprimer ce stash ?**, « Le stash quitte la liste et ses modifications ne sont plus applicables depuis yaggui. », le message du stash et `stash@{n}`, la commande `git stash drop stash@{n}`, et **Supprimer le stash**. Vous pouvez désactiver cette confirmation dans **Préférences › Sécurité › Confirmations** (**Supprimer un stash**).
 
 Le toast indique « Stash supprimé » et donne le SHA du commit du stash. Pour récupérer le stash, défaites l’opération (entrée suppression du stash « \{message\} » de l’historique) : yaggui exécute `git stash store`, qui le remet en haut de la liste.
 

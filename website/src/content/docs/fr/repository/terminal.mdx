@@ -6,7 +6,7 @@ sidebar:
 sources:
   - src/features/terminal/**
   - src/features/toolbar/Toolbar.tsx
-  - src/features/preferences/ToolsTab.tsx
+  - src/features/preferences/ToolsSection.tsx
   - src/app/RepoView.tsx
   - src-tauri/src/system/pty.rs
   - src-tauri/src/system/terminal.rs
@@ -52,7 +52,7 @@ La première fois que vous affichez le panneau, il démarre un terminal.
 
 Tant qu’un terminal a le focus, toutes les touches vont au shell, <kbd>Ctrl+C</kbd> compris, sauf la palette de commandes (<kbd>⌘K</kbd>, <kbd>Ctrl+K</kbd> sous Windows et Linux) et les deux raccourcis du terminal. Pour copier une sélection, appuyez sur <kbd>⌘C</kbd> (<kbd>Ctrl+Shift+C</kbd> sous Windows et Linux) ; pour coller, sur <kbd>⌘V</kbd> (<kbd>Ctrl+Shift+V</kbd> sous Windows et Linux).
 
-Le terminal suit le thème de l’application, la police de code et la taille de police des Préférences. Le style **Terminal** de l’onglet Apparence lui donne un fond presque noir. Voir [Apparence](../../customize/appearance/).
+Le terminal suit le thème de couleurs de l’application, la police du code et la taille du texte des Préférences. Le thème de couleurs **Terminal** lui donne un fond presque noir. Voir [Apparence](../../customize/appearance/).
 
 ## Quel shell est lancé
 
@@ -86,7 +86,7 @@ En mode Externe, le bouton **Terminal**, <kbd>Ctrl+&#96;</kbd> et <kbd>Ctrl+Shif
 <Screenshot
   dark={terminalPrefsToolsDark}
   light={terminalPrefsToolsLight}
-  alt="L’onglet Outils des Préférences, avec le réglage Terminal sur Intégré et la ligne Terminal externe"
+  alt="La section Outils des Préférences, avec le réglage Terminal sur Intégré et la ligne Terminal externe"
 />
 
 ### Boîte de dialogue du réglage du terminal

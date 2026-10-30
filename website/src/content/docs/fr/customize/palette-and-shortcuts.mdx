@@ -75,7 +75,7 @@ Une action qui a un raccourci l’affiche à droite de sa ligne, avec votre racc
 
 ## Voir tous les raccourcis
 
-Appuyez sur <kbd>⌘/</kbd> (<kbd>Ctrl+/</kbd> sous Windows et Linux) ou lancez **Afficher les raccourcis clavier** pour ouvrir l’aide-mémoire **Raccourcis clavier**. Elle liste chaque commande associée à un raccourci, avec votre raccourci actuel, regroupées en Dépôt, Onglets, Affichage, Application, Git et Graphe. **Modifier les raccourcis…** ouvre les préférences sur l’onglet **Raccourcis**.
+Appuyez sur <kbd>⌘/</kbd> (<kbd>Ctrl+/</kbd> sous Windows et Linux) ou lancez **Afficher les raccourcis clavier** pour ouvrir l’aide-mémoire **Raccourcis clavier**. Elle liste chaque commande associée à un raccourci, avec votre raccourci actuel, regroupées en Dépôt, Onglets, Affichage, Application, Git et Graphe. **Modifier les raccourcis…** ouvre les préférences sur la section **Raccourcis**.
 
 Sous macOS, les raccourcis utilisent les symboles ⌘ ⌃ ⌥ ⇧ ↵ ; sous Windows et Linux, ils s’écrivent `Ctrl`, `Alt`, `Shift`, `Enter`.
 
@@ -88,7 +88,7 @@ La liste complète des raccourcis par défaut figure dans la [référence des ra
 ## Modifier un raccourci
 
 1. Ouvrez **Préférences › Raccourcis** (ou cliquez sur **Modifier les raccourcis…** dans l’aide-mémoire).
-2. Repérez la commande. **Filtrer les commandes ou les raccourcis** compare votre saisie au libellé, à l’identifiant de l’action et au texte du raccourci.
+2. Repérez la commande. **Filtrer les commandes ou les raccourcis** compare votre saisie au libellé, à l’identifiant de l’action et au texte du raccourci. Vous pouvez aussi taper le nom de la commande dans **Rechercher un réglage**, en haut des préférences : la section Raccourcis apparaît dans les résultats, déjà filtrée.
 3. Cliquez sur **Modifier** sur sa ligne. Le bouton affiche « Tape le raccourci… (Échap pour annuler) ».
 4. Appuyez sur la nouvelle combinaison. Si vous n’appuyez que sur des modificateurs, l’attente continue ; <kbd>Esc</kbd> ou un clic ailleurs annule.
 
@@ -97,7 +97,7 @@ Le raccourci est enregistré immédiatement et s’applique partout : indicatio
 <Screenshot
   dark={keybindingsDark}
   light={keybindingsLight}
-  alt="L’onglet Raccourcis des préférences, avec les commandes regroupées par section et les boutons Modifier, Retirer et Défaut sur chaque ligne"
+  alt="La section Raccourcis des préférences, avec les commandes regroupées par section et les boutons Modifier, Retirer et Défaut sur chaque ligne"
 />
 
 ### Règles pour un raccourci
@@ -131,7 +131,7 @@ Les conflits issus d’un fichier modifié à la main apparaissent sur chaque li
 
 ## Modifier keybindings.json
 
-Vos modifications sont stockées dans `keybindings.json`, dans le dossier de configuration de yaggui (voir [Données et confidentialité](../../reference/data-and-privacy/)). Le chemin complet s’affiche sous **Enregistré dans**, en bas de l’onglet Raccourcis. Le fichier ne contient que ce qui diffère des valeurs par défaut :
+Vos modifications sont stockées dans `keybindings.json`, dans le dossier de configuration de yaggui (voir [Données et confidentialité](../../reference/data-and-privacy/)). Le chemin complet s’affiche sous **Enregistré dans**, en bas de la section Raccourcis. Le fichier ne contient que ce qui diffère des valeurs par défaut :
 
 ```json
 {
@@ -141,19 +141,19 @@ Vos modifications sont stockées dans `keybindings.json`, dans le dossier de con
 }
 ```
 
-- Les clés sont des identifiants d’action. L’onglet Raccourcis les affiche lorsque vous filtrez, et la [référence](../../reference/keyboard-shortcuts/) les liste tous.
+- Les clés sont des identifiants d’action. La section Raccourcis les affiche lorsque vous filtrez, et la [référence](../../reference/keyboard-shortcuts/) les liste tous.
 - Une chaîne définit le raccourci ; `null` le retire ; un identifiant absent conserve la valeur par défaut.
 - Syntaxe d’un raccourci : des modificateurs parmi `Mod`, `Ctrl`, `Alt` et `Shift`, chacun au plus une fois, puis une touche, le tout relié par `+`. `Mod` est ⌘ sous macOS et Ctrl sous Windows et Linux ; `Ctrl` est la touche Contrôle physique partout. Touches possibles : `A` à `Z`, les chiffres, `F1` à `F12`, `Space`, `Enter`, `Escape`, `Tab`, `ArrowLeft`, `ArrowRight`, `ArrowUp`, `ArrowDown`, `` ` ``, et la ponctuation comme `,` et `/`.
 
-yaggui lit le fichier au démarrage, puis à chaque ouverture de l’onglet Raccourcis : vos modifications manuelles y prennent donc effet sans redémarrage. Quand yaggui enregistre un changement, il réécrit le fichier en entier (trié, mis en forme).
+yaggui lit le fichier au démarrage, puis à chaque ouverture de la section Raccourcis : vos modifications manuelles y prennent donc effet sans redémarrage. Quand yaggui enregistre un changement, il réécrit le fichier en entier (trié, mis en forme).
 
-Si le fichier est illisible ou n’est pas du JSON valide, yaggui utilise les raccourcis par défaut et l’onglet Raccourcis affiche un bandeau « keybindings.json pose problème : _détail_ ». Si seules certaines entrées sont erronées, les autres s’appliquent et le bandeau affiche « Ignored entries: _ids_ ». yaggui ne touche pas au fichier tant que vous ne modifiez pas un raccourci dans l’onglet ; à ce moment-là, il est réécrit avec les raccourcis que l’onglet affiche, ce qui supprime le contenu invalide.
+Si le fichier est illisible ou n’est pas du JSON valide, yaggui utilise les raccourcis par défaut et la section Raccourcis affiche un bandeau « keybindings.json pose problème : _détail_ ». Si seules certaines entrées sont erronées, les autres s’appliquent et le bandeau affiche « Ignored entries: _ids_ ». yaggui ne touche pas au fichier tant que vous ne modifiez pas un raccourci dans la section ; à ce moment-là, il est réécrit avec les raccourcis que la section affiche, ce qui supprime le contenu invalide.
 
 :::caution
-Si le bandeau signale une erreur d’analyse, corrigez le fichier à la main avant de modifier un raccourci dans l’onglet, faute de quoi les personnalisations que yaggui n’a pas pu lire seront perdues.
+Si le bandeau signale une erreur d’analyse, corrigez le fichier à la main avant de modifier un raccourci dans la section, faute de quoi les personnalisations que yaggui n’a pas pu lire seront perdues.
 :::
 
-Pour copier vos raccourcis personnalisés sur une autre machine, utilisez **Exporter…** et **Importer…** dans la boîte de dialogue Préférences plutôt que de copier ce fichier : l’export emporte aussi vos autres préférences et l’import montre d’abord ce qui change. Voir [Import et export](../../reference/preferences/#import-et-export).
+Pour copier vos raccourcis personnalisés sur une autre machine, utilisez **Importer…** et **Exporter…** dans **Préférences › Général** (sous **Sauvegarde**) plutôt que de copier ce fichier : l’export emporte aussi vos autres préférences et l’import montre d’abord ce qui change. Voir [Import et export](../../reference/preferences/#import-et-export).
 
 ## Touches non modifiables
 

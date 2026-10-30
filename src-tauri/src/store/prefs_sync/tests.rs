@@ -152,6 +152,36 @@ fn machine_specific_and_unknown_keys_are_ignored_and_listed() {
     assert_eq!(prefs.editor, None);
 }
 
+#[test]
+fn a_file_with_the_former_terminal_style_keeps_its_colors() {
+    let (store, dir) = setup();
+    let path = write_file(
+        &dir,
+        r#"{"format":"yaggui-preferences","version":1,"preferences":
+            {"theme":"light","style":"terminal"}}"#,
+    );
+    apply_from(&path, &store, dir.path()).unwrap();
+    let prefs = store.preferences().unwrap();
+    assert_eq!(prefs.dark_theme, "terminal");
+    assert_eq!(prefs.theme, crate::store::ThemePreference::Dark);
+}
+
+#[test]
+fn theme_ids_travel_between_machines() {
+    let (store, dir) = setup();
+    let path = write_file(
+        &dir,
+        r#"{"format":"yaggui-preferences","version":1,"preferences":
+            {"lightTheme":"latte","darkTheme":"mocha","style":"terminal"}}"#,
+    );
+    apply_from(&path, &store, dir.path()).unwrap();
+    let prefs = store.preferences().unwrap();
+    assert_eq!(
+        (prefs.light_theme.as_str(), prefs.dark_theme.as_str()),
+        ("latte", "mocha")
+    );
+}
+
 fn code_of(text: &str) -> ErrorCode {
     parse(text, &Preferences::default()).err().unwrap().code
 }

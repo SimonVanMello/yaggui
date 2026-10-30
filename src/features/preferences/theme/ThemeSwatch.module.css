@@ -1,0 +1,117 @@
+.swatch {
+  display: grid;
+  grid-template-columns: 24% minmax(0, 1fr) 26%;
+  grid-template-rows: var(--space-3) minmax(0, 1fr);
+  height: calc(var(--space-8) + var(--space-6));
+  overflow: hidden;
+  background: var(--bg-app);
+  pointer-events: none;
+}
+
+.swatch[data-size='sm'] {
+  width: calc(var(--space-8) + var(--space-6));
+  height: calc(var(--space-8) - var(--space-1));
+  border: var(--border-width) solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+}
+
+.titlebar {
+  grid-column: 1 / -1;
+  border-bottom: var(--border-width) solid var(--border-subtle);
+  background: var(--bg-titlebar);
+}
+
+.sidebar,
+.diff {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  background: var(--bg-panel);
+}
+
+.sidebar {
+  border-right: var(--border-width) solid var(--border-subtle);
+}
+
+.diff {
+  border-left: var(--border-width) solid var(--border-subtle);
+}
+
+.sidebar i,
+.diff i {
+  height: var(--space-1);
+  border-radius: var(--radius-sm);
+  background: var(--fg-muted);
+  opacity: 0.5;
+}
+
+.sidebar i[data-on] {
+  background: var(--accent);
+  opacity: 1;
+}
+
+.sidebar i[data-short] {
+  width: 70%;
+}
+
+.diff i[data-kind='keyword'] {
+  width: 60%;
+  background: var(--accent);
+  opacity: 1;
+}
+
+.diff i[data-kind='add'] {
+  background: var(--diff-add-strong);
+  opacity: 1;
+}
+
+.diff i[data-kind='del'] {
+  background: var(--diff-del-strong);
+  opacity: 1;
+}
+
+.graph {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: var(--space-2);
+}
+
+.row[data-selected] {
+  margin: 0 calc(-1 * var(--space-2));
+  padding: 0 var(--space-2);
+  background: var(--bg-selected);
+}
+
+.row b {
+  flex: none;
+  width: var(--space-2);
+  height: var(--space-2);
+  border-radius: var(--radius-full);
+}
+
+.row span {
+  flex: 1 1 0;
+  height: var(--space-0);
+  border-radius: var(--radius-sm);
+  background: var(--fg-secondary);
+  opacity: 0.6;
+}
+
+.row[data-selected] span {
+  background: var(--fg-primary);
+}
+
+.swatch[data-size='sm'] .graph,
+.swatch[data-size='sm'] .sidebar,
+.swatch[data-size='sm'] .diff {
+  gap: var(--space-0);
+}

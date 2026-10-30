@@ -37,8 +37,9 @@ export function buildActionItems(actions: readonly PaletteAction[], t: Translate
       shortcut: resolvedShortcut(action.id) ?? undefined,
       disabled: !enabled,
       disabledReason: enabled ? undefined : disabledReasonOf(action),
-      boost: enabled ? 0 : DISABLED_BOOST,
+      boost: enabled ? (action.boost ?? 0) : DISABLED_BOOST,
       activate: action.run,
+      keepsPaletteOpen: action.keepsPaletteOpen,
     }));
 }
 

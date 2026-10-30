@@ -20,9 +20,13 @@ export const LEGACY_LOCALE_KEY = 'yaggui.locale';
  */
 export const THEME_CACHE_KEY = 'yaggui.themeCache';
 export const STYLE_CACHE_KEY = 'yaggui.styleCache';
+export const LIGHT_THEME_CACHE_KEY = 'yaggui.lightThemeCache';
+export const DARK_THEME_CACHE_KEY = 'yaggui.darkThemeCache';
 
 export const DEFAULT_PREFERENCES: Preferences = {
   theme: 'system',
+  lightTheme: 'paper',
+  darkTheme: 'graphite',
   style: 'standard',
   locale: null,
   terminal: null,
@@ -124,22 +128,22 @@ export async function loadPreferences(
   return current;
 }
 
-export function cacheThemePreference(
-  theme: ThemePreference,
+export function cacheThemeSelection(
+  selection: {
+    preference: ThemePreference;
+    lightTheme: string;
+    darkTheme: string;
+    style: ThemeStyle;
+  },
   storage: Storage | null = safeStorage(),
 ): void {
   try {
-    storage?.setItem(THEME_CACHE_KEY, theme);
+    storage?.setItem(THEME_CACHE_KEY, selection.preference);
+    storage?.setItem(LIGHT_THEME_CACHE_KEY, selection.lightTheme);
+    storage?.setItem(DARK_THEME_CACHE_KEY, selection.darkTheme);
+    storage?.setItem(STYLE_CACHE_KEY, selection.style);
   } catch {
     // Storage full or blocked: only the first paint of the next launch is affected.
-  }
-}
-
-export function cacheThemeStyle(style: ThemeStyle, storage: Storage | null = safeStorage()): void {
-  try {
-    storage?.setItem(STYLE_CACHE_KEY, style);
-  } catch {
-    // See cacheThemePreference.
   }
 }
 

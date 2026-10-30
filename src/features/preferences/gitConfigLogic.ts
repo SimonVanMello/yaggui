@@ -31,8 +31,14 @@ export function multiValuedKeys(entries: readonly ConfigEntry[]): Set<string> {
   return multiple;
 }
 
+/** The headings the common keys are grouped under. */
+export type ConfigFieldGroup = 'identity' | 'signing' | 'behavior';
+
+export const CONFIG_FIELD_GROUPS: readonly ConfigFieldGroup[] = ['identity', 'signing', 'behavior'];
+
 export interface TextField {
   kind: 'text';
+  group: ConfigFieldGroup;
   key: string;
   label: MessageKey;
   hint?: MessageKey;
@@ -40,6 +46,7 @@ export interface TextField {
 
 export interface ChoiceField {
   kind: 'choice';
+  group: ConfigFieldGroup;
   key: string;
   label: MessageKey;
   hint?: MessageKey;
@@ -51,10 +58,11 @@ export type ConfigField = TextField | ChoiceField;
 
 /** The keys most people touch (F-325): the rest goes through the raw editor. */
 export const COMMON_FIELDS: readonly ConfigField[] = [
-  { kind: 'text', key: 'user.name', label: 'gitconfig.field.userName' },
-  { kind: 'text', key: 'user.email', label: 'gitconfig.field.userEmail' },
+  { kind: 'text', group: 'identity', key: 'user.name', label: 'gitconfig.field.userName' },
+  { kind: 'text', group: 'identity', key: 'user.email', label: 'gitconfig.field.userEmail' },
   {
     kind: 'choice',
+    group: 'behavior',
     key: 'pull.rebase',
     label: 'gitconfig.field.pullRebase',
     hint: 'gitconfig.field.pullRebase.hint',
@@ -62,6 +70,7 @@ export const COMMON_FIELDS: readonly ConfigField[] = [
   },
   {
     kind: 'choice',
+    group: 'behavior',
     key: 'core.autocrlf',
     label: 'gitconfig.field.autocrlf',
     hint: 'gitconfig.field.autocrlf.hint',
@@ -69,12 +78,14 @@ export const COMMON_FIELDS: readonly ConfigField[] = [
   },
   {
     kind: 'text',
+    group: 'behavior',
     key: 'init.defaultBranch',
     label: 'gitconfig.field.defaultBranch',
     hint: 'gitconfig.field.defaultBranch.hint',
   },
   {
     kind: 'choice',
+    group: 'signing',
     key: 'commit.gpgsign',
     label: 'gitconfig.field.gpgsign',
     hint: 'gitconfig.field.gpgsign.hint',
@@ -82,12 +93,14 @@ export const COMMON_FIELDS: readonly ConfigField[] = [
   },
   {
     kind: 'choice',
+    group: 'signing',
     key: 'gpg.format',
     label: 'gitconfig.field.gpgFormat',
     values: ['openpgp', 'ssh', 'x509'],
   },
   {
     kind: 'text',
+    group: 'signing',
     key: 'user.signingkey',
     label: 'gitconfig.field.signingKey',
     hint: 'gitconfig.field.signingKey.hint',

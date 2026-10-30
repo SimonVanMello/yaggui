@@ -1,5 +1,5 @@
 /* B · Paper: default light theme. Values from docs/ui/styles.html. */
-:root[data-theme='paper'] {
+[data-theme='paper'] {
   color-scheme: light;
 
   /* Surfaces */
@@ -87,7 +87,7 @@
 }
 
 /* High contrast (F-320): stronger text and borders on the same surfaces. */
-:root[data-theme='paper'][data-contrast='high'] {
+[data-theme='paper'][data-contrast='high'] {
   --fg-primary: #12161b;
   --fg-secondary: #3b434c;
   --fg-muted: #495058;

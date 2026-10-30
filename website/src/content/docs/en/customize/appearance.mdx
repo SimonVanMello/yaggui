@@ -1,10 +1,15 @@
 ---
 title: Appearance
-description: Choose the theme, style, contrast, density, fonts, text size, language and author avatars of yaggui.
+description: Choose the color theme among 25, preview it on the whole app, follow the light or dark mode of the OS, and set the interface style, contrast, density, fonts, text size, language and author avatars.
 sidebar:
   order: 1
 sources:
-  - src/features/preferences/AppearanceTab.tsx
+  - src/features/preferences/AppearanceSection.tsx
+  - src/features/preferences/DisplaySection.tsx
+  - src/features/preferences/GeneralSection.tsx
+  - src/features/preferences/FontInput.tsx
+  - src/features/preferences/theme/**
+  - src/features/palette/ThemePicker.tsx
   - src/app/appearance.ts
   - src/app/preferences.ts
   - src/theme/**
@@ -15,57 +20,107 @@ sources:
   - src-tauri/src/system/avatars.rs
   - src-tauri/src/commands/avatars.rs
   - src-tauri/src/store/types.rs
+  - src-tauri/src/store/mod.rs
 requirements: [F-320, F-321, F-033]
 ---
 
 import Screenshot from '~/components/Screenshot.astro';
 import prefsAppearanceDark from '../../../../assets/screens/prefs-appearance-dark.png';
 import prefsAppearanceLight from '../../../../assets/screens/prefs-appearance-light.png';
+import prefsDisplayDark from '../../../../assets/screens/prefs-display-dark.png';
+import prefsDisplayLight from '../../../../assets/screens/prefs-display-light.png';
+import themePickerDark from '../../../../assets/screens/theme-picker-dark.png';
+import themePickerLight from '../../../../assets/screens/theme-picker-light.png';
 import styleTerminalDark from '../../../../assets/screens/style-terminal-dark.png';
 import styleTerminalLight from '../../../../assets/screens/style-terminal-light.png';
 
-Everything on this page lives in **Preferences › Appearance**. Changes apply as soon as you make them: there is no Save button.
+The color theme, the interface style and the contrast live in **Preferences › Appearance**; fonts, text size, density and avatars in **Preferences › Display**; the language in **Preferences › General**. Changes apply as soon as you make them: there is no Save button.
 
-To open the preferences, click the gear button (**Preferences**) in the title bar, press <kbd>⌘,</kbd> (<kbd>Ctrl+,</kbd> on Windows and Linux), or run **Open preferences** from the [command palette](../../customize/palette-and-shortcuts/). On macOS, the **yaggui › Preferences…** menu item opens it too. The tab opens on **Appearance**.
+To open the preferences, click the gear button (**Preferences**) in the title bar, press <kbd>⌘,</kbd> (<kbd>Ctrl+,</kbd> on Windows and Linux), or run **Open preferences** from the [command palette](../../customize/palette-and-shortcuts/). On macOS, the **yaggui › Preferences…** menu item opens it too. The dialog opens on **General**: pick a section in the sidebar, or type in **Search…** at the top of it (<kbd>⌘F</kbd>, <kbd>Ctrl+F</kbd> on Windows and Linux) to find a setting by name, in English or French. See the [Preferences reference](../../reference/preferences/) for the search.
 
 <Screenshot
   dark={prefsAppearanceDark}
   light={prefsAppearanceLight}
-  alt="The Appearance tab of the Preferences dialog with Theme, Style, High contrast, Gravatar avatars, Density, Language, fonts and Text size"
+  alt="The Appearance section of the Preferences dialog: the Follow the system theme switch, then the gallery of color themes grouped by family"
 />
 
-## Choose the theme and style
+## Choose a color theme
 
-yaggui has three looks:
+The **Theme** gallery shows every color theme as a card drawn with its own colors (title bar, sidebar, graph, diff). There are 25, grouped by family:
 
-| Look                                  | How to get it                                                                         |
-| ------------------------------------- | ------------------------------------------------------------------------------------- |
-| **Graphite** (dark)                   | **Style**: **Graphite / Paper**, **Theme**: **Dark** (or **System** with a dark OS)   |
-| **Paper** (light)                     | **Style**: **Graphite / Paper**, **Theme**: **Light** (or **System** with a light OS) |
-| **Terminal** (dense, monospace, dark) | **Style**: **Terminal**                                                               |
+| Family         | Themes                                                                                                                        |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| **yaggui**     | Graphite (dark, default), Paper (light, default), Terminal (dark)                                                             |
+| **Catppuccin** | Catppuccin Mocha, Catppuccin Macchiato, Catppuccin Frappé (dark), Catppuccin Latte (light)                                    |
+| **VS Code**    | Dark Modern, Dark+ (dark), Light Modern, Light+ (light)                                                                       |
+| **JetBrains**  | Darcula, JetBrains Dark (dark), JetBrains Light (light)                                                                       |
+| **GitHub**     | GitHub Dark (dark), GitHub Light (light)                                                                                      |
+| **Classics**   | One Dark, Dracula, Nord, Tokyo Night, Gruvbox Dark, Solarized Dark, Rosé Pine (dark), Solarized Light, Rosé Pine Dawn (light) |
 
-- **Theme** takes **System**, **Light** or **Dark**. The default, **System**, follows the light or dark setting of your OS and switches live when the OS changes.
-- **Style** takes **Graphite / Paper** (default) or **Terminal**. The Terminal style is always dark, so the **Theme** setting has no effect while it is selected. The tab reminds you: "Dense, monospace and dark: the light / dark choice does not apply."
+- **Filter themes** keeps the themes whose name or family contains what you type; **All**, **Dark** and **Light** keep one kind. The count next to them says how many are shown.
+- **Preview**: hover a card, or move to it with <kbd>Tab</kbd> and the arrow keys. After a short delay the whole window takes the theme, and a bar says "Preview: _theme_ · click to apply · Esc to go back to _current theme_". Moving out of the gallery, or <kbd>Esc</kbd>, comes back to the current theme without closing the dialog. A preview is never saved.
+- **Apply**: click the card, or press <kbd>Enter</kbd> on it. The card of the theme in use is outlined and marked **Active** (while following the OS: the two themes in use, marked **Light mode** and **Dark mode**).
 
-You can also switch the theme from the command palette with **Theme: follow the system**, **Theme: light** and **Theme: dark**. The entry for the current theme is greyed out.
+The themes come from the palettes their authors publish. Text, accent and status colors that would be hard to read are made slightly lighter (on a dark theme) or darker (on a light one) so that every theme keeps the contrast yaggui requires (WCAG AA); the integrated terminal and syntax colors keep the theme's own values.
 
 yaggui applies the last theme before the window first paints, so a dark setup never flashes white at startup.
+
+## Follow the light or dark mode of the OS
+
+yaggui keeps one theme for the light mode and one for the dark mode. **Follow the system theme** (on by default) shows the one of the mode your OS is in, and switches live when the OS changes. While it is on, two boxes above the gallery show **Light mode** and **Dark mode** with their theme, the one in use marked **in use**.
+
+- Choosing a theme of the mode the OS is in replaces the theme of that mode: yaggui keeps following the OS.
+- Choosing a theme of the other mode shows it and stops following the OS (the switch turns off), since it would not show otherwise. Turn the switch back on to switch between your two themes with the OS again.
+- Turning the switch off keeps the theme on screen.
+
+For example, to use Catppuccin Latte in the day and Catppuccin Mocha at night: choose **Catppuccin Latte**, choose **Catppuccin Mocha**, then turn **Follow the system theme** on.
+
+## Pick a theme from the command palette
+
+Without opening the preferences:
+
+1. Press <kbd>⌘K</kbd> (<kbd>Ctrl+K</kbd>), type `theme` and press <kbd>Enter</kbd> on **Theme: choose a color theme…**.
+2. The palette lists **Dark themes** then **Light themes**, starting on the current one (marked **current**). Type to filter by name or family.
+3. Move with <kbd>↑</kbd> <kbd>↓</kbd>: each theme you land on is previewed on the whole window.
+4. Press <kbd>Enter</kbd> to apply it, or <kbd>Esc</kbd> to go back to the current theme.
+
+The same rule as in the gallery applies when the theme follows the OS. The palette also has **Theme: follow the system**, **Theme: light** and **Theme: dark**, which switch the mode and keep the theme of each mode; the entry of the current mode is greyed out.
+
+<Screenshot
+  dark={themePickerDark}
+  light={themePickerLight}
+  alt="The theme list of the command palette, with a Catppuccin theme previewed on the window behind it"
+/>
+
+## Choose the interface style
+
+**Interface style** takes **Standard** (default) or **Terminal**: "Terminal: monospace, square corners, dense rows. Works with every theme." It only changes the shape of the interface, not its colors. For the full look of the former Terminal style, choose **Terminal** here and the **Terminal** color theme.
+
+If you used the Terminal style in an earlier version, yaggui keeps its look: the Terminal theme becomes your dark theme and the mode is set to dark. A preferences file exported by an earlier version gets the same treatment when you import it.
 
 <Screenshot
   dark={styleTerminalDark}
   light={styleTerminalLight}
-  alt="yaggui in the Terminal style: dense monospace rows on a near-black background"
+  alt="yaggui with the Terminal interface style and the Terminal theme: dense monospace rows on a near-black background"
 />
 
 ## Turn on high contrast
 
-**High contrast** (off by default) makes text and borders stronger. It is a switch, not a separate theme: it works with Graphite, Paper and Terminal. In the [integrated terminal](../../repository/terminal/), it also enforces a minimum contrast ratio for the shell's colors.
+**High contrast** (off by default, in **Appearance**) makes text and borders stronger. It is a switch, not a separate theme: it works with every color theme. In the [integrated terminal](../../repository/terminal/), it also enforces a minimum contrast ratio for the shell's colors.
 
 ## Change the density
 
-**Density** takes **Comfortable** (default) or **Compact**. Compact lowers the height of rows (graph, lists, command log, palette and others) from 28 px to 22 px, so more of them fit on screen.
+In **Preferences › Display**, **Density** takes **Comfortable** (default) or **Compact**. Compact lowers the height of rows (graph, lists, command log, palette and others) from 28 px to 22 px, so more of them fit on screen.
 
 ## Change the fonts and text size
+
+These settings are in **Preferences › Display**, under **Text**.
+
+<Screenshot
+  dark={prefsDisplayDark}
+  light={prefsDisplayLight}
+  alt="The Display section of the Preferences dialog: Interface font, Code font, Text size, Density, then Gravatar avatars"
+/>
 
 | Setting            | Default                                | What it does                                                                     |
 | ------------------ | -------------------------------------- | -------------------------------------------------------------------------------- |
@@ -82,7 +137,7 @@ An empty field restores the bundled font. If the font is not installed, the syst
 
 ## Change the language
 
-**Language** takes **System** (default), **English** or **Français**. **System** uses the first language of your OS that yaggui supports, otherwise English. The change applies immediately, without a restart; on macOS the menu bar is rebuilt in the new language.
+In **Preferences › General**, **Language** takes **System** (default), **English** or **Français**. **System** uses the first language of your OS that yaggui supports, otherwise English. The change applies immediately, without a restart; on macOS the menu bar is rebuilt in the new language.
 
 The language covers the whole interface, including yaggui's error messages. The raw output of Git shown in the [command log](../../reference/command-log/) stays in English.
 
@@ -90,7 +145,7 @@ The language covers the whole interface, including yaggui's error messages. The 
 
 By default, yaggui shows each author's initials in the graph, the commit details and the compare panel. It makes no network request for avatars.
 
-Turn on **Gravatar avatars** to show the authors' [Gravatar](https://gravatar.com) pictures instead:
+Turn on **Gravatar avatars** (**Preferences › Display**, under **Avatars**) to show the authors' [Gravatar](https://gravatar.com) pictures instead:
 
 - **What is sent**: for each author, yaggui computes the SHA-256 hash of the e-mail address on your machine and requests `https://www.gravatar.com/avatar/<hash>?s=40&d=404` over HTTPS, without a referrer. The e-mail address itself never leaves your machine.
 - **No picture**: when an address has no Gravatar, the initials stay. yaggui remembers this for 2 days so it does not ask again on every redraw.

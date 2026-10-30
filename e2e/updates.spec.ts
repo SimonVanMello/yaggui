@@ -163,7 +163,10 @@ for (const { name: theme, colorScheme } of THEMES) {
 
       await page.keyboard.press('Control+,');
       const prefs = page.getByRole('dialog', { name: 'Preferences' });
-      await prefs.getByRole('tab', { name: 'Behavior', exact: true }).click();
+      await prefs
+        .getByRole('navigation', { name: 'Preference sections' })
+        .getByRole('button', { name: 'General', exact: true })
+        .click();
       const toggle = prefs.getByRole('switch', { name: 'Check for updates at startup' });
       await toggle.scrollIntoViewIfNeeded();
       await expect(toggle).not.toBeChecked();

@@ -7,7 +7,8 @@ sources:
   - src/features/network/**
   - src/features/toolbar/NetworkButtons.tsx
   - src/features/statusbar/StatusBar.tsx
-  - src/features/preferences/BehaviorTab.tsx
+  - src/features/preferences/SyncSection.tsx
+  - src/features/preferences/SafetySection.tsx
   - src/features/preferences/ProtectedBranchesField.tsx
   - src/features/sidebar/RefContextMenu.tsx
   - src/features/sidebar/RemoteContextMenu.tsx
@@ -54,7 +55,7 @@ Une fois l’opération terminée, une notification **Fetch terminé** apparaît
 
 ### Nettoyer au fetch
 
-Quand **Nettoyer au fetch** est activé (c’est le cas par défaut), chaque fetch ajoute `--prune` : les branches de suivi supprimées sur le serveur disparaissent de la barre latérale et du graphe. Vos branches locales ne sont jamais supprimées. Le réglage se trouve dans **Préférences → Comportement** et s’applique à tous les fetch, auto-fetch compris. Voir [Préférences](../../reference/preferences/).
+Quand **Nettoyer au fetch** est activé (c’est le cas par défaut), chaque fetch ajoute `--prune` : les branches de suivi supprimées sur le serveur disparaissent de la barre latérale et du graphe. Vos branches locales ne sont jamais supprimées. Le réglage se trouve dans **Préférences → Fetch et pull** et s’applique à tous les fetch, auto-fetch compris. Voir [Préférences](../../reference/preferences/).
 
 Un fetch avec prune ne peut pas être annulé (voir [Ce qui ne peut pas être annulé](#ce-qui-ne-peut-pas-être-annulé)).
 
@@ -62,10 +63,10 @@ Un fetch avec prune ne peut pas être annulé (voir [Ce qui ne peut pas être an
 
 yaggui fait un fetch de tous les remotes de chaque dépôt ouvert en arrière-plan, à intervalle régulier : le dépôt de l’onglet visible comme ceux des autres onglets.
 
-| Réglage (Préférences → Comportement) | Par défaut | Effet                                                                    |
-| ------------------------------------ | ---------- | ------------------------------------------------------------------------ |
-| **Fetch automatique**                | Activé     | Active ou désactive l’auto-fetch                                         |
-| **Toutes les (minutes)**             | 10         | Intervalle, de 1 à 240 minutes. Inactif quand l’auto-fetch est désactivé |
+| Réglage (Préférences → Fetch et pull) | Par défaut | Effet                                                                    |
+| ------------------------------------- | ---------- | ------------------------------------------------------------------------ |
+| **Fetch automatique**                 | Activé     | Active ou désactive l’auto-fetch                                         |
+| **Toutes les (minutes)**              | 10         | Intervalle, de 1 à 240 minutes. Inactif quand l’auto-fetch est désactivé |
 
 Fonctionnement :
 
@@ -75,7 +76,7 @@ Fonctionnement :
 - L’auto-fetch est silencieux : aucune notification en cas de succès ou d’échec. La barre d’état du dépôt affiche tout de même la progression, puis **Fetch terminé** ou **Fetch a échoué**. Si un fetch échoue, ouvrez le journal des commandes pour en connaître la raison.
 - Le pied du menu **Fetch** indique l’état actuel : **Auto-fetch toutes les 10 min** ou **L'auto-fetch est désactivé**.
 
-Pour le désactiver, décochez **Fetch automatique** dans **Préférences → Comportement**.
+Pour le désactiver, décochez **Fetch automatique** dans **Préférences → Fetch et pull**.
 
 ## Pull
 
@@ -107,7 +108,7 @@ Le menu **Pull avec…** signale la stratégie par défaut par la mention **par 
 
 La stratégie utilisée par le bouton **Pull** et par <kbd>⌘⇧L</kbd> est déterminée dans cet ordre :
 
-1. **Stratégie de pull par défaut** dans **Préférences → Comportement**, si elle vaut **Fast-forward seul**, **Merge** ou **Rebase**. La valeur par défaut, **Config Git**, passe aux étapes suivantes.
+1. **Stratégie de pull par défaut** dans **Préférences → Fetch et pull**, si elle vaut **Fast-forward seul**, **Merge** ou **Rebase**. La valeur par défaut, **Config Git**, passe aux étapes suivantes.
 2. `branch.<name>.rebase`, sinon `pull.rebase` : une valeur vraie (`true`, `merges`, `interactive`…) donne **Rebase**.
 3. `pull.ff=only` donne **Fast-forward uniquement** ; toute autre valeur de `pull.ff` donne **Merge**.
 4. `pull.rebase=false` sans `pull.ff` donne **Merge**.
@@ -194,7 +195,7 @@ Le force push vers une branche protégée est toujours refusé, sans possibilit�
 
 La suppression d’une branche protégée sur le remote est refusée de la même façon, depuis le menu d’une branche distante (**Supprimer sur la remote…**) ou avec **Supprimer aussi la branche distante** dans la boîte de dialogue de suppression d’une branche locale : « main » est une branche protégée : elle n'est jamais supprimée sur le remote. Retire-la d'abord des branches protégées si c'est vraiment voulu. La branche locale seule peut toujours être supprimée. Voir [Branches](../../history/branches/#supprimer-une-branche).
 
-La liste se trouve dans **Préférences → Comportement → Branches protégées**. Valeurs par défaut : `main`, `master`, `develop`, `release/*`.
+La liste se trouve dans **Préférences → Sécurité → Branches protégées**. Valeurs par défaut : `main`, `master`, `develop`, `release/*`.
 
 - Une entrée est un nom exact, ou un motif `préfixe/*` qui correspond à toute branche située sous `préfixe/` (à n’importe quelle profondeur), mais pas à `préfixe` lui-même.
 - Saisissez un nom dans **Ajouter une branche ou un motif** et cliquez sur **Ajouter**. Retirez-en un avec le bouton **Retirer** de sa pastille. **Rétablir les valeurs par défaut** restaure la liste par défaut.

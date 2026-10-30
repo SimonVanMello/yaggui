@@ -5,6 +5,8 @@ import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it } from 'vitest';
 
+import { THEMES } from './catalog';
+
 const THEME_DIR = dirname(fileURLToPath(import.meta.url));
 const SRC_DIR = join(THEME_DIR, '..');
 
@@ -24,6 +26,15 @@ const tokens = read('tokens.css');
 const graphite = read('graphite.css');
 const paper = read('paper.css');
 const terminal = read('terminal.css');
+const generated = read('themes.generated.css');
+
+/** Tokens declared by the block of each theme of the generated file. */
+function generatedThemes(): [string, Set<string>][] {
+  return [...generated.matchAll(/\[data-theme='([\w-]+)'\] \{([^}]*)\}/g)].map((m) => [
+    m[1] ?? '',
+    declaredVariables(m[2] ?? ''),
+  ]);
+}
 
 describe('themes', () => {
   it('graphite and paper define the same color tokens', () => {
@@ -33,6 +44,16 @@ describe('themes', () => {
   it('terminal defines every color token of the other themes', () => {
     const own = declaredVariables(terminal);
     for (const token of declaredVariables(graphite)) expect(own).toContain(token);
+  });
+
+  it('every theme of the catalogue has its CSS, with every color token', () => {
+    const generatedIds = generatedThemes().map(([id]) => id);
+    for (const theme of THEMES) {
+      if (['graphite', 'paper', 'terminal'].includes(theme.id)) continue;
+      expect(generatedIds, theme.id).toContain(theme.id);
+    }
+    const expected = [...declaredVariables(graphite)].sort();
+    for (const [id, own] of generatedThemes()) expect([...own].sort(), id).toEqual(expected);
   });
 
   it('define the 8 graph lane colors', () => {
