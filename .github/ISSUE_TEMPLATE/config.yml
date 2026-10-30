@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/SimonVanMello/yaggui/security/advisories/new
+    about: Report it privately, not in a public issue. See SECURITY.md.
+  - name: Documentation
+    url: https://yaggui.tropico.dev/docs/
+    about: How each feature works, troubleshooting and the error messages.
