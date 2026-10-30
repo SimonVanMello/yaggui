@@ -8,6 +8,12 @@
   border-radius: var(--radius-sm);
 }
 
+/* The separator goes between settings: none after the last one of a section or group, whose
+   own content (a list of shortcuts, the raw Git config) may already end with a line. */
+.setting:last-child {
+  border-bottom: 0;
+}
+
 .setting[data-flash] {
   animation: flash 1.4s var(--easing-standard);
 }

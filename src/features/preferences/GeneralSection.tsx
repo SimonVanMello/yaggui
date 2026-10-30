@@ -40,10 +40,7 @@ export function GeneralSection() {
           />
         </Row>
       </Setting>
-      <SettingGroup
-        title={t('prefs.subsection.updates')}
-        ids={['checkUpdates', 'checkUpdatesNow', 'version']}
-      >
+      <SettingGroup title={t('prefs.subsection.updates')} ids={['checkUpdates', 'version']}>
         <Setting id="checkUpdates">
           <Switch
             checked={prefs.checkUpdates === true}
@@ -54,16 +51,12 @@ export function GeneralSection() {
             }}
           />
         </Setting>
-        <Setting id="checkUpdatesNow">
-          <Row label={t('prefs.checkUpdates.now')}>
-            <Button onClick={() => void checkForUpdatesNow()}>{t('prefs.checkUpdates.now')}</Button>
-          </Row>
-        </Setting>
         <Setting id="version">
           <Row
             label={t('prefs.version')}
             hint={appVersion ? t('prefs.version.hint', { version: appVersion }) : undefined}
           >
+            <Button onClick={() => void checkForUpdatesNow()}>{t('prefs.checkUpdates.now')}</Button>
             <Button
               onClick={() => {
                 const shell = useShellStore.getState();

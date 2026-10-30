@@ -9,26 +9,28 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-10-30
+
 ### Added
 
 - 25 color themes: Catppuccin (Mocha, Macchiato, Frappé, Latte), VS Code (Dark Modern, Light
   Modern, Dark+, Light+), JetBrains (Darcula, Dark, Light), GitHub (Dark, Light), One Dark,
   Dracula, Nord, Tokyo Night, Gruvbox, Solarized and Rosé Pine, next to Graphite, Paper and
   Terminal. Hover a theme in **Preferences › Appearance** to preview it on the whole window, click
-  to apply it. yaggui keeps one theme for the light mode and one for the dark mode.
+  to apply it. yaggui keeps one theme for the light mode and one for the dark mode (#95).
 - **Theme: choose a color theme…** in the command palette lists the themes; the arrow keys preview
-  them, Enter applies, Esc goes back.
+  them, Enter applies, Esc goes back (#95).
 - Search in the preferences: type a setting's name, in English or French, or a Git key such as
-  `pull.rebase`.
+  `pull.rebase` (#95).
 
 ### Changed
 
 - The preferences have a sidebar of sections (General, Appearance, Display, Shortcuts, Tools,
   Fetch and pull, Safety, Git configuration) in a larger window. Import and Export moved to
-  **General**.
+  **General** (#95).
 - The Terminal style is now the **Interface style** (monospace, square corners, dense rows) and
   works with every theme; its colors are the Terminal theme. If you used it, nothing changes on
-  screen.
+  screen (#95).
 
 ### Fixed
 

@@ -79,7 +79,7 @@ The site serves the docs of the latest release at `/docs/` and those of `master`
 
 ## Updates
 
-The app can check for a newer version (opt-in: asked once at first launch, then in Preferences → Behavior, and "Check for updates" in the palette). It reads `https://github.com/SimonVanMello/yaggui/releases/latest/download/latest.json`, which always points to the newest **published** release. What it offers depends on how the copy was installed ([`system/updates.rs`](../src-tauri/src/system/updates.rs)):
+The app can check for a newer version (opt-in: asked once at first launch, then in Preferences → General, and "Check for updates" in the palette). It reads `https://github.com/SimonVanMello/yaggui/releases/latest/download/latest.json`, which always points to the newest **published** release. What it offers depends on how the copy was installed ([`system/updates.rs`](../src-tauri/src/system/updates.rs)):
 
 | Installed from | Offer |
 |---|---|

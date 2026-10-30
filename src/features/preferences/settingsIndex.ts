@@ -103,12 +103,12 @@ export const SETTINGS: readonly SettingEntry[] = [
     keywords: 'release',
   },
   {
-    id: 'checkUpdatesNow',
+    id: 'version',
     section: 'general',
-    label: 'prefs.checkUpdates.now',
-    keywords: 'update release',
+    label: 'prefs.version',
+    // The row also holds "Check now" and "What's new".
+    keywords: 'changelog update release check now vérifier maintenant nouveautés',
   },
-  { id: 'version', section: 'general', label: 'prefs.version', keywords: 'changelog' },
   {
     id: 'backup',
     section: 'general',
