@@ -18,6 +18,9 @@ import { DemoSection } from './DemoSection';
 import styles from './PrimitivesDemo.module.css';
 import { ShortcutList } from './ShortcutList';
 
+/** Unbreakable string longer than a tooltip's max width: it must wrap inside the box. */
+const LONG_PATH = '/Users/alex/git/clients/acme/nyx_rest_acme_external_integration_service';
+
 const LOCALE_LABELS: Record<Locale, string> = { en: 'English', fr: 'Français' };
 
 /** Showcase of the `ui/` primitives, used as the M0-1 home page and for visual tests. */
@@ -99,6 +102,7 @@ export function PrimitivesDemo() {
           <IconButton icon="branch" label={t('icon.branch')} shortcut="Mod+B" />
           <IconButton icon="settings" label={t('icon.settings')} aria-pressed />
           <IconButton icon="trash" label={t('demo.button.danger')} size="sm" disabled />
+          <IconButton icon="folder" label={LONG_PATH} shortcut="Mod+Shift+O" />
         </DemoSection>
 
         <DemoSection title={t('demo.section.kbd')}>

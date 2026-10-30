@@ -34,6 +34,22 @@ for (const { name, colorScheme } of THEMES) {
       await capture(page, name, 'tooltip');
     });
 
+    test('a tooltip wraps an unbreakable string inside its box', async ({ page }) => {
+      await page.getByLabel(/nyx_rest_acme/).hover();
+      const tooltip = page.locator('[data-radix-popper-content-wrapper] > *');
+      await expect(tooltip).toBeVisible();
+      const overflow = await tooltip.evaluate((box) => {
+        const outer = box.getBoundingClientRect();
+        return [...box.querySelectorAll('*')].some((child) => {
+          const inner = child.getBoundingClientRect();
+          return inner.left < outer.left - 0.5 || inner.right > outer.right + 0.5;
+        });
+      });
+      expect(overflow).toBe(false);
+      expect(await tooltip.evaluate((box) => box.scrollWidth <= box.clientWidth)).toBe(true);
+      await capture(page, name, 'tooltip-long');
+    });
+
     test('menu', async ({ page }) => {
       await page.getByRole('button', { name: 'Branch actions' }).click();
       const menu = page.getByRole('menu');
