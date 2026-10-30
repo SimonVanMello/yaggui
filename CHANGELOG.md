@@ -9,10 +9,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [0.12.1] - 2026-10-30
+
 ### Fixed
 
 - macOS: after **Update and restart**, yaggui reopens on its pinned Dock icon instead of a second
-  one.
+  one (#97).
+- A tooltip holding a long path, such as the repository path of the **Files** button, wraps inside
+  its box instead of overflowing it (#97).
 
 ## [0.12.0] - 2026-10-30
 
