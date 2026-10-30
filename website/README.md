@@ -110,7 +110,7 @@ The custom approach is about 400 lines, comments included (`src/lib/docs-version
 
 Cloudflare Pages, project `yaggui`, uploaded by `website.yml` with `cloudflare/wrangler-action` and the `wrangler` of this package (`pages deploy dist --project-name=yaggui --branch=<branch>`). Cloudflare's Git integration is not used: the build needs the full git history for the versioned docs.
 
-- Pull requests: a preview deployment on the branch alias (`<branch>.yaggui.pages.dev`), its URLs in the job summary and in a comment on the pull request (edited on each push). Skipped, with the build still run, when the secrets are missing (pull requests from forks).
+- Pull requests: a preview deployment on the branch alias (`<branch>.yaggui.pages.dev`), its URLs in the job summary and as a `Website preview` commit status in the pull request checks (a status sends no notification, unlike a comment). Skipped, with the build still run, when the secrets are missing (pull requests from forks).
 - Production (`--branch=master`): on push to `master`, on `workflow_dispatch`, and when a release is published (built from `master`, so the download links follow the release).
 - Headers in `public/_headers`; redirects, if ever needed, in `public/_redirects`.
 
