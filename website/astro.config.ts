@@ -35,8 +35,8 @@ function versionSidebar(v: DocsVersion): SidebarItem {
 }
 
 /**
- * The app scopes its themes to `:root[data-theme='graphite' | 'paper']`; the site (like Starlight)
- * uses `data-theme='dark' | 'light'`. Graphite becomes the default, so the site stays dark if the
+ * The app scopes its themes to `[data-theme='graphite' | 'paper']` (on any element, for the live
+ * preview); the site (like Starlight) uses `data-theme='dark' | 'light'` on the root. Graphite becomes the default, so the site stays dark if the
  * theme script does not run.
  */
 const appThemeSelectors = {
@@ -44,8 +44,8 @@ const appThemeSelectors = {
   Rule(rule: { selector: string }) {
     if (!rule.selector.includes('data-theme=')) return;
     rule.selector = rule.selector
-      .replace(/:root\[data-theme='graphite'\]/g, ':root')
-      .replace(/\[data-theme='paper'\]/g, "[data-theme='light']");
+      .replace(/(?::root)?\[data-theme='graphite'\]/g, ':root')
+      .replace(/(?::root)?\[data-theme='paper'\]/g, ":root[data-theme='light']");
   },
 };
 
