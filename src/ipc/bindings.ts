@@ -12,6 +12,27 @@ export const commands = {
 	launchPath: () => __TAURI_INVOKE<string | null>("launch_path"),
 	/**  Release notes embedded from `CHANGELOG.md`, newest first. */
 	changelog: () => __TAURI_INVOKE<ChangelogRelease[]>("changelog"),
+	/**  Crash reports of earlier sessions the user has not been told about, oldest first. */
+	pendingCrashReports: () => typedError<CrashSummary[], YagguiError>(__TAURI_INVOKE("pending_crash_reports")),
+	/**  The user was told about the pending crash reports: they are not listed again. */
+	acknowledgeCrashReports: () => typedError<null, YagguiError>(__TAURI_INVOKE("acknowledge_crash_reports")),
+	/**
+	 *  Opens the folder of the session logs and crash reports in the file manager:
+	 *  `fileManagerFailed`.
+	 */
+	openLogsFolder: () => typedError<null, YagguiError>(__TAURI_INVOKE("open_logs_folder")),
+	/**
+	 *  Markdown for a bug report: versions (yaggui, OS, WebView, Git), the latest crash report
+	 *  of the week and the end of the session logs. Read by the user before they paste it.
+	 */
+	bugReport: () => typedError<string, YagguiError>(__TAURI_INVOKE("bug_report")),
+	/**  Opens the bug form of the issue tracker in the browser: `browserFailed`. */
+	openIssueTracker: () => typedError<null, YagguiError>(__TAURI_INVOKE("open_issue_tracker")),
+	/**
+	 *  Writes an uncaught frontend error to the session log. `kind`: `render`, `error` or
+	 *  `rejection`.
+	 */
+	logFrontendError: (kind: string, message: string, stack: string | null) => __TAURI_INVOKE<void>("log_frontend_error", { kind, message, stack }),
 	/**
 	 *  Opens the repository containing `path` (or joins the already open session),
 	 *  records it in the recent repos and starts watching it. Sessions are reference-counted:
@@ -1493,6 +1514,15 @@ export type ConflictVersions = {
 	labels: ConflictLabels,
 };
 
+/**  A crash report the user has not been told about. */
+export type CrashSummary = {
+	file: string,
+	/**  Seconds since the Unix epoch. */
+	at: number,
+	/**  First line of the panic message. */
+	message: string,
+};
+
 export type CreateTagRequest = {
 	name: string,
 	/**  Commit (or any revision) to tag. */
@@ -1704,6 +1734,8 @@ export type ErrorCode =
 "editorNotFound" | 
 /**  The system file manager could not open the repository folder. */
 "fileManagerFailed" | 
+/**  The default browser could not be started on a yaggui web page. */
+"browserFailed" | 
 /**  The integrated terminal could not start a shell (no PTY, shell missing). */
 "shellFailed" | 
 /**  The integrated terminal session does not exist any more (shell exited, closed). */

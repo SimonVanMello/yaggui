@@ -572,16 +572,34 @@ impl GitCli {
     }
 
     fn record(&self, entry: CommandLogEntry) {
-        tracing::debug!(
+        // Into the session log too (args and stderr already redacted): a bug report then shows
+        // what ran before the problem. Stdout stays out, it is the data itself.
+        let stderr = (entry.status != CommandStatus::Success && !entry.stderr.trim().is_empty())
+            .then(|| stderr_excerpt(&entry.stderr));
+        tracing::info!(
             args = ?entry.args,
+            repo = entry.repo_id,
             status = ?entry.status,
+            exit_code = entry.exit_code,
             duration_ms = entry.duration_ms,
+            stderr,
             "git command"
         );
         let stored = self.log.push(entry);
         self.sink
             .emit(BackendEvent::CommandLogged(CommandLogged { entry: stored }));
     }
+}
+
+/// Bytes of a failed command's stderr written to the session log.
+const LOGGED_STDERR_BYTES: usize = 2 * 1024;
+
+fn stderr_excerpt(stderr: &str) -> &str {
+    let mut end = stderr.len().min(LOGGED_STDERR_BYTES);
+    while !stderr.is_char_boundary(end) {
+        end -= 1;
+    }
+    stderr[..end].trim_end()
 }
 
 enum WaitOutcome {

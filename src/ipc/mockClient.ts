@@ -1,4 +1,5 @@
 import type {
+  CrashSummary,
   BisectMark,
   BisectState,
   BranchStart,
@@ -202,7 +203,14 @@ import {
   sortWorkspaces,
   unknownWorkspace,
 } from './mock/workspaces';
-import { createMockLog, createMockRepos, mockAppInfo, MOCK_NOW, type MockRepo } from './mockData';
+import {
+  createMockLog,
+  createMockRepos,
+  mockAppInfo,
+  mockBugReport,
+  MOCK_NOW,
+  type MockRepo,
+} from './mockData';
 import {
   countExclusive,
   createMockHistory,
@@ -476,6 +484,12 @@ export class MockBackend {
   updateChecks = 0;
   updateInstalls = 0;
   releasePageOpens = 0;
+  /** Crash reports of "earlier sessions", for tests; acknowledging empties the list. */
+  pendingCrashes: CrashSummary[] = [];
+  logsFolderOpens = 0;
+  issueTrackerOpens = 0;
+  /** Calls of `logFrontendError`, for tests. */
+  readonly frontendErrors: { kind: string; message: string; stack: string | null }[] = [];
   /** Exit code of the fake package manager of `updateInTerminal`, for tests. */
   upgradeExitCode = 0;
   restarts = 0;
@@ -620,6 +634,10 @@ export class MockBackend {
     this.updateChecks = 0;
     this.updateInstalls = 0;
     this.releasePageOpens = 0;
+    this.pendingCrashes = [];
+    this.logsFolderOpens = 0;
+    this.issueTrackerOpens = 0;
+    this.frontendErrors.length = 0;
     this.upgradeExitCode = 0;
     this.restarts = 0;
     this.ptys.reset();
@@ -3189,6 +3207,24 @@ export class MockBackend {
     appInfo: () => Promise.resolve(mockAppInfo),
     launchPath: () => Promise.resolve(null),
     changelog: () => Promise.resolve(structuredClone(mockChangelog)),
+    pendingCrashReports: () => ok(this.pendingCrashes.map((crash) => ({ ...crash }))),
+    acknowledgeCrashReports: () => {
+      this.pendingCrashes = [];
+      return ok(null);
+    },
+    openLogsFolder: () => {
+      this.logsFolderOpens += 1;
+      return ok(null);
+    },
+    bugReport: () => ok(mockBugReport(this.log)),
+    openIssueTracker: () => {
+      this.issueTrackerOpens += 1;
+      return ok(null);
+    },
+    logFrontendError: (kind, message, stack) => {
+      this.frontendErrors.push({ kind, message, stack });
+      return Promise.resolve();
+    },
     openRepo: (path) => {
       const normalized = path.trim().replace(/(.)[\\/]+$/, '$1');
       if (!normalized || !isAbsolute(normalized)) return fail(invalidPath(path));

@@ -4,6 +4,7 @@ pub mod app;
 pub mod avatars;
 pub mod commit_tools;
 pub mod create;
+pub mod diagnostics;
 pub mod diff;
 pub mod graph;
 pub mod graph_tools;

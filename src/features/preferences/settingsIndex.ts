@@ -116,6 +116,15 @@ export const SETTINGS: readonly SettingEntry[] = [
     hint: 'prefs.backup.hint',
     keywords: 'json sync',
   },
+  {
+    id: 'diagnostics',
+    section: 'general',
+    label: 'prefs.diagnostics',
+    hint: 'prefs.diagnostics.hint',
+    // The row holds "Report a bug…", "Copy diagnostic report" and "Open logs folder".
+    keywords:
+      'log logs crash bug issue report diagnostic troubleshooting journal journaux plantage signaler rapport dépannage',
+  },
 
   {
     id: 'followSystem',
