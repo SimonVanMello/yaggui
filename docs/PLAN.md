@@ -237,7 +237,7 @@ Exit: a problem met by a user can be diagnosed without a terminal: every session
 
 | ID | Task | Depends on | Requirements |
 |---|---|---|---|
-| M11-1 🟦 | Logs and bug reports: one log file per session in the OS log folder (last 5 kept, 10 MB cap, no new dependency: a `tracing` writer of our own), every Git command written to it (redacted args, exit code, duration, stderr of failures, never stdout), panic hook writing a crash report (last 10 kept) and a notice at the next launch, uncaught frontend errors forwarded to the log; **Report a bug…** copies a Markdown diagnostic report (versions, latest crash, log tails) and opens the GitHub bug form, **Copy diagnostic report**, **Open logs folder** (palette, Preferences › General › Troubleshooting, macOS Help menu); issue templates, `SECURITY.md`, `CONTRIBUTING.md`; release page opened in the browser instead of a text editor | M10 | F-304, F-300 |
+| M11-1 🟨 | Logs and bug reports (#102): one log file per session in the OS log folder (last 5 kept, 10 MB cap, no new dependency: a `tracing` writer of our own), every Git command written to it (redacted args, exit code, duration, stderr of failures, never stdout), panic hook writing a crash report (last 10 kept) and a notice at the next launch, uncaught frontend errors forwarded to the log; **Report a bug…** copies a Markdown diagnostic report (versions, latest crash, log tails) and opens the GitHub bug form, **Copy diagnostic report**, **Open logs folder** (palette, Preferences › General › Troubleshooting, macOS Help menu); issue templates, `SECURITY.md`, `CONTRIBUTING.md`; release page opened in the browser instead of a text editor | M10 | F-304, F-300 |
 
 ## W — Website and documentation
 
