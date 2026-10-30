@@ -353,6 +353,7 @@ Default shortcuts (macOS; `⌘`→`Ctrl` elsewhere):
 | F-301 | Non-blocking toast notifications for successes; errors stay until dismissed and offer an action. | MVP |
 | F-302 | Catalog of known Git errors → clear message + action (push rejected, conflict, lock, auth, detached, dirty tree, failed hook, missing upstream, etc.). | MVP |
 | F-303 | Optional system notifications for long operations finished in the background (window not focused). | Dropped |
+| F-304 | **Local diagnostics**: a log file per session and a crash report per Rust panic, in the OS log folder, bounded in count and size; the next launch tells about a crash; "Report a bug" copies a report (versions, latest crash, log tails) for the user to read and paste into the issue tracker. Nothing is sent by yaggui. | V1 |
 
 ### 5.17 Preferences
 
@@ -435,6 +436,8 @@ Stored in the OS application config folder (`~/Library/Application Support/dev.t
 The operation journal (undo / redo) is also in `yaggui.db` (F-244): per repo, the last 100 entries and none older than 30 days, with what each undo restores (ids of commits and objects, ref names, paths; never file contents, which stay in the repo as unreachable blobs). It is dropped with the repo.
 
 Downloaded avatars (opt-in, F-033) go to the OS cache folder (`avatars-v1/`), not the config folder.
+
+Session logs (`yaggui.log`, previous sessions `yaggui.1.log` to `yaggui.4.log`) and crash reports (`crash-*.txt`, last 10) go to the OS log folder (F-304). They hold paths, ref names and Git command lines (credentials in URLs masked), never file contents or Git's standard output.
 
 Nothing is written into the user's repos, except what Git writes itself.
 

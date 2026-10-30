@@ -16,10 +16,13 @@ sources:
   - src-tauri/src/state.rs
   - src-tauri/src/main.rs
   - src/app/ErrorBoundary.tsx
+  - src-tauri/src/system/diagnostics.rs
+  - src-tauri/src/commands/diagnostics.rs
+  - src/features/diagnostics/**
   - src/features/repo/RepoBanners.tsx
   - src/features/preferences/GitPathField.tsx
   - src/features/staging/HookFailurePanel.tsx
-requirements: [F-009, F-065, F-301, F-302, F-322]
+requirements: [F-009, F-065, F-301, F-302, F-304, F-322]
 ---
 
 import Screenshot from '~/components/Screenshot.astro';
@@ -180,7 +183,13 @@ If the window still stays blank or crashes, try running it through XWayland with
 This screen appears when the interface itself hit a bug: "The window could not be displayed. Your repositories are not affected. Reload to start again."
 
 1. Click **Reload**. yaggui reloads its window and reopens your tabs.
-2. If it happens again, expand **Details**, copy the text and [report it](#report-a-bug) with what you were doing.
+2. If it happens again, [report it](#report-a-bug) with what you were doing. The error and its **Details** are already in the [session log](#logs-and-crash-reports), so the diagnostic report includes them.
+
+## "yaggui ran into an internal error during an earlier session"
+
+This notice appears at startup when yaggui hit an internal error (a bug in its Rust part) during an earlier session and wrote a [crash report](#logs-and-crash-reports). Such an error does not always close the app: an action may simply have stopped answering.
+
+The notice shows the first line of the error. Click **Report it** to [report the bug](#report-a-bug): the diagnostic report includes the crash report. The notice appears once per crash report; dismiss it to ignore it.
 
 ## Preferences, recents or tabs are gone
 
@@ -202,22 +211,47 @@ On a large repository with no up-to-date commit-graph file, yaggui then writes o
 
 You can also write it yourself in a terminal: `git commit-graph write --reachable --changed-paths`.
 
+## Logs and crash reports
+
+yaggui keeps a log file per session on your computer. Nothing is sent anywhere: the files stay in the logs folder until you share them yourself.
+
+| OS      | Logs folder                              |
+| ------- | ---------------------------------------- |
+| macOS   | `~/Library/Logs/dev.tropico.yaggui`      |
+| Windows | `%LOCALAPPDATA%\dev.tropico.yaggui\logs` |
+| Linux   | `~/.local/share/dev.tropico.yaggui/logs` |
+
+- `yaggui.log` is the log of the running session, `yaggui.1.log` the previous one, up to `yaggui.4.log`: yaggui keeps the last five sessions. A session stops writing at 10 MB.
+- Each line has a UTC time, a level and a message: repositories opened, each Git command with its arguments, exit code and duration (plus the error output of a failed one), warnings, and the errors of the interface itself.
+- `crash-<time>-<process>.txt` is written when yaggui hits an internal error: version, OS, error message, where it happened and the call stack. yaggui keeps the last 10.
+
+To open the folder, use **Open logs folder** in **Preferences → General**, under **Troubleshooting**, or the **Open logs folder** command of the palette (on macOS also **Help → Open Logs Folder**).
+
+The log holds folder paths, branch names and Git command lines, like the [command log](../../reference/command-log/), with credentials inside URLs masked the same way. It never holds file contents or the output of Git commands. `RUST_LOG` sets its level, `YAGGUI_LOG_DIR` its folder: see [Environment variables](../../reference/data-and-privacy/#environment-variables).
+
 ## Report a bug
 
-Open an issue on [GitHub](https://github.com/SimonVanMello/yaggui/issues) with:
+1. Click **Report a bug…** in **Preferences → General**, under **Troubleshooting** (also a palette command, and **Help → Report a Bug…** on macOS). yaggui copies a diagnostic report to the clipboard and opens the bug form on [GitHub](https://github.com/SimonVanMello/yaggui/issues) in your browser.
+2. Paste the report into the **Diagnostic report** field of the form, and describe what you did, what you expected and what happened. A screenshot helps.
+3. Read the report before you submit it. It holds:
+   - the versions of yaggui, the OS, the system web view and Git, and how yaggui was installed;
+   - the most recent [crash report](#logs-and-crash-reports) of the last 7 days, if there is one;
+   - the last 150 lines of this session's log and the last 100 of the previous session's.
 
-1. **Versions**: the yaggui version and the Git version, both shown at the right of the status bar, and your OS.
-2. **What you did**, what you expected and what happened. A screenshot helps.
-3. **For an error**: the message, the content of **Details**, and the matching command log entry (<kbd>⌘J</kbd>, expand the entry, **Copy command** and **Copy output**).
-4. **For a crash or a startup problem**: the output of yaggui started from a terminal with detailed logs:
+   Remove anything you do not want to make public (folder paths, branch names, commit messages).
 
-   ```bash
-   # macOS
-   RUST_LOG=debug /Applications/yaggui.app/Contents/MacOS/yaggui
-   # Linux
-   RUST_LOG=debug yaggui
-   ```
+**Copy diagnostic report** in the palette, or **Copy report** in the preferences, only copies the report, to send it another way.
 
-5. **For a repository problem**: the output of `git status` and `git log --oneline --graph --all -10` in that repository.
+Also useful:
 
-Remove anything private (paths, URLs with tokens, commit messages) before posting.
+- **For an error**: the message and the matching command log entry (<kbd>⌘J</kbd>, expand the entry, **Copy command** and **Copy output**). The log file does not keep the standard output of Git commands.
+- **For a problem at startup**, when the window does not open: the files of the [logs folder](#logs-and-crash-reports). Started from a terminal with `RUST_LOG=debug`, yaggui also writes detailed messages there and on the terminal:
+
+  ```bash
+  # macOS
+  RUST_LOG=debug /Applications/yaggui.app/Contents/MacOS/yaggui
+  # Linux
+  RUST_LOG=debug yaggui
+  ```
+
+- **For a repository problem**: the output of `git status` and `git log --oneline --graph --all -10` in that repository.

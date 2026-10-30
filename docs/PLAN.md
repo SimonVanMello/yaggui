@@ -231,6 +231,14 @@ Exit: yaggui offers well-known color themes previewed before they are applied, a
 |---|---|---|---|
 | M10-1 ✅ | Color themes and Preferences redesign (#95): catalogue of 25 color themes generated from their published palettes (`pnpm themes`, contrast moved to WCAG AA and checked by the theme tests), one theme per light / dark mode stored in the backend (`lightTheme`, `darkTheme`, portable in import / export, migration of the former Terminal style), Terminal interface style split from the colors; Preferences dialog with a sidebar of 8 sections in two groups (Application, Git), settings reorganized, search over every setting in both languages (labels, hints, Git keys, theme names, commands), gallery with live preview on the whole app; theme picker in the command palette (VS Code style) | M9 | F-320, F-321, F-322, F-323, F-324, F-325, F-326 |
 
+## M11 — Operability
+
+Exit: a problem met by a user can be diagnosed without a terminal: every session leaves a log file, every Rust panic a crash report, and the user hands both over in one gesture, without anything sent by yaggui itself.
+
+| ID | Task | Depends on | Requirements |
+|---|---|---|---|
+| M11-1 🟦 | Logs and bug reports: one log file per session in the OS log folder (last 5 kept, 10 MB cap, no new dependency: a `tracing` writer of our own), every Git command written to it (redacted args, exit code, duration, stderr of failures, never stdout), panic hook writing a crash report (last 10 kept) and a notice at the next launch, uncaught frontend errors forwarded to the log; **Report a bug…** copies a Markdown diagnostic report (versions, latest crash, log tails) and opens the GitHub bug form, **Copy diagnostic report**, **Open logs folder** (palette, Preferences › General › Troubleshooting, macOS Help menu); issue templates, `SECURITY.md`, `CONTRIBUTING.md`; release page opened in the browser instead of a text editor | M10 | F-304, F-300 |
+
 ## W — Website and documentation
 
 Exit: `https://yaggui.tropico.dev` serves the landing page, the versioned docs (latest release by default, older versions selectable, `next` for `master`) and the live demo, in English and French, deployed by CI. Agents keep the docs current with each change. See [`docs/WEBSITE.md`](WEBSITE.md) and the mockup [`docs/ui/website.html`](ui/website.html).

@@ -9,6 +9,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Added
+
+- **Report a bug…** copies a diagnostic report (versions of yaggui, the OS, the web view and Git,
+  the latest crash report, the end of the session logs) and opens the bug form on GitHub, where you
+  paste it after reading it. It is in **Preferences › General › Troubleshooting**, in the command
+  palette and, on macOS, in the **Help** menu. **Copy diagnostic report** only copies it.
+- yaggui keeps a log of its last five sessions and a report of each internal error, on your
+  computer only: **Open logs folder** shows them. After an internal error, the next launch offers
+  to report it.
+
+### Fixed
+
+- **Open the release page** opens the browser on macOS and Windows instead of a text editor.
+
 ## [0.12.1] - 2026-10-30
 
 ### Fixed
