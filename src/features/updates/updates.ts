@@ -64,7 +64,7 @@ export async function installUpdate(info: UpdateInfo): Promise<void> {
   });
   try {
     const result = await ipc.commands.installUpdate();
-    // On success the app restarts and never gets here, except under the mock backend.
+    // On success the app restarts: only macOS (while it exits) and the mock backend get here.
     if (result.status === 'error') {
       useToastStore.getState().dismiss(id);
       showYagguiError(result.error, { retry: () => void installUpdate(info) });

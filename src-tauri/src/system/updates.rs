@@ -246,7 +246,7 @@ impl<F: FnMut(Option<u8>)> Progress<F> {
 }
 
 /// Downloads, verifies and installs the newest release with the Tauri updater, then restarts
-/// the app. Only for the [`InstallChannel::SelfUpdate`] installs.
+/// the app (see [`restart`]). Only for the [`InstallChannel::SelfUpdate`] installs.
 pub async fn install(
     app: &tauri::AppHandle,
     mut on_progress: impl FnMut(Option<u8>) + Send,
@@ -281,7 +281,61 @@ pub async fn install(
         .await
         .map_err(failed)?;
     tracing::info!("update installed, restarting");
+    restart(app);
+    Ok(())
+}
+
+/// Restarts the app on the version just installed. Only returns on macOS, where the app then
+/// exits on its own.
+pub fn restart(app: &tauri::AppHandle) {
+    #[cfg(target_os = "macos")]
+    if let Some(bundle) = std::env::current_exe().ok().as_deref().and_then(app_bundle) {
+        match relaunch_when_gone(&bundle) {
+            Ok(()) => return app.exit(0),
+            Err(err) => tracing::warn!(error = %err, "failed to schedule the relaunch"),
+        }
+    }
     app.restart()
+}
+
+/// The `.app` bundle an executable lives in (`<bundle>.app/Contents/MacOS/<exe>`).
+#[cfg(any(target_os = "macos", test))]
+fn app_bundle(exe: &Path) -> Option<PathBuf> {
+    let macos = exe.parent()?;
+    let contents = macos.parent()?;
+    let bundle = contents.parent()?;
+    let named = |path: &Path, name: &str| path.file_name().is_some_and(|n| n == name);
+    let is_app = bundle.extension().is_some_and(|ext| ext == "app");
+    (named(macos, "MacOS") && named(contents, "Contents") && is_app).then(|| bundle.to_path_buf())
+}
+
+/// Waits for this process to exit (30 s at most), then opens `$2` through LaunchServices.
+#[cfg(target_os = "macos")]
+const RELAUNCH_SCRIPT: &str = r#"i=0
+while kill -0 "$1" 2>/dev/null && [ "$i" -lt 300 ]; do sleep 0.1; i=$((i + 1)); done
+exec /usr/bin/open "$2""#;
+
+/// Tauri's restart runs `open -n` while this process is still alive: the Dock sees a second
+/// instance and gives it its own tile instead of the pinned one, which stays empty. Opening the
+/// bundle once this process is gone makes the new one the only instance, on the pinned tile.
+/// The bundle path and the pid are arguments of the script, never part of it.
+#[cfg(target_os = "macos")]
+fn relaunch_when_gone(bundle: &Path) -> std::io::Result<()> {
+    use std::os::unix::process::CommandExt;
+
+    Command::new("/bin/sh")
+        .arg("-c")
+        .arg(RELAUNCH_SCRIPT)
+        .arg("yaggui-relaunch")
+        .arg(std::process::id().to_string())
+        .arg(bundle)
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        // Out of our process group, so nothing sent to it on exit reaches the script.
+        .process_group(0)
+        .spawn()
+        .map(drop)
 }
 
 /// What the update terminal runs: a program and its arguments, never a shell line.
@@ -509,6 +563,20 @@ mod tests {
             bundle: Some(bundle),
             ..Facts::default()
         }
+    }
+
+    #[test]
+    fn app_bundle_is_found_from_its_executable() {
+        assert_eq!(
+            app_bundle(Path::new("/Applications/yaggui.app/Contents/MacOS/yaggui")),
+            Some(PathBuf::from("/Applications/yaggui.app"))
+        );
+        assert_eq!(app_bundle(Path::new("/usr/local/bin/yaggui")), None);
+        assert_eq!(
+            app_bundle(Path::new("/tmp/yaggui/Contents/MacOS/yaggui")),
+            None
+        );
+        assert_eq!(app_bundle(Path::new("yaggui")), None);
     }
 
     #[test]
