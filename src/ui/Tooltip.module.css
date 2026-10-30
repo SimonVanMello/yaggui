@@ -14,6 +14,17 @@
   animation: fade-in var(--duration-normal) var(--easing-standard);
 }
 
+/* A flex item never shrinks below its longest unbreakable string (a path, a hash, a URL):
+   without this, such a string overflows the box instead of wrapping at max-width. */
+.body {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.content > :not(.body) {
+  flex-shrink: 0;
+}
+
 @keyframes fade-in {
   from {
     opacity: 0;

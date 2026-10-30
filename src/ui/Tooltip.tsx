@@ -18,7 +18,7 @@ export function Tooltip({ content, shortcut, side = 'bottom', children }: Toolti
       <RadixTooltip.Trigger asChild>{children}</RadixTooltip.Trigger>
       <RadixTooltip.Portal>
         <RadixTooltip.Content className={styles.content} side={side} sideOffset={6}>
-          {content}
+          <span className={styles.body}>{content}</span>
           {shortcut && <Kbd shortcut={shortcut} />}
         </RadixTooltip.Content>
       </RadixTooltip.Portal>
