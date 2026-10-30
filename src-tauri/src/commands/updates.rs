@@ -19,8 +19,8 @@ pub async fn check_for_update() -> Result<Option<UpdateInfo>, YagguiError> {
     blocking(updates::check).await
 }
 
-/// Downloads and installs the newest version, then restarts the app (only returns on
-/// failure). Progress comes as `update-progress` events.
+/// Downloads and installs the newest version, then restarts the app (returns on failure, and
+/// on macOS while the app exits). Progress comes as `update-progress` events.
 #[tauri::command]
 #[specta::specta]
 pub async fn install_update(app: AppHandle) -> Result<(), YagguiError> {
@@ -70,5 +70,5 @@ pub async fn update_in_terminal(
 #[specta::specta]
 pub fn restart_app(app: AppHandle) {
     tracing::info!("restarting after an upgrade");
-    app.restart();
+    updates::restart(&app);
 }

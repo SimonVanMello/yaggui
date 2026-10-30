@@ -9,6 +9,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Fixed
+
+- macOS: after **Update and restart**, yaggui reopens on its pinned Dock icon instead of a second
+  one.
+
 ## [0.12.0] - 2026-10-30
 
 ### Added
