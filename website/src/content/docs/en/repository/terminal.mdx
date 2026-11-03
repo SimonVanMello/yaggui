@@ -12,6 +12,7 @@ sources:
   - src-tauri/src/system/terminal.rs
   - src-tauri/src/commands/pty.rs
   - src-tauri/src/commands/system.rs
+  - src-tauri/src/system/editor.rs
 requirements: [F-266, F-267]
 ---
 
@@ -51,6 +52,8 @@ The first time you show the panel, it starts a terminal.
 - **Resize.** Drag the top edge of the panel, or focus it and press <kbd>↑</kbd> / <kbd>↓</kbd> (16 px per step). The shell receives the new size. The height is shared by all repositories and resets when yaggui restarts.
 
 While a terminal has focus, every key goes to the shell, <kbd>Ctrl+C</kbd> included, except the command palette (<kbd>⌘K</kbd>, <kbd>Ctrl+K</kbd> on Windows and Linux) and the two terminal shortcuts. To copy a selection, press <kbd>⌘C</kbd> (<kbd>Ctrl+Shift+C</kbd> on Windows and Linux); to paste, <kbd>⌘V</kbd> (<kbd>Ctrl+Shift+V</kbd> on Windows and Linux).
+
+To open a link the terminal shows, hold <kbd>⌘</kbd> and click it (<kbd>Ctrl</kbd>+click on Windows and Linux): it opens in your default browser. This works for web addresses written as text and for the hyperlinks some programs print (for example `ls --hyperlink`). Only `http://` and `https://` links open; a plain click stays a click in the terminal. If the browser cannot be opened, yaggui shows "The browser could not be opened."
 
 The terminal follows the color theme of the app, the code font and the text size of Preferences. The **Terminal** color theme gives it a near-black background. See [Appearance](../../customize/appearance/).
 

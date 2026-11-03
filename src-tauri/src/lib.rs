@@ -65,6 +65,7 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             commands::log::command_log,
             commands::log::clear_command_log,
             commands::system::open_terminal,
+            commands::system::open_link,
             commands::system::pick_repo_folder,
             commands::avatars::avatar,
             commands::avatars::clear_avatar_cache,

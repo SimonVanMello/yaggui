@@ -12,6 +12,7 @@ sources:
   - src-tauri/src/system/terminal.rs
   - src-tauri/src/commands/pty.rs
   - src-tauri/src/commands/system.rs
+  - src-tauri/src/system/editor.rs
 requirements: [F-266, F-267]
 ---
 
@@ -51,6 +52,8 @@ La première fois que vous affichez le panneau, il démarre un terminal.
 - **Redimensionner.** Faites glisser le bord supérieur du panneau, ou donnez-lui le focus et appuyez sur <kbd>↑</kbd> / <kbd>↓</kbd> (16 px par pas). Le shell reçoit la nouvelle taille. La hauteur est partagée par tous les dépôts et revient à sa valeur par défaut au redémarrage de yaggui.
 
 Tant qu’un terminal a le focus, toutes les touches vont au shell, <kbd>Ctrl+C</kbd> compris, sauf la palette de commandes (<kbd>⌘K</kbd>, <kbd>Ctrl+K</kbd> sous Windows et Linux) et les deux raccourcis du terminal. Pour copier une sélection, appuyez sur <kbd>⌘C</kbd> (<kbd>Ctrl+Shift+C</kbd> sous Windows et Linux) ; pour coller, sur <kbd>⌘V</kbd> (<kbd>Ctrl+Shift+V</kbd> sous Windows et Linux).
+
+Pour ouvrir un lien affiché par le terminal, maintenez <kbd>⌘</kbd> et cliquez dessus (<kbd>Ctrl</kbd>+clic sous Windows et Linux) : il s’ouvre dans votre navigateur par défaut. Cela marche pour les adresses web écrites en texte et pour les hyperliens qu’affichent certains programmes (par exemple `ls --hyperlink`). Seuls les liens `http://` et `https://` s’ouvrent ; un clic simple reste un clic dans le terminal. Si le navigateur ne peut pas être ouvert, yaggui affiche « Le navigateur n'a pas pu être ouvert. »
 
 Le terminal suit le thème de couleurs de l’application, la police du code et la taille du texte des Préférences. Le thème de couleurs **Terminal** lui donne un fond presque noir. Voir [Apparence](../../customize/appearance/).
 

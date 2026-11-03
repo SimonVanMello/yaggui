@@ -7,7 +7,7 @@ use tauri_plugin_dialog::DialogExt;
 use super::blocking;
 use crate::git::errors::YagguiError;
 use crate::state::AppState;
-use crate::system::terminal;
+use crate::system::{editor, terminal};
 
 /// Opens the configured terminal (or the system default) in the repository worktree (F-266).
 /// Returns the program that was started.
@@ -24,6 +24,14 @@ pub async fn open_terminal(
         terminal::open(&workdir, preference.as_deref())
     })
     .await
+}
+
+/// Opens a link clicked in the integrated terminal in the default browser (`http(s)` only):
+/// `browserFailed`.
+#[tauri::command]
+#[specta::specta]
+pub async fn open_link(url: String) -> Result<(), YagguiError> {
+    blocking(move || editor::open_link(&url)).await
 }
 
 /// Shows the native folder picker (F-001). `None` when the user cancels.

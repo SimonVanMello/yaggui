@@ -219,3 +219,38 @@ for (const { name: theme, colorScheme } of THEMES) {
     });
   });
 }
+
+test.describe('links', () => {
+  test.use({ colorScheme: 'dark', locale: 'en-US', viewport: { width: 1280, height: 860 } });
+
+  test('Ctrl+click opens a link in the browser, a plain click does not', async ({ page }) => {
+    const url = 'https://github.com/yaggui/yaggui/pull/42';
+    await start(page);
+    await openRepo(page, 'yaggui');
+    await page.keyboard.press('Control+`');
+    await expect(screen(page)).toContainText('yaggui $');
+    await runCommand(page, `echo ${url}`);
+    // The output line, not the command line that echoes it.
+    const output = screen(page)
+      .locator(':scope > div')
+      .filter({ hasText: new RegExp(`^${url}`) });
+    await expect(output).toBeVisible();
+    const box = await output.boundingBox();
+    if (!box) throw new Error('no output line');
+    const opened = () => page.evaluate(() => window.__yagguiMock?.openedLinks ?? []);
+    // The emulator's layers cover the rows: the mouse goes to the screen, not to the line.
+    const x = box.x + 60;
+    const y = box.y + box.height / 2;
+
+    await page.mouse.move(x, y);
+    await page.mouse.click(x, y);
+    await page.waitForTimeout(200);
+    expect(await opened()).toEqual([]);
+
+    await page.keyboard.down('Control');
+    await page.mouse.move(x + 10, y);
+    await page.mouse.click(x + 10, y);
+    await page.keyboard.up('Control');
+    await expect.poll(opened).toEqual([url]);
+  });
+});
