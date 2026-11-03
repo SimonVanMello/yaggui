@@ -199,6 +199,37 @@ pub fn open_url(url: &str) -> Result<(), YagguiError> {
     if !url.starts_with("https://") {
         return Err(YagguiError::internal(format!("not a web page: {url}")));
     }
+    spawn_browser(url)
+}
+
+/// Longest link the terminal may open: beyond, it is more likely garbage than an address.
+const MAX_LINK_LEN: usize = 8192;
+
+/// Whether `url` is a link the terminal may hand to the system opener: `http://` or
+/// `https://` only, without whitespace or control characters. The terminal shows output of
+/// any program, a hostile repository's included, and the opener runs whatever it is given
+/// (`file://` to a script, a custom scheme registered by an application).
+pub fn is_web_link(url: &str) -> bool {
+    let Some((scheme, rest)) = url.split_once("://") else {
+        return false;
+    };
+    (scheme.eq_ignore_ascii_case("http") || scheme.eq_ignore_ascii_case("https"))
+        && !rest.is_empty()
+        && url.len() <= MAX_LINK_LEN
+        && !url.chars().any(|c| c.is_whitespace() || c.is_control())
+}
+
+/// Opens a link clicked in the integrated terminal in the default browser, without waiting.
+pub fn open_link(url: &str) -> Result<(), YagguiError> {
+    if !is_web_link(url) {
+        return Err(YagguiError::internal(
+            "the terminal only opens http(s) links",
+        ));
+    }
+    spawn_browser(url)
+}
+
+fn spawn_browser(url: &str) -> Result<(), YagguiError> {
     let os = Os::current();
     let (mut program, args) = url_command(os, url);
     if os == Os::Windows
@@ -291,6 +322,38 @@ mod tests {
         }
         assert_eq!(
             open_url("file:///etc/passwd").map_err(|err| err.code),
+            Err(crate::git::errors::ErrorCode::Internal)
+        );
+    }
+
+    #[test]
+    fn the_terminal_only_opens_web_links() {
+        for url in [
+            "https://example.com/a?b=c#d",
+            "http://localhost:5173/",
+            "HTTPS://example.com",
+        ] {
+            assert!(is_web_link(url), "{url}");
+        }
+        for url in [
+            "file:///etc/passwd",
+            "javascript:alert(1)",
+            "vscode://file/x",
+            "https://",
+            "https://a b",
+            "https://a\nb",
+            "https://a\u{7}",
+            "example.com",
+            "",
+        ] {
+            assert!(!is_web_link(url), "{url:?}");
+        }
+        assert!(!is_web_link(&format!(
+            "https://{}",
+            "a".repeat(MAX_LINK_LEN)
+        )));
+        assert_eq!(
+            open_link("file:///etc/passwd").map_err(|err| err.code),
             Err(crate::git::errors::ErrorCode::Internal)
         );
     }

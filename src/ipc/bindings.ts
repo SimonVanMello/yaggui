@@ -147,6 +147,11 @@ export const commands = {
 	 *  Returns the program that was started.
 	 */
 	openTerminal: (repoId: number) => typedError<string, YagguiError>(__TAURI_INVOKE("open_terminal", { repoId })),
+	/**
+	 *  Opens a link clicked in the integrated terminal in the default browser (`http(s)` only):
+	 *  `browserFailed`.
+	 */
+	openLink: (url: string) => typedError<null, YagguiError>(__TAURI_INVOKE("open_link", { url })),
 	/**  Shows the native folder picker (F-001). `None` when the user cancels. */
 	pickRepoFolder: (title: string) => typedError<string | null, YagguiError>(__TAURI_INVOKE("pick_repo_folder", { title })),
 	/**

@@ -1,4 +1,5 @@
 import { FitAddon } from '@xterm/addon-fit';
+import { WebLinksAddon } from '@xterm/addon-web-links';
 import { Terminal, type ITheme } from '@xterm/xterm';
 import '@xterm/xterm/css/xterm.css';
 
@@ -14,6 +15,7 @@ import {
 } from '../../ipc';
 import { platform } from '../../ui/platform';
 import { matchBinding } from '../keybindings/registry';
+import { isLinkClick, openTerminalLink } from './terminalLinks';
 import { TERMINAL_ATTRIBUTE, TERMINAL_PASSTHROUGH, TERMINAL_REPO_ATTRIBUTE } from './terminalFocus';
 import { repoTerminals, useTerminalStore } from './terminalStore';
 
@@ -286,6 +288,12 @@ function asYagguiError(failure: unknown): YagguiError {
   };
 }
 
+function followLink(event: MouseEvent, uri: string): void {
+  if (!isLinkClick(event, platform)) return;
+  event.preventDefault();
+  void openTerminalLink(uri);
+}
+
 function createSession(
   repoId: number | null,
   start: StartPty,
@@ -300,9 +308,13 @@ function createSession(
     cursorBlink: true,
     allowProposedApi: false,
     macOptionIsMeta: false,
+    // Hyperlinks a program writes with OSC 8 (`ls --hyperlink`, `gh`…).
+    linkHandler: { activate: followLink },
   });
   const fit = new FitAddon();
   term.loadAddon(fit);
+  // Addresses written as plain text.
+  term.loadAddon(new WebLinksAddon(followLink));
   const host = document.createElement('div');
   host.className = 'yaggui-terminal-host';
   host.setAttribute(TERMINAL_ATTRIBUTE, id);

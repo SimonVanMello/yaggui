@@ -488,6 +488,8 @@ export class MockBackend {
   pendingCrashes: CrashSummary[] = [];
   logsFolderOpens = 0;
   issueTrackerOpens = 0;
+  /** Links opened from the terminal, for tests. */
+  openedLinks: string[] = [];
   /** Calls of `logFrontendError`, for tests. */
   readonly frontendErrors: { kind: string; message: string; stack: string | null }[] = [];
   /** Exit code of the fake package manager of `updateInTerminal`, for tests. */
@@ -637,6 +639,7 @@ export class MockBackend {
     this.pendingCrashes = [];
     this.logsFolderOpens = 0;
     this.issueTrackerOpens = 0;
+    this.openedLinks = [];
     this.frontendErrors.length = 0;
     this.upgradeExitCode = 0;
     this.restarts = 0;
@@ -3219,6 +3222,10 @@ export class MockBackend {
     bugReport: () => ok(mockBugReport(this.log)),
     openIssueTracker: () => {
       this.issueTrackerOpens += 1;
+      return ok(null);
+    },
+    openLink: (url) => {
+      this.openedLinks.push(url);
       return ok(null);
     },
     logFrontendError: (kind, message, stack) => {
