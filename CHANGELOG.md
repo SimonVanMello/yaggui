@@ -9,6 +9,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-11-05
+
+### Added
+
+- Links in the integrated terminal open in your default browser with ⌘+click (Ctrl+click on
+  Windows and Linux), for web addresses written as text and for the hyperlinks some programs print.
+  Only `http://` and `https://` links open (#105).
+
 ## [0.13.0] - 2026-10-30
 
 ### Added
