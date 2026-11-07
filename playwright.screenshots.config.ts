@@ -10,7 +10,7 @@ export default defineConfig({
   workers: 1,
   reporter: [['list']],
   use: {
-    baseURL: 'http://localhost:1430',
+    baseURL: `http://localhost:${process.env.YAGGUI_MOCK_PORT ?? '1430'}`,
     locale: 'en-US',
     launchOptions: executablePath ? { executablePath } : {},
   },
@@ -22,7 +22,7 @@ export default defineConfig({
   ],
   webServer: {
     command: 'pnpm dev',
-    url: 'http://localhost:1430',
+    url: `http://localhost:${process.env.YAGGUI_MOCK_PORT ?? '1430'}`,
     reuseExistingServer: !process.env.CI,
   },
 });

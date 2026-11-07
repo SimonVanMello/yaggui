@@ -8,7 +8,9 @@ import { xtermCsp } from './vite/xtermCsp';
 const host = process.env.TAURI_DEV_HOST;
 
 // `pnpm dev` (mock) gets its own port so Playwright never reuses a `pnpm tauri dev` server.
-const MOCK_PORT = 1430;
+// `YAGGUI_MOCK_PORT` moves it, for several checkouts tested side by side (playwright.config.ts
+// reads the same variable).
+const MOCK_PORT = Number(process.env.YAGGUI_MOCK_PORT ?? 1430);
 const TAURI_PORT = 1420;
 
 export default defineConfig(({ mode }) => ({
