@@ -46,6 +46,8 @@ describe('loadPreferences', () => {
       locale: 'fr',
       terminal: null,
       diffView: 'split',
+      // The mock has repositories: an existing installation, settled on the first read.
+      onboarded: true,
     });
   });
 
@@ -61,6 +63,7 @@ describe('loadPreferences', () => {
       diffOptions: DEFAULT_PREFERENCES.diffOptions,
       // The mock answered the update question, see DEFAULT_MOCK_PREFERENCES.
       checkUpdates: false,
+      onboarded: true,
     });
     expect(localStorage.getItem(LEGACY_THEME_KEY)).toBeNull();
     expect(localStorage.getItem(LEGACY_LOCALE_KEY)).toBeNull();

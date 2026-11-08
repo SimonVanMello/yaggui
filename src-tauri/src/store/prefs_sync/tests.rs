@@ -31,6 +31,8 @@ fn export_leaves_machine_specific_settings_out() {
         diff_tool: Some("meld".into()),
         merge_tool: Some("meld".into()),
         check_updates: Some(true),
+        onboarded: true,
+        last_seen_version: Some("0.1.0".into()),
         font_size: 15,
         ..Preferences::default()
     };

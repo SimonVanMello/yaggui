@@ -224,6 +224,9 @@ fn stores_preferences() {
         gravatar: true,
         remote_tags: true,
         check_updates: Some(true),
+        onboarded: true,
+        last_seen_version: Some("0.14.0".into()),
+        show_whats_new: false,
     };
     assert_eq!(store.set_preferences(&prefs).unwrap(), prefs);
     // The same values after reopening: they are in the database, not in memory.
@@ -233,9 +236,75 @@ fn stores_preferences() {
         terminal: None,
         // Back to "never asked" is stored too, not mistaken for a missing value.
         check_updates: None,
+        last_seen_version: None,
         ..prefs
     };
     assert_eq!(store.set_preferences(&cleared).unwrap(), cleared);
+}
+
+#[test]
+fn a_fresh_store_shows_the_first_launch_screen_and_whats_new() {
+    let store = store();
+    let prefs = store.preferences().unwrap();
+    assert!(!prefs.onboarded);
+    assert_eq!(prefs.last_seen_version, None);
+    assert!(prefs.show_whats_new);
+    // Nothing tells an earlier launch apart: the screen stays due.
+    assert!(!store.settle_onboarding().unwrap());
+    assert!(!store.preferences().unwrap().onboarded);
+}
+
+#[test]
+fn an_existing_installation_skips_the_first_launch_screen() {
+    // Known repositories: yaggui ran here before the screen existed.
+    let with_repo = store();
+    with_repo.touch_repo("/tmp/a", "a").unwrap();
+    assert!(with_repo.settle_onboarding().unwrap());
+    assert!(with_repo.preferences().unwrap().onboarded);
+    assert!(!with_repo.settle_onboarding().unwrap());
+
+    // The update question was answered, even with every repository forgotten since.
+    let answered = store();
+    answered
+        .set_preferences(&Preferences {
+            check_updates: Some(false),
+            ..Preferences::default()
+        })
+        .unwrap();
+    assert!(answered.settle_onboarding().unwrap());
+    assert!(answered.preferences().unwrap().onboarded);
+}
+
+#[test]
+fn last_seen_version_is_trimmed_and_checked() {
+    let store = store();
+    let stored = store
+        .set_preferences(&Preferences {
+            last_seen_version: Some(" 0.14.0 ".into()),
+            ..Preferences::default()
+        })
+        .unwrap();
+    assert_eq!(stored.last_seen_version.as_deref(), Some("0.14.0"));
+    let blank = store
+        .set_preferences(&Preferences {
+            last_seen_version: Some("  ".into()),
+            ..Preferences::default()
+        })
+        .unwrap();
+    assert_eq!(blank.last_seen_version, None);
+    for bad in ["1 2".to_owned(), "9".repeat(65)] {
+        let err = store
+            .set_preferences(&Preferences {
+                last_seen_version: Some(bad.clone()),
+                ..Preferences::default()
+            })
+            .unwrap_err();
+        assert_eq!(
+            err.code,
+            crate::git::errors::ErrorCode::InvalidArgument,
+            "{bad}"
+        );
+    }
 }
 
 #[test]

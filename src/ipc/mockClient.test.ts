@@ -89,16 +89,28 @@ describe('mockClient', () => {
       locale: 'fr',
       terminal: null,
       diffView: 'split',
+      // The fixtures have repositories: an existing installation, settled on the first read.
+      onboarded: true,
     });
   });
 
   it('migrates legacy preferences only once', async () => {
     await expect(
       unwrap(mock.migrateLegacyPreferences({ theme: 'light', locale: null })),
-    ).resolves.toEqual({ ...DEFAULT_PREFERENCES, theme: 'light', checkUpdates: false });
+    ).resolves.toEqual({
+      ...DEFAULT_PREFERENCES,
+      theme: 'light',
+      checkUpdates: false,
+      onboarded: true,
+    });
     await expect(
       unwrap(mock.migrateLegacyPreferences({ theme: 'dark', locale: 'fr' })),
-    ).resolves.toEqual({ ...DEFAULT_PREFERENCES, theme: 'light', checkUpdates: false });
+    ).resolves.toEqual({
+      ...DEFAULT_PREFERENCES,
+      theme: 'light',
+      checkUpdates: false,
+      onboarded: true,
+    });
   });
 });
 

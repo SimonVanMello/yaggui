@@ -7,7 +7,8 @@ use tauri_plugin_dialog::DialogExt;
 use super::blocking;
 use crate::git::errors::YagguiError;
 use crate::state::AppState;
-use crate::system::{editor, terminal};
+use crate::store::Locale;
+use crate::system::{docs, editor, terminal};
 
 /// Opens the configured terminal (or the system default) in the repository worktree (F-266).
 /// Returns the program that was started.
@@ -32,6 +33,14 @@ pub async fn open_terminal(
 #[specta::specta]
 pub async fn open_link(url: String) -> Result<(), YagguiError> {
     blocking(move || editor::open_link(&url)).await
+}
+
+/// Opens a page of the user documentation in the browser, in `locale`: `page` is its path under
+/// `/docs/` (`start-here/install`), empty for the docs home. `browserFailed`.
+#[tauri::command]
+#[specta::specta]
+pub async fn open_docs(page: String, locale: Locale) -> Result<(), YagguiError> {
+    blocking(move || docs::open(&page, locale)).await
 }
 
 /// Shows the native folder picker (F-001). `None` when the user cancels.

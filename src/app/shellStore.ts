@@ -27,6 +27,8 @@ interface ShellStore {
   terminalDialogOpen: boolean;
   /** "What's new": the release notes embedded in the app. */
   changelogOpen: boolean;
+  /** First launch screen (language, theme, Git, updates, shortcuts). */
+  firstRunOpen: boolean;
   setLogOpen: (open: boolean) => void;
   toggleLog: () => void;
   setLogHeight: (height: number) => void;
@@ -44,6 +46,7 @@ interface ShellStore {
   setPreferencesOpen: (open: boolean, tab?: string) => void;
   setShortcutsOpen: (open: boolean) => void;
   setChangelogOpen: (open: boolean) => void;
+  setFirstRunOpen: (open: boolean) => void;
 }
 
 export const LOG_HEIGHT = { min: 140, max: 640, default: 260 };
@@ -61,6 +64,7 @@ export const useShellStore = create<ShellStore>()((set) => ({
   preferencesTab: null,
   shortcutsOpen: false,
   changelogOpen: false,
+  firstRunOpen: false,
   setLogOpen: (logOpen) => {
     set({ logOpen });
   },
@@ -108,5 +112,8 @@ export const useShellStore = create<ShellStore>()((set) => ({
   },
   setChangelogOpen: (changelogOpen) => {
     set({ changelogOpen });
+  },
+  setFirstRunOpen: (firstRunOpen) => {
+    set({ firstRunOpen });
   },
 }));

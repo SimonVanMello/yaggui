@@ -1,3 +1,5 @@
+import { useEffect, useRef } from 'react';
+
 import { useI18nStore } from '../../i18n/i18n';
 import { useT } from '../../i18n/useT';
 import type { ChangelogRelease } from '../../ipc';
@@ -16,8 +18,16 @@ export function ReleaseSection({
   const t = useT();
   const locale = useI18nStore((state) => state.locale);
   const key = releaseKey(release);
+  const ref = useRef<HTMLElement>(null);
+  // The dialog opens on the installed version: after an update, its changes come first.
+  useEffect(() => {
+    if (installed && typeof ref.current?.scrollIntoView === 'function') {
+      ref.current.scrollIntoView({ block: 'start' });
+    }
+  }, [installed]);
   return (
     <section
+      ref={ref}
       className={styles.release}
       data-installed={installed || undefined}
       aria-labelledby={`changelog-${key}`}

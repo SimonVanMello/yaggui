@@ -1,7 +1,7 @@
 import { isDemo } from '../demo/isDemo';
 import { openSampleRepo } from '../demo/startDemo';
 import { useKeybindings } from '../features/keybindings/keybindingsStore';
-import { checkForUpdatesAtStartup } from '../features/updates/updates';
+import { runLaunchScreens } from '../features/onboarding/launchScreens';
 import { notifyPendingCrashes } from '../features/diagnostics/diagnostics';
 import { startActivityFeed } from '../features/activity/activityStore';
 import { startAutoFetch } from '../features/network/autoFetch';
@@ -165,7 +165,8 @@ export function startup(): Promise<void> {
       });
     } else {
       void notifyPendingCrashes();
-      checkForUpdatesAtStartup();
+      // First-launch screen, update check, "What's new" after an update.
+      void runLaunchScreens();
     }
   })();
   return started;

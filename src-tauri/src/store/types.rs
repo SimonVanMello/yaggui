@@ -148,6 +148,18 @@ pub struct Preferences {
     /// one-time question: the check is opt-in, nothing is asked of GitHub before.
     #[serde(default)]
     pub check_updates: Option<bool>,
+    // First launch screen and "What's new" after an update.
+    /// The first-launch screen was closed, or yaggui ran here before it existed. Machine state,
+    /// not a setting: never exported.
+    #[serde(default)]
+    pub onboarded: bool,
+    /// Version of yaggui at the last launch, to open "What's new" once after an update. `None`
+    /// until a launch records it. Machine state, never exported.
+    #[serde(default)]
+    pub last_seen_version: Option<String>,
+    /// Open "What's new" at the first launch after an update.
+    #[serde(default = "default_true")]
+    pub show_whats_new: bool,
 }
 
 pub const FONT_SIZE_RANGE: std::ops::RangeInclusive<u8> = 11..=18;
@@ -163,6 +175,8 @@ pub const DEFAULT_DARK_THEME: &str = "graphite";
 /// The color theme that the former Terminal style (one style for shape and colors) maps to.
 pub const TERMINAL_THEME: &str = "terminal";
 const MAX_THEME_ID: usize = 64;
+/// Longest accepted `last_seen_version` (`1.2.3-beta.4+build`…).
+const MAX_VERSION_TEXT: usize = 64;
 
 fn default_light_theme() -> String {
     DEFAULT_LIGHT_THEME.to_owned()
@@ -170,6 +184,10 @@ fn default_light_theme() -> String {
 
 fn default_dark_theme() -> String {
     DEFAULT_DARK_THEME.to_owned()
+}
+
+fn default_true() -> bool {
+    true
 }
 
 /// A theme id ends up in a `data-theme` attribute and a CSS selector: lowercase words only.
@@ -217,6 +235,9 @@ impl Default for Preferences {
             gravatar: false,
             remote_tags: false,
             check_updates: None,
+            onboarded: false,
+            last_seen_version: None,
+            show_whats_new: true,
         }
     }
 }
@@ -261,6 +282,20 @@ impl Preferences {
             .take()
             .map(|p| p.trim().to_owned())
             .filter(|p| !p.is_empty());
+        prefs.last_seen_version = prefs
+            .last_seen_version
+            .take()
+            .map(|v| v.trim().to_owned())
+            .filter(|v| !v.is_empty());
+        if let Some(version) = &prefs.last_seen_version
+            && (version.len() > MAX_VERSION_TEXT
+                || version.chars().any(|c| c.is_whitespace() || c.is_control()))
+        {
+            return Err(YagguiError::invalid_argument(
+                format!("\"{version}\" is not a valid version."),
+                format!("« {version} » n'est pas une version valide."),
+            ));
+        }
 
         let mut branches: Vec<String> = Vec::new();
         for pattern in &prefs.protected_branches {

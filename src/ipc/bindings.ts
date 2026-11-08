@@ -157,6 +157,11 @@ export const commands = {
 	 *  `browserFailed`.
 	 */
 	openLink: (url: string) => typedError<null, YagguiError>(__TAURI_INVOKE("open_link", { url })),
+	/**
+	 *  Opens a page of the user documentation in the browser, in `locale`: `page` is its path under
+	 *  `/docs/` (`start-here/install`), empty for the docs home. `browserFailed`.
+	 */
+	openDocs: (page: string, locale: Locale) => typedError<null, YagguiError>(__TAURI_INVOKE("open_docs", { page, locale })),
 	/**  Shows the native folder picker (F-001). `None` when the user cancels. */
 	pickRepoFolder: (title: string) => typedError<string | null, YagguiError>(__TAURI_INVOKE("pick_repo_folder", { title })),
 	/**
@@ -2898,6 +2903,18 @@ export type Preferences = {
 	 *  one-time question: the check is opt-in, nothing is asked of GitHub before.
 	 */
 	checkUpdates?: boolean | null,
+	/**
+	 *  The first-launch screen was closed, or yaggui ran here before it existed. Machine state,
+	 *  not a setting: never exported.
+	 */
+	onboarded?: boolean,
+	/**
+	 *  Version of yaggui at the last launch, to open "What's new" once after an update. `None`
+	 *  until a launch records it. Machine state, never exported.
+	 */
+	lastSeenVersion?: string | null,
+	/**  Open "What's new" at the first launch after an update. */
+	showWhatsNew?: boolean,
 };
 
 export type PreferencesImportPreview = {

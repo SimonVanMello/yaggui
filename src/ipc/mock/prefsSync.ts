@@ -38,6 +38,7 @@ const PORTABLE = [
   'disabledConfirmations',
   'gravatar',
   'remoteTags',
+  'showWhatsNew',
 ] as const satisfies readonly (keyof Preferences)[];
 
 const MACHINE_SPECIFIC = [
@@ -47,6 +48,8 @@ const MACHINE_SPECIFIC = [
   'diffTool',
   'mergeTool',
   'checkUpdates',
+  'onboarded',
+  'lastSeenVersion',
 ] as const satisfies readonly (keyof Preferences)[];
 
 type Json = Record<string, unknown>;
@@ -98,6 +101,7 @@ const SHAPES: Record<(typeof PORTABLE)[number], (v: unknown) => boolean> = {
   disabledConfirmations: listOf(oneOf('discardChanges', 'deleteTag', 'dropStash', 'forcePush')),
   gravatar: isBool,
   remoteTags: isBool,
+  showWhatsNew: isBool,
 };
 
 function invalidFile(detail: string): YagguiError {

@@ -95,12 +95,27 @@ export const SETTINGS: readonly SettingEntry[] = [
     label: 'settings.language',
     keywords: 'locale english français',
   },
+  // First launch screen and "What's new" after an update (`showWhatsNew` below).
+  {
+    id: 'firstRun',
+    section: 'general',
+    label: 'prefs.firstRun',
+    hint: 'prefs.firstRun.hint',
+    keywords: 'welcome onboarding bienvenue accueil',
+  },
   {
     id: 'checkUpdates',
     section: 'general',
     label: 'prefs.checkUpdates',
     hint: 'prefs.checkUpdates.hint',
     keywords: 'release',
+  },
+  {
+    id: 'showWhatsNew',
+    section: 'general',
+    label: 'prefs.showWhatsNew',
+    hint: 'prefs.showWhatsNew.hint',
+    keywords: 'changelog release update nouveautés',
   },
   {
     id: 'version',

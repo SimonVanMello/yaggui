@@ -66,8 +66,10 @@ import {
   isMockGitPathValid,
   MockCreator,
   mockGitBinaryInfo,
+  mockGitNotFound,
   normalizePreferences,
 } from './mock/create';
+import { mockDocsUrl } from './mock/docs';
 import {
   appendRule,
   fullMessage,
@@ -364,6 +366,10 @@ const DEFAULT_MOCK_PREFERENCES: Preferences = {
   remoteTags: false,
   // Answered: under the mock, the one-time update question would cover every screen.
   checkUpdates: false,
+  // An existing installation once settled (`settleOnboarding`): `freshInstall()` for a first launch.
+  onboarded: false,
+  lastSeenVersion: null,
+  showWhatsNew: true,
 };
 
 /** Watcher debounce of the real backend: file events reach the UI this long after the change. */
@@ -492,6 +498,13 @@ export class MockBackend {
   issueTrackerOpens = 0;
   /** Links opened from the terminal, for tests. */
   openedLinks: string[] = [];
+  // First launch screen and "What's new" after an update.
+  /** Docs pages opened (`openDocs`), as the addresses the browser would get. */
+  openedDocs: string[] = [];
+  /** `false`: no Git on the system, like a machine where Git is not installed yet. */
+  gitDetected = true;
+  /** Whether the first read ran the startup check of `Store::settle_onboarding`. */
+  private onboardingSettled = false;
   /** Calls of `logFrontendError`, for tests. */
   readonly frontendErrors: { kind: string; message: string; stack: string | null }[] = [];
   /** Exit code of the fake package manager of `updateInTerminal`, for tests. */
@@ -603,6 +616,35 @@ export class MockBackend {
     this.preferences = { ...this.preferences, ...patch };
   }
 
+  /**
+   * A first launch with a fresh config folder: no repository, workspace or tab, default
+   * preferences, update question not answered. Call it before the app starts (Playwright).
+   */
+  freshInstall(): void {
+    this.repos = [];
+    this.workspaces = [];
+    this.tabs = { tabs: [], activeTabId: null };
+    this.preferences = { ...DEFAULT_MOCK_PREFERENCES, checkUpdates: null };
+    this.persist();
+  }
+
+  /** The app was last started at `version` (an update since): "What's new" is due. */
+  previousVersion(version: string): void {
+    this.preferences = { ...this.preferences, onboarded: true, lastSeenVersion: version };
+    this.persist();
+  }
+
+  /** Like `Store::settle_onboarding` at backend startup: here, on the first read. */
+  private settleOnboarding(): void {
+    if (this.onboardingSettled) return;
+    this.onboardingSettled = true;
+    const ranBefore = this.repos.length > 0 || this.preferences.checkUpdates !== null;
+    if (!this.preferences.onboarded && ranBefore) {
+      this.preferences = { ...this.preferences, onboarded: true };
+      this.persist();
+    }
+  }
+
   reset(): void {
     try {
       localStorage.removeItem(MOCK_STORE_KEY);
@@ -642,6 +684,9 @@ export class MockBackend {
     this.logsFolderOpens = 0;
     this.issueTrackerOpens = 0;
     this.openedLinks = [];
+    this.openedDocs = [];
+    this.gitDetected = true;
+    this.onboardingSettled = false;
     this.frontendErrors.length = 0;
     this.upgradeExitCode = 0;
     this.restarts = 0;
@@ -3219,7 +3264,10 @@ export class MockBackend {
   }
 
   readonly commands: YagguiCommands = {
-    appInfo: () => Promise.resolve(mockAppInfo),
+    appInfo: () =>
+      Promise.resolve(
+        this.gitDetected ? mockAppInfo : { ...mockAppInfo, gitVersion: null, gitSupported: false },
+      ),
     launchPath: () => Promise.resolve(null),
     changelog: () => Promise.resolve(structuredClone(mockChangelog)),
     pendingCrashReports: () => ok(this.pendingCrashes.map((crash) => ({ ...crash }))),
@@ -3238,6 +3286,17 @@ export class MockBackend {
     },
     openLink: (url) => {
       this.openedLinks.push(url);
+      return ok(null);
+    },
+    openDocs: (page, locale) => {
+      const url = mockDocsUrl(page, locale);
+      if (url === null) {
+        return fail({
+          ...mockError('internal', 'Unexpected error.', 'Erreur inattendue.'),
+          detail: `not a docs page: ${page}`,
+        });
+      }
+      this.openedDocs.push(url);
       return ok(null);
     },
     logFrontendError: (kind, message, stack) => {
@@ -3527,7 +3586,10 @@ export class MockBackend {
       }
       return ok(null);
     },
-    getPreferences: () => ok({ ...this.preferences }),
+    getPreferences: () => {
+      this.settleOnboarding();
+      return ok({ ...this.preferences });
+    },
     setPreferences: (preferences) => {
       const terminal = preferences.terminal?.trim() ?? '';
       const normalized = normalizePreferences({ ...preferences, terminal: terminal || null });
@@ -3578,6 +3640,7 @@ export class MockBackend {
       return ok({ preferences: { ...this.preferences }, keybindings: failure });
     },
     migrateLegacyPreferences: (legacy: LegacyPreferences) => {
+      this.settleOnboarding();
       if (!this.legacyMigrated) {
         this.legacyMigrated = true;
         this.preferences = {
@@ -4736,7 +4799,8 @@ export class MockBackend {
         { cancellable: true, delayMs: 1500 },
       );
     },
-    gitBinaryInfo: (path) => ok(mockGitBinaryInfo(path)),
+    gitBinaryInfo: (path) =>
+      ok(path === null && !this.gitDetected ? mockGitNotFound() : mockGitBinaryInfo(path)),
     newRepoDefaults: () => ok(this.creator.defaults()),
     cloneRepo: (request) => this.creator.clone(request),
     cancelClone: (cloneId) => {
