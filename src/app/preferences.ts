@@ -57,6 +57,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   gravatar: false,
   remoteTags: false,
   checkUpdates: null,
+  zoom: 100,
 };
 
 let current: Preferences = DEFAULT_PREFERENCES;

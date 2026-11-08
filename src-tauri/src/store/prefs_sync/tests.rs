@@ -31,6 +31,7 @@ fn export_leaves_machine_specific_settings_out() {
         diff_tool: Some("meld".into()),
         merge_tool: Some("meld".into()),
         check_updates: Some(true),
+        zoom: 150,
         font_size: 15,
         ..Preferences::default()
     };
@@ -80,6 +81,7 @@ fn export_then_import_round_trips() {
     target
         .set_preferences(&Preferences {
             editor: Some("vim".into()),
+            zoom: 90,
             ..Preferences::default()
         })
         .unwrap();
@@ -95,6 +97,7 @@ fn export_then_import_round_trips() {
     assert_eq!(applied.preferences, target.preferences().unwrap());
     // A machine-specific setting of the target is untouched.
     assert_eq!(applied.preferences.editor.as_deref(), Some("vim"));
+    assert_eq!(applied.preferences.zoom, 90);
     assert_eq!(applied.keybindings.overrides.len(), 2);
     assert!(
         preview_from(&file, &target, target_dir.path())
@@ -133,7 +136,7 @@ fn machine_specific_and_unknown_keys_are_ignored_and_listed() {
     let path = write_file(
         &dir,
         r#"{"format":"yaggui-preferences","version":1,"preferences":
-            {"gitPath":"/usr/bin/git","editor":"code","futureSetting":1,"prune":false}}"#,
+            {"gitPath":"/usr/bin/git","editor":"code","zoom":150,"futureSetting":1,"prune":false}}"#,
     );
     let preview = preview_from(&path, &store, dir.path()).unwrap();
     assert_eq!(preview.changes.len(), 1);
@@ -144,12 +147,14 @@ fn machine_specific_and_unknown_keys_are_ignored_and_listed() {
         .collect();
     assert!(ignored.contains(&("gitPath", IgnoredReason::MachineSpecific)));
     assert!(ignored.contains(&("editor", IgnoredReason::MachineSpecific)));
+    assert!(ignored.contains(&("zoom", IgnoredReason::MachineSpecific)));
     assert!(ignored.contains(&("futureSetting", IgnoredReason::Unknown)));
     apply_from(&path, &store, dir.path()).unwrap();
     let prefs = store.preferences().unwrap();
     assert!(!prefs.prune);
     assert_eq!(prefs.git_path, None);
     assert_eq!(prefs.editor, None);
+    assert_eq!(prefs.zoom, 100);
 }
 
 #[test]

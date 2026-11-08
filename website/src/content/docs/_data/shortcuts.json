@@ -370,6 +370,51 @@
           ]
         },
         {
+          "id": "view.zoomIn",
+          "title": {
+            "en": "Zoom in",
+            "fr": "Zoom avant"
+          },
+          "mac": [
+            "⌘",
+            "="
+          ],
+          "other": [
+            "Ctrl",
+            "="
+          ]
+        },
+        {
+          "id": "view.zoomOut",
+          "title": {
+            "en": "Zoom out",
+            "fr": "Zoom arrière"
+          },
+          "mac": [
+            "⌘",
+            "-"
+          ],
+          "other": [
+            "Ctrl",
+            "-"
+          ]
+        },
+        {
+          "id": "view.zoomReset",
+          "title": {
+            "en": "Reset the zoom (100 %)",
+            "fr": "Réinitialiser le zoom (100 %)"
+          },
+          "mac": [
+            "⌘",
+            "0"
+          ],
+          "other": [
+            "Ctrl",
+            "0"
+          ]
+        },
+        {
           "id": "graph.toggleFirstParent",
           "title": {
             "en": "Graph: turn first-parent history on or off",
@@ -384,6 +429,23 @@
             "Ctrl",
             "Alt",
             "R"
+          ]
+        },
+        {
+          "id": "view.zoomInAlt",
+          "title": {
+            "en": "Zoom in (+ key)",
+            "fr": "Zoom avant (touche +)"
+          },
+          "mac": [
+            "⌘",
+            "⇧",
+            "="
+          ],
+          "other": [
+            "Ctrl",
+            "Shift",
+            "="
           ]
         }
       ]

@@ -145,12 +145,18 @@ pub struct Preferences {
     /// one-time question: the check is opt-in, nothing is asked of GitHub before.
     #[serde(default)]
     pub check_updates: Option<bool>,
+    /// Zoom of the whole interface, in percent, within `ZOOM_RANGE`. Machine-specific: it
+    /// depends on the screen, so it is not carried by the preferences export.
+    #[serde(default = "default_zoom")]
+    pub zoom: u16,
 }
 
 pub const FONT_SIZE_RANGE: std::ops::RangeInclusive<u8> = 11..=18;
 pub const AUTO_FETCH_RANGE: std::ops::RangeInclusive<u32> = 1..=240;
 pub const DEFAULT_FONT_SIZE: u8 = 13;
 pub const DEFAULT_AUTO_FETCH_MINUTES: u32 = 10;
+pub const ZOOM_RANGE: std::ops::RangeInclusive<u16> = 80..=150;
+pub const DEFAULT_ZOOM: u16 = 100;
 pub const DEFAULT_PROTECTED_BRANCHES: [&str; 4] = ["main", "master", "develop", "release/*"];
 /// Longest accepted font family or protected branch pattern.
 pub const MAX_PREF_TEXT: usize = 200;
@@ -167,6 +173,10 @@ fn default_light_theme() -> String {
 
 fn default_dark_theme() -> String {
     DEFAULT_DARK_THEME.to_owned()
+}
+
+fn default_zoom() -> u16 {
+    DEFAULT_ZOOM
 }
 
 /// A theme id ends up in a `data-theme` attribute and a CSS selector: lowercase words only.
@@ -214,6 +224,7 @@ impl Default for Preferences {
             gravatar: false,
             remote_tags: false,
             check_updates: None,
+            zoom: DEFAULT_ZOOM,
         }
     }
 }
@@ -229,6 +240,14 @@ impl Preferences {
                 "Taille de police",
                 *FONT_SIZE_RANGE.start(),
                 *FONT_SIZE_RANGE.end(),
+            ));
+        }
+        if !ZOOM_RANGE.contains(&prefs.zoom) {
+            return Err(range_error(
+                "Zoom (%)",
+                "Zoom (%)",
+                *ZOOM_RANGE.start(),
+                *ZOOM_RANGE.end(),
             ));
         }
         if !AUTO_FETCH_RANGE.contains(&prefs.auto_fetch_minutes) {

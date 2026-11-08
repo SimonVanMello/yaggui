@@ -34,6 +34,16 @@ export function registerBuiltinBindings(): () => void {
             },
           }),
         ]),
+    // Zoom in: ⌘= is the default (`view.zoomIn`); ⌘⇧= is what "⌘+" means on a US layout.
+    registerBinding({
+      id: 'view.zoomInAlt',
+      title: 'keybindings.action.zoomInAlt',
+      group: 'view',
+      defaultShortcut: 'Mod+Shift+=',
+      run: () => {
+        execShellAction('zoomIn');
+      },
+    }),
     ...TAB_NUMBERS.map((n) =>
       registerBinding({
         id: `tab.goto.${String(n)}`,

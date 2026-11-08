@@ -9,6 +9,7 @@ sources:
   - src/features/keybindings/KeybindingsTab.tsx
   - src/app/preferences.ts
   - src/app/appearance.ts
+  - src/features/zoom/**
   - src/app/errors/confirmStore.ts
   - src-tauri/src/store/types.rs
   - src-tauri/src/store/mod.rs
@@ -83,14 +84,15 @@ Voir [Apparence](../../customize/appearance/).
 
 ## Affichage
 
-| Libellé                        | Valeurs                       | Par défaut            | Effet                                                                                                                                                     |
-| ------------------------------ | ----------------------------- | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Police de l'interface**      | Nom d’une police installée    | Vide (Inter)          | Sous **Texte**. Police de l’interface                                                                                                                     |
-| **Police du code**             | Nom d’une police installée    | Vide (JetBrains Mono) | Sous **Texte**. Police des diffs, du code, des SHA et du terminal                                                                                         |
-| **Taille du texte**            | 11 à 18 px                    | 13 px                 | Sous **Texte**. Met à l’échelle tout le texte                                                                                                             |
-| **Densité**                    | **Confortable**, **Compacte** | **Confortable**       | Sous **Texte**. Hauteur de ligne de 28 px ou de 22 px                                                                                                     |
-| **Avatars Gravatar**           | Activé, désactivé             | Désactivé             | Sous **Avatars**. Affiche les photos Gravatar des auteurs. Envoie à gravatar.com le hash SHA-256 de l’e-mail de chaque auteur. Désactivé : aucune requête |
-| **Vider le cache des avatars** | Bouton                        |                       | Sous **Avatars**. Supprime les photos téléchargées (« Cache des avatars vidé »)                                                                           |
+| Libellé                        | Valeurs                       | Par défaut            | Effet                                                                                                                                                                                                                            |
+| ------------------------------ | ----------------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Police de l'interface**      | Nom d’une police installée    | Vide (Inter)          | Sous **Texte**. Police de l’interface                                                                                                                                                                                            |
+| **Police du code**             | Nom d’une police installée    | Vide (JetBrains Mono) | Sous **Texte**. Police des diffs, du code, des SHA et du terminal                                                                                                                                                                |
+| **Taille du texte**            | 11 à 18 px                    | 13 px                 | Sous **Texte**. Met à l’échelle tout le texte                                                                                                                                                                                    |
+| **Zoom**                       | 80, 90, 100, 110, 125, 150 %  | 100 %                 | Sous **Texte**. **Zoom arrière** (−), **Zoom avant** (+) et **Réinitialiser** agrandissent ou réduisent toute la fenêtre. Aussi <kbd>⌘=</kbd>, <kbd>⌘-</kbd>, <kbd>⌘0</kbd> (<kbd>Ctrl</kbd> sous Windows et Linux). Non exporté |
+| **Densité**                    | **Confortable**, **Compacte** | **Confortable**       | Sous **Texte**. Hauteur de ligne de 28 px ou de 22 px                                                                                                                                                                            |
+| **Avatars Gravatar**           | Activé, désactivé             | Désactivé             | Sous **Avatars**. Affiche les photos Gravatar des auteurs. Envoie à gravatar.com le hash SHA-256 de l’e-mail de chaque auteur. Désactivé : aucune requête                                                                        |
+| **Vider le cache des avatars** | Bouton                        |                       | Sous **Avatars**. Supprime les photos téléchargées (« Cache des avatars vidé »)                                                                                                                                                  |
 
 ## Raccourcis
 
@@ -210,7 +212,7 @@ Pour emporter vos préférences et vos raccourcis sur une autre machine à la ma
 ```
 
 - **Préférences exportées :** mode clair / sombre, thème clair, thème sombre, style d’interface, langue, ce qu’ouvre le bouton Terminal, disposition et options du diff, contraste élevé, densité, polices de l’interface et du code, taille du texte, fetch automatique et son intervalle, nettoyage au fetch, stratégie de pull par défaut, branches protégées, confirmations désactivées, avatars Gravatar et tags sur les remotes.
-- **Jamais exportés (propres à une machine) :** le chemin du binaire Git, l’éditeur, le terminal externe, les outils de diff et de merge, et la réponse à la question sur la vérification des mises à jour. Leurs chemins et leurs programmes diffèrent d’une installation à l’autre, et la vérification des mises à jour est un choix que vous faites sur chaque machine. Si un fichier les contient malgré tout, ils sont ignorés et listés sous **Laissé de côté**, et les valeurs de cette machine restent telles quelles.
+- **Jamais exportés (propres à une machine) :** le chemin du binaire Git, l’éditeur, le terminal externe, les outils de diff et de merge, la réponse à la question sur la vérification des mises à jour et le zoom. Leurs chemins et leurs programmes diffèrent d’une installation à l’autre, la vérification des mises à jour est un choix que vous faites sur chaque machine, et le zoom dépend de l’écran. Si un fichier les contient malgré tout, ils sont ignorés et listés sous **Laissé de côté**, et les valeurs de cette machine restent telles quelles.
 - **Raccourcis :** la liste `keybindings` est l’ensemble de vos raccourcis personnalisés. L’importer **remplace** les raccourcis personnalisés de cette machine : une commande que le fichier ne liste pas retrouve son raccourci par défaut. L’aperçu montre chaque changement.
 - **Les préférences absentes du fichier** gardent leur valeur sur cette machine. **Les clés inconnues** (un réglage ajouté par une version plus récente de yaggui, ou une faute de frappe) sont ignorées et listées.
 - Les profils d’identité, les modèles de commit, les dépôts, les onglets et les workspaces ne sont pas des préférences et ne sont jamais exportés.

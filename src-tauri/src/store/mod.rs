@@ -52,6 +52,7 @@ const PREF_DISABLED_CONFIRMATIONS: &str = "disabled_confirmations";
 const PREF_GRAVATAR: &str = "gravatar";
 const PREF_REMOTE_TAGS: &str = "remote_tags";
 const PREF_CHECK_UPDATES: &str = "check_updates";
+const PREF_ZOOM: &str = "zoom";
 /// Folders remembered for the clone / init dialogs.
 const RECENT_DIRS_KEPT: i64 = 10;
 const META_LEGACY_MIGRATED: &str = "legacy_preferences_migrated";
@@ -263,6 +264,7 @@ impl Store {
         load!(gravatar, PREF_GRAVATAR);
         load!(remote_tags, PREF_REMOTE_TAGS);
         load_optional!(check_updates, PREF_CHECK_UPDATES);
+        load!(zoom, PREF_ZOOM);
         load_optional!(ui_font, PREF_UI_FONT);
         load_optional!(code_font, PREF_CODE_FONT);
         load_optional!(git_path, PREF_GIT_PATH);
@@ -278,6 +280,9 @@ impl Store {
         }
         if !AUTO_FETCH_RANGE.contains(&prefs.auto_fetch_minutes) {
             prefs.auto_fetch_minutes = DEFAULT_AUTO_FETCH_MINUTES;
+        }
+        if !ZOOM_RANGE.contains(&prefs.zoom) {
+            prefs.zoom = DEFAULT_ZOOM;
         }
         Ok(prefs)
     }
@@ -320,6 +325,7 @@ impl Store {
             set_pref(&tx, PREF_GRAVATAR, &prefs.gravatar)?;
             set_pref(&tx, PREF_REMOTE_TAGS, &prefs.remote_tags)?;
             set_pref(&tx, PREF_CHECK_UPDATES, &prefs.check_updates)?;
+            set_pref(&tx, PREF_ZOOM, &prefs.zoom)?;
             tx.commit()?;
         }
         self.preferences()

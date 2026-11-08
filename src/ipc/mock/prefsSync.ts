@@ -47,6 +47,7 @@ const MACHINE_SPECIFIC = [
   'diffTool',
   'mergeTool',
   'checkUpdates',
+  'zoom',
 ] as const satisfies readonly (keyof Preferences)[];
 
 type Json = Record<string, unknown>;

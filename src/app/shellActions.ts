@@ -12,6 +12,7 @@ import { openNewTab, selectActiveTab, useTabsStore } from './tabs/tabsStore';
 import { fetchRepo, pullRepo, pushRepo } from '../features/network/networkOps';
 import { OP_HISTORY_EVENT } from '../features/undo/undoEvents';
 import { runUndo } from '../features/undo/undoOps';
+import { resetZoom, zoomIn, zoomOut } from '../features/zoom/zoom';
 import { isTextEntry } from '../ui/textEntry';
 
 function togglePanel(panel: 'sidebar' | 'details'): void {
@@ -62,6 +63,10 @@ export type ShellAction =
   | 'undo'
   | 'redo'
   | 'opHistory'
+  // Zoom of the interface.
+  | 'zoomIn'
+  | 'zoomOut'
+  | 'zoomReset'
   | TabAction;
 
 const tabActions = Object.fromEntries(
@@ -160,6 +165,10 @@ const ACTIONS: Record<ShellAction, () => void> = {
   opHistory: () => {
     if (activeRepoId() !== null) window.dispatchEvent(new Event(OP_HISTORY_EVENT));
   },
+  // Zoom of the interface.
+  zoomIn,
+  zoomOut,
+  zoomReset: resetZoom,
   ...tabActions,
 };
 
@@ -227,6 +236,10 @@ export const SHORTCUTS: { shortcut: string; action: ShellAction }[] = [
   { shortcut: 'Mod+Shift+P', action: 'push' },
   { shortcut: 'Mod+Z', action: 'undo' },
   { shortcut: 'Mod+Shift+Z', action: 'redo' },
+  // Zoom of the interface; ⌘⇧= (⌘+ on a US layout) is a second binding: `view.zoomInAlt`.
+  { shortcut: 'Mod+=', action: 'zoomIn' },
+  { shortcut: 'Mod+-', action: 'zoomOut' },
+  { shortcut: 'Mod+0', action: 'zoomReset' },
 ];
 
 /** Id of the rebindable command (F-281) a shell action stands for. */
@@ -258,6 +271,10 @@ const BINDING_IDS: Record<ShellAction, string> = {
   fetch: 'git.fetch',
   pull: 'git.pull',
   push: 'git.push',
+  // Zoom of the interface.
+  zoomIn: 'view.zoomIn',
+  zoomOut: 'view.zoomOut',
+  zoomReset: 'view.zoomReset',
   ...(Object.fromEntries(TAB_NUMBERS.map((n) => [tabAction(n), `tab.goto.${String(n)}`])) as Record<
     TabAction,
     string

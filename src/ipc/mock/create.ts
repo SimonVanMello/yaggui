@@ -14,6 +14,8 @@ import {
   AUTO_FETCH_MIN_MINUTES,
   FONT_SIZE_MAX,
   FONT_SIZE_MIN,
+  ZOOM_MAX,
+  ZOOM_MIN,
 } from '../bindings';
 import type { IpcResult } from '../result';
 import { authFailed, hostUnreachable, remoteNotFound } from './network';
@@ -46,6 +48,15 @@ export function normalizePreferences(
       error: invalid(
         `Font size must be between ${String(FONT_SIZE_MIN)} and ${String(FONT_SIZE_MAX)}.`,
         `Taille de police : une valeur entre ${String(FONT_SIZE_MIN)} et ${String(FONT_SIZE_MAX)} est attendue.`,
+      ),
+    };
+  }
+  const zoom = prefs.zoom ?? 100;
+  if (zoom < ZOOM_MIN || zoom > ZOOM_MAX) {
+    return {
+      error: invalid(
+        `Zoom (%) must be between ${String(ZOOM_MIN)} and ${String(ZOOM_MAX)}.`,
+        `Zoom (%) : une valeur entre ${String(ZOOM_MIN)} et ${String(ZOOM_MAX)} est attendue.`,
       ),
     };
   }

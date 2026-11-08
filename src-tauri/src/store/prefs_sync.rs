@@ -54,15 +54,16 @@ const PORTABLE: [&str; 21] = [
 ];
 
 /// Settings that only mean something on the machine they were set on: programs and paths
-/// (they differ per OS and install), and the one-time answer about update checks. Never
-/// exported; ignored (and listed) when a file holds them.
-const MACHINE_SPECIFIC: [&str; 6] = [
+/// (they differ per OS and install), the one-time answer about update checks, and the zoom
+/// (it depends on the screen). Never exported; ignored (and listed) when a file holds them.
+const MACHINE_SPECIFIC: [&str; 7] = [
     "gitPath",
     "terminal",
     "editor",
     "diffTool",
     "mergeTool",
     "checkUpdates",
+    "zoom",
 ];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]

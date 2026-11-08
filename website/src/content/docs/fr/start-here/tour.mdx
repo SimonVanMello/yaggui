@@ -12,6 +12,7 @@ sources:
   - src/ui/Toaster.tsx
   - src/ui/toastStore.ts
   - src/ipc/nativeMenu.ts
+  - src/ipc/nativeWindow.ts
   - src-tauri/src/store/repo_ui_state.rs
 requirements: [F-004, F-300, F-301, F-302, F-322]
 ---
@@ -168,13 +169,16 @@ yaggui mémorise, pour chaque dépôt, la taille des panneaux, les panneaux réd
 
 Sous macOS, yaggui a une barre de menus. Windows et Linux n’en ont pas : utilisez la barre d’outils, la palette de commandes (<kbd>Ctrl+K</kbd>) et les raccourcis.
 
-| Menu             | Éléments                                                                                                                                                                                     |
-| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **yaggui**       | À propos de yaggui, **Préférences…**, **Réglage du terminal…**, Services, Masquer yaggui, Masquer les autres, Tout afficher, Quitter yaggui                                                  |
-| **Fichier**      | **Nouvel onglet** (<kbd>⌘T</kbd>), **Ouvrir un dépôt…** (<kbd>⌘O</kbd>), **Cloner un dépôt…**, **Initialiser un dépôt…**, **Fermer l'onglet** (<kbd>⌘W</kbd>)                                |
-| **Édition**      | **Annuler** (<kbd>⌘Z</kbd>), **Rétablir** (<kbd>⇧⌘Z</kbd>), Couper, Copier, Coller, Tout sélectionner                                                                                        |
-| **Présentation** | **Afficher ou masquer le panneau gauche** (<kbd>⌥⌘B</kbd>), **Afficher ou masquer le panneau droit** (<kbd>⌥⌘I</kbd>), **Journal des commandes** (<kbd>⌘J</kbd>), Passer en mode plein écran |
-| **Fenêtre**      | Placer dans le Dock, Réduire/agrandir, **Afficher l'onglet suivant**, **Afficher l'onglet précédent**, Tout ramener au premier plan                                                          |
-| **Aide**         | **Nouveautés de yaggui**, **Journal des commandes**                                                                                                                                          |
+| Menu             | Éléments                                                                                                                                                                                                                                                                                                                                              |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **yaggui**       | À propos de yaggui, **Préférences…**, **Réglage du terminal…**, Services, Masquer yaggui, Masquer les autres, Tout afficher, Quitter yaggui                                                                                                                                                                                                           |
+| **Fichier**      | **Nouvel onglet** (<kbd>⌘T</kbd>), **Ouvrir un dépôt…** (<kbd>⌘O</kbd>), **Cloner un dépôt…**, **Initialiser un dépôt…**, **Ouvrir l'élément récent**, **Fermer l'onglet** (<kbd>⌘W</kbd>)                                                                                                                                                            |
+| **Édition**      | **Annuler** (<kbd>⌘Z</kbd>), **Rétablir** (<kbd>⇧⌘Z</kbd>), Couper, Copier, Coller, Tout sélectionner                                                                                                                                                                                                                                                 |
+| **Dépôt**        | **Fetch** (<kbd>⇧⌘F</kbd>), **Pull** (<kbd>⇧⌘L</kbd>), **Push** (<kbd>⇧⌘P</kbd>), **Nouvelle branche…** (<kbd>⌘B</kbd>), **Nouveau tag…**, **Stash** (<kbd>⇧⌘S</kbd>), **Pop du dernier stash** (<kbd>⌥⇧⌘S</kbd>), **Ouvrir dans le terminal**, **Ouvrir dans l'éditeur**, **Ouvrir dans le gestionnaire de fichiers**, **Historique des opérations** |
+| **Présentation** | **Afficher ou masquer le panneau gauche** (<kbd>⌥⌘B</kbd>), **Afficher ou masquer le panneau droit** (<kbd>⌥⌘I</kbd>), **Journal des commandes** (<kbd>⌘J</kbd>), **Zoom avant** (<kbd>⌘=</kbd>), **Zoom arrière** (<kbd>⌘-</kbd>), **Taille réelle** (<kbd>⌘0</kbd>), Passer en mode plein écran                                                     |
+| **Fenêtre**      | Placer dans le Dock, Réduire/agrandir, **Afficher l'onglet suivant**, **Afficher l'onglet précédent**, Tout ramener au premier plan                                                                                                                                                                                                                   |
+| **Aide**         | **Nouveautés de yaggui**, **Journal des commandes**                                                                                                                                                                                                                                                                                                   |
 
 **Annuler** et **Rétablir** annulent des opérations de yaggui, sauf quand un champ de texte a le focus : ils annulent alors la saisie. **Fermer l'onglet** ferme l’onglet, jamais la fenêtre. Les entrées de menu ne font rien tant qu’une boîte de dialogue est ouverte. Si vous modifiez un raccourci, le menu affiche le nouveau.
+
+**Ouvrir l'élément récent** liste les 10 dépôts ouverts le plus récemment (voir [Rouvrir un dépôt récent](../../workspaces/tabs/#rouvrir-un-dépôt-récent-macos)). Le menu **Dépôt** agit sur le dépôt de l’onglet actif ; il est grisé dans un onglet d’accueil. **Ouvrir dans le terminal** ouvre le terminal externe. **Zoom avant**, **Zoom arrière** et **Taille réelle** agrandissent ou réduisent toute la fenêtre (voir [Zoomer toute la fenêtre](../../customize/appearance/#zoomer-toute-la-fenêtre)).

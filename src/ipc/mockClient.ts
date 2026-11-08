@@ -362,6 +362,7 @@ const DEFAULT_MOCK_PREFERENCES: Preferences = {
   remoteTags: false,
   // Answered: under the mock, the one-time update question would cover every screen.
   checkUpdates: false,
+  zoom: 100,
 };
 
 /** Watcher debounce of the real backend: file events reach the UI this long after the change. */

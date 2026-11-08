@@ -12,6 +12,8 @@ sources:
   - src/features/palette/ThemePicker.tsx
   - src/app/appearance.ts
   - src/app/preferences.ts
+  - src/features/zoom/**
+  - src/features/preferences/ZoomControl.tsx
   - src/theme/**
   - src/i18n/i18n.ts
   - public/boot-theme.js
@@ -134,6 +136,22 @@ Pour les deux champs de police :
 2. Appuyez sur <kbd>Enter</kbd> ou quittez le champ. La police s’applique aussitôt.
 
 Un champ vide rétablit la police fournie. Si la police n’est pas installée, le système se rabat sur la police fournie. Un nom de plus de 200 caractères, ou contenant des caractères de contrôle ou l’un des caractères `; { } < > \ " '`, est refusé : un toast « Impossible d'enregistrer la préférence » indique « \{name\} » n’est pas un nom de police valide, et la police précédente reste en place.
+
+## Zoomer toute la fenêtre
+
+Le zoom agrandit ou réduit tout le contenu de la fenêtre (texte, icônes, lignes, panneaux et graphe des commits), là où **Taille du texte** ne change que le texte. Les niveaux sont 80, 90, 100, 110, 125 et 150 %.
+
+| Commande                          | macOS                                           | Windows et Linux                                                 |
+| --------------------------------- | ----------------------------------------------- | ---------------------------------------------------------------- |
+| **Zoom avant**                    | <kbd>⌘=</kbd> ou <kbd>⇧⌘=</kbd> (<kbd>⌘+</kbd>) | <kbd>Ctrl+=</kbd> ou <kbd>Ctrl+Shift+=</kbd> (<kbd>Ctrl++</kbd>) |
+| **Zoom arrière**                  | <kbd>⌘-</kbd>                                   | <kbd>Ctrl+-</kbd>                                                |
+| **Réinitialiser le zoom (100 %)** | <kbd>⌘0</kbd>                                   | <kbd>Ctrl+0</kbd>                                                |
+
+Les trois commandes sont aussi dans la [palette de commandes](../../customize/palette-and-shortcuts/) et, sous macOS, dans le menu **Présentation** : **Zoom avant**, **Zoom arrière** et **Taille réelle**. Zoomer au-delà de 150 % ou en deçà de 80 % ne fait rien.
+
+Dans **Préférences › Affichage**, sous **Texte**, la ligne **Zoom** affiche le niveau actuel avec les boutons **Zoom arrière** (−) et **Zoom avant** (+), et **Réinitialiser** pour revenir à 100 %.
+
+Le zoom est mémorisé et appliqué au lancement suivant. Il est propre à cet ordinateur, comme le chemin de Git : il dépend de l’écran, donc l’export des préférences le laisse de côté.
 
 ## Changer la langue
 

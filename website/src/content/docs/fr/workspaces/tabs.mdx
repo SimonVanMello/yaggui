@@ -7,6 +7,7 @@ sources:
   - src/app/titlebar/**
   - src/app/tabs/**
   - src/app/shellActions.ts
+  - src/app/menu/recentRepos.ts
   - src/features/keybindings/builtinBindings.ts
   - src-tauri/src/store/tabs.rs
   - src-tauri/src/store/repo_ui_state.rs
@@ -31,6 +32,10 @@ Fermer un onglet ne demande jamais de confirmation. Cela annule toute commande y
 ## Un onglet par dépôt
 
 Un dépôt s’ouvre dans un seul onglet. Ouvrir un dépôt qui a déjà un onglet bascule vers cet onglet au lieu d’en créer un second. Pour travailler sur deux branches côte à côte, utilisez un [worktree](../../repository/worktrees/) : chaque worktree est un dépôt distinct avec son propre onglet.
+
+## Rouvrir un dépôt récent (macOS)
+
+Sous macOS, **Fichier › Ouvrir l'élément récent** liste les 10 dépôts ouverts le plus récemment, le dernier en premier (les favoris n’y ont pas de place à part). En choisir un l’ouvre dans l’onglet actif quand il affiche l’écran d’accueil, sinon dans un nouvel onglet ; si le dépôt a déjà un onglet, yaggui bascule vers lui. Un dépôt dont le dossier a été déplacé ou supprimé est grisé : retrouvez-le depuis l’écran d’accueil. Deux dépôts du même nom affichent leur chemin. Le sous-menu suit l’écran d’accueil : ouvrir un dépôt, retrouver un dépôt déplacé ou en retirer un le met à jour. Sans aucun dépôt, il affiche **Aucun dépôt récent**.
 
 ## Passer d’un onglet à l’autre
 
