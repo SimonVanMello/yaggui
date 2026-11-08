@@ -11,6 +11,7 @@ sources:
   - src-tauri/src/system/diagnostics.rs
   - src/app/useBackendEvents.ts
   - src/features/statusbar/StatusBar.tsx
+  - src/features/activity/**
 requirements: [F-300]
 ---
 
@@ -87,6 +88,15 @@ Each of the standard output and standard error is kept up to 64 KiB. Beyond that
 ## Open the log from an error
 
 When an error toast or panel has an **Open command log** button, clicking it opens the log on the last failed command: the filter switches to **All** if needed, and the entry is expanded and highlighted. This is the fastest way to read Git's complete answer, for example a server's refusal message or a hook's output. See [Error messages](../../reference/error-messages/).
+
+## Activity and command log
+
+The [Activity center](../../start-here/tour/#activity-center) (the bell in the status bar) and the command log answer different questions:
+
+- **Activity** lists what yaggui told you: the last 20 notifications of the session (successes, warnings, errors), in your words, across repositories. A notification that ran no Git command, such as a copied SHA, is there too.
+- The **command log** lists what Git did: every command, with its arguments, exit code and full output, including the silent ones (auto-fetch, background maintenance).
+
+Click an error in **Activity** that came from a failed Git command to open the log on that command, expanded and highlighted. Clearing one never clears the other.
 
 ## Clear the log
 

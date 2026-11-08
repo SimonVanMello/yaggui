@@ -175,6 +175,8 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             commands::workspaces::add_to_workspace,
             commands::workspaces::remove_from_workspace,
             commands::workspaces::repo_overview,
+            // Status bar last sync.
+            commands::workspaces::last_fetched_at,
             commands::workspaces::fetch_known_repo,
             commands::workspaces::scan_folder,
             commands::workspaces::cancel_scan,

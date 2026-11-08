@@ -943,6 +943,16 @@ export class MockBackend {
   }
 
   /**
+   * Sets the last fetch of a repository (`FETCH_HEAD` mtime) to `agoSeconds` before now, or
+   * to never with `null`; open tabs read it again (as on `refs-changed`). Status bar tests.
+   */
+  setLastFetch(repoId: number, agoSeconds: number | null): void {
+    if (agoSeconds === null) this.lastFetch.delete(repoId);
+    else this.lastFetch.set(repoId, Math.floor(Date.now() / 1000) - agoSeconds);
+    if (this.graph(repoId)) this.emit('refsChanged', { repoId });
+  }
+
+  /**
    * Adds a remote named `offline` whose host can't be reached: fetching it (alone or with
    * `--all`), pulling from or pushing to it fails with `hostUnreachable`, a typed error whose
    * suggested action is `retry`. Lets tests trigger a network failure through the real UI.
@@ -4737,6 +4747,8 @@ export class MockBackend {
           if (target.kind === 'remote' ? target.name === 'offline' : names.includes('offline')) {
             return { error: hostUnreachable() };
           }
+          // Git rewrites `FETCH_HEAD`: the status bar's "Synced …" follows.
+          this.lastFetch.set(repoId, Math.floor(Date.now() / 1000));
           return { ok: null };
         },
         {
@@ -4769,6 +4781,8 @@ export class MockBackend {
             const branch = history.local.find((b) => b.name === head.name);
             const remote = history.remote.find((r) => r.name === branch?.upstream);
             if (!branch || !remote) return { error: noUpstream(head.name) };
+            // The fetch part of the pull rewrote `FETCH_HEAD`.
+            this.lastFetch.set(repoId, Math.floor(Date.now() / 1000));
             const behind = countExclusive(history, remote.commit, branch.commit);
             const ahead = countExclusive(history, branch.commit, remote.commit);
             if (behind === 0) return { ok: { strategy: used, upToDate: true } };
@@ -5020,6 +5034,8 @@ export class MockBackend {
           if (target.kind === 'remote' ? target.name === 'offline' : names.includes('offline')) {
             return { error: hostUnreachable() };
           }
+          // Git rewrites `FETCH_HEAD`: the status bar's "Synced …" follows.
+          this.lastFetch.set(repoId, Math.floor(Date.now() / 1000));
           return { ok: null };
         },
         { cancellable: true, delayMs: 900, progress: true, refs: true },
@@ -5235,6 +5251,9 @@ export class MockBackend {
       if (wip) state.dirty = wip.dirty();
       return ok({ kind: 'ready', state, lastFetchedAt: this.lastFetch.get(repoId) ?? null });
     },
+    // Status bar last sync.
+    lastFetchedAt: (repoId) =>
+      this.graph(repoId) ? ok(this.lastFetch.get(repoId) ?? null) : fail(this.notOpen(repoId)),
     fetchKnownRepo: async (repoId, prune) => {
       const repo = this.find(repoId);
       if (!repo) return { status: 'error', error: this.unknownRepo(repoId) };

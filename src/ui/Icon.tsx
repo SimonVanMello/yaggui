@@ -53,6 +53,7 @@ const PATHS = {
   panelRight: 'M4 5h16v14H4zM15 5v14',
   panelBottom: 'M4 5h16v14H4zM4 14h16',
   log: 'M4 6h16M4 12h16M4 18h10',
+  bell: 'M6 17v-6a6 6 0 1 1 12 0v6l1.5 1.5h-15L6 17Zm4 3.5a2 2 0 0 0 4 0',
   windowMinimize: 'M5 12h14',
   windowMaximize: 'M6 6h12v12H6z',
   windowRestore: 'M6 9h9v9H6zM9 9V6h9v9h-3',

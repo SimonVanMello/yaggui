@@ -11,6 +11,7 @@ sources:
   - src/features/toolbar/**
   - src/ui/Toaster.tsx
   - src/ui/toastStore.ts
+  - src/features/activity/**
   - src/ipc/nativeMenu.ts
   - src-tauri/src/store/repo_ui_state.rs
 requirements: [F-004, F-300, F-301, F-302, F-322]
@@ -99,8 +100,10 @@ What the right panel shows depends on what you selected:
 The bar at the bottom of the window shows:
 
 - **On the left**, in a repository tab: the operation that is running, with its name, phase, percentage, transferred data and a small progress bar. Click **Cancel** to stop an operation that can be stopped. When it ends, the bar keeps a short result such as "Fetch completed" or "Push failed" with the time.
+- **Synced \<time\>**, in a repository tab: when the repository was last fetched, for example **Synced 2 minutes ago**, or **Never synced**. It reads **Offline · synced \<time\>** when the last fetch, pull or push could not reach the remote host. Hover it for the date, the remotes and the auto-fetch state; click it to fetch all remotes. See [Last sync](../../remotes/fetch-pull-push/#last-sync).
 - **yaggui \<version\>**: opens **What's new**. See [Updates](../updates/#whats-new).
 - **git \<version\>**: the Git version yaggui uses. A warning icon appears when it is older than 2.30, and **git not found** replaces it when there is no Git. See [Install yaggui](../install/#requirements).
+- The bell, **Activity**: opens the [Activity center](#activity-center). A number shows the notifications added since you last opened it.
 - **Log (\<count\>)**: shows or hides the command log. The number counts the commands it holds, as in **Log (12)**.
 
 ## Command log
@@ -131,6 +134,16 @@ Notifications appear in the bottom-right corner.
 />
 
 Inside a dialog or a panel, errors appear in place, with the same message, **Details** and action button.
+
+### Activity center
+
+Every notification also leaves a trace in the **Activity** center, even once it has closed: click the bell in the status bar, or run **Show activity** in the command palette (no default shortcut; you can [give it one](../../customize/palette-and-shortcuts/)).
+
+- It lists the last 20 notifications of the session, from every repository, newest first: an icon for the kind (information, success, warning, error), the message, the repository name and the time.
+- Click an error that came from a failed Git command to open the [command log](../../reference/command-log/#activity-and-command-log) on that command. Click a notification of another open repository to switch to its tab.
+- A notification that had a button, such as **Retry**, keeps it.
+- **Clear** empties the list. It is kept in memory only: it starts empty each time yaggui starts, and **No activity yet** shows until something happens.
+- With the keyboard, the newest entry has the focus when it opens; <kbd>↑</kbd> and <kbd>↓</kbd> move between entries, <kbd>Enter</kbd> opens one and <kbd>Esc</kbd> closes the list.
 
 Every message and what to do about it is listed in [Error messages](../../reference/error-messages/).
 

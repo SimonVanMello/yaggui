@@ -40,12 +40,13 @@ function repoLabel(repoId: number): string | undefined {
 function report(repoId: number, kind: OpKind, error: unknown, retry?: () => void): void {
   const yaggui = asYagguiError(error);
   if (!yaggui) {
-    showError(error);
+    showError(error, { repoId });
     return;
   }
   if (yaggui.code === 'cancelled') return;
   const repo = repoLabel(repoId);
   showYagguiError(yaggui, {
+    repoId,
     title:
       repo === undefined
         ? t('op.toast.failed', { op: t(`op.${kind}`) })
@@ -85,6 +86,7 @@ export async function fetchRepo(
     );
     if (!silent) {
       toast({
+        repoId,
         variant: 'success',
         title: t('network.fetch.done'),
         description: repoLabel(repoId),
@@ -109,6 +111,7 @@ export async function pullRepo(repoId: number, strategy: PullStrategy | null): P
   try {
     const result = await unwrap(ipc.commands.pull(repoId, strategy));
     toast({
+      repoId,
       variant: 'success',
       title: t(result.upToDate ? 'network.pull.upToDate' : 'network.pull.done', {
         strategy: t(`network.strategy.${result.strategy}`),
@@ -164,6 +167,7 @@ export async function pushRepo(
     }
     const result = await unwrap(ipc.commands.push(repoId, request));
     toast({
+      repoId,
       variant: 'success',
       title: t(result.upToDate ? 'network.push.upToDate' : 'network.push.done', {
         target: `${result.remote}/${result.remoteBranch}`,
@@ -191,7 +195,7 @@ async function confirmUpstream(
 ): Promise<{ remote: string } | null> {
   const remote = await defaultRemote(repoId);
   if (remote === null) {
-    toast({ variant: 'warning', title: t('network.noRemote') });
+    toast({ repoId, variant: 'warning', title: t('network.noRemote') });
     return null;
   }
   const state = await unwrap(ipc.commands.repoState(repoId));
@@ -215,6 +219,7 @@ export async function forcePushRepo(repoId: number, branch: string | null = null
     const target = `${preview.remote}/${preview.remoteBranch}`;
     if (preview.protected) {
       toast({
+        repoId,
         variant: 'warning',
         title: t('network.force.protected', { branch: preview.remoteBranch }),
       });
@@ -250,6 +255,7 @@ export async function forcePushRepo(repoId: number, branch: string | null = null
       }),
     );
     toast({
+      repoId,
       variant: 'success',
       title: t('network.force.done', { target }),
       description: repoLabel(repoId),
@@ -265,7 +271,7 @@ export async function forcePushRepo(repoId: number, branch: string | null = null
 /** `remote` or, when `null`, the default one (`origin` first); toasts when there is none. */
 async function remoteOrDefault(repoId: number, remote: string | null): Promise<string | null> {
   const chosen = remote ?? (await defaultRemote(repoId));
-  if (chosen === null) toast({ variant: 'warning', title: t('network.noRemote') });
+  if (chosen === null) toast({ repoId, variant: 'warning', title: t('network.noRemote') });
   return chosen;
 }
 
@@ -280,6 +286,7 @@ export async function pushTag(
     if (target === null) return;
     const result = await unwrap(ipc.commands.pushTag(repoId, target, name));
     toast({
+      repoId,
       variant: 'success',
       title: t(result.pushed.length > 0 ? 'network.tag.pushed' : 'network.tag.upToDate', {
         tag: name,
@@ -300,6 +307,7 @@ export async function pushAllTags(repoId: number, remote: string | null = null):
     const result = await unwrap(ipc.commands.pushAllTags(repoId, target));
     const count = result.pushed.length;
     toast({
+      repoId,
       variant: 'success',
       title:
         count > 0
@@ -327,6 +335,7 @@ export async function fetchTags(repoId: number, remote: string | null = null): P
       ),
     );
     toast({
+      repoId,
       variant: 'success',
       title: t('tags.fetch.done'),
       description: repoLabel(repoId),
@@ -362,6 +371,7 @@ export async function deleteRemoteTag(
     if (!confirmed) return;
     await unwrap(ipc.commands.deleteRemoteTag(repoId, target, name));
     toast({
+      repoId,
       variant: 'success',
       title: t('network.deleteRemoteTag.done', { tag: name, remote: target }),
       duration: 3000,
@@ -399,6 +409,7 @@ export async function deleteRemoteBranch(repoId: number, remoteRef: string): Pro
     if (!confirmed) return;
     await unwrap(ipc.commands.deleteRemoteBranch(repoId, split.remote, split.branch));
     toast({
+      repoId,
       variant: 'success',
       title: t('network.deleteRemote.done', { target: remoteRef }),
       duration: 3000,

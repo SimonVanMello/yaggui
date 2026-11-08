@@ -17,6 +17,11 @@ export interface ToastItem {
   action?: ToastAction;
   /** Auto-dismiss delay in ms; errors stay until dismissed by default. */
   duration: number;
+  /**
+   * Repository the notification is about, for the Activity center; `null` for none (app
+   * level). Left out, the Activity center attributes it to the active tab's repository.
+   */
+  repoId?: number | null;
 }
 
 export type ToastInput = Omit<ToastItem, 'id' | 'variant' | 'duration'> &

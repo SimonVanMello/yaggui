@@ -712,6 +712,11 @@ export const commands = {
 	 */
 	repoOverview: (repoId: number) => typedError<RepoOverview, YagguiError>(__TAURI_INVOKE("repo_overview", { repoId })),
 	/**
+	 *  Last fetch of an open repository (`FETCH_HEAD` mtime, seconds since the Unix epoch), for
+	 *  the status bar; `None` if it was never fetched. Same source as `repo_overview`.
+	 */
+	lastFetchedAt: (repoId: number) => typedError<number | null, YagguiError>(__TAURI_INVOKE("last_fetched_at", { repoId })),
+	/**
 	 *  `git fetch --all` of a known repo, open or not, on its queue (`op-started` /
 	 *  `op-finished`, cancellable with `cancel_op`). At most 4 run at once.
 	 */

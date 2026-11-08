@@ -130,11 +130,12 @@ export function useBackendEvents(): void {
     // A failure the UI explains in a dialog is not an error state for the status bar.
     const handled = outcome.kind === 'failed' && shownInline(kind, outcome.error);
     const note = outcome.kind === 'success' ? (outcome.note ?? undefined) : undefined;
+    const errorCode = outcome.kind === 'failed' ? outcome.error.code : undefined;
     useOpsStore
       .getState()
       .finished(
         repoId,
-        { opId, kind, outcome: outcome.kind, finishedAt: Date.now(), note },
+        { opId, kind, outcome: outcome.kind, finishedAt: Date.now(), note, errorCode },
         !handled,
       );
 
@@ -151,11 +152,15 @@ export function useBackendEvents(): void {
         variant: 'success',
         title: translate(locale, 'op.toast.success', params),
         description: name ?? undefined,
+        repoId,
       });
     } else if (outcome.kind === 'cancelled') {
-      toast({ variant: 'info', title: translate(locale, 'op.toast.cancelled', params) });
+      toast({ variant: 'info', title: translate(locale, 'op.toast.cancelled', params), repoId });
     } else if (!shownInline(kind, outcome.error) && !isNetworkOp(kind)) {
-      showYagguiError(outcome.error, { title: translate(locale, 'op.toast.failed', params) });
+      showYagguiError(outcome.error, {
+        title: translate(locale, 'op.toast.failed', params),
+        repoId,
+      });
     }
   });
 }

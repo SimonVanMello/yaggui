@@ -7,6 +7,10 @@ sources:
   - src/features/network/**
   - src/features/toolbar/NetworkButtons.tsx
   - src/features/statusbar/StatusBar.tsx
+  - src/features/statusbar/SyncStatus.tsx
+  - src/features/statusbar/syncLabel.ts
+  - src/features/statusbar/useLastFetch.ts
+  - src-tauri/src/repo/workspace.rs
   - src/features/preferences/SyncSection.tsx
   - src/features/preferences/SafetySection.tsx
   - src/features/preferences/ProtectedBranchesField.tsx
@@ -77,6 +81,23 @@ How it behaves:
 - The footer of the **Fetch** menu shows the current state: **Auto-fetch every 10 min** or **Auto-fetch is off**.
 
 To turn it off, uncheck **Fetch automatically** in **Preferences → Fetch and pull**.
+
+## Last sync
+
+In a repository tab, the status bar shows when the repository was last fetched: **Synced 2 minutes ago**, or **Never synced** if it has never been. The time comes from Git itself (the date of `.git/FETCH_HEAD`), so it counts every fetch and pull, including auto-fetch and the ones you run in a terminal. A push does not change it. It updates when a fetch, pull or push ends and when branches change.
+
+Hover it to see:
+
+- **Last fetch:** with the date and time,
+- **Remotes:** the configured remotes (or **No remote configured**),
+- the auto-fetch state: **Auto-fetch every 10 min** or **Auto-fetch is off**,
+- **Fetch and pull preferences…**, which opens **Preferences → Fetch and pull**.
+
+Click it to fetch all remotes, like the toolbar **Fetch** button. While an operation runs in the repository it does nothing, and its tooltip says **An operation is running**.
+
+### Offline
+
+When the last fetch, pull or push of the repository failed because the remote host could not be reached (the error "The remote host can't be reached…", auto-fetch included), the item turns to a warning: **Offline · synced 2 hours ago** (or **Offline · never synced**). Its tooltip adds "The last fetch, pull or push could not reach the remote host.". It stays until a fetch, pull or push reaches a remote again. A refused login, a rejected push or a pull that stops on conflicts do not count as offline, and neither does a cancelled operation.
 
 ## Pull
 

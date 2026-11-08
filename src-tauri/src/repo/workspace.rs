@@ -125,23 +125,19 @@ impl RepoManager {
                     (state::read_state(&repo)?, fetch_head_dirs(&repo))
                 }
             };
-            let last_fetched_at = git_dirs
-                .iter()
-                .filter_map(|dir| {
-                    std::fs::metadata(dir.join("FETCH_HEAD"))
-                        .ok()?
-                        .modified()
-                        .ok()
-                })
-                .max()
-                .and_then(|time| time.duration_since(UNIX_EPOCH).ok())
-                .map(|d| u32::try_from(d.as_secs()).unwrap_or(u32::MAX));
             Ok(RepoOverview::Ready {
                 state,
-                last_fetched_at,
+                last_fetched_at: fetch_head_time(&git_dirs),
             })
         };
         Ok(read().unwrap_or_else(|error| RepoOverview::Failed { error }))
+    }
+
+    /// Last fetch of an open repository (status bar "Synced …"): same source as the overview,
+    /// so a fetch or pull run from a terminal counts too. `None` if it was never fetched.
+    pub fn last_fetched_at(&self, repo_id: u32) -> Result<Option<u32>, YagguiError> {
+        let repo = self.session(repo_id)?.repo()?.to_thread_local();
+        Ok(fetch_head_time(&fetch_head_dirs(&repo)))
     }
 
     /// `git fetch --all` of a known repo, on its queue: joins the session of its tab if it
@@ -236,6 +232,22 @@ impl RepoManager {
             .map_or_else(|| shown.clone(), |n| n.to_string_lossy().into_owned());
         Ok((shown, name))
     }
+}
+
+/// Newest modification of `FETCH_HEAD` in `git_dirs`, seconds since the Unix epoch. Git
+/// rewrites it on every fetch and pull, even when nothing new came.
+fn fetch_head_time(git_dirs: &[std::path::PathBuf]) -> Option<u32> {
+    git_dirs
+        .iter()
+        .filter_map(|dir| {
+            std::fs::metadata(dir.join("FETCH_HEAD"))
+                .ok()?
+                .modified()
+                .ok()
+        })
+        .max()
+        .and_then(|time| time.duration_since(UNIX_EPOCH).ok())
+        .map(|d| u32::try_from(d.as_secs()).unwrap_or(u32::MAX))
 }
 
 /// Where `git fetch` writes `FETCH_HEAD`: the worktree's git dir, or the common one.

@@ -3,6 +3,7 @@ import { openSampleRepo } from '../demo/startDemo';
 import { useKeybindings } from '../features/keybindings/keybindingsStore';
 import { checkForUpdatesAtStartup } from '../features/updates/updates';
 import { notifyPendingCrashes } from '../features/diagnostics/diagnostics';
+import { startActivityFeed } from '../features/activity/activityStore';
 import { startAutoFetch } from '../features/network/autoFetch';
 import { openRepoPath, restoreRepoSession } from '../features/repo/repoSessions';
 import { ipc, nativeWindow, unwrap } from '../ipc';
@@ -140,6 +141,8 @@ let started: Promise<void> | undefined;
 /** Runs once per app launch (idempotent under React StrictMode). */
 export function startup(): Promise<void> {
   started ??= (async () => {
+    // Activity center: every toast from now on leaves an entry.
+    startActivityFeed();
     // Preferences are already applied by main.tsx, before the first render.
     // Read first: the menu's accelerators and every shortcut hint depend on the user's bindings.
     await useKeybindings.getState().load();

@@ -14,6 +14,7 @@ import {
   skipOperation,
   startContinue,
 } from '../history/historyOps';
+import { useActivityStore } from '../activity/activityStore';
 import { BISECT_ACTIONS } from '../bisect/bisectActions';
 import { GRAPH_TOOL_ACTIONS } from '../compare/graphToolActions';
 import { INSPECT_ACTIONS } from '../inspect/inspectActions';
@@ -168,6 +169,15 @@ const BUILTIN: readonly PaletteAction[] = [
   shell('view.sidebar', 'toggleSidebar', 'palette.action.view.sidebar', 'view', hasRepo),
   shell('view.details', 'toggleDetails', 'palette.action.view.details', 'view', hasRepo),
   shell('view.log', 'toggleLog', 'palette.action.view.log', 'view'),
+  // Activity center (status bar). No default shortcut: rebindable in the preferences.
+  {
+    id: 'view.activity',
+    title: 'palette.action.view.activity',
+    group: 'view',
+    run: () => {
+      useActivityStore.getState().setOpen(true);
+    },
+  },
   {
     id: 'view.theme.pick',
     title: 'palette.action.view.theme.pick',

@@ -11,6 +11,7 @@ sources:
   - src/features/toolbar/**
   - src/ui/Toaster.tsx
   - src/ui/toastStore.ts
+  - src/features/activity/**
   - src/ipc/nativeMenu.ts
   - src-tauri/src/store/repo_ui_state.rs
 requirements: [F-004, F-300, F-301, F-302, F-322]
@@ -99,8 +100,10 @@ Ce que le panneau droit affiche dépend de ce que vous avez sélectionné :
 La barre en bas de la fenêtre affiche :
 
 - **À gauche**, dans un onglet de dépôt : l’opération en cours, avec son nom, sa phase, son pourcentage, les données transférées et une petite barre de progression. Cliquez sur **Annuler** pour arrêter une opération qui peut l’être. Quand elle se termine, la barre conserve un court résultat comme « Fetch terminé » ou « Push a échoué » avec l’heure.
+- **Synchronisé \<moment\>**, dans un onglet de dépôt : le dernier fetch du dépôt, par exemple **Synchronisé il y a 2 minutes**, ou **Jamais synchronisé**. Il devient **Hors ligne · synchronisé \<moment\>** quand le dernier fetch, pull ou push n’a pas pu joindre l’hôte distant. Survolez-le pour voir la date, les remotes et l’état de l’auto-fetch ; cliquez dessus pour faire un fetch de tous les remotes. Voir [Dernière synchronisation](../../remotes/fetch-pull-push/#dernière-synchronisation).
 - **yaggui \<version\>** : ouvre **Nouveautés**. Voir [Mises à jour](../updates/#nouveautés).
 - **git \<version\>** : la version de Git utilisée par yaggui. Une icône d’avertissement apparaît quand elle est antérieure à 2.30, et **git introuvable** la remplace quand il n’y a pas de Git. Voir [Installer yaggui](../install/#prérequis).
+- La cloche, **Activité** : ouvre le [centre d’activité](#activité). Un nombre indique les notifications arrivées depuis sa dernière ouverture.
 - **Journal (\<nombre\>)** : affiche ou masque le journal des commandes. Le nombre compte les commandes qu’il contient, comme dans **Journal (12)**.
 
 ## Journal des commandes
@@ -131,6 +134,16 @@ Les notifications apparaissent en bas à droite.
 />
 
 Dans une boîte de dialogue ou un panneau, les erreurs apparaissent sur place, avec le même message, **Détails** et le bouton d’action.
+
+### Activité
+
+Chaque notification laisse aussi une trace dans le centre **Activité**, même une fois fermée : cliquez sur la cloche de la barre d’état, ou lancez **Afficher l'activité** dans la palette de commandes (pas de raccourci par défaut ; vous pouvez [lui en donner un](../../customize/palette-and-shortcuts/)).
+
+- Il liste les 20 dernières notifications de la session, de tous les dépôts, les plus récentes en premier : une icône pour le type (information, succès, avertissement, erreur), le message, le nom du dépôt et l’heure.
+- Cliquez sur une erreur venue d’une commande Git en échec pour ouvrir le [journal des commandes](../../reference/command-log/#activité-et-journal-des-commandes) sur cette commande. Cliquez sur une notification d’un autre dépôt ouvert pour passer à son onglet.
+- Une notification qui avait un bouton, comme **Réessayer**, le garde.
+- **Effacer** vide la liste. Elle n’est gardée qu’en mémoire : elle est vide à chaque démarrage de yaggui, et **Aucune activité pour l'instant** s’affiche tant que rien ne s’est passé.
+- Au clavier, l’entrée la plus récente a le focus à l’ouverture ; <kbd>↑</kbd> et <kbd>↓</kbd> passent d’une entrée à l’autre, <kbd>Entrée</kbd> en ouvre une et <kbd>Échap</kbd> ferme la liste.
 
 Chaque message et la marche à suivre sont listés dans [Messages d’erreur](../../reference/error-messages/).
 

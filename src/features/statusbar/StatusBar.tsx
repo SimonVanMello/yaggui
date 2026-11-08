@@ -9,10 +9,13 @@ import { Icon, type IconName } from '../../ui/Icon';
 import { Spinner } from '../../ui/Spinner';
 import { Tooltip } from '../../ui/Tooltip';
 import { useNow } from '../../ui/useNow';
+import { ActivityCenter } from '../activity/ActivityCenter';
 import { useCommandLog } from '../command-log/useCommandLog';
 import { useShortcut } from '../keybindings/registry';
 import { selectRunningOp, useOpsStore } from '../repo/opsStore';
 import styles from './StatusBar.module.css';
+import { SyncStatus } from './SyncStatus';
+import { useLastFetchInvalidation } from './useLastFetch';
 
 const OUTCOME_ICON: Record<'success' | 'failed' | 'cancelled', IconName> = {
   success: 'check',
@@ -104,7 +107,10 @@ function OperationStatus({ repoId }: { repoId: number }) {
   );
 }
 
-/** Bottom bar: current operation, app and git versions, the command log toggle (F-300). */
+/**
+ * Bottom bar: current operation, last sync, app and git versions, the Activity center and the
+ * command log toggle (F-300).
+ */
 export function StatusBar() {
   const t = useT();
   const repoId = useTabsStore((state) => selectActiveTab(state).repoId);
@@ -113,6 +119,7 @@ export function StatusBar() {
   const logShortcut = useShortcut('view.log');
   const log = useCommandLog();
   const count = log.data?.length;
+  useLastFetchInvalidation();
 
   let git = null;
   if (appInfo.data) {
@@ -138,6 +145,8 @@ export function StatusBar() {
     <footer className={styles.statusbar}>
       <div className={styles.start}>{repoId !== null && <OperationStatus repoId={repoId} />}</div>
       <div className={styles.end}>
+        {/* Last sync: first of the right group, so the operation on the left never moves it. */}
+        {repoId !== null && <SyncStatus repoId={repoId} />}
         {appInfo.data && (
           <Tooltip content={t('changelog.open')} side="top">
             <button
@@ -152,6 +161,7 @@ export function StatusBar() {
           </Tooltip>
         )}
         {git}
+        <ActivityCenter />
         <Tooltip
           content={logOpen ? t('log.hide') : t('log.show')}
           shortcut={logShortcut}

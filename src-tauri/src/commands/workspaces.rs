@@ -84,6 +84,18 @@ pub async fn repo_overview(
     blocking(move || repos.repo_overview(repo_id)).await
 }
 
+/// Last fetch of an open repository (`FETCH_HEAD` mtime, seconds since the Unix epoch), for
+/// the status bar; `None` if it was never fetched. Same source as `repo_overview`.
+#[tauri::command]
+#[specta::specta]
+pub async fn last_fetched_at(
+    state: State<'_, AppState>,
+    repo_id: u32,
+) -> Result<Option<u32>, YagguiError> {
+    let repos = Arc::clone(&state.repos);
+    blocking(move || repos.last_fetched_at(repo_id)).await
+}
+
 /// `git fetch --all` of a known repo, open or not, on its queue (`op-started` /
 /// `op-finished`, cancellable with `cancel_op`). At most 4 run at once.
 #[tauri::command]
