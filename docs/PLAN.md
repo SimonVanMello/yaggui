@@ -241,7 +241,7 @@ Exit: a problem met by a user can be diagnosed without a terminal: every session
 
 ## M12 — App polish
 
-Exit: yaggui behaves like a native desktop app around Git: the window comes back where it was and says what it shows, quitting never loses work in progress, the first launch and the updates explain themselves, tabs and the status bar carry the small daily gestures, and the OS menus expose the frequent actions. One PR for the whole milestone, five workstreams built in parallel.
+Exit: yaggui behaves like a native desktop app around Git: the window comes back where it was and says what it shows, quitting never loses work in progress, the first launch and the updates explain themselves, tabs and the status bar carry the small daily gestures, and the OS menus expose the frequent actions. One PR for the whole milestone (#107), five workstreams built in parallel.
 
 | ID | Task | Depends on | Requirements |
 |---|---|---|---|
