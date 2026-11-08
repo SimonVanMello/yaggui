@@ -9,37 +9,39 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-11-08
+
 ### Added
 
 - yaggui reopens with its window at the last size and position, maximized if it was. The window
-  title shows the repository and branch of the active tab.
+  title shows the repository and branch of the active tab. (#107)
 - Quitting or closing the window while a Git operation runs, an interactive rebase list is edited or
   a file edit is unsaved asks **Quit yaggui?** first and lists what is in progress. **Quit yaggui**
-  is in the command palette (⌘Q, Ctrl+Q on Windows and Linux).
+  is in the command palette (⌘Q, Ctrl+Q on Windows and Linux). (#107)
 - A first-launch screen sets the language, the appearance and the update check, shows the Git
   found and a few key shortcuts. It can be shown again from the command palette or
-  **Preferences › General**.
+  **Preferences › General**. (#107)
 - **What's new** opens once by itself at the first launch after an update. Turn it off with
-  **Show What's new after an update** in **Preferences › General**.
+  **Show What's new after an update** in **Preferences › General**. (#107)
 - Zoom the whole window: **Zoom in** (⌘= or ⌘+, Ctrl+= on Windows and Linux), **Zoom out** (⌘-),
   **Reset the zoom** (⌘0), from the palette, the **View** menu on macOS and a **Zoom** row in
-  **Preferences › Display**. Kept per computer, never exported.
+  **Preferences › Display**. Kept per computer, never exported. (#107)
 - macOS: **File › Open Recent** lists the 10 most recently opened repositories, and a **Repository**
   menu gathers Fetch, Pull, Push, New Branch…, New Tag…, Stash, Pop Stash, Open in Terminal /
-  Editor / File Manager and Operation History. It is greyed out without a repository.
+  Editor / File Manager and Operation History. It is greyed out without a repository. (#107)
 - **Reopen closed tab** (⌘⇧T, Ctrl+Shift+T on Windows and Linux, also in a tab's menu, the palette
   and the macOS **File** menu) brings back the last closed repository tabs one by one, at their
-  former place.
+  former place. (#107)
 - **Pin tab** keeps a repository compact at the left of the tab strip, out of **Close other tabs**
-  and **Close tabs to the right**, and pinned again at the next launch.
+  and **Close tabs to the right**, and pinned again at the next launch. (#107)
 - **Rename…** in a tab's menu gives a repository a display name, shown in tabs, on the welcome
-  screen, in workspaces and in the palette. Leave it empty to go back to the folder name.
+  screen, in workspaces and in the palette. Leave it empty to go back to the folder name. (#107)
 - The status bar shows when the repository was last synced ("Synced 2 minutes ago", "Never
   synced"), with the remotes and the auto-fetch state on hover; click it to fetch. It reads
-  "Offline" while the remote host can't be reached.
+  "Offline" while the remote host can't be reached. (#107)
 - Activity center: a bell in the status bar lists the last 20 notifications of the session, even
   once dismissed, with an unread count. Errors open the failed command in the command log, and
-  **Show activity** in the palette opens it.
+  **Show activity** in the palette opens it. (#107)
 
 ## [0.14.0] - 2026-11-05
 
