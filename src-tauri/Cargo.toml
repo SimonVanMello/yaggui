@@ -39,7 +39,7 @@ gix = { version = "0.89", default-features = false, features = ["max-performance
 rusqlite = { version = "0.40", features = ["bundled"] }
 notify = "8"
 tauri-plugin-dialog = "2"
-# Restores the main window size, position and maximized state (F-xxx window state): official
+# Restores the main window size, position and maximized state (M12-1): official
 # plugin, Rust-only wiring (no permission granted to the webview).
 tauri-plugin-window-state = "2"
 portable-pty = "0.9.0"
