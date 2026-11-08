@@ -44,7 +44,7 @@ The top bar holds one tab per open repository.
 - On Windows and Linux, yaggui draws its own **Minimize**, **Maximize** and **Close** buttons at the right. On macOS, the usual window buttons are at the left.
 - Drag an empty part of the bar to move the window; double-click it to maximize or restore.
 
-Switching, reordering and closing tabs, and their shortcuts, are in [Tabs](../../workspaces/tabs/).
+Switching, reordering, closing, reopening, pinning and renaming tabs, and their shortcuts, are in [Tabs](../../workspaces/tabs/).
 
 ## Toolbar
 
@@ -168,13 +168,13 @@ yaggui remembers the panel sizes, which panels are collapsed, the sections of th
 
 On macOS, yaggui has a menu bar. Windows and Linux have none: use the toolbar, the command palette (<kbd>Ctrl+K</kbd>) and the shortcuts.
 
-| Menu       | Items                                                                                                                                               |
-| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **yaggui** | About yaggui, **Preferences…**, **Terminal Setting…**, Services, Hide yaggui, Hide Others, Show All, Quit yaggui                                    |
-| **File**   | **New Tab** (<kbd>⌘T</kbd>), **Open Repository…** (<kbd>⌘O</kbd>), **Clone Repository…**, **Initialize Repository…**, **Close Tab** (<kbd>⌘W</kbd>) |
-| **Edit**   | **Undo** (<kbd>⌘Z</kbd>), **Redo** (<kbd>⇧⌘Z</kbd>), Cut, Copy, Paste, Select All                                                                   |
-| **View**   | **Show or Hide Left Panel** (<kbd>⌥⌘B</kbd>), **Show or Hide Right Panel** (<kbd>⌥⌘I</kbd>), **Command Log** (<kbd>⌘J</kbd>), Enter Full Screen     |
-| **Window** | Minimize, Zoom, **Show Next Tab**, **Show Previous Tab**, Bring All to Front                                                                        |
-| **Help**   | **What's New in yaggui**, **Command Log**                                                                                                           |
+| Menu       | Items                                                                                                                                                                                       |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **yaggui** | About yaggui, **Preferences…**, **Terminal Setting…**, Services, Hide yaggui, Hide Others, Show All, Quit yaggui                                                                            |
+| **File**   | **New Tab** (<kbd>⌘T</kbd>), **Open Repository…** (<kbd>⌘O</kbd>), **Clone Repository…**, **Initialize Repository…**, **Close Tab** (<kbd>⌘W</kbd>), **Reopen Closed Tab** (<kbd>⌘⇧T</kbd>) |
+| **Edit**   | **Undo** (<kbd>⌘Z</kbd>), **Redo** (<kbd>⇧⌘Z</kbd>), Cut, Copy, Paste, Select All                                                                                                           |
+| **View**   | **Show or Hide Left Panel** (<kbd>⌥⌘B</kbd>), **Show or Hide Right Panel** (<kbd>⌥⌘I</kbd>), **Command Log** (<kbd>⌘J</kbd>), Enter Full Screen                                             |
+| **Window** | Minimize, Zoom, **Show Next Tab**, **Show Previous Tab**, Bring All to Front                                                                                                                |
+| **Help**   | **What's New in yaggui**, **Command Log**                                                                                                                                                   |
 
 **Undo** and **Redo** undo yaggui operations, except when a text field has the focus: then they undo typing. **Close Tab** closes the tab, never the window. Menu items do nothing while a dialog is open. If you change a shortcut, the menu shows the new one.
