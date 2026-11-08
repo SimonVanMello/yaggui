@@ -56,6 +56,7 @@ const PREF_CHECK_UPDATES: &str = "check_updates";
 const PREF_ONBOARDED: &str = "onboarded";
 const PREF_LAST_SEEN_VERSION: &str = "last_seen_version";
 const PREF_SHOW_WHATS_NEW: &str = "show_whats_new";
+const PREF_ZOOM: &str = "zoom";
 /// Folders remembered for the clone / init dialogs.
 const RECENT_DIRS_KEPT: i64 = 10;
 const META_LEGACY_MIGRATED: &str = "legacy_preferences_migrated";
@@ -302,6 +303,7 @@ impl Store {
         load!(onboarded, PREF_ONBOARDED);
         load_optional!(last_seen_version, PREF_LAST_SEEN_VERSION);
         load!(show_whats_new, PREF_SHOW_WHATS_NEW);
+        load!(zoom, PREF_ZOOM);
         load_optional!(ui_font, PREF_UI_FONT);
         load_optional!(code_font, PREF_CODE_FONT);
         load_optional!(git_path, PREF_GIT_PATH);
@@ -317,6 +319,9 @@ impl Store {
         }
         if !AUTO_FETCH_RANGE.contains(&prefs.auto_fetch_minutes) {
             prefs.auto_fetch_minutes = DEFAULT_AUTO_FETCH_MINUTES;
+        }
+        if !ZOOM_RANGE.contains(&prefs.zoom) {
+            prefs.zoom = DEFAULT_ZOOM;
         }
         Ok(prefs)
     }
@@ -362,6 +367,7 @@ impl Store {
             set_pref(&tx, PREF_ONBOARDED, &prefs.onboarded)?;
             set_pref(&tx, PREF_LAST_SEEN_VERSION, &prefs.last_seen_version)?;
             set_pref(&tx, PREF_SHOW_WHATS_NEW, &prefs.show_whats_new)?;
+            set_pref(&tx, PREF_ZOOM, &prefs.zoom)?;
             tx.commit()?;
         }
         self.preferences()

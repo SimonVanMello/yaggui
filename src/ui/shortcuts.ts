@@ -20,6 +20,9 @@ export function eventKey(event: KeyLike): string {
   if (code.startsWith('Numpad') && /\d$/.test(code)) return code.slice(6);
   // The key left of 1: a dead key on many layouts, and `~` with Shift.
   if (code === 'Backquote') return '`';
+  // `+` cannot be written in a shortcut (it separates the keys): it counts as `=`, its key on
+  // a US layout (Shift+=). A layout with a `+` key of its own (German, numpad) gets `Mod+=`.
+  if (event.key === '+') return '=';
   return event.key;
 }
 

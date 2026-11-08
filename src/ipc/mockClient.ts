@@ -370,6 +370,7 @@ const DEFAULT_MOCK_PREFERENCES: Preferences = {
   onboarded: false,
   lastSeenVersion: null,
   showWhatsNew: true,
+  zoom: 100,
 };
 
 /** Watcher debounce of the real backend: file events reach the UI this long after the change. */

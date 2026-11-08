@@ -61,6 +61,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   onboarded: false,
   lastSeenVersion: null,
   showWhatsNew: true,
+  zoom: 100,
 };
 
 let current: Preferences = DEFAULT_PREFERENCES;

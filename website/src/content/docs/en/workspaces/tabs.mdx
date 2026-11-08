@@ -7,6 +7,7 @@ sources:
   - src/app/titlebar/**
   - src/app/tabs/**
   - src/app/shellActions.ts
+  - src/app/menu/recentRepos.ts
   - src/features/keybindings/builtinBindings.ts
   - src-tauri/src/store/tabs.rs
   - src-tauri/src/store/repo_ui_state.rs
@@ -46,6 +47,10 @@ Tabs closed together with **Close other tabs** or **Close tabs to the right** co
 ## One tab per repository
 
 A repository opens in a single tab. Opening a repository that already has a tab switches to that tab instead of creating a second one. To work on two branches side by side, use a [worktree](../../repository/worktrees/): each worktree is a separate repository with its own tab.
+
+## Reopen a recent repository (macOS)
+
+On macOS, **File › Open Recent** lists the 10 repositories you opened most recently, the last one first (favorites have no special place). Choosing one opens it in the active tab when that tab shows the welcome screen, otherwise in a new tab; if the repository already has a tab, yaggui switches to it. A repository whose folder was moved or deleted is greyed out: locate it again from the welcome screen. Two repositories with the same name show their path. The submenu follows the welcome screen: opening a repository, locating a moved one again or removing one updates it. With no repository yet, it shows **No Recent Repositories**.
 
 ## Switch between tabs
 

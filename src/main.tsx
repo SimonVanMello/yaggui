@@ -10,6 +10,7 @@ import { loadPreferences } from './app/preferences';
 import { isDemo } from './demo/isDemo';
 import { installErrorForwarding } from './features/diagnostics/diagnostics';
 import { prepareDemo } from './demo/startDemo';
+import { watchZoom } from './features/zoom/zoom';
 import { initI18n } from './i18n/i18n';
 import { initTheme } from './theme/themeStore';
 
@@ -23,6 +24,7 @@ async function bootstrap() {
   const preferences = await loadPreferences();
   initTheme(preferences);
   initI18n(preferences.locale);
+  watchZoom();
 
   createRoot(root).render(
     <StrictMode>

@@ -41,7 +41,7 @@ export type Capture =
   /** Only modifiers are down: keep waiting. */
   | { kind: 'pending' }
   | { kind: 'cancel' }
-  /** A combination that cannot be a shortcut (no modifier, `+`, the Windows key…). */
+  /** A combination that cannot be a shortcut (no modifier, a dead key, the Windows key…). */
   | { kind: 'invalid' };
 
 type CaptureEvent = Pick<
@@ -60,7 +60,7 @@ export function captureShortcut(event: CaptureEvent, target: Platform): Capture 
   const mac = target === 'mac';
   if (!mac && event.metaKey) return { kind: 'invalid' };
   const key = eventKey(event);
-  if (key === '+' || key === 'Dead' || key === 'Unidentified') return { kind: 'invalid' };
+  if (key === 'Dead' || key === 'Unidentified') return { kind: 'invalid' };
   const modifiers: string[] = [];
   if (mac ? event.metaKey : event.ctrlKey) modifiers.push('Mod');
   if (mac && event.ctrlKey) modifiers.push('Ctrl');

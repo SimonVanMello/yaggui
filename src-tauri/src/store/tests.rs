@@ -227,6 +227,7 @@ fn stores_preferences() {
         onboarded: true,
         last_seen_version: Some("0.14.0".into()),
         show_whats_new: false,
+        zoom: 125,
     };
     assert_eq!(store.set_preferences(&prefs).unwrap(), prefs);
     // The same values after reopening: they are in the database, not in memory.
@@ -503,6 +504,7 @@ fn new_preferences_default_when_nothing_is_stored() {
     assert!(prefs.auto_fetch);
     assert_eq!(prefs.auto_fetch_minutes, 10);
     assert_eq!(prefs.font_size, 13);
+    assert_eq!(prefs.zoom, 100);
     assert_eq!(prefs.density, Density::Comfortable);
     assert_eq!(
         prefs.protected_branches,
@@ -522,6 +524,15 @@ fn rejects_out_of_range_preferences() {
         }),
         crate::git::errors::ErrorCode::InvalidArgument
     );
+    for zoom in [79, 151] {
+        assert_eq!(
+            bad(Preferences {
+                zoom,
+                ..base.clone()
+            }),
+            crate::git::errors::ErrorCode::InvalidArgument
+        );
+    }
     assert_eq!(
         bad(Preferences {
             auto_fetch_minutes: 0,

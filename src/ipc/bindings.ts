@@ -907,6 +907,10 @@ export const SIGNATURE_X509 = 3 as const;
 
 export const WORKSPACE_NAME_MAX = 100 as const;
 
+export const ZOOM_MAX = 150 as const;
+
+export const ZOOM_MIN = 80 as const;
+
 /* Types */
 export type AppInfo = {
 	/**  yaggui version, from `Cargo.toml`. */
@@ -2915,6 +2919,11 @@ export type Preferences = {
 	lastSeenVersion?: string | null,
 	/**  Open "What's new" at the first launch after an update. */
 	showWhatsNew?: boolean,
+	/**
+	 *  Zoom of the whole interface, in percent, within `ZOOM_RANGE`. Machine-specific: it
+	 *  depends on the screen, so it is not carried by the preferences export.
+	 */
+	zoom?: number,
 };
 
 export type PreferencesImportPreview = {

@@ -46,3 +46,17 @@ describe('the key left of 1', () => {
     expect(matchShortcut(shifted, 'Ctrl+`', 'windows')).toBe(false);
   });
 });
+
+describe('zoom keys', () => {
+  it('match = and - by the character typed, and + as Shift+=', () => {
+    expect(matchShortcut(key('Equal', '=', { metaKey: true }), 'Mod+=', 'mac')).toBe(true);
+    expect(matchShortcut(key('Minus', '-', { ctrlKey: true }), 'Mod+-', 'linux')).toBe(true);
+    expect(matchShortcut(key('Digit0', '0', { ctrlKey: true }), 'Mod+0', 'windows')).toBe(true);
+    // US layout: ⌘+ is ⌘⇧=.
+    expect(
+      matchShortcut(key('Equal', '+', { metaKey: true, shiftKey: true }), 'Mod+Shift+=', 'mac'),
+    ).toBe(true);
+    // A layout (or the numpad) with a + key of its own.
+    expect(matchShortcut(key('NumpadAdd', '+', { ctrlKey: true }), 'Mod+=', 'linux')).toBe(true);
+  });
+});

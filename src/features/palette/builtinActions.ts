@@ -187,6 +187,10 @@ const BUILTIN: readonly PaletteAction[] = [
       useActivityStore.getState().setOpen(true);
     },
   },
+  // Zoom of the interface.
+  shell('view.zoomIn', 'zoomIn', 'palette.action.view.zoomIn', 'view'),
+  shell('view.zoomOut', 'zoomOut', 'palette.action.view.zoomOut', 'view'),
+  shell('view.zoomReset', 'zoomReset', 'palette.action.view.zoomReset', 'view'),
   {
     id: 'view.theme.pick',
     title: 'palette.action.view.theme.pick',

@@ -1,6 +1,7 @@
 import { getCurrentWebview } from '@tauri-apps/api/webview';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 
+import { platform } from '../ui/platform';
 import type { Unsubscribe } from './client';
 
 /**
@@ -31,6 +32,14 @@ export interface NativeWindow {
    * the returned promise. Not called on a quit that skips the window (⌘Q on macOS).
    */
   onCloseRequested: (handler: () => Promise<void>) => Unsubscribe;
+  /** Zoom of the whole interface (`1` is 100 %). */
+  setZoom: (factor: number) => Promise<void>;
+  /**
+   * Whether `devicePixelRatio` already includes the zoom. Chromium (WebView2) scales it with
+   * the page zoom; WebKit (macOS, Linux) keeps the screen's, and so does a CSS zoom. A canvas
+   * sized from `devicePixelRatio` alone would be blurry there.
+   */
+  readonly zoomInPixelRatio: boolean;
 }
 
 const tauriWindow: NativeWindow = {
@@ -101,6 +110,8 @@ const tauriWindow: NativeWindow = {
       unlisten?.();
     };
   },
+  setZoom: (factor) => getCurrentWebview().setZoom(factor),
+  zoomInPixelRatio: platform === 'windows',
 };
 
 /** Extracts absolute paths from a browser drop (`text/uri-list` with `file://` URIs, or plain paths). */
@@ -131,6 +142,14 @@ const browserWindow: NativeWindow = {
   close: () => Promise.resolve(),
   isMaximized: () => Promise.resolve(false),
   subscribeResized: () => () => undefined,
+  // No page zoom API in a browser: CSS `zoom` scales the layout the same way (mock, Playwright).
+  setZoom(factor) {
+    const root = document.documentElement;
+    if (factor === 1) root.style.removeProperty('zoom');
+    else root.style.setProperty('zoom', String(factor));
+    return Promise.resolve();
+  },
+  zoomInPixelRatio: false,
   onCloseRequested(handler) {
     const onBeforeUnload = () => {
       void handler();

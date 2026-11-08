@@ -235,6 +235,8 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
         .constant("GRAPH_PAGE_SIZE", graph::types::GRAPH_PAGE_SIZE)
         .constant("FONT_SIZE_MIN", *store::FONT_SIZE_RANGE.start())
         .constant("FONT_SIZE_MAX", *store::FONT_SIZE_RANGE.end())
+        .constant("ZOOM_MIN", *store::ZOOM_RANGE.start())
+        .constant("ZOOM_MAX", *store::ZOOM_RANGE.end())
         .constant("AUTO_FETCH_MIN_MINUTES", *store::AUTO_FETCH_RANGE.start())
         .constant("AUTO_FETCH_MAX_MINUTES", *store::AUTO_FETCH_RANGE.end())
         .constant("EDGE_NORMAL", graph::types::edge_kind::NORMAL)

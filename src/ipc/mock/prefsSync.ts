@@ -50,6 +50,7 @@ const MACHINE_SPECIFIC = [
   'checkUpdates',
   'onboarded',
   'lastSeenVersion',
+  'zoom',
 ] as const satisfies readonly (keyof Preferences)[];
 
 type Json = Record<string, unknown>;
