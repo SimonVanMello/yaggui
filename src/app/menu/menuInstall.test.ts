@@ -48,6 +48,7 @@ describe('menu shortcuts', () => {
         'Mod+J',
         'Mod+O',
         'Mod+Shift+T',
+        'Mod+Q',
         'Mod+Shift+Z',
         'Mod+T',
         'Mod+W',

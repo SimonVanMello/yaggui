@@ -45,6 +45,8 @@ const ACCELERATED: ReadonlySet<ShellAction> = new Set([
   'zoomIn',
   'zoomOut',
   'zoomReset',
+  // Quit and close guard: ⌘Q, in place of the native Quit item.
+  'quit',
 ]);
 
 /** Palette actions the menu runs by id (see `builtinActions.ts`). */
@@ -136,7 +138,7 @@ export function buildAppMenu(locale: Locale, context: MenuContext = EMPTY_CONTEX
         native('HideOthers', 'menu.hideOthers'),
         native('ShowAll', 'menu.showAll'),
         separator,
-        native('Quit', 'menu.quit'),
+        action('quit', 'menu.quit'),
       ],
     },
     {
@@ -246,6 +248,9 @@ function welcomeTabId(): string | undefined {
 
 function onMenuAction(id: string): void {
   if (isShellAction(id)) {
+    // The backend relays "Quit yaggui" as `quit-requested` (or quits at once when nothing is in
+    // progress): a webview that cannot answer then still lets the app quit.
+    if (id === 'quit') return;
     // In a text field the menu item is the field's own undo: the app's applies elsewhere only.
     if ((id === 'undo' || id === 'redo') && forwardToTextEntry(id)) return;
     runShellAction(id);

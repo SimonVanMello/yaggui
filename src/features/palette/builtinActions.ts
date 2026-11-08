@@ -242,6 +242,8 @@ const BUILTIN: readonly PaletteAction[] = [
     run: () => void copyBugReport(),
   },
   shell('app.openLogs', 'openLogs', 'palette.action.app.openLogs', 'app'),
+  // Quit and close guard.
+  shell('app.quit', 'quit', 'palette.action.app.quit', 'app'),
   shell('git.fetch', 'fetch', 'palette.action.git.fetch', 'git', hasRepo),
   shell('git.pull', 'pull', 'palette.action.git.pull', 'git', hasRepo),
   shell('git.push', 'push', 'palette.action.git.push', 'git', hasRepo),

@@ -130,6 +130,7 @@ describe('mock events', () => {
       'ptyOutput',
       'ptyExited',
       'updateProgress',
+      'quitRequested',
     ];
     expect(names.sort()).toEqual(Object.keys(events).sort());
   });

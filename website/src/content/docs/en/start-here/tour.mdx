@@ -14,6 +14,9 @@ sources:
   - src/features/activity/**
   - src/ipc/nativeMenu.ts
   - src/ipc/nativeWindow.ts
+  - src/features/diff/fileEditStore.ts
+  - src-tauri/src/system/quit.rs
+  - src-tauri/src/system/window_state.rs
   - src-tauri/src/store/repo_ui_state.rs
 requirements: [F-004, F-300, F-301, F-302, F-322]
 ---
@@ -47,6 +50,10 @@ The top bar holds one tab per open repository.
 - Drag an empty part of the bar to move the window; double-click it to maximize or restore.
 
 Switching, reordering, closing, reopening, pinning and renaming tabs, and their shortcuts, are in [Tabs](../../workspaces/tabs/).
+
+The window title names the repository of the active tab and its branch, for example `api-backoffice · main` (the short commit SHA when HEAD is detached). On a welcome tab it is `yaggui`. On Windows and Linux, ` — yaggui` follows, as the taskbar and the window switcher show it.
+
+yaggui opens with the window at the size and position it had when you last quit, maximized if it was.
 
 ## Toolbar
 
@@ -178,13 +185,27 @@ On a narrow window, yaggui keeps the graph at least 320 pixels wide by shrinking
 
 yaggui remembers the panel sizes, which panels are collapsed, the sections of the left panel and the graph columns for each repository. Reopening a repository, in any tab, restores its layout. The command log's height is not remembered.
 
+## Close and quit yaggui
+
+Closing the window quits yaggui. On macOS, so does **Quit yaggui** (<kbd>⌘Q</kbd>), in the **yaggui** menu or the Dock. **Quit yaggui** is also in the command palette, with <kbd>Ctrl+Q</kbd> on Windows and Linux.
+
+yaggui saves the tabs and quits at once, unless something would be interrupted or lost:
+
+- a Git operation running in an open repository (a fetch, a push…);
+- an [interactive rebase](../../history/interactive-rebase/) whose list you changed but did not start;
+- a file [edited in the diff view](../../everyday/diff/#edit-a-file-in-the-diff) with unsaved changes.
+
+A **Quit yaggui?** dialog then lists them, for example "Push running in api-backoffice", "The interactive rebase of web has unsaved changes" or "Unsaved changes to src/app.ts in web". **Quit anyway** quits; **Cancel** keeps the window open.
+
+If yaggui stops responding, closing or quitting again a second later goes through without the dialog.
+
 ## macOS menu bar
 
 On macOS, yaggui has a menu bar. Windows and Linux have none: use the toolbar, the command palette (<kbd>Ctrl+K</kbd>) and the shortcuts.
 
 | Menu           | Items                                                                                                                                                                                                                                                                                   |
 | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **yaggui**     | About yaggui, **Preferences…**, **Terminal Setting…**, Services, Hide yaggui, Hide Others, Show All, Quit yaggui                                                                                                                                                                        |
+| **yaggui**     | About yaggui, **Preferences…**, **Terminal Setting…**, Services, Hide yaggui, Hide Others, Show All, **Quit yaggui** (<kbd>⌘Q</kbd>)                                                                                                                                                                       |
 | **File**       | **New Tab** (<kbd>⌘T</kbd>), **Open Repository…** (<kbd>⌘O</kbd>), **Clone Repository…**, **Initialize Repository…**, **Open Recent**, **Close Tab** (<kbd>⌘W</kbd>), **Reopen Closed Tab** (<kbd>⌘⇧T</kbd>)                                                                                                                    |
 | **Edit**       | **Undo** (<kbd>⌘Z</kbd>), **Redo** (<kbd>⇧⌘Z</kbd>), Cut, Copy, Paste, Select All                                                                                                                                                                                                       |
 | **Repository** | **Fetch** (<kbd>⇧⌘F</kbd>), **Pull** (<kbd>⇧⌘L</kbd>), **Push** (<kbd>⇧⌘P</kbd>), **New Branch…** (<kbd>⌘B</kbd>), **New Tag…**, **Stash** (<kbd>⇧⌘S</kbd>), **Pop Stash** (<kbd>⌥⇧⌘S</kbd>), **Open in Terminal**, **Open in Editor**, **Open in File Manager**, **Operation History** |
@@ -192,6 +213,6 @@ On macOS, yaggui has a menu bar. Windows and Linux have none: use the toolbar, t
 | **Window**     | Minimize, Zoom, **Show Next Tab**, **Show Previous Tab**, Bring All to Front                                                                                                                                                                                                            |
 | **Help**       | **What's New in yaggui**, **Command Log**                                                                                                                                                                                                                                               |
 
-**Undo** and **Redo** undo yaggui operations, except when a text field has the focus: then they undo typing. **Close Tab** closes the tab, never the window. Menu items do nothing while a dialog is open. If you change a shortcut, the menu shows the new one.
+**Undo** and **Redo** undo yaggui operations, except when a text field has the focus: then they undo typing. **Close Tab** closes the tab, never the window. Menu items do nothing while a dialog is open, except **Quit yaggui**. If you change a shortcut, the menu shows the new one.
 
 **Open Recent** lists the 10 repositories opened most recently (see [Reopen a recent repository](../../workspaces/tabs/#reopen-a-recent-repository-macos)). The **Repository** menu acts on the repository of the active tab; it is greyed out in a welcome tab. **Open in Terminal** opens the external terminal. **Zoom In**, **Zoom Out** and **Actual Size** scale the whole window (see [Zoom the whole window](../../customize/appearance/#zoom-the-whole-window)).

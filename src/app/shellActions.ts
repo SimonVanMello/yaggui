@@ -15,6 +15,7 @@ import { OP_HISTORY_EVENT } from '../features/undo/undoEvents';
 import { runUndo } from '../features/undo/undoOps';
 import { resetZoom, zoomIn, zoomOut } from '../features/zoom/zoom';
 import { isTextEntry } from '../ui/textEntry';
+import { requestQuit } from './quit/quitFlow';
 
 function togglePanel(panel: 'sidebar' | 'details'): void {
   const store = useTabsStore.getState();
@@ -70,6 +71,8 @@ export type ShellAction =
   | 'zoomIn'
   | 'zoomOut'
   | 'zoomReset'
+  // Quit and close guard.
+  | 'quit'
   | TabAction;
 
 const tabActions = Object.fromEntries(
@@ -173,6 +176,8 @@ const ACTIONS: Record<ShellAction, () => void> = {
   zoomIn,
   zoomOut,
   zoomReset: resetZoom,
+  // Quit and close guard: confirms first when something is in progress.
+  quit: () => void requestQuit(),
   ...tabActions,
 };
 
@@ -245,6 +250,8 @@ export const SHORTCUTS: { shortcut: string; action: ShellAction }[] = [
   { shortcut: 'Mod+=', action: 'zoomIn' },
   { shortcut: 'Mod+-', action: 'zoomOut' },
   { shortcut: 'Mod+0', action: 'zoomReset' },
+  // Quit and close guard.
+  { shortcut: 'Mod+Q', action: 'quit' },
 ];
 
 /** Id of the rebindable command (F-281) a shell action stands for. */
@@ -281,6 +288,8 @@ const BINDING_IDS: Record<ShellAction, string> = {
   zoomIn: 'view.zoomIn',
   zoomOut: 'view.zoomOut',
   zoomReset: 'view.zoomReset',
+  // Quit and close guard.
+  quit: 'app.quit',
   ...(Object.fromEntries(TAB_NUMBERS.map((n) => [tabAction(n), `tab.goto.${String(n)}`])) as Record<
     TabAction,
     string

@@ -38,7 +38,12 @@ export {
   WORKSPACE_NAME_MAX,
 } from './bindings';
 export { YagguiIpcError, unwrap, type IpcResult } from './result';
-export { nativeWindow, type FolderDropHandlers, type NativeWindow } from './nativeWindow';
+export {
+  nativeWindow,
+  type CloseRequest,
+  type FolderDropHandlers,
+  type NativeWindow,
+} from './nativeWindow';
 export {
   nativeMenu,
   toAccelerator,

@@ -39,6 +39,9 @@ gix = { version = "0.89", default-features = false, features = ["max-performance
 rusqlite = { version = "0.40", features = ["bundled"] }
 notify = "8"
 tauri-plugin-dialog = "2"
+# Restores the main window size, position and maximized state (F-xxx window state): official
+# plugin, Rust-only wiring (no permission granted to the webview).
+tauri-plugin-window-state = "2"
 portable-pty = "0.9.0"
 # Avatar downloads (F-033): blocking, no async runtime, TLS through rustls (no OpenSSL to ship).
 ureq = { version = "3", default-features = false, features = ["rustls"] }

@@ -8,6 +8,7 @@ use tauri::{AppHandle, Manager};
 use crate::git::cli;
 use crate::state::AppState;
 use crate::system::changelog::{self, ChangelogRelease};
+use crate::system::quit;
 
 #[derive(Debug, Clone, Serialize, Type)]
 #[serde(rename_all = "camelCase")]
@@ -73,4 +74,29 @@ fn read_launch_path() -> Option<String> {
 #[specta::specta]
 pub async fn launch_path() -> Option<String> {
     LAUNCH_PATH.get_or_init(read_launch_path).clone()
+}
+
+// Quit and close guard (see `system::quit`).
+
+/// Quits the app. The frontend calls it once the quit is confirmed and the session saved.
+#[tauri::command]
+#[specta::specta]
+pub fn quit_app(app: AppHandle) {
+    tracing::info!("quitting at the user's request");
+    app.exit(0);
+}
+
+/// The frontend received a quit or close request: the next one waits for it again.
+#[tauri::command]
+#[specta::specta]
+pub fn acknowledge_quit_request() {
+    quit::GATE.acknowledge();
+}
+
+/// Whether something a quit would interrupt or lose is in progress (a running operation,
+/// unsaved edits): a native quit (⌘Q, the macOS Dock) then asks the frontend first.
+#[tauri::command]
+#[specta::specta]
+pub fn set_quit_guard(active: bool) {
+    quit::GATE.set_guarded(active);
 }

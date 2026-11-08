@@ -93,6 +93,17 @@ describe('macOS app menu', () => {
     ).toBe(false);
   });
 
+  it('quits through the app action (quit guard), not the native Quit item', () => {
+    const app = entries('en', 0);
+    expect(app).toContainEqual({
+      kind: 'action',
+      id: 'quit',
+      label: 'Quit yaggui',
+      shortcut: 'Mod+Q',
+    });
+    expect(app.some((entry) => entry.kind === 'native' && entry.item === 'Quit')).toBe(false);
+  });
+
   it('keeps native clipboard items in Edit', () => {
     const items = entries('fr', 2).flatMap((entry) =>
       entry.kind === 'native' ? [entry.item] : [],
