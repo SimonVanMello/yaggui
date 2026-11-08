@@ -27,6 +27,7 @@ import { TabContent } from './tabs/TabContent';
 import { TitleBar } from './titlebar/TitleBar';
 import { useBackendEvents } from './useBackendEvents';
 import { useShortcuts } from './useShortcuts';
+import { useWindowTitle } from './useWindowTitle';
 
 /** Longest wait for the restored session before showing the (hidden) window anyway. */
 const SHOW_WINDOW_TIMEOUT_MS = 1500;
@@ -61,6 +62,7 @@ function useStartup(): boolean {
 export function Shell() {
   useBackendEvents();
   useShortcuts();
+  useWindowTitle();
   useEffect(registerBuiltinActions, []);
   useEffect(registerBuiltinBindings, []);
   const ready = useStartup();

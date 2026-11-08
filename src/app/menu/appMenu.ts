@@ -17,6 +17,8 @@ const ACCELERATED: ReadonlySet<ShellAction> = new Set([
   'toggleDetails',
   'undo',
   'redo',
+  // Quit and close guard: ⌘Q, in place of the native Quit item.
+  'quit',
 ]);
 
 /** Standard macOS menu bar: yaggui, File, Edit, View, Window, Help (spec §6.9). */
@@ -51,7 +53,7 @@ export function buildAppMenu(locale: Locale): MenuSection[] {
         native('HideOthers', 'menu.hideOthers'),
         native('ShowAll', 'menu.showAll'),
         separator,
-        native('Quit', 'menu.quit'),
+        action('quit', 'menu.quit'),
       ],
     },
     {
@@ -126,7 +128,9 @@ export function menuShortcuts(): ReadonlySet<string> {
 }
 
 function onMenuAction(id: string): void {
-  if (!isShellAction(id)) return;
+  // The backend relays "Quit yaggui" as `quit-requested` (or quits at once when nothing is in
+  // progress): a webview that cannot answer then still lets the app quit.
+  if (!isShellAction(id) || id === 'quit') return;
   // In a text field the menu item is the field's own undo: the app's applies elsewhere only.
   if ((id === 'undo' || id === 'redo') && forwardToTextEntry(id)) return;
   runShellAction(id);

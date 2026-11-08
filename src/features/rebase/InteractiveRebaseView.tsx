@@ -27,7 +27,7 @@ import {
   validate,
 } from './rebaseModel';
 import { leaveRebase, refreshAfterRebase, useRebasePlan } from './rebaseOps';
-import { openAutosquash, setRebaseRows, type RebaseSession } from './rebaseStore';
+import { openAutosquash, setRebaseEdited, setRebaseRows, type RebaseSession } from './rebaseStore';
 import { ResultPanel } from './ResultPanel';
 import { StoppedPanel } from './StoppedPanel';
 import { useRebaseRun } from './useRebaseRun';
@@ -108,6 +108,12 @@ export function InteractiveRebaseView({
   const branch = plan?.branch ?? (state ? workingBranch(state) : null) ?? '';
   const busy = run.busy !== null;
   const blocked = plan?.hasMerges === true || !validation?.ok || unchanged || busy;
+
+  // For the quit guard: what the close below would ask about.
+  const edited = !unchanged && stop === null;
+  useEffect(() => {
+    setRebaseEdited(repoId, edited);
+  }, [repoId, edited]);
 
   // Leaving forgets the edited list: once something changed, it asks first (a stopped rebase
   // is already running from it: nothing to lose).

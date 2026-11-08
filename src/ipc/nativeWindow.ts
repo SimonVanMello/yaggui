@@ -28,9 +28,18 @@ export interface NativeWindow {
   subscribeFolderDrop: (handlers: FolderDropHandlers) => Unsubscribe;
   /**
    * Called when the window is about to close (its button, `close()`): the window waits for
-   * the returned promise. Not called on a quit that skips the window (⌘Q on macOS).
+   * the returned promise, and stays open when it resolves `false`. Not called on a quit that
+   * skips the window (⌘Q and the Dock on macOS, see `quit-requested`). In the browser it runs
+   * on page unload, which can neither wait nor be cancelled: `vetoable` is then `false`.
    */
-  onCloseRequested: (handler: () => Promise<void>) => Unsubscribe;
+  onCloseRequested: (handler: (request: CloseRequest) => Promise<boolean>) => Unsubscribe;
+  /** Window title (taskbar, window switcher; the macOS title bar). */
+  setTitle: (title: string) => Promise<void>;
+}
+
+export interface CloseRequest {
+  /** Whether the handler can keep the window open (and ask the user first). */
+  vetoable: boolean;
 }
 
 const tauriWindow: NativeWindow = {
@@ -81,14 +90,18 @@ const tauriWindow: NativeWindow = {
       unlisten?.();
     };
   },
+  setTitle: (title) => getCurrentWindow().setTitle(title),
   onCloseRequested(handler) {
     let unlisten: (() => void) | undefined;
     let active = true;
     // With a listener, Tauri leaves the close to it: the window is destroyed once the handler
-    // returns (unless it prevents the close, which this one never does). That destroy is a call
-    // from the webview: without `core:window:allow-destroy` it is refused and the window stays.
+    // returns, unless it prevents the close. That destroy is a call from the webview: without
+    // `core:window:allow-destroy` it is refused and the window stays.
     getCurrentWindow()
-      .onCloseRequested(() => (active ? handler() : Promise.resolve()))
+      .onCloseRequested(async (event) => {
+        if (!active) return;
+        if (!(await handler({ vetoable: true }))) event.preventDefault();
+      })
       .then((fn) => {
         if (active) unlisten = fn;
         else fn();
@@ -131,9 +144,14 @@ const browserWindow: NativeWindow = {
   close: () => Promise.resolve(),
   isMaximized: () => Promise.resolve(false),
   subscribeResized: () => () => undefined,
+  // Read by the Playwright specs.
+  setTitle: (title) => {
+    document.title = title;
+    return Promise.resolve();
+  },
   onCloseRequested(handler) {
     const onBeforeUnload = () => {
-      void handler();
+      void handler({ vetoable: false });
     };
     window.addEventListener('beforeunload', onBeforeUnload);
     return () => {

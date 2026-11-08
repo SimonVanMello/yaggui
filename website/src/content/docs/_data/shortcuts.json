@@ -426,6 +426,21 @@
           ]
         },
         {
+          "id": "app.quit",
+          "title": {
+            "en": "Quit yaggui",
+            "fr": "Quitter yaggui"
+          },
+          "mac": [
+            "⌘",
+            "Q"
+          ],
+          "other": [
+            "Ctrl",
+            "Q"
+          ]
+        },
+        {
           "id": "app.palette",
           "title": {
             "en": "Open the command palette",

@@ -8,6 +8,8 @@ pub mod git_binary;
 pub mod keyboard;
 pub mod paths;
 pub mod pty;
+pub mod quit;
 pub mod shell_env;
 pub mod terminal;
 pub mod updates;
+pub mod window_state;

@@ -24,7 +24,17 @@ describe('menu shortcuts', () => {
     install.mockResolvedValueOnce(undefined);
     await installAppMenu();
     expect([...menuShortcuts()].sort()).toEqual(
-      ['Mod+Alt+B', 'Mod+Alt+I', 'Mod+J', 'Mod+O', 'Mod+Shift+Z', 'Mod+T', 'Mod+W', 'Mod+Z'].sort(),
+      [
+        'Mod+Alt+B',
+        'Mod+Alt+I',
+        'Mod+J',
+        'Mod+O',
+        'Mod+Q',
+        'Mod+Shift+Z',
+        'Mod+T',
+        'Mod+W',
+        'Mod+Z',
+      ].sort(),
     );
     // Tab numbers and ⌃Tab never leave the keyboard handler.
     expect(menuShortcuts().has('Mod+1')).toBe(false);

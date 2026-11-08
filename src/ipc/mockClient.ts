@@ -495,6 +495,9 @@ export class MockBackend {
   /** Exit code of the fake package manager of `updateInTerminal`, for tests. */
   upgradeExitCode = 0;
   restarts = 0;
+  /** Quit and close guard, for tests: `quitApp` calls and the last `setQuitGuard`. */
+  quits = 0;
+  quitGuard = false;
   /** Integrated terminals (F-267): a fake shell. */
   readonly ptys = new MockPtys({
     output: (payload) => {
@@ -643,6 +646,8 @@ export class MockBackend {
     this.frontendErrors.length = 0;
     this.upgradeExitCode = 0;
     this.restarts = 0;
+    this.quits = 0;
+    this.quitGuard = false;
     this.ptys.reset();
     this.log = createMockLog();
     this.runningOps.forEach((cancel) => {
@@ -758,6 +763,14 @@ export class MockBackend {
         stale: false,
       });
     }
+  }
+
+  /**
+   * Quit and close guard: a quit from outside the webview (⌘Q, the macOS Dock), as the backend
+   * relays it while something is in progress.
+   */
+  simulateQuitRequest(): void {
+    this.emit('quitRequested', null);
   }
 
   emit<K extends YagguiEventName>(name: K, payload: YagguiEventMap[K]): void {
@@ -5777,6 +5790,16 @@ export class MockBackend {
     },
     restartApp: () => {
       this.restarts += 1;
+      return Promise.resolve();
+    },
+    // Quit and close guard: there is no app to quit in a browser.
+    quitApp: () => {
+      this.quits += 1;
+      return Promise.resolve();
+    },
+    acknowledgeQuitRequest: () => Promise.resolve(),
+    setQuitGuard: (active) => {
+      this.quitGuard = active;
       return Promise.resolve();
     },
     pickRepoFolder: (title) => {

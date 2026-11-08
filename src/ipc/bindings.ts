@@ -12,6 +12,15 @@ export const commands = {
 	launchPath: () => __TAURI_INVOKE<string | null>("launch_path"),
 	/**  Release notes embedded from `CHANGELOG.md`, newest first. */
 	changelog: () => __TAURI_INVOKE<ChangelogRelease[]>("changelog"),
+	/**  Quits the app. The frontend calls it once the quit is confirmed and the session saved. */
+	quitApp: () => __TAURI_INVOKE<void>("quit_app"),
+	/**  The frontend received a quit or close request: the next one waits for it again. */
+	acknowledgeQuitRequest: () => __TAURI_INVOKE<void>("acknowledge_quit_request"),
+	/**
+	 *  Whether something a quit would interrupt or lose is in progress (a running operation,
+	 *  unsaved edits): a native quit (⌘Q, the macOS Dock) then asks the frontend first.
+	 */
+	setQuitGuard: (active: boolean) => __TAURI_INVOKE<void>("set_quit_guard", { active }),
 	/**  Crash reports of earlier sessions the user has not been told about, oldest first. */
 	pendingCrashReports: () => typedError<CrashSummary[], YagguiError>(__TAURI_INVOKE("pending_crash_reports")),
 	/**  The user was told about the pending crash reports: they are not listed again. */
@@ -839,6 +848,7 @@ export const events = {
 	opStarted: makeEvent<OpStarted>("op-started"),
 	ptyExited: makeEvent<PtyExited>("pty-exited"),
 	ptyOutput: makeEvent<PtyOutput>("pty-output"),
+	quitRequested: makeEvent<QuitRequested>("quit-requested"),
 	refsChanged: makeEvent<RefsChanged>("refs-changed"),
 	scanProgress: makeEvent<ScanProgress>("scan-progress"),
 	statusChanged: makeEvent<StatusChanged>("status-changed"),
@@ -2968,6 +2978,13 @@ export type PushResult = {
 	/**  Nothing was sent: the remote branch already pointed there. */
 	upToDate: boolean,
 };
+
+/**
+ *  Quit and close guard: the user asked to quit from outside the webview (the "Quit yaggui"
+ *  menu item, the macOS Dock) while the frontend reported work in progress. The frontend
+ *  acknowledges it, confirms, then calls `quit_app`. Emitted by `system::quit`, not a service.
+ */
+export type QuitRequested = null;
 
 /**  What happens to a commit in an interactive rebase (F-142). */
 export type RebaseAction = 

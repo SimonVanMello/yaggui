@@ -13,6 +13,7 @@ import { fetchRepo, pullRepo, pushRepo } from '../features/network/networkOps';
 import { OP_HISTORY_EVENT } from '../features/undo/undoEvents';
 import { runUndo } from '../features/undo/undoOps';
 import { isTextEntry } from '../ui/textEntry';
+import { requestQuit } from './quit/quitFlow';
 
 function togglePanel(panel: 'sidebar' | 'details'): void {
   const store = useTabsStore.getState();
@@ -62,6 +63,8 @@ export type ShellAction =
   | 'undo'
   | 'redo'
   | 'opHistory'
+  // Quit and close guard.
+  | 'quit'
   | TabAction;
 
 const tabActions = Object.fromEntries(
@@ -160,6 +163,8 @@ const ACTIONS: Record<ShellAction, () => void> = {
   opHistory: () => {
     if (activeRepoId() !== null) window.dispatchEvent(new Event(OP_HISTORY_EVENT));
   },
+  // Quit and close guard: confirms first when something is in progress.
+  quit: () => void requestQuit(),
   ...tabActions,
 };
 
@@ -227,6 +232,8 @@ export const SHORTCUTS: { shortcut: string; action: ShellAction }[] = [
   { shortcut: 'Mod+Shift+P', action: 'push' },
   { shortcut: 'Mod+Z', action: 'undo' },
   { shortcut: 'Mod+Shift+Z', action: 'redo' },
+  // Quit and close guard.
+  { shortcut: 'Mod+Q', action: 'quit' },
 ];
 
 /** Id of the rebindable command (F-281) a shell action stands for. */
@@ -258,6 +265,8 @@ const BINDING_IDS: Record<ShellAction, string> = {
   fetch: 'git.fetch',
   pull: 'git.pull',
   push: 'git.push',
+  // Quit and close guard.
+  quit: 'app.quit',
   ...(Object.fromEntries(TAB_NUMBERS.map((n) => [tabAction(n), `tab.goto.${String(n)}`])) as Record<
     TabAction,
     string

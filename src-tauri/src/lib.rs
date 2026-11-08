@@ -25,6 +25,10 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             commands::app::app_info,
             commands::app::launch_path,
             commands::app::changelog,
+            // Quit and close guard.
+            commands::app::quit_app,
+            commands::app::acknowledge_quit_request,
+            commands::app::set_quit_guard,
             commands::diagnostics::pending_crash_reports,
             commands::diagnostics::acknowledge_crash_reports,
             commands::diagnostics::open_logs_folder,
@@ -225,6 +229,7 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             events::JournalChanged,
             events::PtyOutput,
             events::PtyExited,
+            events::QuitRequested,
         ])
         .constant("GRAPH_COLORS", graph::types::GRAPH_COLORS)
         .constant("GRAPH_MAX_LANES", graph::types::GRAPH_MAX_LANES)
@@ -361,6 +366,22 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         // Only used from Rust (`install_update`), like the dialog plugin.
         .plugin(tauri_plugin_updater::Builder::new().build())
+        // Size, position and maximized state of the window, restored before it is shown.
+        // Only used from Rust, like the dialog plugin.
+        .plugin(system::window_state::plugin())
+        // Quit and close guard: the native requests the frontend may need to confirm.
+        .on_menu_event(|app, event| {
+            if event.id() == system::quit::QUIT_MENU_ID && system::quit::native_quit(app) {
+                app.exit(0);
+            }
+        })
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { .. } = event
+                && window.label() == "main"
+            {
+                system::quit::on_close_requested(window);
+            }
+        })
         .invoke_handler(builder.invoke_handler())
         .setup(move |app| {
             builder.mount_events(app);
@@ -379,6 +400,8 @@ pub fn run() {
             );
             app_state.clean_backups_in_background();
             app.manage(app_state);
+            system::window_state::log_restored(&config_dir);
+            system::quit::install_dock_hook(app.handle().clone());
             show_window_fallback(app.handle().clone());
             if std::env::var_os(PERF_PROBE_ENV).is_some() {
                 perf_probe(app.handle().clone(), started);

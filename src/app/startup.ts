@@ -5,8 +5,9 @@ import { checkForUpdatesAtStartup } from '../features/updates/updates';
 import { notifyPendingCrashes } from '../features/diagnostics/diagnostics';
 import { startAutoFetch } from '../features/network/autoFetch';
 import { openRepoPath, restoreRepoSession } from '../features/repo/repoSessions';
-import { ipc, nativeWindow, unwrap } from '../ipc';
+import { ipc, unwrap } from '../ipc';
 import { installAppMenu } from './menu/appMenu';
+import { installQuitGuard } from './quit/quitFlow';
 import { flushRepoLayouts, persistRepoLayouts } from './tabs/repoLayout';
 import { selectActiveTab, toSavedTabs, useTabsStore, type ShellTab } from './tabs/tabsStore';
 
@@ -116,14 +117,19 @@ export function flushPersistence(): Promise<void> {
   return Promise.all([flushTabs(), flushRepoLayouts()]).then(() => undefined);
 }
 
-/** Closing the window waits for the pending saves, within reason. */
+/**
+ * Closing the window or quitting waits for the pending saves, within reason, once the quit
+ * guard let it go (a confirmation while something is in progress).
+ */
 function flushOnClose(): void {
-  nativeWindow.onCloseRequested(() => {
-    const timeout = new Promise<void>((resolve) => setTimeout(resolve, FLUSH_TIMEOUT_MS));
-    const flushed = flushPersistence().catch((error: unknown) => {
-      console.warn('Could not save the session before closing', error);
-    });
-    return Promise.race([flushed, timeout]);
+  installQuitGuard({
+    flush: () => {
+      const timeout = new Promise<void>((resolve) => setTimeout(resolve, FLUSH_TIMEOUT_MS));
+      const flushed = flushPersistence().catch((error: unknown) => {
+        console.warn('Could not save the session before closing', error);
+      });
+      return Promise.race([flushed, timeout]);
+    },
   });
 }
 

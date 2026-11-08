@@ -5,6 +5,7 @@ sidebar:
   order: 5
 sources:
   - src-tauri/src/state.rs
+  - src-tauri/src/system/window_state.rs
   - src-tauri/src/lib.rs
   - src-tauri/src/main.rs
   - src-tauri/src/store/**
@@ -53,11 +54,12 @@ yaggui uses three folders: a config folder for what must be kept, a cache folder
 
 ### Config folder
 
-| Item               | Contents                                                                                                                                                                                                                                                                |
-| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `yaggui.db`        | A SQLite database with your settings and lists (see below).                                                                                                                                                                                                             |
-| `keybindings.json` | The shortcuts you changed, as `{ "<action id>": "Mod+Shift+K" }`. Only present once you rebind something. See [Palette and shortcuts](../../customize/palette-and-shortcuts/).                                                                                          |
-| `backups/`         | One sub-folder per backup: copies of the files that a discard, a hard reset, a stash of selected files, a `.gitignore` change or an LFS track was about to overwrite. They let you [undo](../../history/undo-and-redo/) these operations and recover the files by hand. |
+| Item                | Contents                                                                                                                                                                                                                                                                |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `yaggui.db`         | A SQLite database with your settings and lists (see below).                                                                                                                                                                                                             |
+| `keybindings.json`  | The shortcuts you changed, as `{ "<action id>": "Mod+Shift+K" }`. Only present once you rebind something. See [Palette and shortcuts](../../customize/palette-and-shortcuts/).                                                                                          |
+| `window-state.json` | The size, position and maximized state of the window, restored at the next launch.                                                                                                                                                                                      |
+| `backups/`          | One sub-folder per backup: copies of the files that a discard, a hard reset, a stash of selected files, a `.gitignore` change or an LFS track was about to overwrite. They let you [undo](../../history/undo-and-redo/) these operations and recover the files by hand. |
 
 :::note
 yaggui cleans `backups/` up when it starts: it keeps the backups the undo history still refers to, and deletes the others once they are more than 30 days old or are not among the 100 newest of their repository. See [Backups of discarded files](../../history/undo-and-redo/#backups-of-discarded-files). You can also delete sub-folders yourself, preferably while yaggui is closed.
@@ -123,13 +125,13 @@ Your **global Git configuration** (`~/.gitconfig`) changes only when you ask:
 
 ## Environment variables
 
-| Variable                         | Effect                                                                                                                                                                 |
-| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `YAGGUI_CONFIG_DIR`              | Use this folder instead of the config folder (database, `keybindings.json`, `backups/`). Useful for a clean test session: `YAGGUI_CONFIG_DIR=/tmp/yaggui-test yaggui`. |
-| `YAGGUI_CACHE_DIR`               | Use this folder instead of the cache folder.                                                                                                                           |
-| `YAGGUI_LOG_DIR`                 | Use this folder instead of the logs folder.                                                                                                                            |
-| `RUST_LOG`                       | Level of the diagnostic messages yaggui writes to the session log and prints on standard error: `RUST_LOG=debug yaggui`. Default `info`.                               |
-| `WEBKIT_DISABLE_DMABUF_RENDERER` | Linux only. yaggui sets it to `1` on Wayland to avoid a rendering crash; a value you set yourself wins.                                                                |
+| Variable                         | Effect                                                                                                                                                                                      |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `YAGGUI_CONFIG_DIR`              | Use this folder instead of the config folder (database, `keybindings.json`, `window-state.json`, `backups/`). Useful for a clean test session: `YAGGUI_CONFIG_DIR=/tmp/yaggui-test yaggui`. |
+| `YAGGUI_CACHE_DIR`               | Use this folder instead of the cache folder.                                                                                                                                                |
+| `YAGGUI_LOG_DIR`                 | Use this folder instead of the logs folder.                                                                                                                                                 |
+| `RUST_LOG`                       | Level of the diagnostic messages yaggui writes to the session log and prints on standard error: `RUST_LOG=debug yaggui`. Default `info`.                                                    |
+| `WEBKIT_DISABLE_DMABUF_RENDERER` | Linux only. yaggui sets it to `1` on Wayland to avoid a rendering crash; a value you set yourself wins.                                                                                     |
 
 yaggui also removes Git variables such as `GIT_DIR`, `GIT_WORK_TREE` and `GIT_CONFIG_*` from the environment of the commands it runs, so starting it from a Git hook or a rebase does not confuse it.
 

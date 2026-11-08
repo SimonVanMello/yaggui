@@ -18,7 +18,7 @@ import {
   type FileEditor as Editor,
   type FileEditorState,
 } from './fileEditorView';
-import { keepDraft, stopEditing, takeDraft } from './fileEditStore';
+import { keepDraft, setEditorDirty, stopEditing, takeDraft } from './fileEditStore';
 import styles from './FileEditor.module.css';
 
 interface FileEditorProps {
@@ -60,6 +60,7 @@ export function FileEditor({ repoId, path, wrap }: FileEditorProps) {
       wrap: false,
       onState: (next) => {
         setState(next);
+        setEditorDirty(repoId, path, next.dirty);
         if (next.dirty) setSaved(false);
       },
     });
@@ -71,6 +72,7 @@ export function FileEditor({ repoId, path, wrap }: FileEditorProps) {
     return () => {
       const { dirty, version } = created.state();
       if (dirty) keepDraft(repoId, path, { text: created.text(), version });
+      else setEditorDirty(repoId, path, false);
       created.destroy();
       editor.current = null;
     };
