@@ -74,6 +74,11 @@ export const commands = {
 	/**  Known repositories (recent and favorites), most recently opened first. */
 	listRepos: () => typedError<KnownRepo[], YagguiError>(__TAURI_INVOKE("list_repos")),
 	setRepoFavorite: (repoId: number, favorite: boolean) => typedError<null, YagguiError>(__TAURI_INVOKE("set_repo_favorite", { repoId, favorite })),
+	/**
+	 *  Renames a known repository (its display name in tabs and lists); a blank name gives back
+	 *  the folder name. Returns the updated repository.
+	 */
+	renameKnownRepo: (repoId: number, name: string) => typedError<KnownRepo, YagguiError>(__TAURI_INVOKE("rename_known_repo", { repoId, name })),
 	/**  Removes a repository from the recent list (never touches the folder). */
 	forgetRepo: (repoId: number) => typedError<null, YagguiError>(__TAURI_INVOKE("forget_repo", { repoId })),
 	/**  Tabs saved at the last `save_tabs`, for restoration at startup. */
@@ -3522,6 +3527,8 @@ export type Tab = {
 	repoId: number | null,
 	/**  Opaque JSON owned by the frontend (panel sizes…), stored as is. */
 	uiState: string | null,
+	/**  Pinned tabs stay at the left of the strip. Absent from tabs saved before it existed. */
+	pinned?: boolean,
 };
 
 export type TabsState = {

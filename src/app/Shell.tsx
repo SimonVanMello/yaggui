@@ -14,6 +14,7 @@ import { ShortcutsDialog } from '../features/keybindings/ShortcutsDialog';
 import { PreferencesImportDialog } from '../features/preferences/PreferencesImportDialog';
 import { PreferencesDialog } from '../features/preferences/PreferencesDialog';
 import { OpenRepoDialog } from '../features/welcome/OpenRepoDialog';
+import { RenameRepoDialog } from '../features/repo/RenameRepoDialog';
 import { WorkspaceDialogs } from '../features/workspaces/WorkspaceDialogs';
 import { ModuleDialogs } from '../features/worktrees/ModuleDialogs';
 import { DemoBanner } from '../demo/DemoBanner';
@@ -84,6 +85,7 @@ export function Shell() {
       <TerminalDialog />
       <UpgradeDialog />
       <WorkspaceDialogs />
+      <RenameRepoDialog />
       <ModuleDialogs />
       <CommandPalette />
     </div>

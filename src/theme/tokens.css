@@ -69,6 +69,8 @@
   --tab-height: 31px;
   --tab-min-width: 128px;
   --tab-max-width: 200px;
+  /* Pinned tabs: color dot and a short name only. */
+  --tab-pinned-max-width: 112px;
   --traffic-lights-width: 78px;
   --window-button-width: 46px;
   --toolbar-height: 44px;

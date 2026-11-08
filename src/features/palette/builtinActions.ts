@@ -23,6 +23,7 @@ import { useGraphNavigation } from '../repo/graphNavigation';
 import { createFixup, fixupBlock, startAutosquash } from '../rebase/fixupOps';
 import { openInteractiveRebase } from '../rebase/rebaseStore';
 import { activeRepoId } from '../repo/repoSessions';
+import { canReopenClosedTab } from '../../app/tabs/reopenClosedTab';
 import { FOCUS_REFS_FILTER_EVENT } from '../sidebar/RefsSidebar';
 import { openCommitToolsDialog, useCommitTools } from '../staging/commitToolsStore';
 import { COMMIT_EVENT } from '../staging/commitUi';
@@ -163,6 +164,13 @@ const BUILTIN: readonly PaletteAction[] = [
   },
   shell('tab.new', 'newTab', 'palette.action.tab.new', 'tabs'),
   shell('tab.close', 'closeTab', 'palette.action.tab.close', 'tabs'),
+  shell(
+    'tab.reopenClosed',
+    'reopenClosedTab',
+    'palette.action.tab.reopenClosed',
+    'tabs',
+    canReopenClosedTab,
+  ),
   shell('tab.next', 'nextTab', 'palette.action.tab.next', 'tabs'),
   shell('tab.previous', 'previousTab', 'palette.action.tab.previous', 'tabs'),
   shell('view.sidebar', 'toggleSidebar', 'palette.action.view.sidebar', 'view', hasRepo),

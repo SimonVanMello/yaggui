@@ -58,6 +58,7 @@ const PATHS = {
   windowRestore: 'M6 9h9v9H6zM9 9V6h9v9h-3',
   windowClose: 'M6 6l12 12M18 6 6 18',
   lock: 'M7 11V8a5 5 0 0 1 10 0v3M6 11h12v9H6z',
+  pin: 'M9 4h6m-5 0v5l-3 4h10l-3-4V4m-2 9v7',
   retry: 'M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5',
   more: 'M5 12h.01M12 12h.01M19 12h.01',
   box: 'm12 3 8 4v10l-8 4-8-4V7l8-4Zm0 8 8-4m-8 4v10m0-10L4 7',

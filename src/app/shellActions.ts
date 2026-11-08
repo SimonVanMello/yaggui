@@ -9,6 +9,7 @@ import { openLogsFolder, reportBug } from '../features/diagnostics/diagnostics';
 import { usePaletteStore } from '../features/palette/paletteStore';
 import { useShellStore } from './shellStore';
 import { openNewTab, selectActiveTab, useTabsStore } from './tabs/tabsStore';
+import { reopenClosedTab } from './tabs/reopenClosedTab';
 import { fetchRepo, pullRepo, pushRepo } from '../features/network/networkOps';
 import { OP_HISTORY_EVENT } from '../features/undo/undoEvents';
 import { runUndo } from '../features/undo/undoOps';
@@ -37,6 +38,8 @@ function tabAction(n: (typeof TAB_NUMBERS)[number]): TabAction {
 export type ShellAction =
   | 'newTab'
   | 'closeTab'
+  // Tabs workstream: reopen the last closed tab.
+  | 'reopenClosedTab'
   | 'nextTab'
   | 'previousTab'
   | 'openRepo'
@@ -79,6 +82,7 @@ const ACTIONS: Record<ShellAction, () => void> = {
   closeTab: () => {
     closeTabAndRepo(useTabsStore.getState().activeTabId);
   },
+  reopenClosedTab: () => void reopenClosedTab(),
   nextTab: () => {
     useTabsStore.getState().activateRelative(1);
   },
@@ -209,6 +213,7 @@ export function execShellAction(action: ShellAction): void {
 export const SHORTCUTS: { shortcut: string; action: ShellAction }[] = [
   { shortcut: 'Mod+T', action: 'newTab' },
   { shortcut: 'Mod+W', action: 'closeTab' },
+  { shortcut: 'Mod+Shift+T', action: 'reopenClosedTab' },
   { shortcut: 'Ctrl+Tab', action: 'nextTab' },
   { shortcut: 'Ctrl+Shift+Tab', action: 'previousTab' },
   ...TAB_NUMBERS.map((n) => ({ shortcut: `Mod+${String(n)}`, action: tabAction(n) })),
@@ -233,6 +238,7 @@ export const SHORTCUTS: { shortcut: string; action: ShellAction }[] = [
 const BINDING_IDS: Record<ShellAction, string> = {
   newTab: 'tab.new',
   closeTab: 'tab.close',
+  reopenClosedTab: 'tab.reopenClosed',
   nextTab: 'tab.next',
   previousTab: 'tab.previous',
   openRepo: 'repo.open',
