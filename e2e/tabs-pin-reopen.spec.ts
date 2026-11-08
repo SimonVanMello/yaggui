@@ -63,7 +63,7 @@ for (const { name: theme, colorScheme } of THEMES) {
       await menuItem(page, 'blog', 'Pin tab');
       await menuItem(page, 'linux', 'Pin tab');
       await expect.poll(() => tabNames(page)).toEqual(['blog', 'linux', 'yaggui']);
-      await expect(tab(page, 'blog')).toHaveAttribute('data-pinned', '');
+      await expect(tab(page, 'blog')).toHaveAttribute('data-pinned', 'true');
       await expect(tab(page, 'blog')).toHaveAccessibleName(/^blog, Pinned/);
       // No close button on a pinned tab.
       await expect(tab(page, 'blog').getByRole('button', { name: /Close/ })).toHaveCount(0);
@@ -84,7 +84,7 @@ for (const { name: theme, colorScheme } of THEMES) {
       // The pinned flag is saved: a reload restores both pinned tabs, pinned.
       await page.reload();
       await expect.poll(() => tabNames(page)).toEqual(['blog', 'linux']);
-      await expect(tab(page, 'linux')).toHaveAttribute('data-pinned', '');
+      await expect(tab(page, 'linux')).toHaveAttribute('data-pinned', 'true');
       await capture(page, theme, 'tabs-pinned');
     });
 
