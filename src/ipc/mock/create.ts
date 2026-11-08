@@ -131,6 +131,18 @@ export function normalizePreferences(
       };
     }
   }
+  const lastSeenVersion = clean(prefs.lastSeenVersion ?? null);
+  if (
+    lastSeenVersion !== null &&
+    (lastSeenVersion.length > 64 || /[\s\p{Cc}]/u.test(lastSeenVersion))
+  ) {
+    return {
+      error: invalid(
+        `"${lastSeenVersion}" is not a valid version.`,
+        `« ${lastSeenVersion} » n'est pas une version valide.`,
+      ),
+    };
+  }
   const disabled = prefs.disabledConfirmations.filter(
     (kind, index, all) => kind !== 'forcePush' && all.indexOf(kind) === index,
   );
@@ -149,6 +161,7 @@ export function normalizePreferences(
       disabledConfirmations: disabled,
       gravatar: prefs.gravatar ?? false,
       remoteTags: prefs.remoteTags ?? false,
+      lastSeenVersion,
     },
   };
 }
@@ -179,6 +192,26 @@ export function mockGitBinaryInfo(path: string | null): GitBinaryInfo {
     return { ...base, version: '2.25.1', supported: false, error: null };
   }
   return { ...base, version: '2.47.1', supported: true, error: null };
+}
+
+/** Detection when no Git is installed (`MockBackend.gitDetected` off), like `git_not_found`. */
+export function mockGitNotFound(): GitBinaryInfo {
+  return {
+    path: null,
+    version: null,
+    supported: false,
+    minVersion: '2.30',
+    error: {
+      code: 'gitNotFound',
+      message: {
+        en: 'Git was not found. Install Git 2.30 or later and restart yaggui.',
+        fr: 'Git est introuvable. Installe Git 2.30 ou plus récent puis relance yaggui.',
+      },
+      action: { kind: 'installGit' },
+      detail: null,
+      payload: null,
+    },
+  };
 }
 
 export function isMockGitPathValid(path: string): boolean {

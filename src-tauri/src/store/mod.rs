@@ -52,6 +52,10 @@ const PREF_DISABLED_CONFIRMATIONS: &str = "disabled_confirmations";
 const PREF_GRAVATAR: &str = "gravatar";
 const PREF_REMOTE_TAGS: &str = "remote_tags";
 const PREF_CHECK_UPDATES: &str = "check_updates";
+// First launch screen and "What's new" after an update.
+const PREF_ONBOARDED: &str = "onboarded";
+const PREF_LAST_SEEN_VERSION: &str = "last_seen_version";
+const PREF_SHOW_WHATS_NEW: &str = "show_whats_new";
 /// Folders remembered for the clone / init dialogs.
 const RECENT_DIRS_KEPT: i64 = 10;
 const META_LEGACY_MIGRATED: &str = "legacy_preferences_migrated";
@@ -263,6 +267,9 @@ impl Store {
         load!(gravatar, PREF_GRAVATAR);
         load!(remote_tags, PREF_REMOTE_TAGS);
         load_optional!(check_updates, PREF_CHECK_UPDATES);
+        load!(onboarded, PREF_ONBOARDED);
+        load_optional!(last_seen_version, PREF_LAST_SEEN_VERSION);
+        load!(show_whats_new, PREF_SHOW_WHATS_NEW);
         load_optional!(ui_font, PREF_UI_FONT);
         load_optional!(code_font, PREF_CODE_FONT);
         load_optional!(git_path, PREF_GIT_PATH);
@@ -320,9 +327,31 @@ impl Store {
             set_pref(&tx, PREF_GRAVATAR, &prefs.gravatar)?;
             set_pref(&tx, PREF_REMOTE_TAGS, &prefs.remote_tags)?;
             set_pref(&tx, PREF_CHECK_UPDATES, &prefs.check_updates)?;
+            set_pref(&tx, PREF_ONBOARDED, &prefs.onboarded)?;
+            set_pref(&tx, PREF_LAST_SEEN_VERSION, &prefs.last_seen_version)?;
+            set_pref(&tx, PREF_SHOW_WHATS_NEW, &prefs.show_whats_new)?;
             tx.commit()?;
         }
         self.preferences()
+    }
+
+    /// Marks the first-launch screen as seen on an installation that predates it, so it is only
+    /// shown on a fresh config: known repositories or an answer to the update question mean
+    /// yaggui ran here before. Returns whether it changed anything. Run once at startup.
+    pub fn settle_onboarding(&self) -> Result<bool, YagguiError> {
+        let conn = self.conn();
+        if get_pref::<bool>(&conn, PREF_ONBOARDED)? == Some(true) {
+            return Ok(false);
+        }
+        let repos: i64 = conn.query_row("SELECT COUNT(*) FROM repos", [], |row| row.get(0))?;
+        let answered = get_pref::<Option<bool>>(&conn, PREF_CHECK_UPDATES)?
+            .flatten()
+            .is_some();
+        if repos == 0 && !answered {
+            return Ok(false);
+        }
+        set_pref(&conn, PREF_ONBOARDED, &true)?;
+        Ok(true)
     }
 
     // ---- Recent folders ----------------------------------------------------------------

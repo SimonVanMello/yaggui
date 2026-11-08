@@ -1,0 +1,115 @@
+.sections {
+  display: flex;
+  flex-direction: column;
+}
+
+.section {
+  display: grid;
+  grid-template-columns: minmax(0, 9rem) minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-5);
+  padding: var(--space-4) 0;
+  border-top: var(--border-width) solid var(--border-subtle);
+}
+
+.sectionTitle {
+  margin: 0;
+  /* Level with the first line of the controls next to it. */
+  padding-top: var(--space-2);
+  color: var(--fg-muted);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+}
+
+.sectionBody {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+/* The switch row spans the column, its toggle on the right edge. */
+.full {
+  align-self: stretch;
+}
+
+.hint {
+  margin: 0;
+  color: var(--fg-secondary);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+}
+
+.status {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin: 0;
+  padding-top: var(--space-2);
+  font-family: var(--font-code);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+  overflow-wrap: anywhere;
+}
+
+.status[data-kind='checking'] {
+  color: var(--fg-muted);
+}
+
+.statusIcon {
+  flex: none;
+}
+
+.status[data-kind='ok'] .statusIcon {
+  color: var(--success);
+}
+
+.status[data-kind='old'] .statusIcon {
+  color: var(--warning);
+}
+
+.status[data-kind='error'] .statusIcon {
+  color: var(--danger);
+}
+
+.status[data-kind='error'] {
+  font-family: var(--font-ui);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.shortcuts {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-2) var(--space-5);
+  align-self: stretch;
+  margin: 0;
+  padding-top: var(--space-1);
+  font-size: var(--text-md);
+}
+
+.shortcutRow {
+  display: contents;
+}
+
+.shortcutRow dd {
+  margin: 0;
+}
+
+.keys {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}
+
+.unbound {
+  color: var(--fg-muted);
+  font-size: var(--text-sm);
+}

@@ -57,6 +57,10 @@ export const DEFAULT_PREFERENCES: Preferences = {
   gravatar: false,
   remoteTags: false,
   checkUpdates: null,
+  // First launch screen and "What's new" after an update.
+  onboarded: false,
+  lastSeenVersion: null,
+  showWhatsNew: true,
 };
 
 let current: Preferences = DEFAULT_PREFERENCES;

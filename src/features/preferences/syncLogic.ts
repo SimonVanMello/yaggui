@@ -24,6 +24,7 @@ const PREF_LABELS: Record<string, MessageKey> = {
   disabledConfirmations: 'prefs.sync.key.disabledConfirmations',
   gravatar: 'prefs.sync.key.gravatar',
   remoteTags: 'prefs.sync.key.remoteTags',
+  showWhatsNew: 'prefs.sync.key.showWhatsNew',
 };
 
 /** The label of a setting, or `null` for a key this version does not know. */

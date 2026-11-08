@@ -32,6 +32,7 @@ import { openNewTerminal, toggleTerminalFromKeyboard } from '../terminal/termina
 import { openRepoFolder } from '../toolbar/openRepoFolder';
 import { canRun } from '../undo/undoState';
 import { checkForUpdatesNow } from '../updates/updates';
+import { showFirstRun } from '../onboarding/launchScreens';
 import { copyBugReport } from '../diagnostics/diagnostics';
 import { registerActions, type PaletteAction } from './actionRegistry';
 import { usePaletteStore } from './paletteStore';
@@ -203,6 +204,13 @@ const BUILTIN: readonly PaletteAction[] = [
     title: 'palette.action.app.checkUpdates',
     group: 'app',
     run: () => void checkForUpdatesNow(),
+  },
+  // First launch screen, to review its choices.
+  {
+    id: 'app.firstRun',
+    title: 'palette.action.app.firstRun',
+    group: 'app',
+    run: showFirstRun,
   },
   shell('app.reportBug', 'reportBug', 'palette.action.app.reportBug', 'app'),
   {

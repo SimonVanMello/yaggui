@@ -10,6 +10,7 @@ import { UpgradeDialog } from '../features/updates/UpgradeDialog';
 import { CloneDialog } from '../features/clone/CloneDialog';
 import { InitDialog } from '../features/clone/InitDialog';
 import { ChangelogDialog } from '../features/changelog/ChangelogDialog';
+import { FirstRunDialog } from '../features/onboarding/FirstRunDialog';
 import { ShortcutsDialog } from '../features/keybindings/ShortcutsDialog';
 import { PreferencesImportDialog } from '../features/preferences/PreferencesImportDialog';
 import { PreferencesDialog } from '../features/preferences/PreferencesDialog';
@@ -81,6 +82,7 @@ export function Shell() {
       <PreferencesImportDialog />
       <ShortcutsDialog />
       <ChangelogDialog />
+      <FirstRunDialog />
       <TerminalDialog />
       <UpgradeDialog />
       <WorkspaceDialogs />
