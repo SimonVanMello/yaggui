@@ -217,7 +217,7 @@
   "welcome.dropHint": "Drop a folder anywhere on the window to open it",
   "welcome.neverOpened": "Never opened",
   "firstRun.title": "Welcome to yaggui",
-  "firstRun.local": "yaggui runs 100 % locally: no account, nothing sent.",
+  "firstRun.local": "yaggui runs 100% locally: no account, nothing sent.",
   "firstRun.appearance": "Appearance",
   "firstRun.appearance.hint": "Light uses {light}, Dark uses {dark}. More themes in Preferences › Appearance.",
   "firstRun.git": "Git",

@@ -1,6 +1,6 @@
 ---
 title: Install yaggui
-description: Requirements, installation on macOS, Windows and Linux, first-launch warnings, and how to uninstall.
+description: Requirements, installation on macOS, Windows and Linux, first-launch warnings, the first-launch screen, and how to uninstall.
 sidebar:
   order: 2
 sources:
@@ -13,10 +13,16 @@ sources:
   - src-tauri/src/system/git_binary.rs
   - src-tauri/src/system/updates.rs
   - src-tauri/src/state.rs
+  - src/features/onboarding/**
+  - src-tauri/src/system/docs.rs
 requirements: [F-322]
 ---
 
-This page lists what yaggui needs, how to install it on each system, what to do about the warnings on first launch, and how to remove it.
+import Screenshot from '~/components/Screenshot.astro';
+import firstRunDark from '../../../../assets/screens/first-run-dark.png';
+import firstRunLight from '../../../../assets/screens/first-run-light.png';
+
+This page lists what yaggui needs, how to install it on each system, what to do about the warnings on first launch, what the first-launch screen offers, and how to remove it.
 
 ## Requirements
 
@@ -130,6 +136,28 @@ chmod +x yaggui_<version>_amd64.AppImage
 ```
 
 The AppImage needs Git installed on the system.
+
+## The first-launch screen
+
+The first time yaggui starts with a new config folder, the **Welcome to yaggui** screen opens over the welcome screen. It shows the choices worth making before your first repository, and applies and saves each one as soon as you make it:
+
+<Screenshot
+  dark={firstRunDark}
+  light={firstRunLight}
+  alt="The Welcome to yaggui screen with the language, appearance, Git, updates and shortcuts sections"
+/>
+
+| Section        | What it shows                                                                                                                                                                                                                                                                                                                                 |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Language**   | **Français**, **English** or **System**. The screen switches language at once                                                                                                                                                                                                                                                                 |
+| **Appearance** | **Light**, **Dark** or **System**. Light uses the Paper theme and dark the Graphite theme; the other themes are in **Preferences** > **Appearance**                                                                                                                                                                                           |
+| **Git**        | The version and path of the Git yaggui found, with a warning when it is older than 2.30. When there is none: **yaggui needs Git 2.30 or later, and none was found on this computer.**, with **Choose the Git binary…** (opens **Preferences** > **Tools** on **Git binary**) and **How to install Git** (opens [Requirements](#requirements)) |
+| **Updates**    | The **Check for updates at startup** switch, off by default. Answering here replaces the notification that asks the same question; see [Updates](../updates/#turn-on-the-update-check)                                                                                                                                                        |
+| **Shortcuts**  | **Command palette**, **Commit**, **Fetch / Pull / Push** and **New branch**, with the shortcuts of your system as they are bound now. **All shortcuts** opens the full list                                                                                                                                                                   |
+
+**Start** closes the screen; **Open the documentation** opens these docs in your browser, in the language of the interface. Once closed, with **Start**, <kbd>Esc</kbd> or any button that leads elsewhere, the screen does not open again by itself. Installations that already have repositories, or that answered the update question, never see it.
+
+To see it again, run **Show the first-launch screen again** from the command palette, or click **Show again** next to **First-launch screen** in **Preferences** > **General**.
 
 ## Formats and how they update
 

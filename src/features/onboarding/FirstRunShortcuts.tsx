@@ -33,6 +33,7 @@ export function FirstRunShortcuts() {
       <div className={styles.actions}>
         <Button
           variant="ghost"
+          className={styles.inline}
           onClick={() => {
             closeFirstRun();
             useShellStore.getState().setShortcutsOpen(true);

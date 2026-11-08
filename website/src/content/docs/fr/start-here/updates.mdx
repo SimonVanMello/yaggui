@@ -6,6 +6,7 @@ sidebar:
 sources:
   - src/features/updates/**
   - src/features/changelog/**
+  - src/features/onboarding/launchScreens.ts
   - src-tauri/src/system/updates.rs
   - src-tauri/src/commands/updates.rs
   - src-tauri/src/system/changelog.rs
@@ -27,7 +28,9 @@ yaggui ne cherche une nouvelle version que si vous l’y autorisez. Quand il en 
 
 La vérification est désactivée tant que vous ne l’activez pas. Quand elle est active, yaggui consulte la dernière release sur github.com à chaque lancement. Quand elle est désactivée, yaggui ne fait aucune requête.
 
-Au premier lancement, yaggui pose la question une seule fois, dans une notification : **Vérifier les mises à jour au démarrage ?** Elle reste affichée jusqu’à ce que vous la fermiez.
+Au premier lancement, l’[écran de premier lancement](../install/#lécran-de-premier-lancement) propose l’interrupteur **Vérifier les mises à jour au démarrage** : activez-le, ou laissez-le désactivé, et yaggui ne pose plus la question.
+
+Si vous fermez cet écran sans toucher à l’interrupteur, ou si votre installation est antérieure à cet écran, yaggui pose la question une seule fois, dans une notification : **Vérifier les mises à jour au démarrage ?** Elle reste affichée jusqu’à ce que vous la fermiez.
 
 - Cliquez sur **Vérifier les mises à jour** pour activer la vérification. yaggui vérifie tout de suite, comme avec **Vérifier maintenant** : vous obtenez une notification si une version est disponible, « yaggui est à jour » ou une erreur. Les lancements suivants vérifient en silence.
 - Fermez la notification ou ignorez-la pour laisser la vérification désactivée. yaggui ne redemande pas.
@@ -108,7 +111,17 @@ Une mise à jour ne peut pas être annulée depuis yaggui. Pour revenir à une v
 
 ## Nouveautés
 
-La boîte de dialogue **Nouveautés** liste les changements de chaque version, de la plus récente à la plus ancienne. Elle est intégrée à l’application, donc elle fonctionne hors ligne. Elle ne s’ouvre jamais d’elle-même après une mise à jour.
+La boîte de dialogue **Nouveautés** liste les changements de chaque version, de la plus récente à la plus ancienne. Elle est intégrée à l’application, donc elle fonctionne hors ligne. Elle s’ouvre sur la version que vous exécutez.
+
+### Après une mise à jour
+
+Au premier lancement d’une nouvelle version, yaggui ouvre **Nouveautés** une fois, de lui-même, une fois vos onglets restaurés. Elle ne se rouvre pas aux lancements suivants de cette version. Elle ne s’ouvre jamais :
+
+- au tout premier lancement de yaggui, ni au lancement qui affiche l’[écran de premier lancement](../install/#lécran-de-premier-lancement) ;
+- au premier lancement de la version qui apporte ce comportement : yaggui ne connaissait pas encore la version précédente ;
+- quand **Afficher les nouveautés après une mise à jour** est désactivé dans **Préférences** > **Général**, sous **Mises à jour**. Il est activé par défaut.
+
+### L’ouvrir vous-même
 
 Ouvrez-la depuis :
 
