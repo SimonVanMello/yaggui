@@ -227,3 +227,30 @@ fn scan_finds_the_fixture_repos_but_not_the_bare_remote() {
         .collect();
     assert_eq!(found, vec![("other", None), ("repo", Some(known))]);
 }
+
+#[test]
+fn last_fetched_at_follows_fetch_head_of_an_open_repo() {
+    let fx = Fixture::new("clean");
+    let b = backend(false);
+    let id = b.repos.open(&fx.repo_str()).unwrap().id;
+    assert_eq!(b.repos.last_fetched_at(id).unwrap(), None);
+
+    // A fetch from a terminal counts too: the source is `FETCH_HEAD`, not yaggui's queue.
+    fx.git_in(&fx.repo(), &["fetch", "-q", "origin"]);
+    let fetched = b.repos.last_fetched_at(id).unwrap();
+    assert!(fetched.is_some());
+    // Same value as the workspace overview.
+    let RepoOverview::Ready {
+        last_fetched_at, ..
+    } = b.repos.repo_overview(id).unwrap()
+    else {
+        panic!("expected a readable repo");
+    };
+    assert_eq!(last_fetched_at, fetched);
+
+    b.repos.close(id);
+    assert_eq!(
+        b.repos.last_fetched_at(id).unwrap_err().code,
+        ErrorCode::RepoNotOpen
+    );
+}

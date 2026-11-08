@@ -9,10 +9,13 @@ import { openLogsFolder, reportBug } from '../features/diagnostics/diagnostics';
 import { usePaletteStore } from '../features/palette/paletteStore';
 import { useShellStore } from './shellStore';
 import { openNewTab, selectActiveTab, useTabsStore } from './tabs/tabsStore';
+import { reopenClosedTab } from './tabs/reopenClosedTab';
 import { fetchRepo, pullRepo, pushRepo } from '../features/network/networkOps';
 import { OP_HISTORY_EVENT } from '../features/undo/undoEvents';
 import { runUndo } from '../features/undo/undoOps';
+import { resetZoom, zoomIn, zoomOut } from '../features/zoom/zoom';
 import { isTextEntry } from '../ui/textEntry';
+import { requestQuit } from './quit/quitFlow';
 
 function togglePanel(panel: 'sidebar' | 'details'): void {
   const store = useTabsStore.getState();
@@ -37,6 +40,8 @@ function tabAction(n: (typeof TAB_NUMBERS)[number]): TabAction {
 export type ShellAction =
   | 'newTab'
   | 'closeTab'
+  // Tabs workstream: reopen the last closed tab.
+  | 'reopenClosedTab'
   | 'nextTab'
   | 'previousTab'
   | 'openRepo'
@@ -62,6 +67,12 @@ export type ShellAction =
   | 'undo'
   | 'redo'
   | 'opHistory'
+  // Zoom of the interface.
+  | 'zoomIn'
+  | 'zoomOut'
+  | 'zoomReset'
+  // Quit and close guard.
+  | 'quit'
   | TabAction;
 
 const tabActions = Object.fromEntries(
@@ -79,6 +90,7 @@ const ACTIONS: Record<ShellAction, () => void> = {
   closeTab: () => {
     closeTabAndRepo(useTabsStore.getState().activeTabId);
   },
+  reopenClosedTab: () => void reopenClosedTab(),
   nextTab: () => {
     useTabsStore.getState().activateRelative(1);
   },
@@ -160,6 +172,12 @@ const ACTIONS: Record<ShellAction, () => void> = {
   opHistory: () => {
     if (activeRepoId() !== null) window.dispatchEvent(new Event(OP_HISTORY_EVENT));
   },
+  // Zoom of the interface.
+  zoomIn,
+  zoomOut,
+  zoomReset: resetZoom,
+  // Quit and close guard: confirms first when something is in progress.
+  quit: () => void requestQuit(),
   ...tabActions,
 };
 
@@ -209,6 +227,7 @@ export function execShellAction(action: ShellAction): void {
 export const SHORTCUTS: { shortcut: string; action: ShellAction }[] = [
   { shortcut: 'Mod+T', action: 'newTab' },
   { shortcut: 'Mod+W', action: 'closeTab' },
+  { shortcut: 'Mod+Shift+T', action: 'reopenClosedTab' },
   { shortcut: 'Ctrl+Tab', action: 'nextTab' },
   { shortcut: 'Ctrl+Shift+Tab', action: 'previousTab' },
   ...TAB_NUMBERS.map((n) => ({ shortcut: `Mod+${String(n)}`, action: tabAction(n) })),
@@ -227,12 +246,19 @@ export const SHORTCUTS: { shortcut: string; action: ShellAction }[] = [
   { shortcut: 'Mod+Shift+P', action: 'push' },
   { shortcut: 'Mod+Z', action: 'undo' },
   { shortcut: 'Mod+Shift+Z', action: 'redo' },
+  // Zoom of the interface; ⌘⇧= (⌘+ on a US layout) is a second binding: `view.zoomInAlt`.
+  { shortcut: 'Mod+=', action: 'zoomIn' },
+  { shortcut: 'Mod+-', action: 'zoomOut' },
+  { shortcut: 'Mod+0', action: 'zoomReset' },
+  // Quit and close guard.
+  { shortcut: 'Mod+Q', action: 'quit' },
 ];
 
 /** Id of the rebindable command (F-281) a shell action stands for. */
 const BINDING_IDS: Record<ShellAction, string> = {
   newTab: 'tab.new',
   closeTab: 'tab.close',
+  reopenClosedTab: 'tab.reopenClosed',
   nextTab: 'tab.next',
   previousTab: 'tab.previous',
   openRepo: 'repo.open',
@@ -258,6 +284,12 @@ const BINDING_IDS: Record<ShellAction, string> = {
   fetch: 'git.fetch',
   pull: 'git.pull',
   push: 'git.push',
+  // Zoom of the interface.
+  zoomIn: 'view.zoomIn',
+  zoomOut: 'view.zoomOut',
+  zoomReset: 'view.zoomReset',
+  // Quit and close guard.
+  quit: 'app.quit',
   ...(Object.fromEntries(TAB_NUMBERS.map((n) => [tabAction(n), `tab.goto.${String(n)}`])) as Record<
     TabAction,
     string

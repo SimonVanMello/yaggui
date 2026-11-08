@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-import type { OpKind, OpNote, OpOutcome } from '../../ipc';
+import type { ErrorCode, OpKind, OpNote, OpOutcome } from '../../ipc';
 
 export interface RunningOp {
   opId: number;
@@ -26,11 +26,23 @@ export interface FinishedOp {
    * the next `edit` (`paused`), or an abort (`aborted`). Git reports both as a success.
    */
   note?: OpNote;
+  /** Code of the typed error of a `failed` outcome (status bar "Offline"). */
+  errorCode?: ErrorCode;
+}
+
+/** Fetch, pull and push: their outcomes say whether the remotes could be reached. */
+export function isNetworkKind(kind: OpKind): boolean {
+  return kind === 'fetch' || kind === 'pull' || kind === 'push';
 }
 
 interface OpsStore {
   running: Record<number, RunningOp | undefined>;
   lastFinished: Record<number, FinishedOp | undefined>;
+  /**
+   * Last fetch, pull or push of each repository that was not cancelled, kept apart from
+   * `lastFinished` so that a commit after it does not hide that the remotes were unreachable.
+   */
+  lastNetwork: Record<number, FinishedOp | undefined>;
   started: (
     op: Omit<RunningOp, 'phase' | 'percent' | 'bytes' | 'bytesPerSec' | 'cancelRequested'>,
   ) => void;
@@ -46,6 +58,7 @@ interface OpsStore {
 export const useOpsStore = create<OpsStore>()((set) => ({
   running: {},
   lastFinished: {},
+  lastNetwork: {},
   started: (op) => {
     set((state) => ({
       running: {
@@ -72,9 +85,14 @@ export const useOpsStore = create<OpsStore>()((set) => ({
       const running = Object.fromEntries(
         Object.entries(state.running).filter(([opId]) => Number(opId) !== op.opId),
       );
+      // Recorded even when not reported: a pull stopped on conflicts did reach the remote.
+      const lastNetwork =
+        isNetworkKind(op.kind) && op.outcome !== 'cancelled'
+          ? { ...state.lastNetwork, [repoId]: op }
+          : state.lastNetwork;
       return report
-        ? { running, lastFinished: { ...state.lastFinished, [repoId]: op } }
-        : { running };
+        ? { running, lastNetwork, lastFinished: { ...state.lastFinished, [repoId]: op } }
+        : { running, lastNetwork };
     });
   },
   cancelRequested: (opId) => {
@@ -90,12 +108,10 @@ export const useOpsStore = create<OpsStore>()((set) => ({
 /** A closed repository forgets its last result: the status bar of a reopened one starts clean. */
 export function forgetLastFinished(repoId: number): void {
   useOpsStore.setState((state) => {
-    if (!(repoId in state.lastFinished)) return state;
-    return {
-      lastFinished: Object.fromEntries(
-        Object.entries(state.lastFinished).filter(([id]) => Number(id) !== repoId),
-      ),
-    };
+    if (!(repoId in state.lastFinished) && !(repoId in state.lastNetwork)) return state;
+    const without = <T>(record: Record<number, T>) =>
+      Object.fromEntries(Object.entries(record).filter(([id]) => Number(id) !== repoId));
+    return { lastFinished: without(state.lastFinished), lastNetwork: without(state.lastNetwork) };
   });
 }
 

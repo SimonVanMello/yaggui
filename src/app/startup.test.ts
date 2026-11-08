@@ -67,11 +67,12 @@ describe('persistTabs', () => {
 });
 
 describe('nativeWindow.onCloseRequested (browser)', () => {
-  it('runs the handler when the page unloads', () => {
-    const handler = vi.fn(() => Promise.resolve());
+  it('runs the handler when the page unloads, which it cannot cancel', () => {
+    const handler = vi.fn(() => Promise.resolve(true));
     const unsubscribe = nativeWindow.onCloseRequested(handler);
     window.dispatchEvent(new Event('beforeunload'));
     expect(handler).toHaveBeenCalledTimes(1);
+    expect(handler).toHaveBeenCalledWith({ vetoable: false });
     unsubscribe();
     window.dispatchEvent(new Event('beforeunload'));
     expect(handler).toHaveBeenCalledTimes(1);

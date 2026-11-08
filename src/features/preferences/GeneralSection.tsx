@@ -8,6 +8,7 @@ import { SegmentedControl } from '../../ui/SegmentedControl';
 import { Switch } from '../../ui/Switch';
 import { checkForUpdatesNow } from '../updates/updates';
 import { copyBugReport, openLogsFolder, reportBug } from '../diagnostics/diagnostics';
+import { showFirstRun } from '../onboarding/launchScreens';
 import { exportPreferencesFile, startPreferencesImport } from './prefsSync';
 import { Row } from './Row';
 import { savePreferenceOrToast } from './savePreference';
@@ -44,7 +45,15 @@ export function GeneralSection() {
           />
         </Row>
       </Setting>
-      <SettingGroup title={t('prefs.subsection.updates')} ids={['checkUpdates', 'version']}>
+      <Setting id="firstRun">
+        <Row label={t('prefs.firstRun')} hint={t('prefs.firstRun.hint')}>
+          <Button onClick={showFirstRun}>{t('prefs.firstRun.show')}</Button>
+        </Row>
+      </Setting>
+      <SettingGroup
+        title={t('prefs.subsection.updates')}
+        ids={['checkUpdates', 'showWhatsNew', 'version']}
+      >
         <Setting id="checkUpdates">
           <Switch
             checked={prefs.checkUpdates === true}
@@ -52,6 +61,16 @@ export function GeneralSection() {
             hint={t('prefs.checkUpdates.hint')}
             onCheckedChange={(checkUpdates) => {
               savePreferenceOrToast({ checkUpdates });
+            }}
+          />
+        </Setting>
+        <Setting id="showWhatsNew">
+          <Switch
+            checked={prefs.showWhatsNew !== false}
+            label={t('prefs.showWhatsNew')}
+            hint={t('prefs.showWhatsNew.hint')}
+            onCheckedChange={(showWhatsNew) => {
+              savePreferenceOrToast({ showWhatsNew });
             }}
           />
         </Setting>

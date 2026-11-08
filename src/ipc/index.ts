@@ -23,6 +23,8 @@ export {
   EDGE_WIP,
   FONT_SIZE_MAX,
   FONT_SIZE_MIN,
+  ZOOM_MAX,
+  ZOOM_MIN,
   GRAPH_COLORS,
   GRAPH_MAX_LANES,
   GRAPH_PAGE_SIZE,
@@ -36,7 +38,12 @@ export {
   WORKSPACE_NAME_MAX,
 } from './bindings';
 export { YagguiIpcError, unwrap, type IpcResult } from './result';
-export { nativeWindow, type FolderDropHandlers, type NativeWindow } from './nativeWindow';
+export {
+  nativeWindow,
+  type CloseRequest,
+  type FolderDropHandlers,
+  type NativeWindow,
+} from './nativeWindow';
 export {
   nativeMenu,
   toAccelerator,

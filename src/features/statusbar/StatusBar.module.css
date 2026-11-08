@@ -120,3 +120,77 @@
   background: var(--bg-hover);
   color: var(--fg-primary);
 }
+
+/* Last sync (active repository) */
+.sync {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: calc(var(--statusbar-height) - var(--space-1));
+  padding: 0 var(--space-2);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--fg-secondary);
+  font-size: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.sync:hover:not([aria-disabled='true']) {
+  background: var(--bg-hover);
+  color: var(--fg-primary);
+}
+
+.sync[aria-disabled='true'] {
+  cursor: default;
+}
+
+.sync[data-tone='warning'] {
+  color: var(--warning);
+}
+
+.syncTip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+  padding: var(--space-1) 0;
+}
+
+.syncWarning {
+  color: var(--warning);
+}
+
+/* Activity center button */
+.activityToggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: calc(var(--statusbar-height) - var(--space-1));
+  padding: 0 var(--space-2);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--fg-secondary);
+  font-size: inherit;
+  cursor: pointer;
+}
+
+.activityToggle:hover,
+.activityToggle[aria-expanded='true'] {
+  background: var(--bg-hover);
+  color: var(--fg-primary);
+}
+
+.badge {
+  min-width: var(--badge-size);
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-full);
+  background: var(--accent);
+  color: var(--accent-fg);
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-tight);
+  text-align: center;
+}

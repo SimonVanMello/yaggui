@@ -9,6 +9,7 @@ sources:
   - src/features/keybindings/KeybindingsTab.tsx
   - src/app/preferences.ts
   - src/app/appearance.ts
+  - src/features/zoom/**
   - src/app/errors/confirmStore.ts
   - src-tauri/src/store/types.rs
   - src-tauri/src/store/mod.rs
@@ -18,6 +19,7 @@ sources:
   - src-tauri/src/commands/settings.rs
   - src-tauri/src/state.rs
   - src/features/diagnostics/**
+  - src/features/onboarding/**
 requirements: [F-320, F-321, F-322, F-323, F-324, F-325, F-033, F-266, F-267, F-281, F-326]
 ---
 
@@ -62,13 +64,15 @@ The **Search settings** field ("Search…") at the top of the sidebar searches e
 
 ## General
 
-| Label                                | Values                                                              | Default               | Effect                                                                                                                                                                   |
-| ------------------------------------ | ------------------------------------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Language**                         | **System**, **English**, **Français**                               | **System**            | Interface language, applied without restart. System uses the OS language if supported, otherwise English                                                                 |
-| **Check for updates at startup**     | On, off                                                             | Asked at first launch | Under **Updates**. Reads the latest release on github.com at each launch. Off: no request. See [Updates](../../start-here/updates/)                                      |
-| **Version**                          | **Check now** and **What's new** buttons                            |                       | Under **Updates**. Shows the running version; **Check now** checks for an update immediately, **What's new** opens the changelog                                         |
-| **Import or export the preferences** | **Import…** and **Export…** buttons                                 |                       | Under **Backup**. A JSON file of your preferences and shortcuts. See [Import and export](#import-and-export)                                                             |
-| **Logs and bug reports**             | **Report a bug…**, **Copy report** and **Open logs folder** buttons |                       | Under **Troubleshooting**. See [Report a bug](../../help/troubleshooting/#report-a-bug) and [Logs and crash reports](../../help/troubleshooting/#logs-and-crash-reports) |
+| Label                                | Values                                                              | Default               | Effect                                                                                                                                                                          |
+| ------------------------------------ | ------------------------------------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Language**                         | **System**, **English**, **Français**                               | **System**            | Interface language, applied without restart. System uses the OS language if supported, otherwise English                                                                        |
+| **First-launch screen**              | **Show again** button                                               |                       | Opens the [first-launch screen](../../start-here/install/#the-first-launch-screen) again, with your current choices                                                             |
+| **Check for updates at startup**     | On, off                                                             | Asked at first launch | Under **Updates**. Reads the latest release on github.com at each launch. Off: no request. See [Updates](../../start-here/updates/)                                             |
+| **Show What's new after an update**  | On, off                                                             | On                    | Under **Updates**. Opens **What's new** once, at the first launch of a new version. Off: only the version is recorded. See [Updates](../../start-here/updates/#after-an-update) |
+| **Version**                          | **Check now** and **What's new** buttons                            |                       | Under **Updates**. Shows the running version; **Check now** checks for an update immediately, **What's new** opens the changelog                                                |
+| **Import or export the preferences** | **Import…** and **Export…** buttons                                 |                       | Under **Backup**. A JSON file of your preferences and shortcuts. See [Import and export](#import-and-export)                                                                    |
+| **Logs and bug reports**             | **Report a bug…**, **Copy report** and **Open logs folder** buttons |                       | Under **Troubleshooting**. See [Report a bug](../../help/troubleshooting/#report-a-bug) and [Logs and crash reports](../../help/troubleshooting/#logs-and-crash-reports)        |
 
 ## Appearance
 
@@ -83,14 +87,15 @@ See [Appearance](../../customize/appearance/).
 
 ## Display
 
-| Label                      | Values                       | Default                | Effect                                                                                                                             |
-| -------------------------- | ---------------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| **Interface font**         | Name of an installed font    | Empty (Inter)          | Under **Text**. Font of the interface                                                                                              |
-| **Code font**              | Name of an installed font    | Empty (JetBrains Mono) | Under **Text**. Font of diffs, code, SHAs and the terminal                                                                         |
-| **Text size**              | 11 to 18 px                  | 13 px                  | Under **Text**. Scales all text                                                                                                    |
-| **Density**                | **Comfortable**, **Compact** | **Comfortable**        | Under **Text**. Row height 28 px or 22 px                                                                                          |
-| **Gravatar avatars**       | On, off                      | Off                    | Under **Avatars**. Shows authors' Gravatar pictures. Sends the SHA-256 hash of each author e-mail to gravatar.com. Off: no request |
-| **Clear the avatar cache** | Button                       |                        | Under **Avatars**. Deletes downloaded pictures ("Avatar cache cleared")                                                            |
+| Label                      | Values                       | Default                | Effect                                                                                                                                                                                        |
+| -------------------------- | ---------------------------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Interface font**         | Name of an installed font    | Empty (Inter)          | Under **Text**. Font of the interface                                                                                                                                                         |
+| **Code font**              | Name of an installed font    | Empty (JetBrains Mono) | Under **Text**. Font of diffs, code, SHAs and the terminal                                                                                                                                    |
+| **Text size**              | 11 to 18 px                  | 13 px                  | Under **Text**. Scales all text                                                                                                                                                               |
+| **Zoom**                   | 80, 90, 100, 110, 125, 150 % | 100 %                  | Under **Text**. **Zoom out** (−), **Zoom in** (+) and **Reset** scale the whole window. Also <kbd>⌘=</kbd>, <kbd>⌘-</kbd>, <kbd>⌘0</kbd> (<kbd>Ctrl</kbd> on Windows and Linux). Not exported |
+| **Density**                | **Comfortable**, **Compact** | **Comfortable**        | Under **Text**. Row height 28 px or 22 px                                                                                                                                                     |
+| **Gravatar avatars**       | On, off                      | Off                    | Under **Avatars**. Shows authors' Gravatar pictures. Sends the SHA-256 hash of each author e-mail to gravatar.com. Off: no request                                                            |
+| **Clear the avatar cache** | Button                       |                        | Under **Avatars**. Deletes downloaded pictures ("Avatar cache cleared")                                                                                                                       |
 
 ## Shortcuts
 
@@ -209,8 +214,8 @@ To carry your preferences and shortcuts to another machine by hand, use **Export
 }
 ```
 
-- **Exported preferences:** light / dark mode, light theme, dark theme, interface style, language, what the Terminal button opens, diff layout and options, high contrast, density, interface and code fonts, text size, automatic fetch and its interval, prune on fetch, default pull strategy, protected branches, turned-off confirmations, Gravatar avatars and tags on the remotes.
-- **Never exported (specific to a machine):** the Git binary path, the editor, the external terminal, the diff and merge tools, and the answer to the update check question. Their paths and programs differ from one install to the next, and the update check is an opt-in you answer on each machine. If a file contains them anyway, they are ignored and listed under **Left out**, and the values on this machine stay as they are.
+- **Exported preferences:** light / dark mode, light theme, dark theme, interface style, language, what the Terminal button opens, diff layout and options, high contrast, density, interface and code fonts, text size, automatic fetch and its interval, prune on fetch, default pull strategy, protected branches, turned-off confirmations, Gravatar avatars, tags on the remotes and What's new after an update.
+- **Never exported (specific to a machine):** the Git binary path, the editor, the external terminal, the diff and merge tools, the answer to the update check question, whether the first-launch screen was seen, the version of the last launch and the zoom. Their paths and programs differ from one install to the next, the update check is an opt-in you answer on each machine, and the zoom depends on the screen. If a file contains them anyway, they are ignored and listed under **Left out**, and the values on this machine stay as they are.
 - **Shortcuts:** the list in `keybindings` is your whole set of custom shortcuts. Importing it **replaces** the custom shortcuts of this machine: a command the file does not list goes back to its default shortcut. The preview shows each change.
 - **Preferences missing from the file** keep their value on this machine. **Unknown keys** (a setting added by a newer yaggui, or a typo) are ignored and listed.
 - Identity profiles, commit templates, repositories, tabs and workspaces are not preferences and are never exported.

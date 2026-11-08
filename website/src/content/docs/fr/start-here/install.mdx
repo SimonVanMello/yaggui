@@ -1,6 +1,6 @@
 ---
 title: Installer yaggui
-description: Prérequis, installation sur macOS, Windows et Linux, avertissements au premier lancement et désinstallation.
+description: Prérequis, installation sur macOS, Windows et Linux, avertissements et écran de premier lancement, désinstallation.
 sidebar:
   order: 2
 sources:
@@ -13,10 +13,16 @@ sources:
   - src-tauri/src/system/git_binary.rs
   - src-tauri/src/system/updates.rs
   - src-tauri/src/state.rs
+  - src/features/onboarding/**
+  - src-tauri/src/system/docs.rs
 requirements: [F-322]
 ---
 
-Cette page décrit ce dont yaggui a besoin, comment l’installer sur chaque système, que faire face aux avertissements du premier lancement, et comment le supprimer.
+import Screenshot from '~/components/Screenshot.astro';
+import firstRunDark from '../../../../assets/screens/first-run-fr-dark.png';
+import firstRunLight from '../../../../assets/screens/first-run-fr-light.png';
+
+Cette page décrit ce dont yaggui a besoin, comment l’installer sur chaque système, que faire face aux avertissements du premier lancement, ce que propose l’écran de premier lancement, et comment le supprimer.
 
 ## Prérequis
 
@@ -130,6 +136,28 @@ chmod +x yaggui_<version>_amd64.AppImage
 ```
 
 L’AppImage nécessite que Git soit installé sur le système.
+
+## L’écran de premier lancement
+
+La première fois que yaggui démarre avec un nouveau dossier de configuration, l’écran **Bienvenue dans yaggui** s’ouvre par-dessus l’écran d’accueil. Il présente les choix utiles avant votre premier dépôt, et applique et enregistre chacun dès que vous le faites :
+
+<Screenshot
+  dark={firstRunDark}
+  light={firstRunLight}
+  alt="L’écran Bienvenue dans yaggui avec les sections langue, apparence, Git, mises à jour et raccourcis"
+/>
+
+| Section          | Ce qu’elle affiche                                                                                                                                                                                                                                                                                                                                                           |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Langue**       | **Français**, **English** ou **Système**. L’écran change de langue aussitôt                                                                                                                                                                                                                                                                                                  |
+| **Apparence**    | **Clair**, **Sombre** ou **Système**. Le mode clair utilise le thème Paper et le mode sombre le thème Graphite ; les autres thèmes sont dans **Préférences** > **Apparence**                                                                                                                                                                                                 |
+| **Git**          | La version et le chemin du Git trouvé par yaggui, avec un avertissement s’il est antérieur à 2.30. S’il n’y en a aucun : **yaggui a besoin de Git 2.30 ou plus récent, et aucun n'a été trouvé sur cet ordinateur.**, avec **Choisir le binaire Git…** (ouvre **Préférences** > **Outils** sur **Binaire Git**) et **Comment installer Git** (ouvre [Prérequis](#prérequis)) |
+| **Mises à jour** | L’interrupteur **Vérifier les mises à jour au démarrage**, désactivé par défaut. Y répondre ici remplace la notification qui pose la même question ; voir [Mises à jour](../updates/#activer-la-vérification-des-mises-à-jour)                                                                                                                                               |
+| **Raccourcis**   | **Palette de commandes**, **Commit**, **Fetch / Pull / Push** et **Nouvelle branche**, avec les raccourcis de votre système tels qu’ils sont associés maintenant. **Tous les raccourcis** ouvre la liste complète                                                                                                                                                            |
+
+**Commencer** ferme l’écran ; **Ouvrir la documentation** ouvre cette documentation dans votre navigateur, dans la langue de l’interface. Une fois fermé, avec **Commencer**, <kbd>Esc</kbd> ou un bouton qui mène ailleurs, l’écran ne se rouvre plus de lui-même. Les installations qui ont déjà des dépôts, ou qui ont répondu à la question des mises à jour, ne le voient jamais.
+
+Pour le revoir, lancez **Revoir l'écran de premier lancement** depuis la palette de commandes, ou cliquez sur **Revoir** à côté de **Écran de premier lancement** dans **Préférences** > **Général**.
 
 ## Formats et mise à jour
 

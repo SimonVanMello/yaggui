@@ -36,6 +36,15 @@ test('intro-main-window', async ({ page }, testInfo) => {
   await capture(page, testInfo, 'intro-main-window');
 });
 
+// install.mdx
+
+test('first-run', async ({ page }, testInfo) => {
+  await start(page, '(mock) => { mock.freshInstall(); }');
+  const dialog = page.getByRole('dialog', { name: 'Welcome to yaggui' });
+  await expect(dialog).toContainText('Git 2.47.1');
+  await capture(page, testInfo, 'first-run', dialog);
+});
+
 // updates.mdx
 
 test('updates-notice', async ({ page }, testInfo) => {

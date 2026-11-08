@@ -12,6 +12,8 @@ sources:
   - src/features/palette/ThemePicker.tsx
   - src/app/appearance.ts
   - src/app/preferences.ts
+  - src/features/zoom/**
+  - src/features/preferences/ZoomControl.tsx
   - src/theme/**
   - src/i18n/i18n.ts
   - public/boot-theme.js
@@ -134,6 +136,22 @@ For the two font fields:
 2. Press <kbd>Enter</kbd> or leave the field. The font applies at once.
 
 An empty field restores the bundled font. If the font is not installed, the system falls back to the bundled one. A name longer than 200 characters, or one that contains control characters or any of `; { } < > \ " '`, is refused: a "Could not save the preference" toast says "\{name\}" is not a valid font name., and the previous font stays in use.
+
+## Zoom the whole window
+
+Zoom scales everything in the window (text, icons, rows, panels and the commit graph) where **Text size** only scales the text. The levels are 80, 90, 100, 110, 125 and 150 %.
+
+| Command                    | macOS                                           | Windows and Linux                                                |
+| -------------------------- | ----------------------------------------------- | ---------------------------------------------------------------- |
+| **Zoom in**                | <kbd>⌘=</kbd> or <kbd>⇧⌘=</kbd> (<kbd>⌘+</kbd>) | <kbd>Ctrl+=</kbd> or <kbd>Ctrl+Shift+=</kbd> (<kbd>Ctrl++</kbd>) |
+| **Zoom out**               | <kbd>⌘-</kbd>                                   | <kbd>Ctrl+-</kbd>                                                |
+| **Reset the zoom (100 %)** | <kbd>⌘0</kbd>                                   | <kbd>Ctrl+0</kbd>                                                |
+
+The same three commands are in the [command palette](../../customize/palette-and-shortcuts/) and, on macOS, in the **View** menu as **Zoom In**, **Zoom Out** and **Actual Size**. Zooming in at 150 % or out at 80 % does nothing.
+
+In **Preferences › Display**, under **Text**, the **Zoom** row shows the current level with **Zoom out** (−) and **Zoom in** (+) buttons, and **Reset** to go back to 100 %.
+
+The zoom is remembered and applied at the next launch. It belongs to this computer, like the Git path: it depends on the screen, so the preferences export leaves it out.
 
 ## Change the language
 

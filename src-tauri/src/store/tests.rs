@@ -72,11 +72,13 @@ fn saves_tabs_in_order() {
                 id: "b".into(),
                 repo_id: Some(id),
                 ui_state: Some(r#"{"sidebar":240}"#.into()),
+                pinned: true,
             },
             Tab {
                 id: "a".into(),
                 repo_id: None,
                 ui_state: None,
+                pinned: false,
             },
         ],
         active_tab_id: Some("a".into()),
@@ -101,6 +103,7 @@ fn tabs_survive_forgotten_or_unknown_repos() {
         id: format!("t{repo_id:?}"),
         repo_id,
         ui_state: None,
+        pinned: false,
     };
     store
         .save_tabs(&TabsState {
@@ -112,6 +115,75 @@ fn tabs_survive_forgotten_or_unknown_repos() {
     let tabs = store.tabs().unwrap();
     assert!(tabs.tabs.iter().all(|t| t.repo_id.is_none()));
     assert_eq!(tabs.active_tab_id, None);
+}
+
+// ---- Pinned tabs and repo names (tabs workstream) ---------------------------------------
+
+#[test]
+fn tabs_saved_without_the_pinned_flag_load_unpinned() {
+    let state: TabsState = serde_json::from_str(
+        r#"{"tabs":[{"id":"a","repoId":null,"uiState":null}],"activeTabId":"a"}"#,
+    )
+    .unwrap();
+    assert!(!state.tabs[0].pinned);
+}
+
+#[test]
+fn v7_tabs_upgrade_to_unpinned_tabs() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join(DB_FILE);
+    {
+        // A database as released before pinned tabs: schema v7.
+        let conn = Connection::open(&path).unwrap();
+        conn.execute_batch(migrations::schema_for_tests(7)).unwrap();
+        conn.pragma_update(None, "user_version", 7).unwrap();
+        conn.execute(
+            "INSERT INTO tabs (position, tab_id, repo_id, ui_state) VALUES (0, 't', NULL, NULL)",
+            [],
+        )
+        .unwrap();
+    }
+    let store = Store::open(&path).unwrap();
+    let tabs = store.tabs().unwrap();
+    assert_eq!(tabs.tabs.len(), 1);
+    assert!(!tabs.tabs[0].pinned);
+    let pinned = TabsState {
+        tabs: vec![Tab {
+            pinned: true,
+            ..tabs.tabs[0].clone()
+        }],
+        active_tab_id: None,
+    };
+    store.save_tabs(&pinned).unwrap();
+    assert_eq!(store.tabs().unwrap(), pinned);
+}
+
+#[test]
+fn renames_a_repo_and_gives_back_the_folder_name_when_blank() {
+    let store = store();
+    let id = store.touch_repo("/work/api-server", "api-server").unwrap();
+    let renamed = store.rename_repo(id, "  Backend  ").unwrap();
+    assert_eq!(renamed.name, "Backend");
+    assert_eq!(renamed.path, "/work/api-server");
+    assert_eq!(store.repo(id).unwrap().unwrap().name, "Backend");
+    // Opening it again keeps the chosen name.
+    store.touch_repo("/work/api-server", "api-server").unwrap();
+    assert_eq!(store.repo(id).unwrap().unwrap().name, "Backend");
+
+    assert_eq!(store.rename_repo(id, "   ").unwrap().name, "api-server");
+    assert_eq!(store.repo(id).unwrap().unwrap().name, "api-server");
+}
+
+#[test]
+fn refuses_long_names_and_unknown_repos() {
+    let store = store();
+    let id = store.touch_repo("/r", "r").unwrap();
+    let max = "é".repeat(MAX_REPO_NAME_CHARS);
+    assert_eq!(store.rename_repo(id, &max).unwrap().name, max);
+    let error = store.rename_repo(id, &format!("{max}x")).unwrap_err();
+    assert_eq!(error.code, crate::git::errors::ErrorCode::InvalidArgument);
+    assert_eq!(store.repo(id).unwrap().unwrap().name, max);
+    assert!(store.rename_repo(999, "x").is_err());
 }
 
 #[test]
@@ -152,6 +224,10 @@ fn stores_preferences() {
         gravatar: true,
         remote_tags: true,
         check_updates: Some(true),
+        onboarded: true,
+        last_seen_version: Some("0.14.0".into()),
+        show_whats_new: false,
+        zoom: 125,
     };
     assert_eq!(store.set_preferences(&prefs).unwrap(), prefs);
     // The same values after reopening: they are in the database, not in memory.
@@ -161,9 +237,75 @@ fn stores_preferences() {
         terminal: None,
         // Back to "never asked" is stored too, not mistaken for a missing value.
         check_updates: None,
+        last_seen_version: None,
         ..prefs
     };
     assert_eq!(store.set_preferences(&cleared).unwrap(), cleared);
+}
+
+#[test]
+fn a_fresh_store_shows_the_first_launch_screen_and_whats_new() {
+    let store = store();
+    let prefs = store.preferences().unwrap();
+    assert!(!prefs.onboarded);
+    assert_eq!(prefs.last_seen_version, None);
+    assert!(prefs.show_whats_new);
+    // Nothing tells an earlier launch apart: the screen stays due.
+    assert!(!store.settle_onboarding().unwrap());
+    assert!(!store.preferences().unwrap().onboarded);
+}
+
+#[test]
+fn an_existing_installation_skips_the_first_launch_screen() {
+    // Known repositories: yaggui ran here before the screen existed.
+    let with_repo = store();
+    with_repo.touch_repo("/tmp/a", "a").unwrap();
+    assert!(with_repo.settle_onboarding().unwrap());
+    assert!(with_repo.preferences().unwrap().onboarded);
+    assert!(!with_repo.settle_onboarding().unwrap());
+
+    // The update question was answered, even with every repository forgotten since.
+    let answered = store();
+    answered
+        .set_preferences(&Preferences {
+            check_updates: Some(false),
+            ..Preferences::default()
+        })
+        .unwrap();
+    assert!(answered.settle_onboarding().unwrap());
+    assert!(answered.preferences().unwrap().onboarded);
+}
+
+#[test]
+fn last_seen_version_is_trimmed_and_checked() {
+    let store = store();
+    let stored = store
+        .set_preferences(&Preferences {
+            last_seen_version: Some(" 0.14.0 ".into()),
+            ..Preferences::default()
+        })
+        .unwrap();
+    assert_eq!(stored.last_seen_version.as_deref(), Some("0.14.0"));
+    let blank = store
+        .set_preferences(&Preferences {
+            last_seen_version: Some("  ".into()),
+            ..Preferences::default()
+        })
+        .unwrap();
+    assert_eq!(blank.last_seen_version, None);
+    for bad in ["1 2".to_owned(), "9".repeat(65)] {
+        let err = store
+            .set_preferences(&Preferences {
+                last_seen_version: Some(bad.clone()),
+                ..Preferences::default()
+            })
+            .unwrap_err();
+        assert_eq!(
+            err.code,
+            crate::git::errors::ErrorCode::InvalidArgument,
+            "{bad}"
+        );
+    }
 }
 
 #[test]
@@ -362,6 +504,7 @@ fn new_preferences_default_when_nothing_is_stored() {
     assert!(prefs.auto_fetch);
     assert_eq!(prefs.auto_fetch_minutes, 10);
     assert_eq!(prefs.font_size, 13);
+    assert_eq!(prefs.zoom, 100);
     assert_eq!(prefs.density, Density::Comfortable);
     assert_eq!(
         prefs.protected_branches,
@@ -381,6 +524,15 @@ fn rejects_out_of_range_preferences() {
         }),
         crate::git::errors::ErrorCode::InvalidArgument
     );
+    for zoom in [79, 151] {
+        assert_eq!(
+            bad(Preferences {
+                zoom,
+                ..base.clone()
+            }),
+            crate::git::errors::ErrorCode::InvalidArgument
+        );
+    }
     assert_eq!(
         bad(Preferences {
             auto_fetch_minutes: 0,

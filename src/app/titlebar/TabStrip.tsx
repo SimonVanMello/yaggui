@@ -8,8 +8,9 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from 'react';
 
-import { closeTabAndRepo } from '../../features/repo/repoSessions';
+import { closeTabAndRepo, closeTabsAndRepos } from '../../features/repo/repoSessions';
 import { useRepoSessions } from '../../features/repo/repoSessions';
+import { useRenameRepo } from '../../features/repo/renameRepoStore';
 import { useKnownRepos } from '../../features/repo/useKnownRepos';
 import { useT } from '../../i18n/useT';
 import { ContextMenu } from '../../ui/ContextMenu';
@@ -18,6 +19,7 @@ import { ContextMenuSeparator } from '../../ui/ContextMenuSeparator';
 import { IconButton } from '../../ui/IconButton';
 import { matchBinding } from '../../features/keybindings/registry';
 import { toast } from '../../ui/toastStore';
+import { reopenClosedTab } from '../tabs/reopenClosedTab';
 import { openNewTab, useTabsStore, type ShellTab } from '../tabs/tabsStore';
 import { TabItem } from './TabItem';
 import styles from './TabStrip.module.css';
@@ -37,13 +39,21 @@ function tabElements(strip: HTMLElement): HTMLElement[] {
   return [...strip.querySelectorAll<HTMLElement>('[data-tab-id]')];
 }
 
-/** Moves the dragged tab under the pointer, relative to its current layout position. */
+/**
+ * Moves the dragged tab under the pointer, relative to its current layout position, within its
+ * group: pinned tabs and the others never cross.
+ */
 function applyDragTransform(strip: HTMLElement, drag: DragState): void {
-  const element = tabElements(strip).find((el) => el.dataset.tabId === drag.id);
+  const elements = tabElements(strip);
+  const element = elements.find((el) => el.dataset.tabId === drag.id);
   if (!element) return;
+  const group = elements.filter((el) => el.dataset.pinned === element.dataset.pinned);
+  const first = group[0] ?? element;
+  const last = group.at(-1) ?? element;
   const stripLeft = strip.getBoundingClientRect().left - strip.scrollLeft;
-  const max = strip.scrollWidth - element.offsetWidth;
-  const left = Math.min(max, Math.max(0, drag.pointerX - stripLeft - drag.grab));
+  const min = first.offsetLeft;
+  const max = last.offsetLeft + last.offsetWidth - element.offsetWidth;
+  const left = Math.min(max, Math.max(min, drag.pointerX - stripLeft - drag.grab));
   element.style.transform = `translateX(${left - element.offsetLeft}px)`;
 }
 
@@ -162,7 +172,7 @@ export function TabStrip() {
         }}
       >
         {tabs.map((tab, index) => (
-          <TabContextMenu key={tab.id} tab={tab} index={index} count={tabs.length}>
+          <TabContextMenu key={tab.id} tab={tab} index={index} tabs={tabs}>
             <TabItem
               tab={tab}
               active={tab.id === activeTabId}
@@ -191,27 +201,25 @@ export function TabStrip() {
 interface TabContextMenuProps {
   tab: ShellTab;
   index: number;
-  count: number;
+  tabs: readonly ShellTab[];
   children: React.ReactElement;
 }
 
-function TabContextMenu({ tab, index, count, children }: TabContextMenuProps) {
+function TabContextMenu({ tab, index, tabs, children }: TabContextMenuProps) {
   const t = useT();
   const closeTabShortcut = useShortcut('tab.close');
+  const reopenShortcut = useShortcut('tab.reopenClosed');
+  const canReopen = useTabsStore((state) => state.closedTabs.length > 0);
+  // Pinned tabs stay put on "Close others" / "Close to the right", and move among themselves.
+  const pinnedCount = tabs.filter((other) => other.pinned).length;
+  const closesOthers = tabs.some((other) => other.id !== tab.id && !other.pinned);
+  const closesRight = tabs.slice(index + 1).some((other) => !other.pinned);
+  const [groupStart, groupEnd] = tab.pinned ? [0, pinnedCount - 1] : [pinnedCount, tabs.length - 1];
   const session = useRepoSessions((state) =>
     tab.repoId === null ? undefined : state.sessions[tab.repoId],
   );
   const known = useKnownRepos().data?.find((repo) => repo.id === tab.repoId);
   const path = session?.status === 'open' ? session.info.path : known?.path;
-
-  const closeMany = (keep: (other: ShellTab, otherIndex: number) => boolean) => {
-    useTabsStore
-      .getState()
-      .tabs.filter((other, otherIndex) => !keep(other, otherIndex))
-      .forEach((other) => {
-        closeTabAndRepo(other.id);
-      });
-  };
 
   return (
     <ContextMenu
@@ -227,25 +235,60 @@ function TabContextMenu({ tab, index, count, children }: TabContextMenuProps) {
             {t('tab.menu.close')}
           </ContextMenuItem>
           <ContextMenuItem
-            disabled={count < 2}
+            disabled={!closesOthers}
             onSelect={() => {
-              closeMany((other) => other.id === tab.id);
+              closeTabsAndRepos(() => {
+                useTabsStore.getState().closeOtherTabs(tab.id);
+              });
             }}
           >
             {t('tab.menu.closeOthers')}
           </ContextMenuItem>
           <ContextMenuItem
-            disabled={index === count - 1}
+            disabled={!closesRight}
             onSelect={() => {
-              closeMany((_, otherIndex) => otherIndex <= index);
+              closeTabsAndRepos(() => {
+                useTabsStore.getState().closeTabsToRight(tab.id);
+              });
             }}
           >
             {t('tab.menu.closeRight')}
           </ContextMenuItem>
+          <ContextMenuItem
+            shortcut={reopenShortcut}
+            disabled={!canReopen}
+            onSelect={() => {
+              void reopenClosedTab();
+            }}
+          >
+            {t('tab.menu.reopenClosed')}
+          </ContextMenuItem>
+          {tab.repoId !== null && (
+            <>
+              <ContextMenuSeparator />
+              <ContextMenuItem
+                icon="pin"
+                onSelect={() => {
+                  useTabsStore.getState().setPinned(tab.id, !tab.pinned);
+                }}
+              >
+                {tab.pinned ? t('tab.menu.unpin') : t('tab.menu.pin')}
+              </ContextMenuItem>
+              <ContextMenuItem
+                icon="pencil"
+                disabled={!known}
+                onSelect={() => {
+                  if (tab.repoId !== null) useRenameRepo.getState().open(tab.repoId);
+                }}
+              >
+                {t('tab.menu.rename')}
+              </ContextMenuItem>
+            </>
+          )}
           <ContextMenuSeparator />
           <ContextMenuItem
             icon="chevronRight"
-            disabled={index === count - 1}
+            disabled={index >= groupEnd}
             onSelect={() => {
               useTabsStore.getState().moveTab(tab.id, index + 1);
             }}
@@ -253,7 +296,7 @@ function TabContextMenu({ tab, index, count, children }: TabContextMenuProps) {
             {t('tab.menu.moveRight')}
           </ContextMenuItem>
           <ContextMenuItem
-            disabled={index === 0}
+            disabled={index <= groupStart}
             onSelect={() => {
               useTabsStore.getState().moveTab(tab.id, index - 1);
             }}

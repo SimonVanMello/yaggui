@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type RefObje
 
 import { GRAPH_COLORS } from '../../ipc';
 import { useThemeStore } from '../../theme/themeStore';
+import { useCanvasZoom } from '../zoom/zoom';
 import { drawScene, type GraphPalette } from './drawGraph';
 import type { GraphSource } from './graphSource';
 import { buildScene } from './scene';
@@ -62,6 +63,7 @@ export function GraphCanvas({
   /** Physical y each slot is placed at (`null`: unknown). */
   const placed = useRef<(number | null)[]>(Array.from({ length: SLOTS }, () => null));
   const theme = useThemeStore((state) => state.theme);
+  const zoom = useCanvasZoom();
   const palette = useRef<GraphPalette | null>(null);
   // A whole number of rows, so a row never straddles two tiles' worth of rounding.
   const tileHeight = Math.max(rowHeight, Math.ceil(viewportHeight / rowHeight) * rowHeight);
@@ -71,7 +73,7 @@ export function GraphCanvas({
       const contentHeight = wipHeight + totalRows * rowHeight;
       const top = tile * tileHeight;
       const height = Math.max(1, Math.min(tileHeight, contentHeight - top));
-      const ratio = window.devicePixelRatio || 1;
+      const ratio = (window.devicePixelRatio || 1) * zoom;
       if (
         canvas.width !== Math.round(width * ratio) ||
         canvas.height !== Math.round(height * ratio)
@@ -103,7 +105,7 @@ export function GraphCanvas({
       });
       drawScene(ctx, scene, palette.current, width, height);
     },
-    [source, rowHeight, wipHeight, width, totalRows, tileHeight],
+    [source, rowHeight, wipHeight, width, totalRows, tileHeight, zoom],
   );
 
   const draw = useCallback(

@@ -11,7 +11,12 @@ sources:
   - src/features/toolbar/**
   - src/ui/Toaster.tsx
   - src/ui/toastStore.ts
+  - src/features/activity/**
   - src/ipc/nativeMenu.ts
+  - src/ipc/nativeWindow.ts
+  - src/features/diff/fileEditStore.ts
+  - src-tauri/src/system/quit.rs
+  - src-tauri/src/system/window_state.rs
   - src-tauri/src/store/repo_ui_state.rs
 requirements: [F-004, F-300, F-301, F-302, F-322]
 ---
@@ -44,7 +49,11 @@ La barre du haut contient un onglet par dépôt ouvert.
 - Sous Windows et Linux, yaggui dessine ses propres boutons **Réduire**, **Agrandir** et **Fermer** à droite. Sous macOS, les boutons de fenêtre habituels sont à gauche.
 - Faites glisser une partie vide de la barre pour déplacer la fenêtre ; double-cliquez dessus pour l’agrandir ou la restaurer.
 
-Le changement d’onglet, leur réorganisation, leur fermeture et leurs raccourcis sont décrits dans [Onglets](../../workspaces/tabs/).
+Le changement d’onglet, leur réorganisation, leur fermeture, leur réouverture, leur épinglage, leur renommage et leurs raccourcis sont décrits dans [Onglets](../../workspaces/tabs/).
+
+Le titre de la fenêtre indique le dépôt de l’onglet actif et sa branche, par exemple `api-backoffice · main` (le SHA court du commit quand HEAD est détachée). Sur un onglet d’accueil, c’est `yaggui`. Sous Windows et Linux, ` — yaggui` suit, tel que la barre des tâches et le sélecteur de fenêtres l’affichent.
+
+yaggui s’ouvre avec la fenêtre à la taille et à la position qu’elle avait quand vous l’avez quitté, agrandie si elle l’était.
 
 ## Barre d’outils
 
@@ -99,8 +108,10 @@ Ce que le panneau droit affiche dépend de ce que vous avez sélectionné :
 La barre en bas de la fenêtre affiche :
 
 - **À gauche**, dans un onglet de dépôt : l’opération en cours, avec son nom, sa phase, son pourcentage, les données transférées et une petite barre de progression. Cliquez sur **Annuler** pour arrêter une opération qui peut l’être. Quand elle se termine, la barre conserve un court résultat comme « Fetch terminé » ou « Push a échoué » avec l’heure.
+- **Synchronisé \<moment\>**, dans un onglet de dépôt : le dernier fetch du dépôt, par exemple **Synchronisé il y a 2 minutes**, ou **Jamais synchronisé**. Il devient **Hors ligne · synchronisé \<moment\>** quand le dernier fetch, pull ou push n’a pas pu joindre l’hôte distant. Survolez-le pour voir la date, les remotes et l’état de l’auto-fetch ; cliquez dessus pour faire un fetch de tous les remotes. Voir [Dernière synchronisation](../../remotes/fetch-pull-push/#dernière-synchronisation).
 - **yaggui \<version\>** : ouvre **Nouveautés**. Voir [Mises à jour](../updates/#nouveautés).
 - **git \<version\>** : la version de Git utilisée par yaggui. Une icône d’avertissement apparaît quand elle est antérieure à 2.30, et **git introuvable** la remplace quand il n’y a pas de Git. Voir [Installer yaggui](../install/#prérequis).
+- La cloche, **Activité** : ouvre le [centre d’activité](#activité). Un nombre indique les notifications arrivées depuis sa dernière ouverture.
 - **Journal (\<nombre\>)** : affiche ou masque le journal des commandes. Le nombre compte les commandes qu’il contient, comme dans **Journal (12)**.
 
 ## Journal des commandes
@@ -131,6 +142,16 @@ Les notifications apparaissent en bas à droite.
 />
 
 Dans une boîte de dialogue ou un panneau, les erreurs apparaissent sur place, avec le même message, **Détails** et le bouton d’action.
+
+### Activité
+
+Chaque notification laisse aussi une trace dans le centre **Activité**, même une fois fermée : cliquez sur la cloche de la barre d’état, ou lancez **Afficher l'activité** dans la palette de commandes (pas de raccourci par défaut ; vous pouvez [lui en donner un](../../customize/palette-and-shortcuts/)).
+
+- Il liste les 20 dernières notifications de la session, de tous les dépôts, les plus récentes en premier : une icône pour le type (information, succès, avertissement, erreur), le message, le nom du dépôt et l’heure.
+- Cliquez sur une erreur venue d’une commande Git en échec pour ouvrir le [journal des commandes](../../reference/command-log/#activité-et-journal-des-commandes) sur cette commande. Cliquez sur une notification d’un autre dépôt ouvert pour passer à son onglet.
+- Une notification qui avait un bouton, comme **Réessayer**, le garde.
+- **Effacer** vide la liste. Elle n’est gardée qu’en mémoire : elle est vide à chaque démarrage de yaggui, et **Aucune activité pour l'instant** s’affiche tant que rien ne s’est passé.
+- Au clavier, l’entrée la plus récente a le focus à l’ouverture ; <kbd>↑</kbd> et <kbd>↓</kbd> passent d’une entrée à l’autre, <kbd>Entrée</kbd> en ouvre une et <kbd>Échap</kbd> ferme la liste.
 
 Chaque message et la marche à suivre sont listés dans [Messages d’erreur](../../reference/error-messages/).
 
@@ -164,17 +185,34 @@ Sur une fenêtre étroite, yaggui garde le graphe à une largeur d’au moins 32
 
 yaggui mémorise, pour chaque dépôt, la taille des panneaux, les panneaux réduits, les sections du panneau gauche et les colonnes du graphe. Rouvrir un dépôt, dans n’importe quel onglet, restaure sa disposition. La hauteur du journal des commandes n’est pas mémorisée.
 
+## Fermer et quitter yaggui
+
+Fermer la fenêtre quitte yaggui. Sous macOS, **Quitter yaggui** (<kbd>⌘Q</kbd>), dans le menu **yaggui** ou le Dock, le quitte aussi. **Quitter yaggui** est aussi dans la palette de commandes, avec <kbd>Ctrl+Q</kbd> sous Windows et Linux.
+
+yaggui enregistre les onglets et quitte aussitôt, sauf si quelque chose serait interrompu ou perdu :
+
+- une opération Git en cours dans un dépôt ouvert (un fetch, un push…) ;
+- un [rebase interactif](../../history/interactive-rebase/) dont vous avez modifié la liste sans le lancer ;
+- un fichier [modifié dans la vue diff](../../everyday/diff/#modifier-un-fichier-dans-le-diff) avec des modifications non enregistrées.
+
+Une boîte de dialogue **Quitter yaggui ?** les liste alors, par exemple « Push en cours dans api-backoffice », « Le rebase interactif de web a des modifications non enregistrées » ou « Modifications non enregistrées de src/app.ts dans web ». **Quitter quand même** quitte ; **Annuler** garde la fenêtre ouverte.
+
+Si yaggui ne répond plus, fermer ou quitter de nouveau une seconde plus tard passe sans la boîte de dialogue.
+
 ## Barre de menus macOS
 
 Sous macOS, yaggui a une barre de menus. Windows et Linux n’en ont pas : utilisez la barre d’outils, la palette de commandes (<kbd>Ctrl+K</kbd>) et les raccourcis.
 
-| Menu             | Éléments                                                                                                                                                                                     |
-| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **yaggui**       | À propos de yaggui, **Préférences…**, **Réglage du terminal…**, Services, Masquer yaggui, Masquer les autres, Tout afficher, Quitter yaggui                                                  |
-| **Fichier**      | **Nouvel onglet** (<kbd>⌘T</kbd>), **Ouvrir un dépôt…** (<kbd>⌘O</kbd>), **Cloner un dépôt…**, **Initialiser un dépôt…**, **Fermer l'onglet** (<kbd>⌘W</kbd>)                                |
-| **Édition**      | **Annuler** (<kbd>⌘Z</kbd>), **Rétablir** (<kbd>⇧⌘Z</kbd>), Couper, Copier, Coller, Tout sélectionner                                                                                        |
-| **Présentation** | **Afficher ou masquer le panneau gauche** (<kbd>⌥⌘B</kbd>), **Afficher ou masquer le panneau droit** (<kbd>⌥⌘I</kbd>), **Journal des commandes** (<kbd>⌘J</kbd>), Passer en mode plein écran |
-| **Fenêtre**      | Placer dans le Dock, Réduire/agrandir, **Afficher l'onglet suivant**, **Afficher l'onglet précédent**, Tout ramener au premier plan                                                          |
-| **Aide**         | **Nouveautés de yaggui**, **Journal des commandes**                                                                                                                                          |
+| Menu             | Éléments                                                                                                                                                                                                                                                                                                                                              |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **yaggui**       | À propos de yaggui, **Préférences…**, **Réglage du terminal…**, Services, Masquer yaggui, Masquer les autres, Tout afficher, **Quitter yaggui** (<kbd>⌘Q</kbd>)                                                                                                                                                                                       |
+| **Fichier**      | **Nouvel onglet** (<kbd>⌘T</kbd>), **Ouvrir un dépôt…** (<kbd>⌘O</kbd>), **Cloner un dépôt…**, **Initialiser un dépôt…**, **Ouvrir l'élément récent**, **Fermer l'onglet** (<kbd>⌘W</kbd>), **Rouvrir l'onglet fermé** (<kbd>⌘⇧T</kbd>)                                                                                                               |
+| **Édition**      | **Annuler** (<kbd>⌘Z</kbd>), **Rétablir** (<kbd>⇧⌘Z</kbd>), Couper, Copier, Coller, Tout sélectionner                                                                                                                                                                                                                                                 |
+| **Dépôt**        | **Fetch** (<kbd>⇧⌘F</kbd>), **Pull** (<kbd>⇧⌘L</kbd>), **Push** (<kbd>⇧⌘P</kbd>), **Nouvelle branche…** (<kbd>⌘B</kbd>), **Nouveau tag…**, **Stash** (<kbd>⇧⌘S</kbd>), **Pop du dernier stash** (<kbd>⌥⇧⌘S</kbd>), **Ouvrir dans le terminal**, **Ouvrir dans l'éditeur**, **Ouvrir dans le gestionnaire de fichiers**, **Historique des opérations** |
+| **Présentation** | **Afficher ou masquer le panneau gauche** (<kbd>⌥⌘B</kbd>), **Afficher ou masquer le panneau droit** (<kbd>⌥⌘I</kbd>), **Journal des commandes** (<kbd>⌘J</kbd>), **Zoom avant** (<kbd>⌘=</kbd>), **Zoom arrière** (<kbd>⌘-</kbd>), **Taille réelle** (<kbd>⌘0</kbd>), Passer en mode plein écran                                                     |
+| **Fenêtre**      | Placer dans le Dock, Réduire/agrandir, **Afficher l'onglet suivant**, **Afficher l'onglet précédent**, Tout ramener au premier plan                                                                                                                                                                                                                   |
+| **Aide**         | **Nouveautés de yaggui**, **Journal des commandes**                                                                                                                                                                                                                                                                                                   |
 
-**Annuler** et **Rétablir** annulent des opérations de yaggui, sauf quand un champ de texte a le focus : ils annulent alors la saisie. **Fermer l'onglet** ferme l’onglet, jamais la fenêtre. Les entrées de menu ne font rien tant qu’une boîte de dialogue est ouverte. Si vous modifiez un raccourci, le menu affiche le nouveau.
+**Annuler** et **Rétablir** annulent des opérations de yaggui, sauf quand un champ de texte a le focus : ils annulent alors la saisie. **Fermer l'onglet** ferme l’onglet, jamais la fenêtre. Les entrées de menu ne font rien tant qu’une boîte de dialogue est ouverte, sauf **Quitter yaggui**. Si vous modifiez un raccourci, le menu affiche le nouveau.
+
+**Ouvrir l'élément récent** liste les 10 dépôts ouverts le plus récemment (voir [Rouvrir un dépôt récent](../../workspaces/tabs/#rouvrir-un-dépôt-récent-macos)). Le menu **Dépôt** agit sur le dépôt de l’onglet actif ; il est grisé dans un onglet d’accueil. **Ouvrir dans le terminal** ouvre le terminal externe. **Zoom avant**, **Zoom arrière** et **Taille réelle** agrandissent ou réduisent toute la fenêtre (voir [Zoomer toute la fenêtre](../../customize/appearance/#zoomer-toute-la-fenêtre)).

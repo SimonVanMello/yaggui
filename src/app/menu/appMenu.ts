@@ -1,8 +1,24 @@
 import { translate, useI18nStore, type Locale, type MessageKey } from '../../i18n/i18n';
 import { useKeybindings } from '../../features/keybindings/keybindingsStore';
-import { nativeMenu, type MenuEntry, type MenuSection, type NativeMenuItem } from '../../ipc';
+import { runAction } from '../../features/palette/actionRegistry';
+import { openRepoPath } from '../../features/repo/repoSessions';
+import {
+  nativeMenu,
+  type KnownRepo,
+  type MenuEntry,
+  type MenuSection,
+  type NativeMenuItem,
+} from '../../ipc';
 import { forwardToTextEntry } from '../../features/undo/textUndo';
-import { isShellAction, runShellAction, shortcutOf, type ShellAction } from '../shellActions';
+import {
+  isShellAction,
+  modalOpen,
+  runShellAction,
+  shortcutOf,
+  type ShellAction,
+} from '../shellActions';
+import { selectActiveTab, useTabsStore } from '../tabs/tabsStore';
+import { watchRecentRepos } from './recentRepos';
 
 /**
  * Shell actions that carry their shortcut as a menu accelerator. ⌘1…9 and ⌃Tab stay keyboard
@@ -12,15 +28,80 @@ const ACCELERATED: ReadonlySet<ShellAction> = new Set([
   'newTab',
   'openRepo',
   'closeTab',
+  'reopenClosedTab',
   'toggleLog',
   'toggleSidebar',
   'toggleDetails',
   'undo',
   'redo',
+  // Repository menu.
+  'fetch',
+  'pull',
+  'push',
+  'createBranch',
+  'stash',
+  'stashPop',
+  // View › zoom.
+  'zoomIn',
+  'zoomOut',
+  'zoomReset',
+  // Quit and close guard: ⌘Q, in place of the native Quit item.
+  'quit',
 ]);
 
-/** Standard macOS menu bar: yaggui, File, Edit, View, Window, Help (spec §6.9). */
-export function buildAppMenu(locale: Locale): MenuSection[] {
+/** Palette actions the menu runs by id (see `builtinActions.ts`). */
+export const REGISTRY_ITEMS = ['repo.terminal', 'repo.editor', 'repo.fileManager'] as const;
+
+/** Items of the Repository menu: greyed out while the active tab has no repository. */
+export const REPO_ITEMS: readonly string[] = [
+  'fetch',
+  'pull',
+  'push',
+  'createBranch',
+  'createTag',
+  'stash',
+  'stashPop',
+  ...REGISTRY_ITEMS,
+  'opHistory',
+];
+
+/** Id of an Open Recent item: the prefix, then the repository's path. */
+export const RECENT_PREFIX = 'recent:';
+const NO_RECENT = 'recent';
+
+export interface MenuContext {
+  /** Open Recent, most recently opened first (already cut to its length). */
+  recents: readonly KnownRepo[];
+  /** Whether the active tab has a repository (Repository menu enabled). */
+  hasRepo: boolean;
+}
+
+const EMPTY_CONTEXT: MenuContext = { recents: [], hasRepo: false };
+
+/** The Open Recent items: the name, and the path where two repositories share a name. */
+function recentEntries(recents: readonly KnownRepo[], t: (key: MessageKey) => string) {
+  if (recents.length === 0) {
+    const empty: MenuEntry = {
+      kind: 'action',
+      id: NO_RECENT,
+      label: t('menu.openRecent.empty'),
+      enabled: false,
+    };
+    return [empty];
+  }
+  return recents.map((repo): MenuEntry => ({
+    kind: 'action',
+    id: `${RECENT_PREFIX}${repo.path}`,
+    label: recents.some((other) => other !== repo && other.name === repo.name)
+      ? `${repo.name} — ${repo.path}`
+      : repo.name,
+    // A moved or deleted folder cannot open; the welcome screen offers to locate it.
+    enabled: repo.exists,
+  }));
+}
+
+/** Standard macOS menu bar: yaggui, File, Edit, Repository, View, Window, Help (spec §6.9). */
+export function buildAppMenu(locale: Locale, context: MenuContext = EMPTY_CONTEXT): MenuSection[] {
   const t = (key: MessageKey) => translate(locale, key);
   const action = (id: ShellAction, key: MessageKey): MenuEntry => ({
     kind: 'action',
@@ -28,6 +109,12 @@ export function buildAppMenu(locale: Locale): MenuSection[] {
     label: t(key),
     shortcut: ACCELERATED.has(id) ? shortcutOf(id) : undefined,
   });
+  const repoAction = (id: ShellAction | (typeof REGISTRY_ITEMS)[number], key: MessageKey) => {
+    const entry: MenuEntry = isShellAction(id)
+      ? action(id, key)
+      : { kind: 'action', id, label: t(key) };
+    return { ...entry, enabled: context.hasRepo };
+  };
   const native = (item: NativeMenuItem, key: MessageKey): MenuEntry => ({
     kind: 'native',
     item,
@@ -51,7 +138,7 @@ export function buildAppMenu(locale: Locale): MenuSection[] {
         native('HideOthers', 'menu.hideOthers'),
         native('ShowAll', 'menu.showAll'),
         separator,
-        native('Quit', 'menu.quit'),
+        action('quit', 'menu.quit'),
       ],
     },
     {
@@ -61,8 +148,14 @@ export function buildAppMenu(locale: Locale): MenuSection[] {
         action('openRepo', 'menu.open'),
         action('cloneRepo', 'menu.clone'),
         action('initRepo', 'menu.init'),
+        {
+          kind: 'submenu',
+          label: t('menu.openRecent'),
+          entries: recentEntries(context.recents, t),
+        },
         separator,
         action('closeTab', 'menu.closeTab'),
+        action('reopenClosedTab', 'menu.reopenClosedTab'),
       ],
     },
     {
@@ -80,11 +173,34 @@ export function buildAppMenu(locale: Locale): MenuSection[] {
       ],
     },
     {
+      label: t('menu.repository'),
+      entries: [
+        repoAction('fetch', 'menu.fetch'),
+        repoAction('pull', 'menu.pull'),
+        repoAction('push', 'menu.push'),
+        separator,
+        repoAction('createBranch', 'menu.newBranch'),
+        repoAction('createTag', 'menu.newTag'),
+        repoAction('stash', 'menu.stash'),
+        repoAction('stashPop', 'menu.stashPop'),
+        separator,
+        repoAction('repo.terminal', 'menu.openTerminal'),
+        repoAction('repo.editor', 'menu.openEditor'),
+        repoAction('repo.fileManager', 'menu.openFileManager'),
+        separator,
+        repoAction('opHistory', 'menu.opHistory'),
+      ],
+    },
+    {
       label: t('menu.view'),
       entries: [
         action('toggleSidebar', 'menu.toggleSidebar'),
         action('toggleDetails', 'menu.toggleDetails'),
         action('toggleLog', 'menu.commandLog'),
+        separator,
+        action('zoomIn', 'menu.zoomIn'),
+        action('zoomOut', 'menu.zoomOut'),
+        action('zoomReset', 'menu.actualSize'),
         separator,
         native('Fullscreen', 'menu.fullscreen'),
       ],
@@ -116,7 +232,6 @@ export function buildAppMenu(locale: Locale): MenuSection[] {
   ];
 }
 
-/** Set once the menu is really in place: until then (or if it failed) the keyboard handles all. */
 let menuInstalled = false;
 
 /** Shortcuts the installed menu handles, which the keyboard handler must leave alone. */
@@ -125,30 +240,91 @@ export function menuShortcuts(): ReadonlySet<string> {
   return new Set([...ACCELERATED].map(shortcutOf).filter((shortcut) => shortcut !== undefined));
 }
 
+/** The active tab when it is a welcome tab (it receives the repository), else a new tab. */
+function welcomeTabId(): string | undefined {
+  const tab = selectActiveTab(useTabsStore.getState());
+  return tab.repoId === null ? tab.id : undefined;
+}
+
 function onMenuAction(id: string): void {
-  if (!isShellAction(id)) return;
-  // In a text field the menu item is the field's own undo: the app's applies elsewhere only.
-  if ((id === 'undo' || id === 'redo') && forwardToTextEntry(id)) return;
-  runShellAction(id);
+  if (isShellAction(id)) {
+    // The backend relays "Quit yaggui" as `quit-requested` (or quits at once when nothing is in
+    // progress): a webview that cannot answer then still lets the app quit.
+    if (id === 'quit') return;
+    // In a text field the menu item is the field's own undo: the app's applies elsewhere only.
+    if ((id === 'undo' || id === 'redo') && forwardToTextEntry(id)) return;
+    runShellAction(id);
+    return;
+  }
+  if (modalOpen()) return;
+  // Opens the repository, or activates its tab if it is open (as from the welcome screen).
+  if (id.startsWith(RECENT_PREFIX))
+    void openRepoPath(id.slice(RECENT_PREFIX.length), welcomeTabId());
+  else runAction(id);
+}
+
+const hasRepo = () => selectActiveTab(useTabsStore.getState()).repoId !== null;
+
+/** A burst of changes (language, shortcuts, recents) makes one rebuild. */
+const REBUILD_DELAY_MS = 100;
+
+let recents: readonly KnownRepo[] = [];
+/** State of the Repository items in the installed menu (`null`: none installed yet). */
+let menuHasRepo: boolean | null = null;
+
+async function install(): Promise<void> {
+  const built = hasRepo();
+  await nativeMenu.install(
+    buildAppMenu(useI18nStore.getState().locale, { recents, hasRepo: built }),
+    onMenuAction,
+  );
+  menuHasRepo = built;
+  // The active tab may have changed while the menu was being built.
+  syncRepoItems();
+}
+
+/** Greys out or enables the Repository menu when the active tab gains or loses a repository. */
+function syncRepoItems(): void {
+  const current = hasRepo();
+  if (menuHasRepo === null || menuHasRepo === current) return;
+  menuHasRepo = current;
+  // A few items changed in place: cheaper than rebuilding the whole menu on every tab switch.
+  nativeMenu.setEnabled(REPO_ITEMS, current).catch((error: unknown) => {
+    console.warn('Could not update the Repository menu', error);
+  });
 }
 
 let watching = false;
+let recentsWatched = false;
 
-/** Installs the macOS menu and rebuilds it when the UI language changes. */
+/**
+ * Installs the macOS menu and rebuilds it when the UI language, a shortcut or the recent
+ * repositories change; keeps the Repository menu in step with the active tab.
+ */
 export async function installAppMenu(): Promise<void> {
   if (!nativeMenu.supported) return;
-  await nativeMenu.install(buildAppMenu(useI18nStore.getState().locale), onMenuAction);
-  // A failed rebuild later keeps the previous menu, with the same accelerators.
+  let rebuildTimer: ReturnType<typeof setTimeout> | undefined;
+  const rebuild = () => {
+    clearTimeout(rebuildTimer);
+    rebuildTimer = setTimeout(() => {
+      // A failed rebuild keeps the previous menu, with the same accelerators.
+      install().catch((error: unknown) => {
+        console.warn('Could not rebuild the menu', error);
+      });
+    }, REBUILD_DELAY_MS);
+  };
+  if (!recentsWatched) {
+    recentsWatched = true;
+    recents = await watchRecentRepos((next) => {
+      recents = next;
+      rebuild();
+    });
+  }
+  await install();
+  // Set once the menu is really in place: until then (or if it failed) the keyboard handles all.
   menuInstalled = true;
   if (watching) return;
   watching = true;
-  const rebuild = () => {
-    void nativeMenu
-      .install(buildAppMenu(useI18nStore.getState().locale), onMenuAction)
-      .catch((error: unknown) => {
-        console.warn('Could not rebuild the menu', error);
-      });
-  };
   useI18nStore.subscribe((state, previous) => {
     if (state.locale !== previous.locale) rebuild();
   });
@@ -156,4 +332,5 @@ export async function installAppMenu(): Promise<void> {
   useKeybindings.subscribe((state, previous) => {
     if (state.overrides !== previous.overrides) rebuild();
   });
+  useTabsStore.subscribe(syncRepoItems);
 }

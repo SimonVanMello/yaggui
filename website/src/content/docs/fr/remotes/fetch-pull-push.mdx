@@ -7,6 +7,10 @@ sources:
   - src/features/network/**
   - src/features/toolbar/NetworkButtons.tsx
   - src/features/statusbar/StatusBar.tsx
+  - src/features/statusbar/SyncStatus.tsx
+  - src/features/statusbar/syncLabel.ts
+  - src/features/statusbar/useLastFetch.ts
+  - src-tauri/src/repo/workspace.rs
   - src/features/preferences/SyncSection.tsx
   - src/features/preferences/SafetySection.tsx
   - src/features/preferences/ProtectedBranchesField.tsx
@@ -41,6 +45,7 @@ Un fetch télécharge les nouveaux commits et les nouvelles branches d’un remo
 | Flèche du bouton **Fetch** (**Options du fetch**) → **Fetch de tous les remotes** | Tous les remotes     |
 | Flèche du bouton **Fetch** → **Fetch de origin** (une entrée par remote)          | Ce remote uniquement |
 | <kbd>⌘⇧F</kbd> (<kbd>Ctrl+Shift+F</kbd> sous Windows et Linux)                    | Tous les remotes     |
+| Barre de menus macOS : **Dépôt › Fetch**                                          | Tous les remotes     |
 | Palette (<kbd>⌘K</kbd>) → **Fetch**                                               | Tous les remotes     |
 | Barre latérale, clic droit sur un dossier de remote sous **Remote** → **Fetch**   | Ce remote uniquement |
 
@@ -78,6 +83,23 @@ Fonctionnement :
 
 Pour le désactiver, décochez **Fetch automatique** dans **Préférences → Fetch et pull**.
 
+## Dernière synchronisation
+
+Dans un onglet de dépôt, la barre d’état indique le dernier fetch du dépôt : **Synchronisé il y a 2 minutes**, ou **Jamais synchronisé** s’il n’y en a jamais eu. L’heure vient de Git lui-même (la date de `.git/FETCH_HEAD`) : elle compte chaque fetch et chaque pull, auto-fetch compris, et ceux que vous lancez dans un terminal. Un push ne la change pas. Elle se met à jour à la fin d’un fetch, d’un pull ou d’un push, et quand des branches changent.
+
+Survolez-la pour voir :
+
+- **Dernier fetch :** avec la date et l’heure,
+- **Remotes :** les remotes configurés (ou **Aucun remote configuré**),
+- l’état de l’auto-fetch : **Auto-fetch toutes les 10 min** ou **L'auto-fetch est désactivé**,
+- **Préférences Fetch et pull…**, qui ouvre **Préférences → Fetch et pull**.
+
+Cliquez dessus pour faire un fetch de tous les remotes, comme avec le bouton **Fetch** de la barre d’outils. Tant qu’une opération est en cours dans le dépôt, le clic ne fait rien et l’infobulle indique **Une opération est en cours**.
+
+### Hors ligne
+
+Quand le dernier fetch, pull ou push du dépôt a échoué parce que l’hôte distant était injoignable (l’erreur « L'hôte distant est injoignable… », auto-fetch compris), l’indication passe en avertissement : **Hors ligne · synchronisé il y a 2 heures** (ou **Hors ligne · jamais synchronisé**). Son infobulle ajoute « Le dernier fetch, pull ou push n'a pas pu joindre l'hôte distant. ». Elle reste jusqu’à ce qu’un fetch, un pull ou un push joigne de nouveau un remote. Une connexion refusée, un push rejeté ou un pull arrêté sur des conflits ne comptent pas comme hors ligne, pas plus qu’une opération annulée.
+
 ## Pull
 
 Un pull récupère l’upstream de la branche courante et en intègre les commits ([git pull](https://git-scm.com/docs/git-pull)). Le bouton **Pull** affiche un badge avec le nombre de commits dont vous êtes en retard ; il est désactivé quand HEAD est détaché.
@@ -87,6 +109,7 @@ Un pull récupère l’upstream de la branche courante et en intègre les commit
 | Bouton **Pull** de la barre d’outils                                                                     | Stratégie par défaut                                                                                                |
 | Flèche du bouton **Pull** (**Stratégie du pull**) → **Fast-forward uniquement**, **Merge** ou **Rebase** | Celle que vous choisissez                                                                                           |
 | <kbd>⌘⇧L</kbd> (<kbd>Ctrl+Shift+L</kbd> sous Windows et Linux)                                           | Stratégie par défaut                                                                                                |
+| Barre de menus macOS : **Dépôt › Pull**                                                                  | Stratégie par défaut                                                                                                |
 | Palette → **Pull**                                                                                       | Stratégie par défaut                                                                                                |
 | Barre latérale, clic droit sur une branche locale ayant un upstream → **Pull**                           | Stratégie par défaut. Actif uniquement sur la branche courante (« Le pull ne s'applique qu'à la branche courante ») |
 
@@ -135,6 +158,7 @@ Un push envoie les commits d’une branche locale vers son upstream ([git push](
 | Bouton **Push** de la barre d’outils                           | La branche courante                                                                        |
 | Flèche du bouton **Push** (**Options du push**) → **Push**     | La branche courante                                                                        |
 | <kbd>⌘⇧P</kbd> (<kbd>Ctrl+Shift+P</kbd> sous Windows et Linux) | La branche courante                                                                        |
+| Barre de menus macOS : **Dépôt › Push**                        | La branche courante                                                                        |
 | Palette → **Push**                                             | La branche courante                                                                        |
 | Barre latérale, clic droit sur une branche locale → **Push**   | Cette branche, qu’elle soit extraite ou non                                                |
 | Zone de commit, case **Push après commit**                     | La branche courante, juste après un commit réussi ([Commiter](../../everyday/committing/)) |

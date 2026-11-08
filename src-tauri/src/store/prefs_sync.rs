@@ -29,7 +29,7 @@ const MAX_FILE_BYTES: u64 = 1024 * 1024;
 const MAX_KEYBINDINGS: usize = 1000;
 
 /// Settings that travel between machines.
-const PORTABLE: [&str; 21] = [
+const PORTABLE: [&str; 22] = [
     "theme",
     "lightTheme",
     "darkTheme",
@@ -51,18 +51,23 @@ const PORTABLE: [&str; 21] = [
     "disabledConfirmations",
     "gravatar",
     "remoteTags",
+    "showWhatsNew",
 ];
 
 /// Settings that only mean something on the machine they were set on: programs and paths
-/// (they differ per OS and install), and the one-time answer about update checks. Never
-/// exported; ignored (and listed) when a file holds them.
-const MACHINE_SPECIFIC: [&str; 6] = [
+/// (they differ per OS and install), the one-time answer about update checks, the state of
+/// this installation (first-launch screen seen, version of the last launch) and the zoom (it
+/// depends on the screen). Never exported; ignored (and listed) when a file holds them.
+const MACHINE_SPECIFIC: [&str; 9] = [
     "gitPath",
     "terminal",
     "editor",
     "diffTool",
     "mergeTool",
     "checkUpdates",
+    "onboarded",
+    "lastSeenVersion",
+    "zoom",
 ];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Type)]

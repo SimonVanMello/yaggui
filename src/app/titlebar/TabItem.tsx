@@ -43,6 +43,7 @@ export function TabItem({
   const runningOp = useOpsStore(selectRunningOp(tab.repoId));
 
   const isWelcome = tab.repoId === null;
+  const pinned = tab.pinned && !isWelcome;
   const name = isWelcome ? t('tab.new') : (repoDisplayName(session, known) ?? t('tab.loading'));
   const path = session?.status === 'open' ? session.info.path : known?.path;
   const changes = repoState ? changedFiles(repoState) : 0;
@@ -63,6 +64,12 @@ export function TabItem({
     <span className={styles.tooltip}>
       <span className={styles.tooltipName}>{name}</span>
       {path && <span className={styles.tooltipPath}>{path}</span>}
+      {pinned && (
+        <span className={styles.tooltipPinned}>
+          <Icon name="pin" aria-hidden="true" />
+          {t('tab.pinned')}
+        </span>
+      )}
       {status.length > 0 && <span>{status.join(' · ')}</span>}
     </span>
   );
@@ -80,10 +87,11 @@ export function TabItem({
         id={`tab-${tab.id}`}
         aria-selected={active}
         aria-controls="tab-panel"
-        aria-label={[name, ...status].join(', ')}
+        aria-label={[name, ...(pinned ? [t('tab.pinned')] : []), ...status].join(', ')}
         tabIndex={active ? 0 : -1}
         data-tab-id={tab.id}
         data-dragging={dragging || undefined}
+        data-pinned={pinned || undefined}
         className={styles.tab}
         onPointerDown={onPointerDown}
         onKeyDown={onKeyDown}
@@ -105,21 +113,24 @@ export function TabItem({
           />
         )}
         {changes > 0 && <span className={styles.badge}>{changes}</span>}
-        <button
-          type="button"
-          tabIndex={-1}
-          className={styles.close}
-          aria-label={t('tab.close', { name })}
-          onPointerDown={(event) => {
-            event.stopPropagation();
-          }}
-          onClick={(event) => {
-            event.stopPropagation();
-            onClose();
-          }}
-        >
-          <Icon name="close" />
-        </button>
+        {/* A pinned tab closes only on purpose: ⌘W, middle click or its menu. */}
+        {!pinned && (
+          <button
+            type="button"
+            tabIndex={-1}
+            className={styles.close}
+            aria-label={t('tab.close', { name })}
+            onPointerDown={(event) => {
+              event.stopPropagation();
+            }}
+            onClick={(event) => {
+              event.stopPropagation();
+              onClose();
+            }}
+          >
+            <Icon name="close" />
+          </button>
+        )}
       </div>
     </Tooltip>
   );

@@ -14,6 +14,7 @@ import {
   skipOperation,
   startContinue,
 } from '../history/historyOps';
+import { useActivityStore } from '../activity/activityStore';
 import { BISECT_ACTIONS } from '../bisect/bisectActions';
 import { GRAPH_TOOL_ACTIONS } from '../compare/graphToolActions';
 import { INSPECT_ACTIONS } from '../inspect/inspectActions';
@@ -23,6 +24,7 @@ import { useGraphNavigation } from '../repo/graphNavigation';
 import { createFixup, fixupBlock, startAutosquash } from '../rebase/fixupOps';
 import { openInteractiveRebase } from '../rebase/rebaseStore';
 import { activeRepoId } from '../repo/repoSessions';
+import { canReopenClosedTab } from '../../app/tabs/reopenClosedTab';
 import { FOCUS_REFS_FILTER_EVENT } from '../sidebar/RefsSidebar';
 import { openCommitToolsDialog, useCommitTools } from '../staging/commitToolsStore';
 import { COMMIT_EVENT } from '../staging/commitUi';
@@ -32,6 +34,7 @@ import { openNewTerminal, toggleTerminalFromKeyboard } from '../terminal/termina
 import { openRepoFolder } from '../toolbar/openRepoFolder';
 import { canRun } from '../undo/undoState';
 import { checkForUpdatesNow } from '../updates/updates';
+import { showFirstRun } from '../onboarding/launchScreens';
 import { copyBugReport } from '../diagnostics/diagnostics';
 import { registerActions, type PaletteAction } from './actionRegistry';
 import { usePaletteStore } from './paletteStore';
@@ -163,11 +166,31 @@ const BUILTIN: readonly PaletteAction[] = [
   },
   shell('tab.new', 'newTab', 'palette.action.tab.new', 'tabs'),
   shell('tab.close', 'closeTab', 'palette.action.tab.close', 'tabs'),
+  shell(
+    'tab.reopenClosed',
+    'reopenClosedTab',
+    'palette.action.tab.reopenClosed',
+    'tabs',
+    canReopenClosedTab,
+  ),
   shell('tab.next', 'nextTab', 'palette.action.tab.next', 'tabs'),
   shell('tab.previous', 'previousTab', 'palette.action.tab.previous', 'tabs'),
   shell('view.sidebar', 'toggleSidebar', 'palette.action.view.sidebar', 'view', hasRepo),
   shell('view.details', 'toggleDetails', 'palette.action.view.details', 'view', hasRepo),
   shell('view.log', 'toggleLog', 'palette.action.view.log', 'view'),
+  // Activity center (status bar). No default shortcut: rebindable in the preferences.
+  {
+    id: 'view.activity',
+    title: 'palette.action.view.activity',
+    group: 'view',
+    run: () => {
+      useActivityStore.getState().setOpen(true);
+    },
+  },
+  // Zoom of the interface.
+  shell('view.zoomIn', 'zoomIn', 'palette.action.view.zoomIn', 'view'),
+  shell('view.zoomOut', 'zoomOut', 'palette.action.view.zoomOut', 'view'),
+  shell('view.zoomReset', 'zoomReset', 'palette.action.view.zoomReset', 'view'),
   {
     id: 'view.theme.pick',
     title: 'palette.action.view.theme.pick',
@@ -204,6 +227,13 @@ const BUILTIN: readonly PaletteAction[] = [
     group: 'app',
     run: () => void checkForUpdatesNow(),
   },
+  // First launch screen, to review its choices.
+  {
+    id: 'app.firstRun',
+    title: 'palette.action.app.firstRun',
+    group: 'app',
+    run: showFirstRun,
+  },
   shell('app.reportBug', 'reportBug', 'palette.action.app.reportBug', 'app'),
   {
     id: 'app.copyBugReport',
@@ -212,6 +242,8 @@ const BUILTIN: readonly PaletteAction[] = [
     run: () => void copyBugReport(),
   },
   shell('app.openLogs', 'openLogs', 'palette.action.app.openLogs', 'app'),
+  // Quit and close guard.
+  shell('app.quit', 'quit', 'palette.action.app.quit', 'app'),
   shell('git.fetch', 'fetch', 'palette.action.git.fetch', 'git', hasRepo),
   shell('git.pull', 'pull', 'palette.action.git.pull', 'git', hasRepo),
   shell('git.push', 'push', 'palette.action.git.push', 'git', hasRepo),

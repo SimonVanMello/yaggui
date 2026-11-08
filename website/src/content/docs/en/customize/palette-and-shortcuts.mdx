@@ -143,7 +143,7 @@ Your changes are stored in `keybindings.json`, in yaggui's configuration folder 
 
 - Keys are action ids. The Shortcuts section shows them when you filter, and the [reference](../../reference/keyboard-shortcuts/) lists them all.
 - A string sets the shortcut; `null` removes it; a missing id keeps the default.
-- Shortcut syntax: modifiers among `Mod`, `Ctrl`, `Alt` and `Shift`, each at most once, then one key, joined by `+`. `Mod` is ⌘ on macOS and Ctrl on Windows and Linux; `Ctrl` is the physical Control key everywhere. Keys: `A` to `Z`, digits, `F1` to `F12`, `Space`, `Enter`, `Escape`, `Tab`, `ArrowLeft`, `ArrowRight`, `ArrowUp`, `ArrowDown`, `` ` ``, and punctuation such as `,` and `/`.
+- Shortcut syntax: modifiers among `Mod`, `Ctrl`, `Alt` and `Shift`, each at most once, then one key, joined by `+`. `Mod` is ⌘ on macOS and Ctrl on Windows and Linux; `Ctrl` is the physical Control key everywhere. Keys: `A` to `Z`, digits, `F1` to `F12`, `Space`, `Enter`, `Escape`, `Tab`, `ArrowLeft`, `ArrowRight`, `ArrowUp`, `ArrowDown`, `` ` ``, and punctuation such as `,`, `/`, `=` and `-`. `+` cannot be written (it joins the keys): the key that types it counts as `=`, so <kbd>Ctrl+Shift+=</kbd> on a US keyboard is `Mod+Shift+=`, and a `+` key of its own (numeric keypad, German layout) is `Mod+=`.
 
 yaggui reads the file at startup and again each time you open the Shortcuts section, so hand edits take effect there without a restart. When yaggui saves a change, it rewrites the whole file (sorted, pretty-printed).
 
@@ -176,6 +176,7 @@ The complete list is in the [keyboard shortcuts reference](../../reference/keybo
 
 - While a dialog is open, global shortcuts and menu commands are ignored. The palette shortcut still closes the palette. A popover (the branch selector, the stash list) does not block them.
 - In a text field, <kbd>⌘Z</kbd> and <kbd>⌘⇧Z</kbd> (<kbd>Ctrl+Z</kbd>, <kbd>Ctrl+Shift+Z</kbd>, <kbd>Ctrl+Y</kbd>) undo and redo the typing, not the last Git operation. See [Undo and redo](../../history/undo-and-redo/).
+- On macOS, a shortcut shown in the menu bar is handled by its menu item: when the item is greyed out (a **Repository** item in a welcome tab), the shortcut does nothing.
 - When the integrated terminal has focus, it receives every key except the palette shortcut and the two terminal shortcuts (<kbd>⌃`</kbd> and <kbd>⌃⇧`</kbd>, which use Control on macOS too).
 - A shortcut for an action that cannot run does nothing. Undo and redo are the exception: they explain why nothing can be undone.
 - <kbd>⌘C</kbd> and <kbd>⌘⇧C</kbd> (<kbd>Ctrl+C</kbd>, <kbd>Ctrl+Shift+C</kbd>) copy the SHA or

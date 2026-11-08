@@ -25,6 +25,10 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             commands::app::app_info,
             commands::app::launch_path,
             commands::app::changelog,
+            // Quit and close guard.
+            commands::app::quit_app,
+            commands::app::acknowledge_quit_request,
+            commands::app::set_quit_guard,
             commands::diagnostics::pending_crash_reports,
             commands::diagnostics::acknowledge_crash_reports,
             commands::diagnostics::open_logs_folder,
@@ -44,6 +48,7 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             commands::graph::list_refs,
             commands::store::list_repos,
             commands::store::set_repo_favorite,
+            commands::store::rename_known_repo,
             commands::store::forget_repo,
             commands::store::get_tabs,
             commands::store::save_tabs,
@@ -66,6 +71,7 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             commands::log::clear_command_log,
             commands::system::open_terminal,
             commands::system::open_link,
+            commands::system::open_docs,
             commands::system::pick_repo_folder,
             commands::avatars::avatar,
             commands::avatars::clear_avatar_cache,
@@ -175,6 +181,8 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             commands::workspaces::add_to_workspace,
             commands::workspaces::remove_from_workspace,
             commands::workspaces::repo_overview,
+            // Status bar last sync.
+            commands::workspaces::last_fetched_at,
             commands::workspaces::fetch_known_repo,
             commands::workspaces::scan_folder,
             commands::workspaces::cancel_scan,
@@ -225,12 +233,15 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             events::JournalChanged,
             events::PtyOutput,
             events::PtyExited,
+            events::QuitRequested,
         ])
         .constant("GRAPH_COLORS", graph::types::GRAPH_COLORS)
         .constant("GRAPH_MAX_LANES", graph::types::GRAPH_MAX_LANES)
         .constant("GRAPH_PAGE_SIZE", graph::types::GRAPH_PAGE_SIZE)
         .constant("FONT_SIZE_MIN", *store::FONT_SIZE_RANGE.start())
         .constant("FONT_SIZE_MAX", *store::FONT_SIZE_RANGE.end())
+        .constant("ZOOM_MIN", *store::ZOOM_RANGE.start())
+        .constant("ZOOM_MAX", *store::ZOOM_RANGE.end())
         .constant("AUTO_FETCH_MIN_MINUTES", *store::AUTO_FETCH_RANGE.start())
         .constant("AUTO_FETCH_MAX_MINUTES", *store::AUTO_FETCH_RANGE.end())
         .constant("EDGE_NORMAL", graph::types::edge_kind::NORMAL)
@@ -361,6 +372,22 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         // Only used from Rust (`install_update`), like the dialog plugin.
         .plugin(tauri_plugin_updater::Builder::new().build())
+        // Size, position and maximized state of the window, restored before it is shown.
+        // Only used from Rust, like the dialog plugin.
+        .plugin(system::window_state::plugin())
+        // Quit and close guard: the native requests the frontend may need to confirm.
+        .on_menu_event(|app, event| {
+            if event.id() == system::quit::QUIT_MENU_ID && system::quit::native_quit(app) {
+                app.exit(0);
+            }
+        })
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { .. } = event
+                && window.label() == "main"
+            {
+                system::quit::on_close_requested(window);
+            }
+        })
         .invoke_handler(builder.invoke_handler())
         .setup(move |app| {
             builder.mount_events(app);
@@ -379,6 +406,8 @@ pub fn run() {
             );
             app_state.clean_backups_in_background();
             app.manage(app_state);
+            system::window_state::log_restored(&config_dir);
+            system::quit::install_dock_hook(app.handle().clone());
             show_window_fallback(app.handle().clone());
             if std::env::var_os(PERF_PROBE_ENV).is_some() {
                 perf_probe(app.handle().clone(), started);

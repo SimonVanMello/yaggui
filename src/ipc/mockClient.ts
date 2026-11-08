@@ -66,8 +66,10 @@ import {
   isMockGitPathValid,
   MockCreator,
   mockGitBinaryInfo,
+  mockGitNotFound,
   normalizePreferences,
 } from './mock/create';
+import { mockDocsUrl } from './mock/docs';
 import {
   appendRule,
   fullMessage,
@@ -326,6 +328,8 @@ interface PersistedBisect {
 
 /** Same bound as `MAX_REPO_UI_STATE` (bytes of UTF-8). */
 const MAX_REPO_UI_STATE = 64 * 1024;
+/** Longest display name of a known repo, like `MAX_REPO_NAME_CHARS` in the store. */
+const MAX_REPO_NAME_CHARS = 60;
 
 const DEFAULT_MOCK_PREFERENCES: Preferences = {
   theme: 'system',
@@ -362,6 +366,11 @@ const DEFAULT_MOCK_PREFERENCES: Preferences = {
   remoteTags: false,
   // Answered: under the mock, the one-time update question would cover every screen.
   checkUpdates: false,
+  // An existing installation once settled (`settleOnboarding`): `freshInstall()` for a first launch.
+  onboarded: false,
+  lastSeenVersion: null,
+  showWhatsNew: true,
+  zoom: 100,
 };
 
 /** Watcher debounce of the real backend: file events reach the UI this long after the change. */
@@ -490,11 +499,21 @@ export class MockBackend {
   issueTrackerOpens = 0;
   /** Links opened from the terminal, for tests. */
   openedLinks: string[] = [];
+  // First launch screen and "What's new" after an update.
+  /** Docs pages opened (`openDocs`), as the addresses the browser would get. */
+  openedDocs: string[] = [];
+  /** `false`: no Git on the system, like a machine where Git is not installed yet. */
+  gitDetected = true;
+  /** Whether the first read ran the startup check of `Store::settle_onboarding`. */
+  private onboardingSettled = false;
   /** Calls of `logFrontendError`, for tests. */
   readonly frontendErrors: { kind: string; message: string; stack: string | null }[] = [];
   /** Exit code of the fake package manager of `updateInTerminal`, for tests. */
   upgradeExitCode = 0;
   restarts = 0;
+  /** Quit and close guard, for tests: `quitApp` calls and the last `setQuitGuard`. */
+  quits = 0;
+  quitGuard = false;
   /** Integrated terminals (F-267): a fake shell. */
   readonly ptys = new MockPtys({
     output: (payload) => {
@@ -601,6 +620,35 @@ export class MockBackend {
     this.preferences = { ...this.preferences, ...patch };
   }
 
+  /**
+   * A first launch with a fresh config folder: no repository, workspace or tab, default
+   * preferences, update question not answered. Call it before the app starts (Playwright).
+   */
+  freshInstall(): void {
+    this.repos = [];
+    this.workspaces = [];
+    this.tabs = { tabs: [], activeTabId: null };
+    this.preferences = { ...DEFAULT_MOCK_PREFERENCES, checkUpdates: null };
+    this.persist();
+  }
+
+  /** The app was last started at `version` (an update since): "What's new" is due. */
+  previousVersion(version: string): void {
+    this.preferences = { ...this.preferences, onboarded: true, lastSeenVersion: version };
+    this.persist();
+  }
+
+  /** Like `Store::settle_onboarding` at backend startup: here, on the first read. */
+  private settleOnboarding(): void {
+    if (this.onboardingSettled) return;
+    this.onboardingSettled = true;
+    const ranBefore = this.repos.length > 0 || this.preferences.checkUpdates !== null;
+    if (!this.preferences.onboarded && ranBefore) {
+      this.preferences = { ...this.preferences, onboarded: true };
+      this.persist();
+    }
+  }
+
   reset(): void {
     try {
       localStorage.removeItem(MOCK_STORE_KEY);
@@ -640,9 +688,14 @@ export class MockBackend {
     this.logsFolderOpens = 0;
     this.issueTrackerOpens = 0;
     this.openedLinks = [];
+    this.openedDocs = [];
+    this.gitDetected = true;
+    this.onboardingSettled = false;
     this.frontendErrors.length = 0;
     this.upgradeExitCode = 0;
     this.restarts = 0;
+    this.quits = 0;
+    this.quitGuard = false;
     this.ptys.reset();
     this.log = createMockLog();
     this.runningOps.forEach((cancel) => {
@@ -758,6 +811,14 @@ export class MockBackend {
         stale: false,
       });
     }
+  }
+
+  /**
+   * Quit and close guard: a quit from outside the webview (⌘Q, the macOS Dock), as the backend
+   * relays it while something is in progress.
+   */
+  simulateQuitRequest(): void {
+    this.emit('quitRequested', null);
   }
 
   emit<K extends YagguiEventName>(name: K, payload: YagguiEventMap[K]): void {
@@ -940,6 +1001,16 @@ export class MockBackend {
     repo.state = { ...repo.state, dirty: this.wip(repoId)?.dirty() ?? repo.state.dirty };
     this.watcherSaw(repoId, false);
     return path;
+  }
+
+  /**
+   * Sets the last fetch of a repository (`FETCH_HEAD` mtime) to `agoSeconds` before now, or
+   * to never with `null`; open tabs read it again (as on `refs-changed`). Status bar tests.
+   */
+  setLastFetch(repoId: number, agoSeconds: number | null): void {
+    if (agoSeconds === null) this.lastFetch.delete(repoId);
+    else this.lastFetch.set(repoId, Math.floor(Date.now() / 1000) - agoSeconds);
+    if (this.graph(repoId)) this.emit('refsChanged', { repoId });
   }
 
   /**
@@ -3207,7 +3278,10 @@ export class MockBackend {
   }
 
   readonly commands: YagguiCommands = {
-    appInfo: () => Promise.resolve(mockAppInfo),
+    appInfo: () =>
+      Promise.resolve(
+        this.gitDetected ? mockAppInfo : { ...mockAppInfo, gitVersion: null, gitSupported: false },
+      ),
     launchPath: () => Promise.resolve(null),
     changelog: () => Promise.resolve(structuredClone(mockChangelog)),
     pendingCrashReports: () => ok(this.pendingCrashes.map((crash) => ({ ...crash }))),
@@ -3226,6 +3300,17 @@ export class MockBackend {
     },
     openLink: (url) => {
       this.openedLinks.push(url);
+      return ok(null);
+    },
+    openDocs: (page, locale) => {
+      const url = mockDocsUrl(page, locale);
+      if (url === null) {
+        return fail({
+          ...mockError('internal', 'Unexpected error.', 'Erreur inattendue.'),
+          detail: `not a docs page: ${page}`,
+        });
+      }
+      this.openedDocs.push(url);
       return ok(null);
     },
     logFrontendError: (kind, message, stack) => {
@@ -3432,6 +3517,32 @@ export class MockBackend {
       this.persist();
       return ok(null);
     },
+    // Tabs workstream: display name of a known repo, like `Store::rename_repo`.
+    renameKnownRepo: (repoId, name) => {
+      const trimmed = name.trim();
+      if (Array.from(trimmed).length > MAX_REPO_NAME_CHARS) {
+        return fail(
+          mockError(
+            'invalidArgument',
+            `A repository name has at most ${String(MAX_REPO_NAME_CHARS)} characters.`,
+            `Un nom de dépôt compte au plus ${String(MAX_REPO_NAME_CHARS)} caractères.`,
+          ),
+        );
+      }
+      const repo = this.find(repoId);
+      if (!repo) {
+        return fail(
+          mockError(
+            'invalidArgument',
+            `Unknown repository #${repoId}.`,
+            `Dépôt n°${repoId} inconnu.`,
+          ),
+        );
+      }
+      repo.known.name = trimmed || folderName(repo.known.path);
+      this.persist();
+      return ok({ ...repo.known });
+    },
     forgetRepo: (repoId) => {
       this.repos = this.repos.filter((repo) => repo.known.id !== repoId);
       // `ON DELETE CASCADE`: the repo leaves its workspaces.
@@ -3463,6 +3574,8 @@ export class MockBackend {
         ...structuredClone(tabs),
         tabs: tabs.tabs.map((tab) => ({
           ...tab,
+          // `pinned INTEGER NOT NULL DEFAULT 0`.
+          pinned: tab.pinned ?? false,
           repoId: tab.repoId !== null && this.find(tab.repoId) ? tab.repoId : null,
         })),
       };
@@ -3487,7 +3600,10 @@ export class MockBackend {
       }
       return ok(null);
     },
-    getPreferences: () => ok({ ...this.preferences }),
+    getPreferences: () => {
+      this.settleOnboarding();
+      return ok({ ...this.preferences });
+    },
     setPreferences: (preferences) => {
       const terminal = preferences.terminal?.trim() ?? '';
       const normalized = normalizePreferences({ ...preferences, terminal: terminal || null });
@@ -3538,6 +3654,7 @@ export class MockBackend {
       return ok({ preferences: { ...this.preferences }, keybindings: failure });
     },
     migrateLegacyPreferences: (legacy: LegacyPreferences) => {
+      this.settleOnboarding();
       if (!this.legacyMigrated) {
         this.legacyMigrated = true;
         this.preferences = {
@@ -4696,7 +4813,8 @@ export class MockBackend {
         { cancellable: true, delayMs: 1500 },
       );
     },
-    gitBinaryInfo: (path) => ok(mockGitBinaryInfo(path)),
+    gitBinaryInfo: (path) =>
+      ok(path === null && !this.gitDetected ? mockGitNotFound() : mockGitBinaryInfo(path)),
     newRepoDefaults: () => ok(this.creator.defaults()),
     cloneRepo: (request) => this.creator.clone(request),
     cancelClone: (cloneId) => {
@@ -4737,6 +4855,8 @@ export class MockBackend {
           if (target.kind === 'remote' ? target.name === 'offline' : names.includes('offline')) {
             return { error: hostUnreachable() };
           }
+          // Git rewrites `FETCH_HEAD`: the status bar's "Synced …" follows.
+          this.lastFetch.set(repoId, Math.floor(Date.now() / 1000));
           return { ok: null };
         },
         {
@@ -4769,6 +4889,8 @@ export class MockBackend {
             const branch = history.local.find((b) => b.name === head.name);
             const remote = history.remote.find((r) => r.name === branch?.upstream);
             if (!branch || !remote) return { error: noUpstream(head.name) };
+            // The fetch part of the pull rewrote `FETCH_HEAD`.
+            this.lastFetch.set(repoId, Math.floor(Date.now() / 1000));
             const behind = countExclusive(history, remote.commit, branch.commit);
             const ahead = countExclusive(history, branch.commit, remote.commit);
             if (behind === 0) return { ok: { strategy: used, upToDate: true } };
@@ -5020,6 +5142,8 @@ export class MockBackend {
           if (target.kind === 'remote' ? target.name === 'offline' : names.includes('offline')) {
             return { error: hostUnreachable() };
           }
+          // Git rewrites `FETCH_HEAD`: the status bar's "Synced …" follows.
+          this.lastFetch.set(repoId, Math.floor(Date.now() / 1000));
           return { ok: null };
         },
         { cancellable: true, delayMs: 900, progress: true, refs: true },
@@ -5235,6 +5359,9 @@ export class MockBackend {
       if (wip) state.dirty = wip.dirty();
       return ok({ kind: 'ready', state, lastFetchedAt: this.lastFetch.get(repoId) ?? null });
     },
+    // Status bar last sync.
+    lastFetchedAt: (repoId) =>
+      this.graph(repoId) ? ok(this.lastFetch.get(repoId) ?? null) : fail(this.notOpen(repoId)),
     fetchKnownRepo: async (repoId, prune) => {
       const repo = this.find(repoId);
       if (!repo) return { status: 'error', error: this.unknownRepo(repoId) };
@@ -5777,6 +5904,16 @@ export class MockBackend {
     },
     restartApp: () => {
       this.restarts += 1;
+      return Promise.resolve();
+    },
+    // Quit and close guard: there is no app to quit in a browser.
+    quitApp: () => {
+      this.quits += 1;
+      return Promise.resolve();
+    },
+    acknowledgeQuitRequest: () => Promise.resolve(),
+    setQuitGuard: (active) => {
+      this.quitGuard = active;
       return Promise.resolve();
     },
     pickRepoFolder: (title) => {

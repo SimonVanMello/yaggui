@@ -11,6 +11,7 @@ sources:
   - src-tauri/src/system/diagnostics.rs
   - src/app/useBackendEvents.ts
   - src/features/statusbar/StatusBar.tsx
+  - src/features/activity/**
 requirements: [F-300]
 ---
 
@@ -87,6 +88,15 @@ La sortie standard et la sortie d’erreur sont chacune conservées jusqu’à 6
 ## Ouvrir le journal depuis une erreur
 
 Quand un toast ou un panneau d’erreur comporte un bouton **Ouvrir le journal**, un clic dessus ouvre le journal sur la dernière commande en échec : le filtre passe sur **Toutes** si nécessaire, et l’entrée est dépliée et mise en évidence. C’est le moyen le plus rapide de lire la réponse complète de Git, par exemple le message de refus d’un serveur ou la sortie d’un hook. Voir [Messages d’erreur](../../reference/error-messages/).
+
+## Activité et journal des commandes
+
+Le centre [Activité](../../start-here/tour/#activité) (la cloche de la barre d’état) et le journal des commandes répondent à des questions différentes :
+
+- **Activité** liste ce que yaggui vous a dit : les 20 dernières notifications de la session (succès, avertissements, erreurs), en clair, tous dépôts confondus. Une notification qui n’a lancé aucune commande Git, comme un SHA copié, y figure aussi.
+- Le **journal des commandes** liste ce que Git a fait : chaque commande, avec ses arguments, son code de sortie et sa sortie complète, y compris les commandes silencieuses (auto-fetch, maintenance en arrière-plan).
+
+Cliquez dans **Activité** sur une erreur venue d’une commande Git en échec pour ouvrir le journal sur cette commande, dépliée et mise en évidence. Vider l’un ne vide jamais l’autre.
 
 ## Vider le journal
 

@@ -95,12 +95,27 @@ export const SETTINGS: readonly SettingEntry[] = [
     label: 'settings.language',
     keywords: 'locale english français',
   },
+  // First launch screen and "What's new" after an update (`showWhatsNew` below).
+  {
+    id: 'firstRun',
+    section: 'general',
+    label: 'prefs.firstRun',
+    hint: 'prefs.firstRun.hint',
+    keywords: 'welcome onboarding bienvenue accueil',
+  },
   {
     id: 'checkUpdates',
     section: 'general',
     label: 'prefs.checkUpdates',
     hint: 'prefs.checkUpdates.hint',
     keywords: 'release',
+  },
+  {
+    id: 'showWhatsNew',
+    section: 'general',
+    label: 'prefs.showWhatsNew',
+    hint: 'prefs.showWhatsNew.hint',
+    keywords: 'changelog release update nouveautés',
   },
   {
     id: 'version',
@@ -157,6 +172,13 @@ export const SETTINGS: readonly SettingEntry[] = [
   { id: 'uiFont', section: 'display', label: 'prefs.uiFont', hint: 'prefs.font.hint' },
   { id: 'codeFont', section: 'display', label: 'prefs.codeFont', keywords: 'monospace' },
   { id: 'fontSize', section: 'display', label: 'prefs.fontSize', keywords: 'zoom' },
+  {
+    id: 'zoom',
+    section: 'display',
+    label: 'prefs.zoom',
+    hint: 'prefs.zoom.hint',
+    keywords: 'scale magnify',
+  },
   { id: 'density', section: 'display', label: 'prefs.density', keywords: 'compact' },
   { id: 'gravatar', section: 'display', label: 'prefs.gravatar', hint: 'prefs.gravatar.hint' },
   {

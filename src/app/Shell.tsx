@@ -10,10 +10,12 @@ import { UpgradeDialog } from '../features/updates/UpgradeDialog';
 import { CloneDialog } from '../features/clone/CloneDialog';
 import { InitDialog } from '../features/clone/InitDialog';
 import { ChangelogDialog } from '../features/changelog/ChangelogDialog';
+import { FirstRunDialog } from '../features/onboarding/FirstRunDialog';
 import { ShortcutsDialog } from '../features/keybindings/ShortcutsDialog';
 import { PreferencesImportDialog } from '../features/preferences/PreferencesImportDialog';
 import { PreferencesDialog } from '../features/preferences/PreferencesDialog';
 import { OpenRepoDialog } from '../features/welcome/OpenRepoDialog';
+import { RenameRepoDialog } from '../features/repo/RenameRepoDialog';
 import { WorkspaceDialogs } from '../features/workspaces/WorkspaceDialogs';
 import { ModuleDialogs } from '../features/worktrees/ModuleDialogs';
 import { DemoBanner } from '../demo/DemoBanner';
@@ -27,6 +29,7 @@ import { TabContent } from './tabs/TabContent';
 import { TitleBar } from './titlebar/TitleBar';
 import { useBackendEvents } from './useBackendEvents';
 import { useShortcuts } from './useShortcuts';
+import { useWindowTitle } from './useWindowTitle';
 
 /** Longest wait for the restored session before showing the (hidden) window anyway. */
 const SHOW_WINDOW_TIMEOUT_MS = 1500;
@@ -61,6 +64,7 @@ function useStartup(): boolean {
 export function Shell() {
   useBackendEvents();
   useShortcuts();
+  useWindowTitle();
   useEffect(registerBuiltinActions, []);
   useEffect(registerBuiltinBindings, []);
   const ready = useStartup();
@@ -81,9 +85,11 @@ export function Shell() {
       <PreferencesImportDialog />
       <ShortcutsDialog />
       <ChangelogDialog />
+      <FirstRunDialog />
       <TerminalDialog />
       <UpgradeDialog />
       <WorkspaceDialogs />
+      <RenameRepoDialog />
       <ModuleDialogs />
       <CommandPalette />
     </div>

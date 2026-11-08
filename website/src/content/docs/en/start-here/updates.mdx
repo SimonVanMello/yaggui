@@ -6,6 +6,7 @@ sidebar:
 sources:
   - src/features/updates/**
   - src/features/changelog/**
+  - src/features/onboarding/launchScreens.ts
   - src-tauri/src/system/updates.rs
   - src-tauri/src/commands/updates.rs
   - src-tauri/src/system/changelog.rs
@@ -27,7 +28,9 @@ yaggui checks for a new version only if you allow it. When one is available, it 
 
 The update check is off until you turn it on. When it is on, yaggui reads the latest release on github.com at each launch. When it is off, yaggui makes no request at all.
 
-On the first launch, yaggui asks once with a notification: **Check for updates at startup?** It stays until you close it.
+On the first launch, the [first-launch screen](../install/#the-first-launch-screen) has a **Check for updates at startup** switch: turn it on, or leave it off, and yaggui asks nothing more.
+
+If you close that screen without touching the switch, or if your installation predates the screen, yaggui asks once with a notification: **Check for updates at startup?** It stays until you close it.
 
 - Click **Check for updates** to turn the check on. yaggui checks right away, like **Check now**: you get a notice when a version is available, **yaggui is up to date**, or an error. Later launches check silently.
 - Close the notification or ignore it to leave the check off. yaggui does not ask again.
@@ -108,7 +111,17 @@ An update cannot be undone from yaggui. To go back to an older version, install 
 
 ## What's new
 
-The **What's new** dialog lists the changes of each version, newest first. It is built into the app, so it works offline. It never opens on its own after an update.
+The **What's new** dialog lists the changes of each version, newest first. It is built into the app, so it works offline. It opens on the version you are running.
+
+### After an update
+
+At the first launch of a new version, yaggui opens **What's new** once, by itself, once your tabs are back. It does not open again at the next launches of that version. It never opens:
+
+- at the very first launch of yaggui, nor on the launch that shows the [first-launch screen](../install/#the-first-launch-screen);
+- at the first launch of the version that brought this behavior: yaggui had no record of the previous version yet;
+- when **Show What's new after an update** is off in **Preferences** > **General**, under **Updates**. It is on by default.
+
+### Open it yourself
 
 Open it from:
 

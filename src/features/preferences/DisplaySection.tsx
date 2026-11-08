@@ -9,12 +9,14 @@ import { SegmentedControl } from '../../ui/SegmentedControl';
 import { Switch } from '../../ui/Switch';
 import { toast } from '../../ui/toastStore';
 import { clearGravatarCache } from '../graph/gravatar';
+import { DEFAULT_ZOOM } from '../zoom/zoom';
 import { FontInput } from './FontInput';
 import { savePreferenceOrToast } from './savePreference';
 import { Row } from './Row';
 import { Setting } from './Setting';
 import { SettingGroup } from './SettingGroup';
 import { useDraft } from './useDraft';
+import { ZoomControl } from './ZoomControl';
 import styles from './DisplaySection.module.css';
 
 /** A drag of the text size slider fires a change per step: one save once it settles. */
@@ -71,7 +73,7 @@ export function DisplaySection() {
     <>
       <SettingGroup
         title={t('prefs.subsection.text')}
-        ids={['uiFont', 'codeFont', 'fontSize', 'density']}
+        ids={['uiFont', 'codeFont', 'fontSize', 'zoom', 'density']}
       >
         <Setting id="uiFont">
           <Row label={t('prefs.uiFont')} hint={t('prefs.font.hint')} htmlFor={ids.ui}>
@@ -113,6 +115,11 @@ export function DisplaySection() {
             <output htmlFor={ids.size} className={styles.value}>
               {t('prefs.fontSize.value', { size: Number(fontSize) })}
             </output>
+          </Row>
+        </Setting>
+        <Setting id="zoom">
+          <Row label={t('prefs.zoom')} hint={t('prefs.zoom.hint')}>
+            <ZoomControl zoom={prefs.zoom ?? DEFAULT_ZOOM} />
           </Row>
         </Setting>
         <Setting id="density">

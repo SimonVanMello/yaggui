@@ -219,6 +219,12 @@ pub struct PtyExited {
     pub exit_code: Option<u32>,
 }
 
+/// Quit and close guard: the user asked to quit from outside the webview (the "Quit yaggui"
+/// menu item, the macOS Dock) while the frontend reported work in progress. The frontend
+/// acknowledges it, confirms, then calls `quit_app`. Emitted by `system::quit`, not a service.
+#[derive(Debug, Clone, Serialize, Deserialize, Type, Event)]
+pub struct QuitRequested;
+
 /// Every event the backend can emit, so services stay independent from Tauri.
 #[derive(Debug, Clone)]
 pub enum BackendEvent {

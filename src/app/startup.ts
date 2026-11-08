@@ -1,12 +1,14 @@
 import { isDemo } from '../demo/isDemo';
 import { openSampleRepo } from '../demo/startDemo';
 import { useKeybindings } from '../features/keybindings/keybindingsStore';
-import { checkForUpdatesAtStartup } from '../features/updates/updates';
+import { runLaunchScreens } from '../features/onboarding/launchScreens';
 import { notifyPendingCrashes } from '../features/diagnostics/diagnostics';
+import { startActivityFeed } from '../features/activity/activityStore';
 import { startAutoFetch } from '../features/network/autoFetch';
 import { openRepoPath, restoreRepoSession } from '../features/repo/repoSessions';
-import { ipc, nativeWindow, unwrap } from '../ipc';
+import { ipc, unwrap } from '../ipc';
 import { installAppMenu } from './menu/appMenu';
+import { installQuitGuard } from './quit/quitFlow';
 import { flushRepoLayouts, persistRepoLayouts } from './tabs/repoLayout';
 import { selectActiveTab, toSavedTabs, useTabsStore, type ShellTab } from './tabs/tabsStore';
 
@@ -116,14 +118,19 @@ export function flushPersistence(): Promise<void> {
   return Promise.all([flushTabs(), flushRepoLayouts()]).then(() => undefined);
 }
 
-/** Closing the window waits for the pending saves, within reason. */
+/**
+ * Closing the window or quitting waits for the pending saves, within reason, once the quit
+ * guard let it go (a confirmation while something is in progress).
+ */
 function flushOnClose(): void {
-  nativeWindow.onCloseRequested(() => {
-    const timeout = new Promise<void>((resolve) => setTimeout(resolve, FLUSH_TIMEOUT_MS));
-    const flushed = flushPersistence().catch((error: unknown) => {
-      console.warn('Could not save the session before closing', error);
-    });
-    return Promise.race([flushed, timeout]);
+  installQuitGuard({
+    flush: () => {
+      const timeout = new Promise<void>((resolve) => setTimeout(resolve, FLUSH_TIMEOUT_MS));
+      const flushed = flushPersistence().catch((error: unknown) => {
+        console.warn('Could not save the session before closing', error);
+      });
+      return Promise.race([flushed, timeout]);
+    },
   });
 }
 
@@ -140,6 +147,8 @@ let started: Promise<void> | undefined;
 /** Runs once per app launch (idempotent under React StrictMode). */
 export function startup(): Promise<void> {
   started ??= (async () => {
+    // Activity center: every toast from now on leaves an entry.
+    startActivityFeed();
     // Preferences are already applied by main.tsx, before the first render.
     // Read first: the menu's accelerators and every shortcut hint depend on the user's bindings.
     await useKeybindings.getState().load();
@@ -162,7 +171,8 @@ export function startup(): Promise<void> {
       });
     } else {
       void notifyPendingCrashes();
-      checkForUpdatesAtStartup();
+      // First-launch screen, update check, "What's new" after an update.
+      void runLaunchScreens();
     }
   })();
   return started;

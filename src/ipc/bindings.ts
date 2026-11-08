@@ -12,6 +12,15 @@ export const commands = {
 	launchPath: () => __TAURI_INVOKE<string | null>("launch_path"),
 	/**  Release notes embedded from `CHANGELOG.md`, newest first. */
 	changelog: () => __TAURI_INVOKE<ChangelogRelease[]>("changelog"),
+	/**  Quits the app. The frontend calls it once the quit is confirmed and the session saved. */
+	quitApp: () => __TAURI_INVOKE<void>("quit_app"),
+	/**  The frontend received a quit or close request: the next one waits for it again. */
+	acknowledgeQuitRequest: () => __TAURI_INVOKE<void>("acknowledge_quit_request"),
+	/**
+	 *  Whether something a quit would interrupt or lose is in progress (a running operation,
+	 *  unsaved edits): a native quit (⌘Q, the macOS Dock) then asks the frontend first.
+	 */
+	setQuitGuard: (active: boolean) => __TAURI_INVOKE<void>("set_quit_guard", { active }),
 	/**  Crash reports of earlier sessions the user has not been told about, oldest first. */
 	pendingCrashReports: () => typedError<CrashSummary[], YagguiError>(__TAURI_INVOKE("pending_crash_reports")),
 	/**  The user was told about the pending crash reports: they are not listed again. */
@@ -74,6 +83,11 @@ export const commands = {
 	/**  Known repositories (recent and favorites), most recently opened first. */
 	listRepos: () => typedError<KnownRepo[], YagguiError>(__TAURI_INVOKE("list_repos")),
 	setRepoFavorite: (repoId: number, favorite: boolean) => typedError<null, YagguiError>(__TAURI_INVOKE("set_repo_favorite", { repoId, favorite })),
+	/**
+	 *  Renames a known repository (its display name in tabs and lists); a blank name gives back
+	 *  the folder name. Returns the updated repository.
+	 */
+	renameKnownRepo: (repoId: number, name: string) => typedError<KnownRepo, YagguiError>(__TAURI_INVOKE("rename_known_repo", { repoId, name })),
 	/**  Removes a repository from the recent list (never touches the folder). */
 	forgetRepo: (repoId: number) => typedError<null, YagguiError>(__TAURI_INVOKE("forget_repo", { repoId })),
 	/**  Tabs saved at the last `save_tabs`, for restoration at startup. */
@@ -152,6 +166,11 @@ export const commands = {
 	 *  `browserFailed`.
 	 */
 	openLink: (url: string) => typedError<null, YagguiError>(__TAURI_INVOKE("open_link", { url })),
+	/**
+	 *  Opens a page of the user documentation in the browser, in `locale`: `page` is its path under
+	 *  `/docs/` (`start-here/install`), empty for the docs home. `browserFailed`.
+	 */
+	openDocs: (page: string, locale: Locale) => typedError<null, YagguiError>(__TAURI_INVOKE("open_docs", { page, locale })),
 	/**  Shows the native folder picker (F-001). `None` when the user cancels. */
 	pickRepoFolder: (title: string) => typedError<string | null, YagguiError>(__TAURI_INVOKE("pick_repo_folder", { title })),
 	/**
@@ -712,6 +731,11 @@ export const commands = {
 	 */
 	repoOverview: (repoId: number) => typedError<RepoOverview, YagguiError>(__TAURI_INVOKE("repo_overview", { repoId })),
 	/**
+	 *  Last fetch of an open repository (`FETCH_HEAD` mtime, seconds since the Unix epoch), for
+	 *  the status bar; `None` if it was never fetched. Same source as `repo_overview`.
+	 */
+	lastFetchedAt: (repoId: number) => typedError<number | null, YagguiError>(__TAURI_INVOKE("last_fetched_at", { repoId })),
+	/**
 	 *  `git fetch --all` of a known repo, open or not, on its queue (`op-started` /
 	 *  `op-finished`, cancellable with `cancel_op`). At most 4 run at once.
 	 */
@@ -839,6 +863,7 @@ export const events = {
 	opStarted: makeEvent<OpStarted>("op-started"),
 	ptyExited: makeEvent<PtyExited>("pty-exited"),
 	ptyOutput: makeEvent<PtyOutput>("pty-output"),
+	quitRequested: makeEvent<QuitRequested>("quit-requested"),
 	refsChanged: makeEvent<RefsChanged>("refs-changed"),
 	scanProgress: makeEvent<ScanProgress>("scan-progress"),
 	statusChanged: makeEvent<StatusChanged>("status-changed"),
@@ -891,6 +916,10 @@ export const SIGNATURE_UNKNOWN = 4 as const;
 export const SIGNATURE_X509 = 3 as const;
 
 export const WORKSPACE_NAME_MAX = 100 as const;
+
+export const ZOOM_MAX = 150 as const;
+
+export const ZOOM_MIN = 80 as const;
 
 /* Types */
 export type AppInfo = {
@@ -2888,6 +2917,23 @@ export type Preferences = {
 	 *  one-time question: the check is opt-in, nothing is asked of GitHub before.
 	 */
 	checkUpdates?: boolean | null,
+	/**
+	 *  The first-launch screen was closed, or yaggui ran here before it existed. Machine state,
+	 *  not a setting: never exported.
+	 */
+	onboarded?: boolean,
+	/**
+	 *  Version of yaggui at the last launch, to open "What's new" once after an update. `None`
+	 *  until a launch records it. Machine state, never exported.
+	 */
+	lastSeenVersion?: string | null,
+	/**  Open "What's new" at the first launch after an update. */
+	showWhatsNew?: boolean,
+	/**
+	 *  Zoom of the whole interface, in percent, within `ZOOM_RANGE`. Machine-specific: it
+	 *  depends on the screen, so it is not carried by the preferences export.
+	 */
+	zoom?: number,
 };
 
 export type PreferencesImportPreview = {
@@ -2968,6 +3014,13 @@ export type PushResult = {
 	/**  Nothing was sent: the remote branch already pointed there. */
 	upToDate: boolean,
 };
+
+/**
+ *  Quit and close guard: the user asked to quit from outside the webview (the "Quit yaggui"
+ *  menu item, the macOS Dock) while the frontend reported work in progress. The frontend
+ *  acknowledges it, confirms, then calls `quit_app`. Emitted by `system::quit`, not a service.
+ */
+export type QuitRequested = null;
 
 /**  What happens to a commit in an interactive rebase (F-142). */
 export type RebaseAction = 
@@ -3522,6 +3575,8 @@ export type Tab = {
 	repoId: number | null,
 	/**  Opaque JSON owned by the frontend (panel sizes…), stored as is. */
 	uiState: string | null,
+	/**  Pinned tabs stay at the left of the strip. Absent from tabs saved before it existed. */
+	pinned?: boolean,
 };
 
 export type TabsState = {

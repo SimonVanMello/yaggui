@@ -57,9 +57,16 @@ describe('captureShortcut', () => {
     expect(captureShortcut(press('k', 'KeyK'), 'mac').kind).toBe('invalid');
     expect(captureShortcut(press('K', 'KeyK', { shiftKey: true }), 'mac').kind).toBe('invalid');
     expect(captureShortcut(press('k', 'KeyK', { metaKey: true }), 'linux').kind).toBe('invalid');
+  });
+
+  it('writes `+` as `=`, the separator being `+` (zoom in)', () => {
     expect(
-      captureShortcut(press('+', 'Equal', { ctrlKey: true, shiftKey: true }), 'linux').kind,
-    ).toBe('invalid');
+      captureShortcut(press('+', 'Equal', { ctrlKey: true, shiftKey: true }), 'linux'),
+    ).toEqual({ kind: 'shortcut', shortcut: 'Mod+Shift+=' });
+    expect(captureShortcut(press('+', 'BracketRight', { metaKey: true }), 'mac')).toEqual({
+      kind: 'shortcut',
+      shortcut: 'Mod+=',
+    });
   });
 
   it('accepts function keys alone and names the space bar', () => {

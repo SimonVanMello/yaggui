@@ -53,6 +53,11 @@ impl AppState {
         let git = Arc::new(GitCli::new(Arc::new(CommandLog::new()), Arc::clone(&sink)));
         let store = Arc::new(store);
         apply_stored_git_path(&git, &store);
+        match store.settle_onboarding() {
+            Ok(true) => tracing::info!("existing installation: first-launch screen skipped"),
+            Ok(false) => {}
+            Err(err) => tracing::warn!(error = %err, "could not check the first-launch state"),
+        }
         let creator = Arc::new(RepoCreator::new(
             Arc::clone(&git),
             Arc::clone(&store),

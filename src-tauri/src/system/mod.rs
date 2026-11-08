@@ -3,11 +3,14 @@
 pub mod avatars;
 pub mod changelog;
 pub mod diagnostics;
+pub mod docs;
 pub mod editor;
 pub mod git_binary;
 pub mod keyboard;
 pub mod paths;
 pub mod pty;
+pub mod quit;
 pub mod shell_env;
 pub mod terminal;
 pub mod updates;
+pub mod window_state;

@@ -1,6 +1,7 @@
 import { showError } from '../../app/errors/presentError';
 import { queryClient, queryKeys } from '../../app/queryClient';
-import { ipc, unwrap, type KnownRepo } from '../../ipc';
+import { YagguiIpcError, ipc, unwrap, type KnownRepo, type YagguiError } from '../../ipc';
+import { renameRepoSession } from './repoSessions';
 
 function patchKnown(update: (repos: KnownRepo[]) => KnownRepo[]): KnownRepo[] | undefined {
   const previous = queryClient.getQueryData<KnownRepo[]>(queryKeys.knownRepos);
@@ -30,4 +31,25 @@ export async function forgetKnownRepo(repoId: number): Promise<void> {
     if (previous) queryClient.setQueryData(queryKeys.knownRepos, previous);
     showError(error);
   }
+}
+
+/**
+ * Sets the display name of a repository (tab "Rename…"); an empty name gives back the folder
+ * name. The tabs, the welcome screen and the workspace overview all read the new name.
+ */
+export async function renameKnownRepo(
+  repoId: number,
+  name: string,
+): Promise<{ ok: true; repo: KnownRepo } | { ok: false; error: YagguiError }> {
+  let repo: KnownRepo;
+  try {
+    repo = await unwrap(ipc.commands.renameKnownRepo(repoId, name));
+  } catch (error) {
+    if (error instanceof YagguiIpcError) return { ok: false, error: error.error };
+    throw error;
+  }
+  patchKnown((repos) => repos.map((known) => (known.id === repoId ? repo : known)));
+  renameRepoSession(repoId, repo.name);
+  void queryClient.invalidateQueries({ queryKey: queryKeys.knownRepos });
+  return { ok: true, repo };
 }

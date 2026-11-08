@@ -1,0 +1,143 @@
+/* Above the toasts: it is where they are listed once open. */
+.popover {
+  z-index: calc(var(--z-toast) + 1);
+  display: flex;
+  flex-direction: column;
+  width: var(--toast-width);
+  max-width: calc(100vw - var(--space-6));
+  border: var(--border-width) solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--bg-elevated);
+  color: var(--fg-primary);
+  font-size: var(--text-sm);
+  box-shadow: var(--shadow-popover);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: var(--border-width) solid var(--border-subtle);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+}
+
+.list {
+  max-height: var(--activity-list-max-height);
+  margin: 0;
+  padding: var(--space-1);
+  overflow-y: auto;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  border-radius: var(--radius-md);
+}
+
+.row:hover {
+  background: var(--bg-hover);
+}
+
+.entry {
+  display: flex;
+  flex: 1;
+  align-items: flex-start;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.entry[data-target='none'] {
+  cursor: default;
+}
+
+.entry:focus-visible {
+  outline: var(--focus-ring-width) solid var(--accent);
+  outline-offset: -2px;
+}
+
+.icon {
+  flex: none;
+  margin-top: var(--space-0);
+}
+
+.row[data-tone='info'] .icon {
+  color: var(--info);
+}
+
+.row[data-tone='success'] .icon {
+  color: var(--success);
+}
+
+.row[data-tone='warning'] .icon {
+  color: var(--warning);
+}
+
+.row[data-tone='error'] .icon {
+  color: var(--danger);
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0);
+  min-width: 0;
+}
+
+.message {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meta {
+  overflow: hidden;
+  color: var(--fg-muted);
+  font-size: var(--text-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.action {
+  flex: none;
+  margin-right: var(--space-2);
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-6) var(--space-4);
+  color: var(--fg-muted);
+  text-align: center;
+}
+
+.empty strong {
+  color: var(--fg-secondary);
+  font-weight: var(--weight-medium);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

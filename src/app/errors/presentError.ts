@@ -30,6 +30,8 @@ export interface ErrorContext {
   pullThenPush?: () => void;
   /** Pushes again creating the upstream (`pushSetUpstream`). */
   pushSetUpstream?: () => void;
+  /** Repository the error is about (Activity center), when it is not the active tab's. */
+  repoId?: number;
 }
 
 export interface ResolvedErrorAction {
@@ -160,6 +162,7 @@ export function showYagguiError(error: YagguiError, context: ErrorContext = {}):
     description: context.title ? message : undefined,
     detail: error.detail ?? undefined,
     action: toastAction,
+    repoId: context.repoId,
   });
 }
 
@@ -174,5 +177,6 @@ export function showError(error: unknown, context: ErrorContext = {}): void {
     variant: 'error',
     title: context.title ?? t('error.unexpected'),
     detail: error instanceof Error ? error.message : String(error),
+    repoId: context.repoId,
   });
 }

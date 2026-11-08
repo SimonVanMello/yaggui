@@ -5,6 +5,7 @@ sidebar:
   order: 5
 sources:
   - src-tauri/src/state.rs
+  - src-tauri/src/system/window_state.rs
   - src-tauri/src/lib.rs
   - src-tauri/src/main.rs
   - src-tauri/src/store/**
@@ -12,6 +13,7 @@ sources:
   - src-tauri/src/system/avatars.rs
   - src-tauri/src/system/updates.rs
   - src-tauri/src/system/diagnostics.rs
+  - src-tauri/src/system/docs.rs
   - src-tauri/src/repo/journal.rs
   - src-tauri/src/git/ops/commit_graph.rs
   - src-tauri/tauri.conf.json
@@ -24,16 +26,16 @@ yaggui has no account, no telemetry and no server of its own. This page lists ev
 
 yaggui makes only these requests:
 
-| Request             | When                                                                                                                                                                                                        | Where to                                               | How to turn it off                                                            |
-| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ | ----------------------------------------------------------------------------- |
-| Git operations      | Fetch, pull, push, clone, and anything else that talks to a remote (submodules, Git LFS). Run by your `git`, with your own Git and SSH configuration.                                                       | Your remotes                                           | Do not run them.                                                              |
-| Automatic fetch     | Every 10 minutes by default, for the repository of the visible tab only. It runs `git fetch --all` (with `--prune` unless you turned **Prune on fetch** off), like the **Fetch** button.                    | Your remotes                                           | **Preferences → Fetch and pull → Fetch automatically**.                       |
-| Tags on the remotes | Only if you turn on **Show tags on the remotes**: `git ls-remote --tags` for each remote when you turn it on, when a repository opens and after each fetch, pull and push. Run by your `git`, like a fetch. | Your remotes                                           | **Preferences → Fetch and pull → Show tags on the remotes** (off by default). |
-| Update check        | At each launch, only if you accepted it. On first launch yaggui asks with a "Check for updates at startup?" notice; ignoring it leaves the check off. A manual **Check for updates** makes one request.     | `github.com` (the latest release's `latest.json` file) | **Preferences → General → Check for updates at startup**.                     |
-| Update download     | Only when you click **Update and restart** or **Update** in an update notice.                                                                                                                               | `github.com` (release files)                           | Do not click it. See [Updates](../../start-here/updates/).                    |
-| Gravatar pictures   | Only if you turn on **Gravatar avatars**. yaggui sends a SHA-256 hash of each author's email address, over HTTPS, never the address itself.                                                                 | `www.gravatar.com`                                     | **Preferences → Display → Gravatar avatars** (off by default).                |
+| Request             | When                                                                                                                                                                                                                                                                                                               | Where to                                               | How to turn it off                                                            |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------ | ----------------------------------------------------------------------------- |
+| Git operations      | Fetch, pull, push, clone, and anything else that talks to a remote (submodules, Git LFS). Run by your `git`, with your own Git and SSH configuration.                                                                                                                                                              | Your remotes                                           | Do not run them.                                                              |
+| Automatic fetch     | Every 10 minutes by default, for the repository of the visible tab only. It runs `git fetch --all` (with `--prune` unless you turned **Prune on fetch** off), like the **Fetch** button.                                                                                                                           | Your remotes                                           | **Preferences → Fetch and pull → Fetch automatically**.                       |
+| Tags on the remotes | Only if you turn on **Show tags on the remotes**: `git ls-remote --tags` for each remote when you turn it on, when a repository opens and after each fetch, pull and push. Run by your `git`, like a fetch.                                                                                                        | Your remotes                                           | **Preferences → Fetch and pull → Show tags on the remotes** (off by default). |
+| Update check        | At each launch, only if you accepted it. On first launch, the first-launch screen has a **Check for updates at startup** switch, off by default; if you leave it untouched, a "Check for updates at startup?" notice asks, and ignoring it leaves the check off. A manual **Check for updates** makes one request. | `github.com` (the latest release's `latest.json` file) | **Preferences → General → Check for updates at startup**.                     |
+| Update download     | Only when you click **Update and restart** or **Update** in an update notice.                                                                                                                                                                                                                                      | `github.com` (release files)                           | Do not click it. See [Updates](../../start-here/updates/).                    |
+| Gravatar pictures   | Only if you turn on **Gravatar avatars**. yaggui sends a SHA-256 hash of each author's email address, over HTTPS, never the address itself.                                                                                                                                                                        | `www.gravatar.com`                                     | **Preferences → Display → Gravatar avatars** (off by default).                |
 
-Nothing else leaves your computer: no usage statistics, no crash reports, no analytics. Crash reports and logs stay in the [logs folder](#logs-folder); **Report a bug…** copies a report to your clipboard and opens the bug form in your browser, and you decide what you post. Opening links such as the release page hands them to your web browser.
+Nothing else leaves your computer: no usage statistics, no crash reports, no analytics. Crash reports and logs stay in the [logs folder](#logs-folder); **Report a bug…** copies a report to your clipboard and opens the bug form in your browser, and you decide what you post. Opening links such as the release page or the documentation hands them to your web browser.
 
 ## Credentials
 
@@ -53,11 +55,12 @@ yaggui uses three folders: a config folder for what must be kept, a cache folder
 
 ### Config folder
 
-| Item               | Contents                                                                                                                                                                                                                                                                |
-| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `yaggui.db`        | A SQLite database with your settings and lists (see below).                                                                                                                                                                                                             |
-| `keybindings.json` | The shortcuts you changed, as `{ "<action id>": "Mod+Shift+K" }`. Only present once you rebind something. See [Palette and shortcuts](../../customize/palette-and-shortcuts/).                                                                                          |
-| `backups/`         | One sub-folder per backup: copies of the files that a discard, a hard reset, a stash of selected files, a `.gitignore` change or an LFS track was about to overwrite. They let you [undo](../../history/undo-and-redo/) these operations and recover the files by hand. |
+| Item                | Contents                                                                                                                                                                                                                                                                |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `yaggui.db`         | A SQLite database with your settings and lists (see below).                                                                                                                                                                                                             |
+| `keybindings.json`  | The shortcuts you changed, as `{ "<action id>": "Mod+Shift+K" }`. Only present once you rebind something. See [Palette and shortcuts](../../customize/palette-and-shortcuts/).                                                                                          |
+| `window-state.json` | The size, position and maximized state of the window, restored at the next launch.                                                                                                                                                                                      |
+| `backups/`          | One sub-folder per backup: copies of the files that a discard, a hard reset, a stash of selected files, a `.gitignore` change or an LFS track was about to overwrite. They let you [undo](../../history/undo-and-redo/) these operations and recover the files by hand. |
 
 :::note
 yaggui cleans `backups/` up when it starts: it keeps the backups the undo history still refers to, and deletes the others once they are more than 30 days old or are not among the 100 newest of their repository. See [Backups of discarded files](../../history/undo-and-redo/#backups-of-discarded-files). You can also delete sub-folders yourself, preferably while yaggui is closed.
@@ -65,9 +68,9 @@ yaggui cleans `backups/` up when it starts: it keeps the backups the undo histor
 
 ### What is in yaggui.db
 
-- **Preferences**: every setting of the Preferences window, including the Git path, theme, language, tools, terminal, auto-fetch, protected branches and the update and Gravatar choices. There is no `settings.json`: the database is the only place.
-- **Repositories**: the path, name, favorite flag and last opening time of each repository you opened (the welcome screen's recents and favorites).
-- **Tabs**: the open tabs and their layout, restored at the next launch, and each repository's layout (panel sizes, sidebar sections, graph columns).
+- **Preferences**: every setting of the Preferences window, including the Git path, theme, language, tools, terminal, auto-fetch, protected branches and the update and Gravatar choices. It also records whether the first-launch screen was seen and the version of the last launch, so **What's new** opens once after an update. There is no `settings.json`: the database is the only place.
+- **Repositories**: the path, name (the folder name, or the one you gave with [**Rename…**](../../workspaces/tabs/#rename-a-tab)), favorite flag and last opening time of each repository you opened (the welcome screen's recents and favorites).
+- **Tabs**: the open tabs, which ones are pinned, and their layout, restored at the next launch, and each repository's layout (panel sizes, sidebar sections, graph columns).
 - **Workspaces** and their repositories.
 - **Commit helpers**: identity profiles (label, name, email), commit message templates, and the recent commit messages of each repository.
 - **Graph filters**: the branches hidden or soloed in each graph.
@@ -123,13 +126,13 @@ Your **global Git configuration** (`~/.gitconfig`) changes only when you ask:
 
 ## Environment variables
 
-| Variable                         | Effect                                                                                                                                                                 |
-| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `YAGGUI_CONFIG_DIR`              | Use this folder instead of the config folder (database, `keybindings.json`, `backups/`). Useful for a clean test session: `YAGGUI_CONFIG_DIR=/tmp/yaggui-test yaggui`. |
-| `YAGGUI_CACHE_DIR`               | Use this folder instead of the cache folder.                                                                                                                           |
-| `YAGGUI_LOG_DIR`                 | Use this folder instead of the logs folder.                                                                                                                            |
-| `RUST_LOG`                       | Level of the diagnostic messages yaggui writes to the session log and prints on standard error: `RUST_LOG=debug yaggui`. Default `info`.                               |
-| `WEBKIT_DISABLE_DMABUF_RENDERER` | Linux only. yaggui sets it to `1` on Wayland to avoid a rendering crash; a value you set yourself wins.                                                                |
+| Variable                         | Effect                                                                                                                                                                                      |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `YAGGUI_CONFIG_DIR`              | Use this folder instead of the config folder (database, `keybindings.json`, `window-state.json`, `backups/`). Useful for a clean test session: `YAGGUI_CONFIG_DIR=/tmp/yaggui-test yaggui`. |
+| `YAGGUI_CACHE_DIR`               | Use this folder instead of the cache folder.                                                                                                                                                |
+| `YAGGUI_LOG_DIR`                 | Use this folder instead of the logs folder.                                                                                                                                                 |
+| `RUST_LOG`                       | Level of the diagnostic messages yaggui writes to the session log and prints on standard error: `RUST_LOG=debug yaggui`. Default `info`.                                                    |
+| `WEBKIT_DISABLE_DMABUF_RENDERER` | Linux only. yaggui sets it to `1` on Wayland to avoid a rendering crash; a value you set yourself wins.                                                                                     |
 
 yaggui also removes Git variables such as `GIT_DIR`, `GIT_WORK_TREE` and `GIT_CONFIG_*` from the environment of the commands it runs, so starting it from a Git hook or a rebase does not confuse it.
 

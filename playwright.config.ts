@@ -2,6 +2,8 @@ import { defineConfig, devices } from '@playwright/test';
 
 // Lets environments with a preinstalled Chromium (e.g. CI containers) skip `playwright install`.
 const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
+// Same variable as vite.config.ts: one mock server per checkout when several run side by side.
+const mockPort = process.env.YAGGUI_MOCK_PORT ?? '1430';
 
 export default defineConfig({
   testDir: './e2e',
@@ -18,7 +20,7 @@ export default defineConfig({
   fullyParallel: true,
   reporter: [['list']],
   use: {
-    baseURL: 'http://localhost:1430',
+    baseURL: `http://localhost:${mockPort}`,
     viewport: { width: 1280, height: 800 },
     launchOptions: executablePath ? { executablePath } : {},
   },
@@ -30,7 +32,7 @@ export default defineConfig({
   ],
   webServer: {
     command: 'pnpm dev',
-    url: 'http://localhost:1430',
+    url: `http://localhost:${mockPort}`,
     // Port 1430 is only used by the mock server (see vite.config.ts), so reuse is safe.
     reuseExistingServer: !process.env.CI,
   },

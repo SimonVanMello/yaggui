@@ -52,9 +52,16 @@ const PREF_DISABLED_CONFIRMATIONS: &str = "disabled_confirmations";
 const PREF_GRAVATAR: &str = "gravatar";
 const PREF_REMOTE_TAGS: &str = "remote_tags";
 const PREF_CHECK_UPDATES: &str = "check_updates";
+// First launch screen and "What's new" after an update.
+const PREF_ONBOARDED: &str = "onboarded";
+const PREF_LAST_SEEN_VERSION: &str = "last_seen_version";
+const PREF_SHOW_WHATS_NEW: &str = "show_whats_new";
+const PREF_ZOOM: &str = "zoom";
 /// Folders remembered for the clone / init dialogs.
 const RECENT_DIRS_KEPT: i64 = 10;
 const META_LEGACY_MIGRATED: &str = "legacy_preferences_migrated";
+/// Longest display name of a known repo, in characters (the front checks it too).
+pub const MAX_REPO_NAME_CHARS: usize = 60;
 
 /// File name of the database inside the app config folder.
 pub const DB_FILE: &str = "yaggui.db";
@@ -151,6 +158,29 @@ impl Store {
         Ok(())
     }
 
+    /// Sets the display name of a known repo; an empty or blank name gives back the folder
+    /// name. Returns the updated repo.
+    pub fn rename_repo(&self, id: u32, name: &str) -> Result<KnownRepo, YagguiError> {
+        let name = name.trim();
+        if name.chars().count() > MAX_REPO_NAME_CHARS {
+            return Err(YagguiError::invalid_argument(
+                format!("A repository name has at most {MAX_REPO_NAME_CHARS} characters."),
+                format!("Un nom de dépôt compte au plus {MAX_REPO_NAME_CHARS} caractères."),
+            ));
+        }
+        let repo = self.repo(id)?.ok_or_else(|| unknown_repo(id))?;
+        let name = if name.is_empty() {
+            folder_name(&repo.path)
+        } else {
+            name.to_owned()
+        };
+        self.conn().execute(
+            "UPDATE repos SET name = ?2 WHERE id = ?1",
+            params![id, name],
+        )?;
+        Ok(KnownRepo { name, ..repo })
+    }
+
     /// Removes the repo from the known list; tabs pointing to it become "new tab" tabs.
     pub fn forget_repo(&self, id: u32) -> Result<(), YagguiError> {
         self.conn()
@@ -163,7 +193,7 @@ impl Store {
     pub fn tabs(&self) -> Result<TabsState, YagguiError> {
         let conn = self.conn();
         let mut stmt =
-            conn.prepare("SELECT tab_id, repo_id, ui_state FROM tabs ORDER BY position")?;
+            conn.prepare("SELECT tab_id, repo_id, ui_state, pinned FROM tabs ORDER BY position")?;
         let tabs = stmt
             .query_map([], |row| {
                 let repo_id: Option<i64> = row.get(1)?;
@@ -171,6 +201,7 @@ impl Store {
                     id: row.get(0)?,
                     repo_id: repo_id.and_then(|id| u32::try_from(id).ok()),
                     ui_state: row.get(2)?,
+                    pinned: row.get(3)?,
                 })
             })?
             .collect::<Result<Vec<_>, _>>()?;
@@ -188,11 +219,17 @@ impl Store {
         tx.execute("DELETE FROM tabs", [])?;
         {
             let mut insert = tx.prepare(
-                "INSERT INTO tabs (position, tab_id, repo_id, ui_state)
-                 VALUES (?1, ?2, (SELECT id FROM repos WHERE id = ?3), ?4)",
+                "INSERT INTO tabs (position, tab_id, repo_id, ui_state, pinned)
+                 VALUES (?1, ?2, (SELECT id FROM repos WHERE id = ?3), ?4, ?5)",
             )?;
             for (position, tab) in (0_i64..).zip(&state.tabs) {
-                insert.execute(params![position, tab.id, tab.repo_id, tab.ui_state])?;
+                insert.execute(params![
+                    position,
+                    tab.id,
+                    tab.repo_id,
+                    tab.ui_state,
+                    tab.pinned
+                ])?;
             }
         }
         match &state.active_tab_id {
@@ -263,6 +300,10 @@ impl Store {
         load!(gravatar, PREF_GRAVATAR);
         load!(remote_tags, PREF_REMOTE_TAGS);
         load_optional!(check_updates, PREF_CHECK_UPDATES);
+        load!(onboarded, PREF_ONBOARDED);
+        load_optional!(last_seen_version, PREF_LAST_SEEN_VERSION);
+        load!(show_whats_new, PREF_SHOW_WHATS_NEW);
+        load!(zoom, PREF_ZOOM);
         load_optional!(ui_font, PREF_UI_FONT);
         load_optional!(code_font, PREF_CODE_FONT);
         load_optional!(git_path, PREF_GIT_PATH);
@@ -278,6 +319,9 @@ impl Store {
         }
         if !AUTO_FETCH_RANGE.contains(&prefs.auto_fetch_minutes) {
             prefs.auto_fetch_minutes = DEFAULT_AUTO_FETCH_MINUTES;
+        }
+        if !ZOOM_RANGE.contains(&prefs.zoom) {
+            prefs.zoom = DEFAULT_ZOOM;
         }
         Ok(prefs)
     }
@@ -320,9 +364,32 @@ impl Store {
             set_pref(&tx, PREF_GRAVATAR, &prefs.gravatar)?;
             set_pref(&tx, PREF_REMOTE_TAGS, &prefs.remote_tags)?;
             set_pref(&tx, PREF_CHECK_UPDATES, &prefs.check_updates)?;
+            set_pref(&tx, PREF_ONBOARDED, &prefs.onboarded)?;
+            set_pref(&tx, PREF_LAST_SEEN_VERSION, &prefs.last_seen_version)?;
+            set_pref(&tx, PREF_SHOW_WHATS_NEW, &prefs.show_whats_new)?;
+            set_pref(&tx, PREF_ZOOM, &prefs.zoom)?;
             tx.commit()?;
         }
         self.preferences()
+    }
+
+    /// Marks the first-launch screen as seen on an installation that predates it, so it is only
+    /// shown on a fresh config: known repositories or an answer to the update question mean
+    /// yaggui ran here before. Returns whether it changed anything. Run once at startup.
+    pub fn settle_onboarding(&self) -> Result<bool, YagguiError> {
+        let conn = self.conn();
+        if get_pref::<bool>(&conn, PREF_ONBOARDED)? == Some(true) {
+            return Ok(false);
+        }
+        let repos: i64 = conn.query_row("SELECT COUNT(*) FROM repos", [], |row| row.get(0))?;
+        let answered = get_pref::<Option<bool>>(&conn, PREF_CHECK_UPDATES)?
+            .flatten()
+            .is_some();
+        if repos == 0 && !answered {
+            return Ok(false);
+        }
+        set_pref(&conn, PREF_ONBOARDED, &true)?;
+        Ok(true)
     }
 
     // ---- Recent folders ----------------------------------------------------------------
@@ -389,6 +456,13 @@ fn row_to_repo(row: &rusqlite::Row<'_>) -> rusqlite::Result<KnownRepo> {
         favorite: row.get(3)?,
         last_opened_at: u32::try_from(last_opened_at).unwrap_or_default(),
     })
+}
+
+/// Default display name of a repo: the last component of its path.
+fn folder_name(path: &str) -> String {
+    Path::new(path)
+        .file_name()
+        .map_or_else(|| path.to_owned(), |n| n.to_string_lossy().into_owned())
 }
 
 fn get_meta(conn: &Connection, key: &str) -> rusqlite::Result<Option<String>> {

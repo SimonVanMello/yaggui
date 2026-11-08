@@ -67,7 +67,10 @@ describe('mockClient', () => {
   });
 
   it('persists tabs and preferences', async () => {
-    const tabs = { tabs: [{ id: 't1', repoId: 1, uiState: '{"sidebar":240}' }], activeTabId: 't1' };
+    const tabs = {
+      tabs: [{ id: 't1', repoId: 1, uiState: '{"sidebar":240}', pinned: true }],
+      activeTabId: 't1',
+    };
     await unwrap(mock.saveTabs(tabs));
     await expect(unwrap(mock.getTabs())).resolves.toEqual(tabs);
 
@@ -86,16 +89,28 @@ describe('mockClient', () => {
       locale: 'fr',
       terminal: null,
       diffView: 'split',
+      // The fixtures have repositories: an existing installation, settled on the first read.
+      onboarded: true,
     });
   });
 
   it('migrates legacy preferences only once', async () => {
     await expect(
       unwrap(mock.migrateLegacyPreferences({ theme: 'light', locale: null })),
-    ).resolves.toEqual({ ...DEFAULT_PREFERENCES, theme: 'light', checkUpdates: false });
+    ).resolves.toEqual({
+      ...DEFAULT_PREFERENCES,
+      theme: 'light',
+      checkUpdates: false,
+      onboarded: true,
+    });
     await expect(
       unwrap(mock.migrateLegacyPreferences({ theme: 'dark', locale: 'fr' })),
-    ).resolves.toEqual({ ...DEFAULT_PREFERENCES, theme: 'light', checkUpdates: false });
+    ).resolves.toEqual({
+      ...DEFAULT_PREFERENCES,
+      theme: 'light',
+      checkUpdates: false,
+      onboarded: true,
+    });
   });
 });
 
@@ -115,6 +130,7 @@ describe('mock events', () => {
       'ptyOutput',
       'ptyExited',
       'updateProgress',
+      'quitRequested',
     ];
     expect(names.sort()).toEqual(Object.keys(events).sort());
   });

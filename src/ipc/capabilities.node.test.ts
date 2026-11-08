@@ -13,4 +13,9 @@ describe('window capabilities', () => {
   it('lets the webview destroy the window after its close-requested handler', () => {
     expect(capabilities.permissions).toContain('core:window:allow-destroy');
   });
+
+  // Zoom in / out (Preferences › Display, ⌘= ⌘- ⌘0) sets the webview zoom.
+  it('lets the webview set its zoom', () => {
+    expect(capabilities.permissions).toContain('core:webview:allow-set-webview-zoom');
+  });
 });

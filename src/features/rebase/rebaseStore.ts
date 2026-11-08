@@ -20,6 +20,11 @@ export interface RebaseSession {
    * base, the backend picks it: the parent of the oldest commit a fixup targets.
    */
   autosquash: boolean;
+  /**
+   * Set by the view: the todo differs from the plan and the rebase has not started, so
+   * leaving loses it (the quit guard asks first, like the view's own close).
+   */
+  edited?: boolean;
 }
 
 interface RebaseStore {
@@ -95,4 +100,10 @@ export function setRebaseRows(repoId: number, rows: RebaseRow[] | null): void {
 
 export function setRebaseStop(repoId: number, stop: RebaseStop | null): void {
   patch(repoId, (session) => ({ ...session, stop }));
+}
+
+/** The view reports whether leaving now would lose an edited todo. */
+export function setRebaseEdited(repoId: number, edited: boolean): void {
+  if ((useRebaseStore.getState().sessions[repoId]?.edited ?? false) === edited) return;
+  patch(repoId, (session) => ({ ...session, edited }));
 }
