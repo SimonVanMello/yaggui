@@ -30,6 +30,9 @@ pub struct Tab {
     pub repo_id: Option<u32>,
     /// Opaque JSON owned by the frontend (panel sizes…), stored as is.
     pub ui_state: Option<String>,
+    /// Pinned tabs stay at the left of the strip. Absent from tabs saved before it existed.
+    #[serde(default)]
+    pub pinned: bool,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, Type)]

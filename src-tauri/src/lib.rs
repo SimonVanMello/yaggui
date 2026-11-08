@@ -44,6 +44,7 @@ pub fn specta_builder() -> Builder<tauri::Wry> {
             commands::graph::list_refs,
             commands::store::list_repos,
             commands::store::set_repo_favorite,
+            commands::store::rename_known_repo,
             commands::store::forget_repo,
             commands::store::get_tabs,
             commands::store::save_tabs,

@@ -53,8 +53,8 @@ describe('mock aligned on the real backend', () => {
     );
     await expect(unwrap(mock.getTabs())).resolves.toEqual({
       tabs: [
-        { id: 'a', repoId: 1, uiState: null },
-        { id: 'b', repoId: null, uiState: null },
+        { id: 'a', repoId: 1, uiState: null, pinned: false },
+        { id: 'b', repoId: null, uiState: null, pinned: false },
       ],
       activeTabId: null,
     });

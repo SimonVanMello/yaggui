@@ -326,6 +326,8 @@ interface PersistedBisect {
 
 /** Same bound as `MAX_REPO_UI_STATE` (bytes of UTF-8). */
 const MAX_REPO_UI_STATE = 64 * 1024;
+/** Longest display name of a known repo, like `MAX_REPO_NAME_CHARS` in the store. */
+const MAX_REPO_NAME_CHARS = 60;
 
 const DEFAULT_MOCK_PREFERENCES: Preferences = {
   theme: 'system',
@@ -3442,6 +3444,32 @@ export class MockBackend {
       this.persist();
       return ok(null);
     },
+    // Tabs workstream: display name of a known repo, like `Store::rename_repo`.
+    renameKnownRepo: (repoId, name) => {
+      const trimmed = name.trim();
+      if (Array.from(trimmed).length > MAX_REPO_NAME_CHARS) {
+        return fail(
+          mockError(
+            'invalidArgument',
+            `A repository name has at most ${String(MAX_REPO_NAME_CHARS)} characters.`,
+            `Un nom de dépôt compte au plus ${String(MAX_REPO_NAME_CHARS)} caractères.`,
+          ),
+        );
+      }
+      const repo = this.find(repoId);
+      if (!repo) {
+        return fail(
+          mockError(
+            'invalidArgument',
+            `Unknown repository #${repoId}.`,
+            `Dépôt n°${repoId} inconnu.`,
+          ),
+        );
+      }
+      repo.known.name = trimmed || folderName(repo.known.path);
+      this.persist();
+      return ok({ ...repo.known });
+    },
     forgetRepo: (repoId) => {
       this.repos = this.repos.filter((repo) => repo.known.id !== repoId);
       // `ON DELETE CASCADE`: the repo leaves its workspaces.
@@ -3473,6 +3501,8 @@ export class MockBackend {
         ...structuredClone(tabs),
         tabs: tabs.tabs.map((tab) => ({
           ...tab,
+          // `pinned INTEGER NOT NULL DEFAULT 0`.
+          pinned: tab.pinned ?? false,
           repoId: tab.repoId !== null && this.find(tab.repoId) ? tab.repoId : null,
         })),
       };

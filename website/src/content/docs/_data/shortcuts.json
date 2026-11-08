@@ -79,6 +79,23 @@
           ]
         },
         {
+          "id": "tab.reopenClosed",
+          "title": {
+            "en": "Reopen closed tab",
+            "fr": "Rouvrir l'onglet fermé"
+          },
+          "mac": [
+            "⌘",
+            "⇧",
+            "T"
+          ],
+          "other": [
+            "Ctrl",
+            "Shift",
+            "T"
+          ]
+        },
+        {
           "id": "tab.next",
           "title": {
             "en": "Next tab",

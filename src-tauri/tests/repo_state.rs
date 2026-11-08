@@ -222,6 +222,22 @@ fn opening_a_subfolder_or_twice_reuses_the_session() {
 }
 
 #[test]
+fn a_renamed_repo_opens_under_its_display_name() {
+    let fx = Fixture::new("clean");
+    let b = backend(false);
+    let id = b.repos.open(&fx.repo_str()).unwrap().id;
+    b.store.rename_repo(id, "Backend").unwrap();
+    // Joining the open session, then a fresh session, both carry the new name.
+    assert_eq!(b.repos.open(&fx.repo_str()).unwrap().name, "Backend");
+    b.repos.close(id);
+    b.repos.close(id);
+    assert_eq!(b.repos.open(&fx.repo_str()).unwrap().name, "Backend");
+    b.store.rename_repo(id, "").unwrap();
+    b.repos.close(id);
+    assert_eq!(b.repos.open(&fx.repo_str()).unwrap().name, "repo");
+}
+
+#[test]
 fn closed_repo_is_not_readable() {
     let fx = Fixture::new("clean");
     let b = backend(false);

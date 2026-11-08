@@ -72,11 +72,13 @@ fn saves_tabs_in_order() {
                 id: "b".into(),
                 repo_id: Some(id),
                 ui_state: Some(r#"{"sidebar":240}"#.into()),
+                pinned: true,
             },
             Tab {
                 id: "a".into(),
                 repo_id: None,
                 ui_state: None,
+                pinned: false,
             },
         ],
         active_tab_id: Some("a".into()),
@@ -101,6 +103,7 @@ fn tabs_survive_forgotten_or_unknown_repos() {
         id: format!("t{repo_id:?}"),
         repo_id,
         ui_state: None,
+        pinned: false,
     };
     store
         .save_tabs(&TabsState {
@@ -112,6 +115,75 @@ fn tabs_survive_forgotten_or_unknown_repos() {
     let tabs = store.tabs().unwrap();
     assert!(tabs.tabs.iter().all(|t| t.repo_id.is_none()));
     assert_eq!(tabs.active_tab_id, None);
+}
+
+// ---- Pinned tabs and repo names (tabs workstream) ---------------------------------------
+
+#[test]
+fn tabs_saved_without_the_pinned_flag_load_unpinned() {
+    let state: TabsState = serde_json::from_str(
+        r#"{"tabs":[{"id":"a","repoId":null,"uiState":null}],"activeTabId":"a"}"#,
+    )
+    .unwrap();
+    assert!(!state.tabs[0].pinned);
+}
+
+#[test]
+fn v7_tabs_upgrade_to_unpinned_tabs() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join(DB_FILE);
+    {
+        // A database as released before pinned tabs: schema v7.
+        let conn = Connection::open(&path).unwrap();
+        conn.execute_batch(migrations::schema_for_tests(7)).unwrap();
+        conn.pragma_update(None, "user_version", 7).unwrap();
+        conn.execute(
+            "INSERT INTO tabs (position, tab_id, repo_id, ui_state) VALUES (0, 't', NULL, NULL)",
+            [],
+        )
+        .unwrap();
+    }
+    let store = Store::open(&path).unwrap();
+    let tabs = store.tabs().unwrap();
+    assert_eq!(tabs.tabs.len(), 1);
+    assert!(!tabs.tabs[0].pinned);
+    let pinned = TabsState {
+        tabs: vec![Tab {
+            pinned: true,
+            ..tabs.tabs[0].clone()
+        }],
+        active_tab_id: None,
+    };
+    store.save_tabs(&pinned).unwrap();
+    assert_eq!(store.tabs().unwrap(), pinned);
+}
+
+#[test]
+fn renames_a_repo_and_gives_back_the_folder_name_when_blank() {
+    let store = store();
+    let id = store.touch_repo("/work/api-server", "api-server").unwrap();
+    let renamed = store.rename_repo(id, "  Backend  ").unwrap();
+    assert_eq!(renamed.name, "Backend");
+    assert_eq!(renamed.path, "/work/api-server");
+    assert_eq!(store.repo(id).unwrap().unwrap().name, "Backend");
+    // Opening it again keeps the chosen name.
+    store.touch_repo("/work/api-server", "api-server").unwrap();
+    assert_eq!(store.repo(id).unwrap().unwrap().name, "Backend");
+
+    assert_eq!(store.rename_repo(id, "   ").unwrap().name, "api-server");
+    assert_eq!(store.repo(id).unwrap().unwrap().name, "api-server");
+}
+
+#[test]
+fn refuses_long_names_and_unknown_repos() {
+    let store = store();
+    let id = store.touch_repo("/r", "r").unwrap();
+    let max = "é".repeat(MAX_REPO_NAME_CHARS);
+    assert_eq!(store.rename_repo(id, &max).unwrap().name, max);
+    let error = store.rename_repo(id, &format!("{max}x")).unwrap_err();
+    assert_eq!(error.code, crate::git::errors::ErrorCode::InvalidArgument);
+    assert_eq!(store.repo(id).unwrap().unwrap().name, max);
+    assert!(store.rename_repo(999, "x").is_err());
 }
 
 #[test]

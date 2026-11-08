@@ -189,6 +189,16 @@ export function closeTabAndRepo(tabId: string): void {
 }
 
 /**
+ * Runs a close of several tabs at once (the tab store's "close others", "close to the
+ * right"), then drops the sessions of the repositories left without a tab.
+ */
+export function closeTabsAndRepos(close: () => void): void {
+  const before = useTabsStore.getState().tabs.flatMap((tab) => tab.repoId ?? []);
+  close();
+  for (const repoId of before) releaseRepo(repoId);
+}
+
+/**
  * Whether `queryKey` belongs to the repository: every per-repository key puts the id right
  * after its name (`['repo-state', repoId]`, `['diff', repoId, …]`), except the Git config
  * entries (`['git-config', 'repo', repoId]`).
@@ -234,13 +244,29 @@ export function resetRepoSession(repoId: number): void {
   forgetRepo(repoId);
 }
 
-/** Display name of a tab's repository, from its session or the known repos list. */
+/**
+ * Display name of a repository: the one the user gave it in the known repos list ("Rename…"),
+ * else the one its session opened with (`useRepoDisplayName` reads both for an id).
+ */
 export function repoDisplayName(
   session: RepoSession | undefined,
   known: KnownRepo | undefined,
 ): string | null {
+  if (known) return known.name;
   if (session?.status === 'open') return session.info.name;
-  return session?.name ?? known?.name ?? null;
+  return session?.name ?? null;
+}
+
+/** Shows a new display name in the session of the repository, if it has one (after a rename). */
+export function renameRepoSession(repoId: number, name: string): void {
+  const session = useRepoSessions.getState().sessions[repoId];
+  if (!session) return;
+  setSession(
+    repoId,
+    session.status === 'open'
+      ? { ...session, info: { ...session.info, name } }
+      : { ...session, name },
+  );
 }
 
 export function activeRepoId(): number | null {

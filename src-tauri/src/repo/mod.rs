@@ -386,8 +386,11 @@ impl RepoManager {
             self.store.ensure_repo(&shown, &name)?
         };
 
+        // The display name the user may have given the repo, else the folder name.
+        let name = self.store.repo(id)?.map_or(name, |known| known.name);
         if let Some(session) = self.acquire(id) {
-            return session.info();
+            // The session keeps the name it opened with: a rename since then shows here.
+            return session.info().map(|info| RepoInfo { name, ..info });
         }
 
         let local = repo.to_thread_local();

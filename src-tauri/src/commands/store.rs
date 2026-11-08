@@ -29,6 +29,20 @@ pub async fn set_repo_favorite(
     state.store.set_favorite(repo_id, favorite)
 }
 
+/// Renames a known repository (its display name in tabs and lists); a blank name gives back
+/// the folder name. Returns the updated repository.
+#[tauri::command]
+#[specta::specta]
+pub async fn rename_known_repo(
+    state: State<'_, AppState>,
+    repo_id: u32,
+    name: String,
+) -> Result<KnownRepo, YagguiError> {
+    let store = Arc::clone(&state.store);
+    // `exists` stats the folder: keep it off the async threads.
+    blocking(move || store.rename_repo(repo_id, &name)).await
+}
+
 /// Removes a repository from the recent list (never touches the folder).
 #[tauri::command]
 #[specta::specta]

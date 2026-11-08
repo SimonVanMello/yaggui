@@ -12,6 +12,7 @@ const ACCELERATED: ReadonlySet<ShellAction> = new Set([
   'newTab',
   'openRepo',
   'closeTab',
+  'reopenClosedTab',
   'toggleLog',
   'toggleSidebar',
   'toggleDetails',
@@ -63,6 +64,7 @@ export function buildAppMenu(locale: Locale): MenuSection[] {
         action('initRepo', 'menu.init'),
         separator,
         action('closeTab', 'menu.closeTab'),
+        action('reopenClosedTab', 'menu.reopenClosedTab'),
       ],
     },
     {

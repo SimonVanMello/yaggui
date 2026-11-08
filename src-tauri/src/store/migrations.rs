@@ -92,6 +92,8 @@ const MIGRATIONS: &[&str] = &[
         state TEXT NOT NULL,
         PRIMARY KEY (repo_id, seq)
     );",
+    // v8: pinned tabs, kept at the left of the strip.
+    "ALTER TABLE tabs ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0;",
 ];
 
 pub fn apply(conn: &mut Connection) -> rusqlite::Result<()> {
