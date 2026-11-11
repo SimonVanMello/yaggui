@@ -65,6 +65,13 @@ export default defineConfig({
       title: 'yaggui',
       description: 'A fast, native Git client for macOS, Windows and Linux.',
       favicon: '/favicon.svg',
+      head: [
+        // A raster fallback for crawlers that do not take the SVG (a multiple of 48px for Google).
+        {
+          tag: 'link',
+          attrs: { rel: 'icon', href: '/favicon-192.png', type: 'image/png', sizes: '192x192' },
+        },
+      ],
       locales: {
         root: { label: 'English', lang: 'en' },
         fr: { label: 'Français', lang: 'fr' },

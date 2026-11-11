@@ -17,6 +17,17 @@ const locale = localeOf(Astro.url);
 const { title, description = t(locale, 'site.description') } = Astro.props;
 const other = locale === 'en' ? 'fr' : 'en';
 const canonical = new URL(Astro.url.pathname, Astro.site);
+// Google reads the site name shown above a result from the home page; without it, it falls back
+// to the registrable domain.
+const siteJsonLd =
+  Astro.url.pathname === '/'
+    ? JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'WebSite',
+        name: 'yaggui',
+        url: new URL('/', Astro.site).href,
+      })
+    : undefined;
 ---
 
 <!doctype html>
@@ -26,11 +37,14 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>{title}</title>
     <meta name="description" content={description} />
+    <link rel="icon" href="/favicon-192.png" type="image/png" sizes="192x192" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="canonical" href={canonical} />
     <link rel="alternate" hreflang={other} href={new URL(alternatePath(Astro.url), Astro.site)} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
+    <meta property="og:site_name" content="yaggui" />
+    {siteJsonLd && <script is:inline type="application/ld+json" set:html={siteJsonLd} />}
     {/* Inline and first, so the page never paints in the wrong theme. */}
     <script is:inline>
       (() => {
